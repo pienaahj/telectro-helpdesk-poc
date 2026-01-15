@@ -416,3 +416,30 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# docker
+*.log
+**/__pycache__/
+
+# backups / dumps
+*.tgz
+*.tar.gz
+*.sql
+*.dump
+
+# local env / secrets
+.env
+*.env
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# logs
+*.log
+logs/
+
+# frappe sites can contain secrets + huge assets
+sites/
+assets/

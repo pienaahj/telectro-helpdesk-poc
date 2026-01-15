@@ -1,0 +1,8 @@
+services:
+  backend:
+    volumes:
+      - assets:/home/frappe/frappe-bench/sites/assets
+
+volumes:
+  assets:
+    name: telectro-helpdesk-poc_assets
