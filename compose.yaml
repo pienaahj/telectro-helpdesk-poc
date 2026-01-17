@@ -7,11 +7,11 @@ services:
       restart_policy:
         condition: on-failure
     volumes:
+      - apps:/home/frappe/frappe-bench/apps
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - apps:/home/frappe/frappe-bench/apps
-
+      - env:/home/frappe/frappe-bench/env
     environment:
       DB_HOST: db
       DB_PORT: "3306"
@@ -148,9 +148,11 @@ services:
       - --queue
       - long,default,short
     volumes:
-      - sites:/home/frappe/frappe-bench/sites
-      - logs:/home/frappe/frappe-bench/logs
       - apps:/home/frappe/frappe-bench/apps
+      - sites:/home/frappe/frappe-bench/sites
+      - assets:/home/frappe/frappe-bench/sites/assets
+      - logs:/home/frappe/frappe-bench/logs
+      - env:/home/frappe/frappe-bench/env
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
@@ -168,9 +170,11 @@ services:
       - --queue
       - short,default
     volumes:
-      - sites:/home/frappe/frappe-bench/sites
-      - logs:/home/frappe/frappe-bench/logs
       - apps:/home/frappe/frappe-bench/apps
+      - sites:/home/frappe/frappe-bench/sites
+      - assets:/home/frappe/frappe-bench/sites/assets
+      - logs:/home/frappe/frappe-bench/logs
+      - env:/home/frappe/frappe-bench/env
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
@@ -204,13 +208,17 @@ services:
       - bench
       - schedule
     volumes:
-      - sites:/home/frappe/frappe-bench/sites
-      - logs:/home/frappe/frappe-bench/logs
       - apps:/home/frappe/frappe-bench/apps
+      - sites:/home/frappe/frappe-bench/sites
+      - assets:/home/frappe/frappe-bench/sites/assets
+      - logs:/home/frappe/frappe-bench/logs
+      - env:/home/frappe/frappe-bench/env
   websocket:
     image: frappe/erpnext:v15.94.1
     networks:
       - frappe_network
+    ports:
+    - "9000:9000"
     deploy:
       restart_policy:
         condition: on-failure
@@ -275,11 +283,15 @@ volumes:
   sites:
   logs:
   assets:
+    external: true
+    name: telectro-helpdesk-poc_assets
   apps:
+  env:
   dms-maildata:
   dms-state:
   dms-logs:
   dms-config:
+  bench:
 
 networks:
   frappe_network:
