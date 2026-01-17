@@ -118,3 +118,15 @@ docker compose down -v
   ./bin/export-customizations.sh
   ```
   
+## Todo / improvements
+
+### If we keep doing this, we’ll build a custom image to eliminate runtime package installs
+
+- Bake node/yarn into a custom backend image
+
+This makes installs deterministic and avoids any runtime apt-get fallback. Something like:
+
+- Dockerfile.backend that starts from frappe/erpnext:v15.94.1
+- installs node 20 + yarn classic (or just corepack yarn)
+- then use build: for backend
+  
