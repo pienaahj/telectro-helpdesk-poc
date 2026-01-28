@@ -20,7 +20,11 @@ services:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
       CI: "1"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -H 'X-Frappe-Site-Name: frontend' http://localhost:8000/api/method/ping >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS -H 'X-Frappe-Site-Name: frontend' http://localhost:8000/api/method/ping >/dev/null || exit 1",
+        ]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -131,9 +135,9 @@ services:
         condition: service_started
     volumes:
       - sites:/var/www/html/sites
-      - assets:/var/www/html/assets   # <— IMPORTANT (not /assets)
+      - assets:/var/www/html/assets # <— IMPORTANT (not /assets)
       - assets:/assets
-      - apps:/home/frappe/frappe-bench/apps:ro  # <-- ADD (read-only is fine)
+      - apps:/home/frappe/frappe-bench/apps:ro # <-- ADD (read-only is fine)
 
   queue-long:
     image: frappe/erpnext:v15.94.1
@@ -218,7 +222,7 @@ services:
     networks:
       - frappe_network
     ports:
-    - "9000:9000"
+      - "9000:9000"
     deploy:
       restart_policy:
         condition: on-failure
@@ -228,12 +232,17 @@ services:
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+      FRAPPE_URL: http://backend:8000
+      FRAPPE_HOST: backend
+      FRAPPE_PORT: 8000
+      SOCKETIO_PORT: 9000
+      FRAPPE_SITE_NAME: frontend
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
       - apps:/home/frappe/frappe-bench/apps
   mail:
-    image: mailserver/docker-mailserver:14.0.0   # example pinned
+    image: mailserver/docker-mailserver:14.0.0 # example pinned
     platform: linux/arm64
     hostname: mail
     domainname: local.test
@@ -241,9 +250,9 @@ services:
       - frappe_network
     # Avoid privileged ports on your host:
     ports:
-      - "1025:25"    # SMTP (host 1025 -> container 25)
-      - "1587:587"   # Submission (optional)
-      - "1143:143"   # IMAP (host 1143 -> container 143)
+      - "1025:25" # SMTP (host 1025 -> container 25)
+      - "127.0.0.1:1587:587" # Submission (optional)
+      - "1143:143" # IMAP (host 1143 -> container 143)
     environment:
       - ENABLE_IMAP=1
       - ENABLE_POP3=0
@@ -275,7 +284,6 @@ services:
       - apps:/home/frappe/frappe-bench/apps
     entrypoint: bash
     command: -lc 'set -e; apt-get update; apt-get install -y curl gnupg ca-certificates; curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y nodejs; npm i -g yarn@1.22.22; chown -R frappe:frappe /home/frappe/frappe-bench; exec sleep infinity'
-
 
 volumes:
   db-data:
