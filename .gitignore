@@ -443,3 +443,7 @@ logs/
 # frappe sites can contain secrets + huge assets
 sites/
 assets/
+
+# temps
+/tmp/
+/temp/
