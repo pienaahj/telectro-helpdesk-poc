@@ -1,36 +1,37 @@
 import frappe
 
 def run(ticket=None):
-    # pick latest ticket if none provided
-    if not ticket:
-        ticket = frappe.get_all(
-            "HD Ticket",
-            order_by="creation desc",
-            pluck="name",
-            limit_page_length=1,
-            ignore_permissions=True,
-        )
-        ticket = ticket[0] if ticket else None
+    ticket = (str(ticket or "").strip())
 
-    if not ticket:
-        print("No HD Ticket found.")
+    if not ticket or ticket in ("<ID>", "{ID}", "ID"):
+        print("ERROR: missing/placeholder ticket id. Example:")
+        print('  bench --site frontend execute telephony.scripts.proof_ticket_assignment.run --kwargs \'{"ticket":"420"}\'')
         return
 
     t = frappe.db.get_value(
         "HD Ticket",
         ticket,
-        ["name", "agent_group", "email_account", "custom_service_area", "status", "_assign", "creation", "modified"],
+        ["name", "creation", "modified", "email_account", "custom_service_area", "agent_group", "status", "_assign"],
         as_dict=True,
     )
 
+    if not t:
+        print(f"ERROR: HD Ticket not found: {ticket}")
+        return
+
     print("Ticket:", t.get("name"))
-    for k in ["creation", "modified", "email_account", "custom_service_area", "agent_group", "status", "_assign"]:
-        print(k.ljust(18), ":", t.get(k))
+    print("creation           :", t.get("creation"))
+    print("modified           :", t.get("modified"))
+    print("email_account      :", t.get("email_account"))
+    print("custom_service_area :", t.get("custom_service_area"))
+    print("agent_group        :", t.get("agent_group"))
+    print("status             :", t.get("status"))
+    print("_assign            :", t.get("_assign"))
 
     todos = frappe.get_all(
         "ToDo",
         filters={"reference_type": "HD Ticket", "reference_name": ticket},
-        fields=["allocated_to", "status", "modified", "owner", "name"],
+        fields=["allocated_to", "status", "modified", "owner", "description"],
         order_by="modified asc",
         ignore_permissions=True,
         limit_page_length=50,
@@ -38,4 +39,15 @@ def run(ticket=None):
 
     print("ToDos:", len(todos))
     for r in todos:
-        print("-", r["allocated_to"], "|", r["status"], "|", r["modified"], "| owner:", r["owner"])
+        print(
+            "-",
+            r.get("allocated_to"),
+            "|",
+            r.get("status"),
+            "|",
+            r.get("modified"),
+            "| owner:",
+            r.get("owner"),
+            "|",
+            (r.get("description") or ""),
+        )
