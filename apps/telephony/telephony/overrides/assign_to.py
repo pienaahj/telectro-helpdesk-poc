@@ -158,7 +158,20 @@ def add(*args, **kwargs):
 def remove(*args, **kwargs):
     d = _merge_args_kwargs(*args, **kwargs)
     _block_if_needed(d, 'unassign')
-    return core_assign_to.remove(d)
+
+    # Frappe RPC calls this with kwargs: doctype, name, assign_to
+    doctype = d.get("doctype")
+    name = d.get("name")
+    assign_to = d.get("assign_to")
+
+    # If something weird comes in, fail with a useful message (instead of TypeError)
+    if not doctype or not name or not assign_to:
+        frappe.throw(
+            f"assign_to.remove missing args: doctype={doctype}, name={name}, assign_to={assign_to}"
+        )
+
+    return core_assign_to.remove(doctype, name, assign_to)
+
 
 
 @frappe.whitelist()
