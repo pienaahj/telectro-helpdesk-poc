@@ -1,4 +1,5 @@
 import frappe
+import json
 
 # Per-group round-robin pools
 POOLS = {
@@ -12,6 +13,42 @@ def _is_assigned(assign_val) -> bool:
 
 def _get_group(doc) -> str:
     return (doc.get("agent_group") or doc.get("email_account") or "").strip()
+
+def _parse_assign_users(assign_val) -> list[str]:
+    """HD Ticket._assign is usually a JSON string like '["user@x"]'. Return list of users."""
+    if not assign_val:
+        return []
+    if isinstance(assign_val, list):
+        return [str(x).strip() for x in assign_val if str(x).strip()]
+    if not isinstance(assign_val, str):
+        return []
+    s = assign_val.strip()
+    if not s:
+        return []
+    try:
+        parsed = json.loads(s)
+        if isinstance(parsed, list):
+            return [str(x).strip() for x in parsed if str(x).strip()]
+    except Exception:
+        pass
+    return []
+
+
+def _open_todos_for_ticket(ticket: str):
+    return frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "HD Ticket",
+            "reference_name": ticket,
+            "status": "Open",
+        },
+        fields=["name", "allocated_to", "creation"],
+        order_by="creation desc",  # newest first
+        ignore_permissions=True,
+        limit_page_length=200,
+    )
+
+
 
 def _rr_key(group: str) -> str:
     # Stored in tabSingles under doctype "TELECTRO_RR" (arbitrary keyspace)
@@ -57,43 +94,118 @@ def _next_assignee(group: str) -> str | None:
     _set_idx(group, idx + 1)
     return assignee
 
+def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
+    ticket_name = (ticket_name or "").strip()
+    assignee = (assignee or "").strip()
+    if not ticket_name or not assignee:
+        return
+
+    exists = frappe.db.exists(
+        "ToDo",
+        {
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "allocated_to": assignee,
+            "status": "Open",
+        },
+    )
+    if exists:
+        return
+
+    frappe.get_doc(
+        {
+            "doctype": "ToDo",
+            "allocated_to": assignee,
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "status": "Open",
+            "description": (desc or "")[:140],
+        }
+    ).insert(ignore_permissions=True)
+
+
 def assign_after_insert(doc, method=None):
     # doc_event hook
-
-    # If mirror is already set OR there is already canonical assignment, do nothing.
-    if _is_assigned(doc.get("_assign")):
+    ticket = str(doc.name).strip()
+    if not ticket:
         return
 
-    existing = _todo_assignees(doc.name)
-    if existing:
+    # --- Gate on canonical truth (ToDo), not on cache (_assign) ---
+
+    open_todos = _open_todos_for_ticket(ticket)
+    if open_todos:
+        # If multiple Open ToDos exist, keep newest and close the rest (or keep first)
+        keep = None
+        for td in open_todos:
+            u = (td.get("allocated_to") or "").strip()
+            if u:
+                keep = u
+                break
+
+        if keep:
+            kept = False
+            for td in open_todos:
+                u = (td.get("allocated_to") or "").strip()
+                if (not kept) and u == keep:
+                    kept = True
+                    continue
+                frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
+
         _mirror_assign_from_todo(doc)
         return
+
+    assign_users = _parse_assign_users(doc.get("_assign"))
+    if assign_users:
+        # Drift repair: _assign exists but no Open ToDo → recreate ToDo then mirror
+        assignee = assign_users[0]
+        _ensure_open_todo(
+            ticket,
+            assignee,
+            desc=(doc.get("subject") or "Repair: recreate missing ToDo"),
+        )
+        _mirror_assign_from_todo(doc)
+        return
+
+    # --- Normal RR path (unassigned + no ToDo) ---
 
     group = _get_group(doc)
     assignee = _next_assignee(group)
     if not assignee:
         return
 
-    # Create canonical assignment (ToDo) via core implementation.
-    # Call core directly to avoid any pilot-tech restriction edge cases.
-    from frappe.desk.form import assign_to as core_assign_to
+    assignee = str(assignee).strip()
+    if not assignee:
+        return
 
-    core_assign_to.add(
-        {
-            "doctype": "HD Ticket",
-            "name": doc.name,
-            "assign_to": [assignee],
-            "description": "Auto-assigned (round-robin)",
-        }
-    )
+    # 1) Canonical: enforce exactly ONE Open ToDo for this ticket (owned by assignee)
+    open_todos = _open_todos_for_ticket(ticket)
 
-    # Mirror compat field from canonical ToDo state
+    kept = False
+    for td in open_todos or []:
+        allocated = (td.get("allocated_to") or "").strip()
+
+        if (not kept) and allocated == assignee:
+            kept = True
+            continue
+
+        frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
+
+    if not kept:
+        frappe.get_doc(
+            {
+                "doctype": "ToDo",
+                "allocated_to": assignee,
+                "reference_type": "HD Ticket",
+                "reference_name": ticket,
+                "status": "Open",
+                "description": (doc.get("subject") or "Auto-assigned (round-robin)")[:140],
+            }
+        ).insert(ignore_permissions=True)
+
+    # 2) Mirror cache for list views / filters (ToDo is truth)
     _mirror_assign_from_todo(doc)
 
-    # No manual commit — let the request/job transaction handle it.
-
-
-import json
+    # IMPORTANT: no frappe.db.commit() here
 
 def _todo_assignees(ticket_name: str) -> list[str]:
     rows = frappe.get_all(

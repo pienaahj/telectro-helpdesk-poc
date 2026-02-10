@@ -42,3 +42,10 @@ docker compose cp "${SRC_BASE}/scripts/run_claim_handoff_proof.py" \
 echo "Pulled telephony changes from container."
 git status --porcelain
 
+docker compose cp "${SRC_BASE}/scripts/repair_ticket_assignments.py" \
+  "${DST_BASE}/scripts/repair_ticket_assignments.py"
+
+docker compose cp "${SRC_BASE}/scripts/diagnose_assign_without_todo.py" \
+  "${DST_BASE}/scripts/diagnose_assign_without_todo.py"
+
+
