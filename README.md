@@ -186,6 +186,71 @@ frappe.db.commit()
 frappe.db.rollback()
 ```
 
+## Scripts (developer utilities)
+
+These scripts exist to speed up day-to-day pilot work and reduce “container vs host” confusion.
+
+### `bin/bench-launch.sh` — go straight to bench console (most-used)
+
+Launches an interactive bench console inside the backend container:
+
+```bash
+./bin/bench-launch.sh
+```
+
+Equivalent to:
+
+- docker compose exec -it backend bash
+- cd /home/frappe/frappe-bench
+- bench --site frontend console
+
+Use this for fast iteration / diagnostics while developing in the pilot.
+
+`bin/bench-term.sh` **— backend shell only**
+
+Drops you into a plain shell inside the backend container:
+
+```bash
+./bin/bench-term.sh
+```
+
+Use this when you want to inspect files, run OS-level commands, or run bench commands manually.
+
+`bin/pull-telephony-changes.sh` **— sync container edits back to host git**
+
+During debugging it’s easy to edit files inside the container. This script copies the Telephony files we care about
+out of the backend container into the host repo so changes can be committed and pushed.
+
+```bash
+./bin/pull-telephony-changes.sh
+```
+
+Notes:
+
+- This repo treats host git as the source of truth.
+- The script prints git status --porcelain and git diff --stat at the end so you can see exactly what changed.
+
+````bash
+
+### Optional tiny follow-up (nice polish)
+Fix the usage comment inside `bin/bench-term.sh` (it currently says `bench-launch.sh`). Not required for function, but it’s an easy “paper cut” fix that keeps things tidy:
+
+Change:
+
+```bash
+# Usage:
+#   ./bin/bench-launch.sh
+````
+
+to:
+
+```bash
+# Usage:
+#   ./bin/bench-term.sh
+```
+
+That is technically a code change (one comment line), but still tiny and safe to include in this PR if you want.
+
 ---
 
 ## Stop / reset
@@ -232,4 +297,3 @@ This makes installs deterministic and avoids any runtime apt-get fallback. Somet
 ```yaml
 ---
 ```
-
