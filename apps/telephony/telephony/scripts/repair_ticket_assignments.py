@@ -46,9 +46,11 @@ def _open_todos(ticket: str) -> list[dict]:
 
 
 def _close_todo(name: str, dry_run: int):
+    # IMPORTANT: Closed ToDos can be resurrected to Open by assignment logic.
+    # Cancelled behaves final and prevents old duplicates from being reopened on save().
     if dry_run:
         return
-    frappe.db.set_value("ToDo", name, "status", "Closed", update_modified=False)
+    frappe.db.set_value("ToDo", name, "status", "Cancelled", update_modified=False)
 
 
 def _ensure_open_todo(ticket: str, user: str, desc: str, dry_run: int):
@@ -184,7 +186,7 @@ def _repair_one(ticket: str, prefer_assign: int, dry_run: int) -> dict:
 
 
 @frappe.whitelist()
-def run(limit: int = 50, dry_run: int = 1, prefer_assign: int = 1, only_open: int = 1):
+def run(ticket: str = "", limit: int = 50, dry_run: int = 1, prefer_assign: int = 1, only_open: int = 1):
     """
     Repair assignment drift for recent tickets.
 
@@ -192,7 +194,8 @@ def run(limit: int = 50, dry_run: int = 1, prefer_assign: int = 1, only_open: in
       limit: how many newest HD Tickets to scan
       dry_run: 1=report only, 0=apply changes
       prefer_assign: if no Open ToDo but _assign exists, recreate ToDo from _assign[0]
-      only_open: 1=only status='Open', 0=all statuses
+      only_open: 1=only HD Ticket.status='Open' (scan mode), 0=all statuses
+      ticket: if provided, repairs only that ticket (ignores only_open/limit filters)
     """
     limit = int(limit or 50)
     dry_run = 1 if int(dry_run or 0) else 0
@@ -204,19 +207,24 @@ def run(limit: int = 50, dry_run: int = 1, prefer_assign: int = 1, only_open: in
     print("dry_run      :", dry_run)
     print("prefer_assign:", prefer_assign)
     print("only_open    :", only_open)
+    print("ticket       :", ticket or "<scan>")
 
-    filters = {}
-    if only_open:
-        filters["status"] = "Open"
-
-    rows = frappe.get_all(
-        "HD Ticket",
-        filters=filters,
-        fields=["name", "creation"],
-        order_by="creation desc",
-        limit_page_length=limit,
-        ignore_permissions=True,
-    )
+    ticket = (ticket or "").strip()
+    if ticket:
+        rows = [{"name": ticket}]
+    else:
+        filters = {}
+        if only_open:
+            filters["status"] = "Open"
+            
+        rows = frappe.get_all(
+            "HD Ticket",
+            filters=filters,
+            fields=["name", "creation"],
+            order_by="creation desc",
+            limit_page_length=limit,
+            ignore_permissions=True,
+        )
 
     print("\nTickets scanned:", len(rows))
 
