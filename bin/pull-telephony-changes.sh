@@ -36,6 +36,7 @@ cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_sna
 cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
+cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 
 echo
 echo "✅ Pulled telephony changes from container."
