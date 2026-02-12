@@ -9,6 +9,7 @@ docker compose ps backend >/dev/null
 
 mkdir -p apps/telephony/telephony/overrides
 mkdir -p apps/telephony/telephony/scripts
+mkdir -p apps/telephony/telephony/fixtures
 
 SRC_BASE="backend:/home/frappe/frappe-bench/apps/telephony/telephony"
 DST_BASE="apps/telephony/telephony"
@@ -22,6 +23,7 @@ cp_from_container() {
 
 # --- overrides we care about ---
 cp_from_container "overrides/assign_to.py" "overrides/assign_to.py"
+cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 
 # --- core telephony pilot logic ---
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
@@ -36,7 +38,17 @@ cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_sna
 cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
-cp_from_container "overrides/query_report.py" "overrides/query_report.py"
+
+# --- fixtures (custom fields, client scripts, etc.) ---
+# This is where UI-created pilot customizations land after `bench export-fixtures`.
+cp_from_container "fixtures" "fixtures"
+
+# normalize fixtures path (host may already have fixtures/fixtures nesting)
+if [ -d "${DST_BASE}/fixtures/fixtures" ]; then
+  echo "↪ flatten fixtures/fixtures -> fixtures"
+  rsync -a "${DST_BASE}/fixtures/fixtures/" "${DST_BASE}/fixtures/"
+  rm -rf "${DST_BASE}/fixtures/fixtures"
+fi
 
 echo
 echo "✅ Pulled telephony changes from container."
@@ -46,6 +58,3 @@ echo
 git status --porcelain
 echo
 git diff --stat
-
-
-
