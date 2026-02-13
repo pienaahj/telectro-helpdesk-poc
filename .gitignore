@@ -36,6 +36,11 @@ bld/
 
 # Build results on 'Bin' directories
 **/[Bb]in/*
+
+# ✅ allow repo scripts in bin/
+!**/[Bb]in/
+!**/[Bb]in/**/*.sh
+
 # Add exception for keeping the pull-telephony-changes.sh script in the bin directory, as it is a utility script and not a build output
 !bin/pull-telephony-changes.sh
 
