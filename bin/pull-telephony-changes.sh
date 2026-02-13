@@ -38,6 +38,9 @@ cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_sna
 cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
+# --- app config (fixtures, includes, doc_events, overrides) ---
+cp_from_container "hooks.py" "hooks.py"
+
 
 # --- fixtures (custom fields, client scripts, etc.) ---
 # This is where UI-created pilot customizations land after `bench export-fixtures`.
