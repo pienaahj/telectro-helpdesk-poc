@@ -38,7 +38,7 @@
   "name": "HD Ticket-custom_equipment_ref",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "HD Ticket",
+  "options": "",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",
