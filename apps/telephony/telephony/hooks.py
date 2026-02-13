@@ -9,7 +9,6 @@ app_license = "agpl-3.0"
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "TP%"]]},
 
-    # Pilot: export only what we care about (keep PRs small + repeatable)
     {
         "dt": "Custom Field",
         "filters": [
@@ -17,7 +16,20 @@ fixtures = [
             ["fieldname", "in", ["custom_equipment_ref"]],
         ],
     },
+
+    {
+        "dt": "Client Script",
+        "filters": [
+            ["dt", "=", "HD Ticket"],
+            ["name", "in", [
+                "Clear Customer and filter List",
+                "Claim HD Ticket",
+                "Pull Faults",
+            ]],
+        ],
+    },
 ]
+
 
 # Apps
 # ------------------
