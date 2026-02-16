@@ -12,7 +12,7 @@ def _is_assigned(assign_val) -> bool:
     return bool(assign_val) and assign_val not in ("", "[]", [], None)
 
 def _get_group(doc) -> str:
-    return (doc.get("agent_group") or doc.get("email_account") or "").strip()
+    return (doc.get("agent_group") or "").strip()
 
 def _parse_assign_users(assign_val) -> list[str]:
     """HD Ticket._assign is usually a JSON string like '["user@x"]'. Return list of users."""
@@ -129,7 +129,13 @@ def assign_after_insert(doc, method=None):
     ticket = str(doc.name).strip()
     if not ticket:
         return
+    group = _get_group(doc)
 
+    # Only manage assignment for our pilot pools.
+    # Anything else is handled by Helpdesk/other rules.
+    if group not in POOLS:
+        return
+    
     # --- Gate on canonical truth (ToDo), not on cache (_assign) ---
 
     open_todos = _open_todos_for_ticket(ticket)
@@ -169,9 +175,16 @@ def assign_after_insert(doc, method=None):
     # --- Normal RR path (unassigned + no ToDo) ---
 
     group = _get_group(doc)
+
+    # Only manage assignment for our pilot pools.
+    # Anything else is handled by Helpdesk/other rules.
+    if group not in POOLS:
+        return
+
     assignee = _next_assignee(group)
     if not assignee:
         return
+
 
     assignee = str(assignee).strip()
     if not assignee:
