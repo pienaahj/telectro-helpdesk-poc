@@ -1,6 +1,20 @@
 import json
 import frappe
 
+def _cfg_bool(key: str, default: int = 0) -> bool:
+    try:
+        v = frappe.conf.get(key, default)
+    except Exception:
+        v = default
+    try:
+        return int(v) == 1
+    except Exception:
+        return bool(v)
+
+def _should_raise() -> bool:
+    # Default: do NOT raise (avoid upstream transaction rollback)
+   return int(frappe.conf.get("telephony_assign_guard_raise", 0) or 0) == 1
+
 def _snap_ticket_seq_state() -> dict:
     """
     Snapshot ID allocator state for HD Ticket.
@@ -106,12 +120,15 @@ def add(*args, **kwargs):
                     e,
                     extra={"snap_before": snap_before, "doctype": doctype, "name": name},
                 )
-                raise
+                if _should_raise():
+                    raise
+                return []
 
             # If we don't have a proper doctype/name, we must not call core.get
             if not doctype or not name:
                 _dbg("add:fallback_no_target_return_empty", {"doctype": doctype, "name": name})
                 return []
+
 
             try:
                 return _as_assign_list(core_assign_to.get({"doctype": doctype, "name": name}))
