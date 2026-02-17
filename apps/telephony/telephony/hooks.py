@@ -47,6 +47,15 @@ doc_events.setdefault("HD Ticket", {})
 doc_events["HD Ticket"]["after_insert"] = "telephony.telectro_round_robin.assign_after_insert"
 doc_events["HD Ticket"]["validate"] = "telephony.telectro_assign_sync.dedupe_assign_field"
 doc_events["HD Ticket"]["on_update"] = "telephony.telectro_assign_sync.sync_ticket_assignments"
+doc_events["HD Ticket"]["before_insert"] = "telephony.telectro_intake.populate_from_email"
+
+before_request = list(globals().get("before_request") or [])
+if "telephony.monkey_patches.notification_log_guard.apply" not in before_request:
+    before_request.append("telephony.monkey_patches.notification_log_guard.apply")
+
+before_job = list(globals().get("before_job") or [])
+if "telephony.monkey_patches.notification_log_guard.apply" not in before_job:
+    before_job.append("telephony.monkey_patches.notification_log_guard.apply")
 
 override_whitelisted_methods = (globals().get("override_whitelisted_methods") or {})
 override_whitelisted_methods.update({
