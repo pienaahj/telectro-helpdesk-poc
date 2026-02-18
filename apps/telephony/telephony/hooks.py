@@ -68,3 +68,8 @@ override_whitelisted_methods.update({
     "frappe.desk.query_report.get_script": "telephony.overrides.query_report.get_script",
     "frappe.desk.query_report.run": "telephony.overrides.query_report.run",
 })
+
+override_doctype_class = (globals().get("override_doctype_class") or {})
+override_doctype_class.update({
+    "Email Account": "helpdesk.overrides.email_account.CustomEmailAccount",
+})

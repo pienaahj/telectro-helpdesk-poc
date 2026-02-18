@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fail loudly if we have uncommitted changes, to avoid accidentally overwriting them.
 trap 'echo "❌ pull-telephony-changes failed on line $LINENO" >&2' ERR
 
 # Pull edited Telephony app files out of the running backend container
@@ -10,19 +9,20 @@ trap 'echo "❌ pull-telephony-changes failed on line $LINENO" >&2' ERR
 # --- ensure container exists (and is up) ---
 docker compose ps backend >/dev/null
 
-mkdir -p apps/telephony/telephony/overrides
-mkdir -p apps/telephony/telephony/scripts
-mkdir -p apps/telephony/telephony/fixtures
-mkdir -p apps/telephony/telephony/monkey_patches
-
 SRC_BASE="backend:/home/frappe/frappe-bench/apps/telephony/telephony"
 DST_BASE="apps/telephony/telephony"
+
+# --- ensure common dirs exist on host (safe even if we later sync whole dir) ---
+mkdir -p "${DST_BASE}/overrides"
+mkdir -p "${DST_BASE}/scripts"
+mkdir -p "${DST_BASE}/fixtures"
+mkdir -p "${DST_BASE}/monkey_patches"
+mkdir -p "${DST_BASE}/jobs"
 
 cp_from_container() {
   local src="$1"
   local dst="$2"
 
-  # Check existence in container first (nicer failure than docker cp spew)
   if ! docker compose exec -T backend bash -lc "test -e '/home/frappe/frappe-bench/apps/telephony/telephony/${src}'"; then
     echo "❌ Missing in container: telephony/${src}" >&2
     exit 1
@@ -44,7 +44,25 @@ cp_optional_from_container() {
   fi
 }
 
+# Sync a directory (best-effort): pulls the entire directory as-is.
+# This reduces future script maintenance when new files are added under the dir.
+cp_dir_from_container() {
+  local src_dir="$1"
+  local dst_dir="$2"
 
+  if ! docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}'"; then
+    echo "↪ dir missing (skipped): ${dst_dir}"
+    return 0
+  fi
+
+  echo "⇒ dir ${dst_dir}/"
+  mkdir -p "${DST_BASE}/${dst_dir}"
+  docker compose cp "${SRC_BASE}/${src_dir}" "${DST_BASE}/${dst_dir}"
+}
+
+# --------------------------------------------------------------------
+# 1) Explicit “must-have” files (tight guardrails)
+# --------------------------------------------------------------------
 
 # --- overrides we care about ---
 cp_from_container "overrides/assign_to.py" "overrides/assign_to.py"
@@ -54,8 +72,8 @@ cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
 cp_from_container "telectro_claim.py" "telectro_claim.py"
 
-# --- small helpers / guard wrappers (if present in repo) ---
-cp_from_container "assign_guard.py" "assign_guard.py"
+# --- small helpers / guard wrappers ---
+cp_optional_from_container "assign_guard.py" "assign_guard.py"
 
 # --- scripts folder: proof/diag helpers we rely on ---
 cp_from_container "scripts/diag_assign_roundtrip.py" "scripts/diag_assign_roundtrip.py"
@@ -66,21 +84,34 @@ cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_sna
 cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
-
-# ✅ Stage A proof harness (NEW)
 cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"
 
-# --- notification guard (NEW, from yesterday’s handover) ---
+# --- notification guard ---
 cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/notification_log_guard.py"
 
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
 
-# --- fixtures (custom fields, client scripts, etc.) ---
-# This is where UI-created pilot customizations land after `bench export-fixtures`.
+# --- fixtures directory (export-fixtures output) ---
 cp_from_container "fixtures" "fixtures"
 
-# normalize fixtures path (host may already have fixtures/fixtures nesting)
+# --------------------------------------------------------------------
+# 2) “Low-risk” directory sync (new)
+#    These are areas where new files are expected and should be pulled
+#    without you updating the script each time.
+# --------------------------------------------------------------------
+
+# Jobs were added today (pull_pilot_inboxes.py, jobs/__init__.py)
+cp_dir_from_container "jobs" "jobs"
+
+# Optional: keep these dirs fully synced too (comment out if you want strict lists only)
+# cp_dir_from_container "overrides" "overrides"
+# cp_dir_from_container "scripts" "scripts"
+# cp_dir_from_container "monkey_patches" "monkey_patches"
+
+# --------------------------------------------------------------------
+# 3) Normalize fixtures nesting (unchanged)
+# --------------------------------------------------------------------
 if [ -d "${DST_BASE}/fixtures/fixtures" ]; then
   echo "↪ flatten fixtures/fixtures -> fixtures"
   rsync -a "${DST_BASE}/fixtures/fixtures/" "${DST_BASE}/fixtures/"
@@ -91,7 +122,6 @@ echo
 echo "✅ Pulled telephony changes from container."
 echo
 
-# Show what's changed (short + useful)
 git status --porcelain
 echo
 git diff --stat
