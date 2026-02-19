@@ -44,8 +44,8 @@ cp_optional_from_container() {
   fi
 }
 
-# Sync a directory (best-effort): pulls the entire directory as-is.
-# This reduces future script maintenance when new files are added under the dir.
+# Sync a directory by copying its *contents* (not the directory itself),
+# to avoid nested dst_dir/dst_dir issues with `docker compose cp`.
 cp_dir_from_container() {
   local src_dir="$1"
   local dst_dir="$2"
@@ -57,7 +57,33 @@ cp_dir_from_container() {
 
   echo "⇒ dir ${dst_dir}/"
   mkdir -p "${DST_BASE}/${dst_dir}"
-  docker compose cp "${SRC_BASE}/${src_dir}" "${DST_BASE}/${dst_dir}"
+
+  # Copy each entry in the source dir into the destination dir
+  # This preserves structure under the dir but avoids `dst_dir/src_dir` nesting.
+  docker compose exec -T backend bash -lc "
+    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
+    for p in * .*; do
+      [ \"\$p\" = \".\" ] && continue
+      [ \"\$p\" = \"..\" ] && continue
+      [ \"\$p\" = \".DS_Store\" ] && continue
+      [ ! -e \"\$p\" ] && continue
+      echo \"  - \$p\"
+    done
+  " >/dev/null
+
+  # Use docker compose cp per entry (works reliably)
+  docker compose exec -T backend bash -lc "
+    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
+    for p in * .*; do
+      [ \"\$p\" = \".\" ] && continue
+      [ \"\$p\" = \"..\" ] && continue
+      [ \"\$p\" = \".DS_Store\" ] && continue
+      [ ! -e \"\$p\" ] && continue
+      echo \"\$p\"
+    done
+  " | while IFS= read -r entry; do
+    docker compose cp "${SRC_BASE}/${src_dir}/${entry}" "${DST_BASE}/${dst_dir}/${entry}"
+  done
 }
 
 # --------------------------------------------------------------------
@@ -85,6 +111,9 @@ cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handof
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
 cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"
+# --- jobs (explicit: avoid docker cp directory nesting) ---
+cp_from_container "jobs/__init__.py" "jobs/__init__.py"
+cp_from_container "jobs/pull_pilot_inboxes.py" "jobs/pull_pilot_inboxes.py"
 
 # --- notification guard ---
 cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/notification_log_guard.py"
@@ -100,9 +129,6 @@ cp_from_container "fixtures" "fixtures"
 #    These are areas where new files are expected and should be pulled
 #    without you updating the script each time.
 # --------------------------------------------------------------------
-
-# Jobs were added today (pull_pilot_inboxes.py, jobs/__init__.py)
-cp_dir_from_container "jobs" "jobs"
 
 # Optional: keep these dirs fully synced too (comment out if you want strict lists only)
 # cp_dir_from_container "overrides" "overrides"
