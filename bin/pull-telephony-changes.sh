@@ -114,6 +114,8 @@ cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proo
 # --- jobs (explicit: avoid docker cp directory nesting) ---
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
 cp_from_container "jobs/pull_pilot_inboxes.py" "jobs/pull_pilot_inboxes.py"
+cp_from_container "scripts/job_status_pull_pilot_inboxes.py" "scripts/job_status_pull_pilot_inboxes.py"
+
 
 # --- notification guard ---
 cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/notification_log_guard.py"
