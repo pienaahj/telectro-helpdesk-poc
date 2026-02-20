@@ -3,17 +3,19 @@ import frappe
 BASE = "telephony:pull_pilot_inboxes"
 
 KEYS = [
-    "fingerprint",
-    "stage",
-    "lock_acquired",
-    "last_run",
-    "last_skip",
-    "last_ok",
-    "last_err",
-    "processed_total",
-    "last_comm",
-    "last_ticket",
-    "per_account",
+  "fingerprint",
+  "stage",
+  "lock_acquired",
+  "last_run",
+  "last_start",
+  "last_skip",
+  "last_ok",
+  "last_err",
+  "processed_total",
+  "processed_last_run",
+  "last_comm",
+  "last_ticket",
+  "per_account",
 ]
 
 OK_STALE_AFTER_S = 180

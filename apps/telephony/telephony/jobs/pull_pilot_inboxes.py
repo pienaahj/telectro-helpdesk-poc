@@ -1,5 +1,4 @@
 import frappe
-from frappe.email.receive import EmailServer
 
 # Bump this any time you change logic so you can confirm the scheduler is running the new code.
 JOB_FINGERPRINT = "2026-02-18TDEBUG-02"
@@ -20,10 +19,6 @@ def run():
     _set("last_run", str(frappe.utils.now_datetime()))
     _set("stage", "start")
     _set("last_err", None)
-    _set("last_ok", None)
-    _set("last_comm", None)
-    _set("last_ticket", None)
-    _set("processed_total", 0)
 
     # --- lock (RedisWrapper supports .lock()) ---
     lock_key = f"{BASE}:lock"
@@ -34,6 +29,8 @@ def run():
         _set("last_skip", str(frappe.utils.now_datetime()))
         _set("stage", "skipped")
         return
+    # ✅ only when lock acquired:
+    _set("last_start", str(frappe.utils.now_datetime()))
 
     try:
         total = 0
@@ -89,6 +86,7 @@ def run():
                 _set("stage", f"acct:{acct_name}:error")
 
         _set("processed_total", total)
+        _set("processed_last_run", total)
         _set("per_account", per)
         _set("last_ok", str(frappe.utils.now_datetime()))
         _set("stage", "done")
