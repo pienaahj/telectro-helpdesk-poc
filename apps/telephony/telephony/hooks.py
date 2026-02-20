@@ -41,13 +41,19 @@ app_include_js = [
 ]
 
 # --- TELECTRO: Round-robin assignment for HD Ticket (pilot) ---
-# Merge into existing dicts if they exist, otherwise create them.
 doc_events = (globals().get("doc_events") or {})
+
 doc_events.setdefault("HD Ticket", {})
 doc_events["HD Ticket"]["after_insert"] = "telephony.telectro_round_robin.assign_after_insert"
 doc_events["HD Ticket"]["validate"] = "telephony.telectro_assign_sync.dedupe_assign_field"
 doc_events["HD Ticket"]["on_update"] = "telephony.telectro_assign_sync.sync_ticket_assignments"
+
+# Stage A: lightweight fallback (UI-created tickets etc.)
 doc_events["HD Ticket"]["before_insert"] = "telephony.telectro_intake.populate_from_email"
+
+# ✅ Stage A (real): when inbound mail lands, parse from Communication and update referenced ticket
+doc_events.setdefault("Communication", {})
+doc_events["Communication"]["after_insert"] = "telephony.telectro_intake.populate_ticket_from_communication"
 
 before_request = list(globals().get("before_request") or [])
 if "telephony.monkey_patches.notification_log_guard.apply" not in before_request:

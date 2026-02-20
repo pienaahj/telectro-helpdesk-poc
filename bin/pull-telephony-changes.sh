@@ -115,6 +115,7 @@ cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proo
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
 cp_from_container "jobs/pull_pilot_inboxes.py" "jobs/pull_pilot_inboxes.py"
 cp_from_container "scripts/job_status_pull_pilot_inboxes.py" "scripts/job_status_pull_pilot_inboxes.py"
+cp_from_container "scripts/proof_stage_a_v2.py" "scripts/proof_stage_a_v2.py"
 
 
 # --- notification guard ---
