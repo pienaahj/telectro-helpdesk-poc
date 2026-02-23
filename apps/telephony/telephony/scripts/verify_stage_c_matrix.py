@@ -45,6 +45,13 @@ def run(limit: int = 30, per_inbox: int = 10):
         "telephony:stage_a:last_autoreply_to",
         "telephony:stage_a:last_autoreply_subject",
         "telephony:stage_a:last_autoreply_body",
+
+        "telephony:stage_a:last_autoreply_verdict",
+        "telephony:stage_a:last_autoreply_sent_ok",
+        "telephony:stage_a:last_autoreply_sent_at",
+        "telephony:stage_a:last_autoreply_sent_to",
+        "telephony:stage_a:last_autoreply_error",
+
         "telephony:stage_a:last_ticket",
         "telephony:stage_a:last_updates",
         "telephony:stage_a:last_ok",
@@ -55,7 +62,8 @@ def run(limit: int = 30, per_inbox: int = 10):
         "telephony:stage_a:last_customer_confirm_link",
     ]:
         val = c.get_value(k)
-        if k == "telephony:stage_a:last_autoreply_body" and val:
+        if k in ("telephony:stage_a:last_autoreply_body", "telephony:stage_a:last_autoreply_error") and val:
+            val = val.replace("\n", "\\n")
             val = (val[:220] + "…") if len(val) > 220 else val
         print(k, "=>", val)
 
