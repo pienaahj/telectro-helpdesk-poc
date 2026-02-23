@@ -42,6 +42,9 @@ def run(limit: int = 30, per_inbox: int = 10):
     # 1) Cache breadcrumbs (what happened last)
     print("\n--- Stage A cache breadcrumbs ---")
     for k in [
+        "telephony:stage_a:last_autoreply_to",
+        "telephony:stage_a:last_autoreply_subject",
+        "telephony:stage_a:last_autoreply_body",
         "telephony:stage_a:last_ticket",
         "telephony:stage_a:last_updates",
         "telephony:stage_a:last_ok",
@@ -51,7 +54,10 @@ def run(limit: int = 30, per_inbox: int = 10):
         "telephony:stage_a:last_ticket_link",
         "telephony:stage_a:last_customer_confirm_link",
     ]:
-        print(k, "=>", c.get_value(k))
+        val = c.get_value(k)
+        if k == "telephony:stage_a:last_autoreply_body" and val:
+            val = (val[:220] + "…") if len(val) > 220 else val
+        print(k, "=>", val)
 
     # 2) Load last N tickets
     tickets = frappe.get_all(
