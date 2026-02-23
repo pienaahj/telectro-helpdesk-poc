@@ -115,6 +115,7 @@ cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proo
 cp_from_container "scripts/backfill_stage_a_v2_recent.py" "backfill_stage_a_v2_recent.py"
 cp_from_container "scripts/harness_customer_from_sender.py" "scripts/harness_customer_from_sender.py"
 cp_from_container "scripts/verify_stage_c_matrix.py" "scripts/verify_stage_c_matrix.py"
+cp_from_container "scripts/stage_g_status.py" "scripts/stage_g_status.py"
 
 # --- jobs (explicit: avoid docker cp directory nesting) ---
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
