@@ -1,10 +1,38 @@
 import re
 import frappe
+import hashlib
 
 # --- Parsing helpers ---------------------------------------------------------
 
 _SITE_RE  = re.compile(r"(?i)\bSITE\s*:\s*([^\r\n]+)")
 _ASSET_RE = re.compile(r"(?i)\bASSET\s*:\s*([^\r\n]+)")
+
+def _conf_int(key: str, default: int) -> int:
+    try:
+        v = frappe.conf.get(key)
+    except Exception:
+        v = None
+    if v is None:
+        return default
+    try:
+        return int(v)
+    except Exception:
+        return default
+
+def _dedupe_key_secondary(ticket_id: str, to_email: str, confirm_link: str) -> str:
+    ticket_id = (ticket_id or "").strip()
+    to_email = (to_email or "").strip().lower()
+    confirm_link = (confirm_link or "").strip()
+    raw = f"{ticket_id}|{to_email}|{confirm_link}"
+    h = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+    return f"telephony:autoreply:sent2:{ticket_id}:{h}"
+
+def _cache_set_with_ttl(cache, key: str, value: str, ttl_seconds: int):
+    # Works on modern Frappe; if TTL isn't supported, it will still set value (no TTL).
+    try:
+        cache.set_value(key, value, expires_in_sec=ttl_seconds)
+    except TypeError:
+        cache.set_value(key, value)
 
 def _first_match(pattern: re.Pattern, text: str) -> str | None:
     if not text:
@@ -511,10 +539,17 @@ def _maybe_send_autoreply(
         _skip("missing_comm_name", "missing_comm_name")
         return
 
-    # 7) dedupe ✅ AFTER denylist
+    # 7) primary dedupe (per inbound Communication)
     dk = _dedupe_key_for_comm(comm_name)
     if cache.get_value(dk):
         _skip("dedupe", "dedupe_already_sent")
+        return
+
+    # 7.5) secondary dedupe (ticket + recipient + confirm link) with TTL window
+    ttl = _conf_int("telephony_autoreply_dedupe_window_seconds", 86400)
+    dk2 = _dedupe_key_secondary(ticket_id, to_email, confirm_link)
+    if cache.get_value(dk2):
+        _skip("dedupe_secondary", "dedupe_secondary_window")
         return
 
     # 8) send (never raise)
@@ -533,7 +568,8 @@ def _maybe_send_autoreply(
         )
 
         now = str(frappe.utils.now_datetime())
-        cache.set_value(dk, now)
+        _cache_set_with_ttl(cache, dk, now, ttl)
+        _cache_set_with_ttl(cache, dk2, now, ttl)
         cache.set_value("telephony:stage_a:last_autoreply_verdict", "ok")
         cache.set_value("telephony:stage_a:last_autoreply_sent_ok", "1")
         cache.set_value("telephony:stage_a:last_autoreply_sent_at", now)
