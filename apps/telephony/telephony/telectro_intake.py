@@ -336,26 +336,52 @@ def populate_ticket_from_communication(comm, method=None):
             cache.set_value("telephony:stage_a:last_custom_customer", cust or "")
             cache.set_value("telephony:stage_a:last_customer_map_reason", reason)
 
-            if updates:
-                frappe.db.set_value("HD Ticket", ticket_id, updates, update_modified=False)
+        if updates:
+            frappe.db.set_value("HD Ticket", ticket_id, updates, update_modified=False)
 
-                cache.set_value("telephony:stage_a:last_ticket", ticket_id)
-                cache.set_value("telephony:stage_a:last_updates", list(updates.keys()))
-                cache.set_value("telephony:stage_a:last_ok", str(frappe.utils.now_datetime()))
+            cache.set_value("telephony:stage_a:last_ticket", ticket_id)
+            cache.set_value("telephony:stage_a:last_updates", list(updates.keys()))
+            cache.set_value("telephony:stage_a:last_ok", str(frappe.utils.now_datetime()))
 
-                # E2: deterministic links (no sending yet)
-                base_url = (frappe.utils.get_url() or "").rstrip("/")
-                ticket_link = f"{base_url}/app/hd-ticket/{ticket_id}"
-                cache.set_value("telephony:stage_a:last_ticket_link", ticket_link)
+            # E2: deterministic links (no sending yet)
+            base_url = (frappe.utils.get_url() or "").rstrip("/")
+            ticket_link = f"{base_url}/app/hd-ticket/{ticket_id}"
+            cache.set_value("telephony:stage_a:last_ticket_link", ticket_link)
 
-                # only produce confirm link when we have a customer
-                cust = (updates.get("custom_customer") or tvals.get("custom_customer") or "").strip()
-                if cust:
-                    cust_q = frappe.utils.quote(cust)
-                    confirm_link = f"{base_url}/customer/{cust_q}/tickets/{ticket_id}/confirm"
-                    cache.set_value("telephony:stage_a:last_customer_confirm_link", confirm_link)
-                else:
-                    cache.set_value("telephony:stage_a:last_customer_confirm_link", "")
+            # only produce confirm link when we have a customer
+            cust = (updates.get("custom_customer") or tvals.get("custom_customer") or "").strip()
+            if cust:
+                cust_q = frappe.utils.quote(cust)
+                confirm_link = f"{base_url}/customer/{cust_q}/tickets/{ticket_id}/confirm"
+                cache.set_value("telephony:stage_a:last_customer_confirm_link", confirm_link)
+            else:
+                confirm_link = ""
+                cache.set_value("telephony:stage_a:last_customer_confirm_link", "")
+
+            # F1: auto-reply draft (NO sending yet) ✅ (always produce a draft)
+            to_email = (comm.get("sender") or "").strip().lower()
+            cache.set_value("telephony:stage_a:last_autoreply_to", to_email)
+
+            subject = f"Ticket {ticket_id} received"
+
+            if confirm_link:
+                body = (
+                    f"Hi,\n\n"
+                    f"We created Ticket {ticket_id}.\n\n"
+                    f"Please confirm the details here:\n{confirm_link}\n\n"
+                    f"You can view the ticket here:\n{ticket_link}\n\n"
+                    f"Thanks."
+                )
+            else:
+                body = (
+                    f"Hi,\n\n"
+                    f"We created Ticket {ticket_id}.\n\n"
+                    f"You can view the ticket here:\n{ticket_link}\n\n"
+                    f"Thanks."
+                )
+
+            cache.set_value("telephony:stage_a:last_autoreply_subject", subject)
+            cache.set_value("telephony:stage_a:last_autoreply_body", body)
 
     except Exception:
         # Do not break inbound processing on parsing issues
