@@ -355,6 +355,13 @@ def populate_ticket_from_communication(comm, method=None):
         subject = (comm.get("subject") or "").strip()
         reason = _bounce_reason(sender, subject)
 
+        # J3: keep a "last non-bounce sender" breadcrumb so mailer-daemon doesn't dominate dashboards
+        if not reason:
+            cache.set_value("telephony:stage_a:last_sender_non_bounce", sender or "")
+            cache.set_value("telephony:stage_a:last_sender_non_bounce_ticket", ticket_id)
+            cache.set_value("telephony:stage_a:last_sender_non_bounce_subject", (subject or "")[:140])
+            cache.set_value("telephony:stage_a:last_sender_non_bounce_at", str(frappe.utils.now_datetime()))
+            
         if reason:
             # J1: bounce guard window (rate-limit repeated bounces)
             if _conf_bool("telephony_bounce_guard_enabled", 1):
