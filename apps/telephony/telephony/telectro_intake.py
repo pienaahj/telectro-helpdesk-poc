@@ -7,6 +7,13 @@ import hashlib
 _SITE_RE  = re.compile(r"(?i)\bSITE\s*:\s*([^\r\n]+)")
 _ASSET_RE = re.compile(r"(?i)\bASSET\s*:\s*([^\r\n]+)")
 
+def _bounce_guard_key(sender: str, subject: str) -> str:
+    s = (sender or "").strip().lower()
+    subj = (subject or "").strip().lower()
+    raw = f"{s}|{subj}"
+    h = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+    return f"telephony:bounce:seen:{h}"
+
 def _bounce_reason(sender: str, subject: str) -> str | None:
     sender = (sender or "").strip().lower()
     subject = (subject or "").strip()
@@ -349,8 +356,27 @@ def populate_ticket_from_communication(comm, method=None):
         reason = _bounce_reason(sender, subject)
 
         if reason:
+            # J1: bounce guard window (rate-limit repeated bounces)
+            if _conf_bool("telephony_bounce_guard_enabled", 1):
+                window = max(60, _conf_int("telephony_bounce_guard_window_seconds", 3600))
+                gk = _bounce_guard_key(sender, subject)
+                seen_at = cache.get_value(gk)
+
+                if seen_at is not None:
+                    cache.set_value("telephony:stage_a:last_bounce_guard_hit", "1")
+                    cache.set_value("telephony:stage_a:last_bounce_guard_seen_at", str(seen_at))
+                else:
+                    _cache_set_with_ttl(cache, gk, str(frappe.utils.now_datetime()), window)
+                    cache.set_value("telephony:stage_a:last_bounce_guard_hit", "0")
+                    cache.set_value("telephony:stage_a:last_bounce_guard_seen_at", "")
+
+                cache.set_value("telephony:stage_a:last_bounce_guard_key", gk)
+                cache.set_value("telephony:stage_a:last_bounce_guard_window_seconds", str(window))
+            
+            # close ticket        
             frappe.db.set_value("HD Ticket", ticket_id, {"status": "Closed"}, update_modified=False)
 
+            # set bounce breadcrumbs
             cache.set_value("telephony:stage_a:last_bounce_ticket", ticket_id)
             cache.set_value("telephony:stage_a:last_bounce_reason", reason)
             cache.set_value("telephony:stage_a:last_bounce_subject", subject[:140])
