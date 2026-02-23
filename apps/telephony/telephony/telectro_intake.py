@@ -176,7 +176,9 @@ def populate_from_email(doc, method=None):
         sender = _sender_email(doc)
         if sender:
             try:
-                cust = _customer_from_sender(sender)
+                cust, _reason = _customer_from_sender(sender)
+                if cust:
+                    doc.set("custom_customer", cust)
             except Exception:
                 cust = None
             if cust:
@@ -286,7 +288,7 @@ def populate_ticket_from_communication(comm, method=None):
         tvals = frappe.db.get_value(
             "HD Ticket",
             ticket_id,
-            ["custom_site", "custom_equipment_ref", "custom_customer"],
+            ["custom_site", "custom_equipment_ref", "custom_customer", "email_account"],
             as_dict=True,
         )
         if not tvals:
@@ -315,9 +317,6 @@ def populate_ticket_from_communication(comm, method=None):
 
             # Customer mapping breadcrumbs (interim story)
             cache.set_value("telephony:stage_a:last_sender", sender or "")
-
-            reason = "skip_empty_sender"
-            cust = None
 
             cust = None
             reason = "attempt_lookup"
@@ -348,7 +347,6 @@ def populate_ticket_from_communication(comm, method=None):
             ticket_link = f"{base_url}/app/hd-ticket/{ticket_id}"
             cache.set_value("telephony:stage_a:last_ticket_link", ticket_link)
 
-            # only produce confirm link when we have a customer
             cust = (updates.get("custom_customer") or tvals.get("custom_customer") or "").strip()
             if cust:
                 cust_q = frappe.utils.quote(cust)
@@ -358,12 +356,11 @@ def populate_ticket_from_communication(comm, method=None):
                 confirm_link = ""
                 cache.set_value("telephony:stage_a:last_customer_confirm_link", "")
 
-            # F1: auto-reply draft (NO sending yet) ✅ (always produce a draft)
+            # F1: draft
             to_email = (comm.get("sender") or "").strip().lower()
             cache.set_value("telephony:stage_a:last_autoreply_to", to_email)
 
             subject = f"Ticket {ticket_id} received"
-
             if confirm_link:
                 body = (
                     f"Hi,\n\n"
@@ -383,6 +380,128 @@ def populate_ticket_from_communication(comm, method=None):
             cache.set_value("telephony:stage_a:last_autoreply_subject", subject)
             cache.set_value("telephony:stage_a:last_autoreply_body", body)
 
+            inbox = (tvals.get("email_account") or "").strip()
+
+            _maybe_send_autoreply(
+                comm=comm,
+                ticket_id=ticket_id,
+                cache=cache,
+                to_email=to_email,
+                subject=subject,
+                body=body,
+                inbox=inbox,
+                confirm_link=confirm_link,
+            )
+
     except Exception:
         # Do not break inbound processing on parsing issues
         frappe.log_error(title="Stage A v2 intake failed", message=frappe.get_traceback())
+        
+def _conf_bool(key: str, default: int = 0) -> bool:
+    try:
+        v = frappe.conf.get(key)
+    except Exception:
+        v = None
+    if v is None:
+        v = default
+    if isinstance(v, bool):
+        return v
+    try:
+        return int(v) == 1
+    except Exception:
+        return bool(v)
+
+def _conf_list(key: str, default=None) -> list[str]:
+    default = default or []
+    try:
+        v = frappe.conf.get(key)
+    except Exception:
+        v = None
+    if not v:
+        return list(default)
+    if isinstance(v, (list, tuple)):
+        return [str(x) for x in v if str(x).strip()]
+    # allow comma-separated string
+    if isinstance(v, str):
+        return [s.strip() for s in v.split(",") if s.strip()]
+    return list(default)
+
+def _is_valid_email(addr: str) -> bool:
+    addr = (addr or "").strip()
+    return ("@" in addr) and (" " not in addr) and ("<" not in addr) and (">" not in addr)
+
+def _dedupe_key_for_comm(comm_name: str) -> str:
+    return f"telephony:autoreply:sent:{comm_name}"
+
+def _maybe_send_autoreply(
+    comm,
+    ticket_id: str,
+    cache,
+    to_email: str,
+    subject: str,
+    body: str,
+    inbox: str,
+    confirm_link: str,
+):
+    def _skip(verdict: str, error: str = ""):
+        cache.set_value("telephony:stage_a:last_autoreply_verdict", verdict)
+        cache.set_value("telephony:stage_a:last_autoreply_sent_ok", "0")
+        cache.set_value("telephony:stage_a:last_autoreply_error", error)
+
+    # 1) global toggle
+    if not _conf_bool("telephony_autoreply_enabled", 0):
+        _skip("disabled")
+        return
+
+    # 2) allowlist inboxes
+    allowed = _conf_list("telephony_autoreply_inboxes", ["Routing"])
+    if allowed and inbox not in allowed:
+        _skip(f"inbox_blocked:{inbox}")
+        return
+
+    # 3) require customer-confirm link (i.e. mapped customer)
+    if _conf_bool("telephony_autoreply_require_customer", 1) and not (confirm_link or "").strip():
+        _skip("missing_customer")
+        return
+
+    # 4) validate recipient
+    if not _is_valid_email(to_email):
+        _skip("invalid_to_email", "invalid_to_email")
+        return
+
+    # 5) dedupe per inbound Communication
+    comm_name = (comm.get("name") or "").strip()
+    if not comm_name:
+        _skip("missing_comm_name", "missing_comm_name")
+        return
+
+    dk = _dedupe_key_for_comm(comm_name)
+    already = cache.get_value(dk)
+    if already:
+        _skip("dedupe", "dedupe_already_sent")
+        return
+
+    # 6) send (never raise)
+    try:
+        frappe.sendmail(
+            recipients=[to_email],
+            subject=subject,
+            message=body.replace("\n", "<br>"),
+            reference_doctype="HD Ticket",
+            reference_name=ticket_id,
+            delayed=False,
+        )
+
+        now = str(frappe.utils.now_datetime())
+        cache.set_value(dk, now)
+        cache.set_value("telephony:stage_a:last_autoreply_verdict", "ok")
+        cache.set_value("telephony:stage_a:last_autoreply_sent_ok", "1")
+        cache.set_value("telephony:stage_a:last_autoreply_sent_at", now)
+        cache.set_value("telephony:stage_a:last_autoreply_sent_to", to_email)
+        cache.set_value("telephony:stage_a:last_autoreply_error", "")
+
+    except Exception:
+        cache.set_value("telephony:stage_a:last_autoreply_verdict", "error")
+        cache.set_value("telephony:stage_a:last_autoreply_sent_ok", "0")
+        cache.set_value("telephony:stage_a:last_autoreply_error", frappe.get_traceback())
+        frappe.log_error(title="Stage A autoreply send failed", message=frappe.get_traceback())

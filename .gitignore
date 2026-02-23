@@ -455,3 +455,6 @@ assets/
 # temps
 /tmp/
 /temp/
+
+# runtime/site config (never commit)
+ops/site-config/
