@@ -7,6 +7,27 @@ import hashlib
 _SITE_RE  = re.compile(r"(?i)\bSITE\s*:\s*([^\r\n]+)")
 _ASSET_RE = re.compile(r"(?i)\bASSET\s*:\s*([^\r\n]+)")
 
+def _bounce_reason(sender: str, subject: str) -> str | None:
+    sender = (sender or "").strip().lower()
+    subject = (subject or "").strip()
+
+    # sender prefix denylist
+    prefixes = _conf_list("telephony_autoreply_sender_block_prefixes", ["mailer-daemon", "postmaster"])
+    for p in prefixes:
+        p = (p or "").strip().lower()
+        if p and sender.startswith(p + "@"):
+            return f"sender_blocked:{p}"
+
+    # subject contains denylist
+    needles = _conf_list("telephony_autoreply_subject_block_contains", ["Undelivered Mail Returned to Sender"])
+    s = subject.lower()
+    for n in needles:
+        n = (n or "").strip()
+        if n and n.lower() in s:
+            return f"subject_blocked:{n}"
+
+    return None
+
 def _conf_int(key: str, default: int) -> int:
     try:
         v = frappe.conf.get(key)
@@ -320,6 +341,22 @@ def populate_ticket_from_communication(comm, method=None):
             as_dict=True,
         )
         if not tvals:
+            return
+        
+        # H1: Auto-close bounce/system tickets
+        sender = (comm.get("sender") or "").strip().lower()
+        subject = (comm.get("subject") or "").strip()
+        reason = _bounce_reason(sender, subject)
+
+        if reason:
+            frappe.db.set_value("HD Ticket", ticket_id, {"status": "Closed"}, update_modified=False)
+
+            cache.set_value("telephony:stage_a:last_bounce_ticket", ticket_id)
+            cache.set_value("telephony:stage_a:last_bounce_reason", reason)
+            cache.set_value("telephony:stage_a:last_bounce_subject", subject[:140])
+            cache.set_value("telephony:stage_a:last_bounce_sender", sender[:140])
+            cache.set_value("telephony:stage_a:last_bounce_at", str(frappe.utils.now_datetime()))
+
             return
 
         text = _comm_text(comm)
