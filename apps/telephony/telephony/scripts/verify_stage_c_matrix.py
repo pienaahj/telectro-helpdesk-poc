@@ -1,5 +1,18 @@
 import frappe
 
+def _is_bounce_sender(sender: str) -> bool:
+    s = (sender or "").strip().lower()
+    return s.startswith("mailer-daemon@") or s.startswith("postmaster@")
+
+def _is_bounce_subject(subject: str) -> bool:
+    subj = (subject or "").strip().lower()
+    return "undelivered mail returned to sender" in subj
+
+def _is_bounce(comm: dict | None) -> bool:
+    if not comm:
+        return False
+    return _is_bounce_sender(comm.get("sender")) or _is_bounce_subject(comm.get("subject"))
+
 def _comm_body(comm_row: dict) -> str:
     return (comm_row.get("text_content") or comm_row.get("content") or "") or ""
 
@@ -22,7 +35,7 @@ def _latest_received_comm(ticket_id: str) -> dict | None:
     )
     return rows[0] if rows else None
 
-def run(limit: int = 30, per_inbox: int = 10):
+def run(limit: int = 30, per_inbox: int = 10, hide_bounces: int = 1, hide_closed_bounces: int = 1):
     """
     Stage C verification matrix.
     Prints latest tickets grouped by inbox and whether comm contains SITE/ASSET tokens.
@@ -31,6 +44,10 @@ def run(limit: int = 30, per_inbox: int = 10):
       limit: how many most recent tickets to scan
       per_inbox: how many rows to print per inbox group (0 = no cap)
     """
+    
+    hide_bounces = int(hide_bounces) if hide_bounces is not None else 1
+    hide_closed_bounces = int(hide_closed_bounces) if hide_closed_bounces is not None else 1
+    
     limit = int(limit) if limit is not None else 30
     per_inbox = int(per_inbox) if per_inbox is not None else 10
 
@@ -78,6 +95,7 @@ def run(limit: int = 30, per_inbox: int = 10):
             "custom_site",
             "custom_equipment_ref",
             "custom_customer",
+            "status",
         ],
         order_by="creation desc",
         limit_page_length=limit,
@@ -103,6 +121,13 @@ def run(limit: int = 30, per_inbox: int = 10):
 
             tid = t["name"]
             comm = _latest_received_comm(tid)
+            is_bounce = _is_bounce(comm)
+            is_closed = ((t.get("status") or "").strip().lower() == "closed")
+
+            if hide_bounces and is_bounce:
+                # if hide_closed_bounces=1, only hide when actually closed; otherwise hide all bounces
+                if (not hide_closed_bounces) or is_closed:
+                    continue
 
             if comm:
                 body = _comm_body(comm)
@@ -110,6 +135,7 @@ def run(limit: int = 30, per_inbox: int = 10):
                 token_str = ("SITE" if has_site else "-") + " " + ("ASSET" if has_asset else "-")
                 sender = (comm.get("sender") or "")
                 comm_id = comm.get("name")
+                    
             else:
                 token_str = "NO_COMM"
                 sender = ""
