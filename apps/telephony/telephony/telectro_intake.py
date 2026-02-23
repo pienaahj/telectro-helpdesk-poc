@@ -433,6 +433,24 @@ def _is_valid_email(addr: str) -> bool:
 def _dedupe_key_for_comm(comm_name: str) -> str:
     return f"telephony:autoreply:sent:{comm_name}"
 
+def _outgoing_sender_for_inbox(inbox: str) -> str:
+    inbox = (inbox or "").strip()
+    if not inbox:
+        return ""
+    try:
+        return (frappe.db.get_value("Email Account", inbox, "email_id") or "").strip()
+    except Exception:
+        return ""
+    
+def _from_header_for_inbox(inbox: str) -> str:
+    inbox = (inbox or "").strip()
+    if not inbox:
+        return ""
+    email = (frappe.db.get_value("Email Account", inbox, "email_id") or "").strip()
+    if not email:
+        return ""
+    return f"{inbox} <{email}>"
+
 def _maybe_send_autoreply(
     comm,
     ticket_id: str,
@@ -500,9 +518,13 @@ def _maybe_send_autoreply(
         return
 
     # 8) send (never raise)
+    from_hdr = _from_header_for_inbox(inbox)
+    
     try:
         frappe.sendmail(
             recipients=[to_email],
+            sender=from_hdr or "",
+            reply_to=(frappe.utils.parseaddr(from_hdr)[1] if from_hdr else None),
             subject=subject,
             message=body.replace("\n", "<br>"),
             reference_doctype="HD Ticket",
