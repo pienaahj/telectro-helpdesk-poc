@@ -459,29 +459,47 @@ def _maybe_send_autoreply(
         _skip(f"inbox_blocked:{inbox}")
         return
 
-    # 3) require customer-confirm link (i.e. mapped customer)
-    if _conf_bool("telephony_autoreply_require_customer", 1) and not (confirm_link or "").strip():
-        _skip("missing_customer")
-        return
+    # 3) denylist: block bounces/system senders  ✅ HERE
+    sender = (comm.get("sender") or "").strip().lower()
+    subject_in = (comm.get("subject") or "").strip()
+
+    block_prefixes = _conf_list("telephony_autoreply_sender_block_prefixes", ["mailer-daemon", "postmaster"])
+    for p in block_prefixes:
+        p = (p or "").strip().lower()
+        if p and sender.startswith(p + "@"):
+            _skip("sender_blocked", f"sender_blocked:{p}")
+            return
+
+    block_contains = _conf_list("telephony_autoreply_subject_block_contains", ["Undelivered Mail Returned to Sender"])
+    for needle in block_contains:
+        needle = (needle or "").strip()
+        if needle and needle.lower() in subject_in.lower():
+            _skip("subject_blocked", f"subject_blocked:{needle}")
+            return
 
     # 4) validate recipient
     if not _is_valid_email(to_email):
         _skip("invalid_to_email", "invalid_to_email")
         return
+    
+    # 5) require customer-confirm link
+    if _conf_bool("telephony_autoreply_require_customer", 1) and not (confirm_link or "").strip():
+        _skip("missing_customer")
+        return
 
-    # 5) dedupe per inbound Communication
+    # 6) comm name
     comm_name = (comm.get("name") or "").strip()
     if not comm_name:
         _skip("missing_comm_name", "missing_comm_name")
         return
 
+    # 7) dedupe ✅ AFTER denylist
     dk = _dedupe_key_for_comm(comm_name)
-    already = cache.get_value(dk)
-    if already:
+    if cache.get_value(dk):
         _skip("dedupe", "dedupe_already_sent")
         return
 
-    # 6) send (never raise)
+    # 8) send (never raise)
     try:
         frappe.sendmail(
             recipients=[to_email],
