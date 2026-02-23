@@ -97,6 +97,7 @@ cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 # --- core telephony pilot logic ---
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
 cp_from_container "telectro_claim.py" "telectro_claim.py"
+cp_from_container "telectro_intake.py" "telectro_intake.py"
 
 # --- small helpers / guard wrappers ---
 cp_optional_from_container "assign_guard.py" "assign_guard.py"
@@ -113,6 +114,7 @@ cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_as
 cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"2026-02-23.md
 cp_from_container "scripts/backfill_stage_a_v2_recent.py" "backfill_stage_a_v2_recent.py"
 cp_from_container "scripts/harness_customer_from_sender.py" "scripts/harness_customer_from_sender.py"
+cp_from_container "scripts/verify_stage_c_matrix.py" "scripts/verify_stage_c_matrix.py"
 
 # --- jobs (explicit: avoid docker cp directory nesting) ---
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
