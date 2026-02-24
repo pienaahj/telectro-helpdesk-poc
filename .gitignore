@@ -458,3 +458,5 @@ assets/
 
 # runtime/site config (never commit)
 ops/site-config/
+# local KMZ import mount
+import/
