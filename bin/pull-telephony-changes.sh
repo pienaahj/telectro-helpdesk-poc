@@ -111,12 +111,13 @@ cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_sna
 cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
 cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
 cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
-cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"2026-02-23.md
+cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"
 cp_from_container "scripts/backfill_stage_a_v2_recent.py" "backfill_stage_a_v2_recent.py"
 cp_from_container "scripts/harness_customer_from_sender.py" "scripts/harness_customer_from_sender.py"
 cp_from_container "scripts/verify_stage_c_matrix.py" "scripts/verify_stage_c_matrix.py"
 cp_from_container "scripts/stage_g_status.py" "scripts/stage_g_status.py"
 cp_from_container "scripts/debug_location_map.py" "scripts/debug_location_map.py"
+cp_from_container "scripts/repair_kmz_location_names.py" "scripts/repair_kmz_location_names.py"
 
 # --- jobs (explicit: avoid docker cp directory nesting) ---
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
