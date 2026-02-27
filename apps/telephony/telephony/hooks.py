@@ -38,6 +38,7 @@ fixtures = [
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-02-04-1",
+    "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
 ]
 
 # --- TELECTRO: Round-robin assignment for HD Ticket (pilot) ---
@@ -45,7 +46,13 @@ doc_events = (globals().get("doc_events") or {})
 
 doc_events.setdefault("HD Ticket", {})
 doc_events["HD Ticket"]["after_insert"] = "telephony.telectro_round_robin.assign_after_insert"
-doc_events["HD Ticket"]["validate"] = "telephony.telectro_assign_sync.dedupe_assign_field"
+
+# ✅ run both validations
+doc_events["HD Ticket"]["validate"] = [
+    "telephony.telectro_assign_sync.dedupe_assign_field",
+    "telephony.telectro_site_guard.validate_site_fields",
+]
+
 doc_events["HD Ticket"]["on_update"] = "telephony.telectro_assign_sync.sync_ticket_assignments"
 
 # Stage A: lightweight fallback (UI-created tickets etc.)

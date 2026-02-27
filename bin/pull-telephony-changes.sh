@@ -116,6 +116,7 @@ cp_from_container "scripts/backfill_stage_a_v2_recent.py" "backfill_stage_a_v2_r
 cp_from_container "scripts/harness_customer_from_sender.py" "scripts/harness_customer_from_sender.py"
 cp_from_container "scripts/verify_stage_c_matrix.py" "scripts/verify_stage_c_matrix.py"
 cp_from_container "scripts/stage_g_status.py" "scripts/stage_g_status.py"
+cp_from_container "scripts/debug_location_map.py" "scripts/debug_location_map.py"
 
 # --- jobs (explicit: avoid docker cp directory nesting) ---
 cp_from_container "jobs/__init__.py" "jobs/__init__.py"
@@ -126,6 +127,9 @@ cp_from_container "scripts/proof_stage_a_v2.py" "scripts/proof_stage_a_v2.py"
 
 # --- notification guard ---
 cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/notification_log_guard.py"
+
+# --- datetime guard ---
+cp_from_container "public/js/telectro_datetime_guard.js" "public/js/telectro_datetime_guard.js"
 
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
