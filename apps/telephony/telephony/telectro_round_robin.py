@@ -8,6 +8,29 @@ POOLS = {
     "SIM": ["tech.bravo@local.test"],
 }
 
+POOL_USER = "helpdesk@local.test"
+
+def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
+    # If already has an Open ToDo, don't interfere
+    open_todos = _open_todos_for_ticket(ticket)
+    if open_todos:
+        return
+
+    # If _assign already set, don't interfere
+    assign_users = _parse_assign_users(frappe.db.get_value("HD Ticket", ticket, "_assign") or "")
+    if assign_users:
+        return
+
+    # Create exactly one Open ToDo for pool user
+    _ensure_open_todo(
+        ticket,
+        POOL_USER,
+        desc=(subject or "Pool")[:140],
+    )
+
+    # Mirror _assign from ToDo (canonical truth)
+    users = _todo_assignees(ticket)
+    frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps(users), update_modified=False)
 def _is_assigned(assign_val) -> bool:
     return bool(assign_val) and assign_val not in ("", "[]", [], None)
 
@@ -126,21 +149,21 @@ def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
 
 def assign_after_insert(doc, method=None):
     # doc_event hook
-    ticket = str(doc.name).strip()
+    ticket = str(getattr(doc, "name", "") or "").strip()
     if not ticket:
         return
+
     group = _get_group(doc)
 
-    # Only manage assignment for our pilot pools.
-    # Anything else is handled by Helpdesk/other rules.
+    # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
     if group not in POOLS:
+        _seed_pool_if_unassigned(ticket, subject=(doc.get("subject") or ""))
         return
-    
-    # --- Gate on canonical truth (ToDo), not on cache (_assign) ---
 
+    # --- Gate on canonical truth (ToDo), not on cache (_assign) ---
     open_todos = _open_todos_for_ticket(ticket)
     if open_todos:
-        # If multiple Open ToDos exist, keep newest and close the rest (or keep first)
+        # keep newest allocated_to (first non-empty), close rest
         keep = None
         for td in open_todos:
             u = (td.get("allocated_to") or "").strip()
@@ -173,49 +196,35 @@ def assign_after_insert(doc, method=None):
         return
 
     # --- Normal RR path (unassigned + no ToDo) ---
-
-    group = _get_group(doc)
-
-    # Only manage assignment for our pilot pools.
-    # Anything else is handled by Helpdesk/other rules.
-    if group not in POOLS:
-        return
-
     assignee = _next_assignee(group)
     if not assignee:
         return
-
 
     assignee = str(assignee).strip()
     if not assignee:
         return
 
-    # 1) Canonical: enforce exactly ONE Open ToDo for this ticket (owned by assignee)
+    # Enforce exactly ONE Open ToDo for this ticket (owned by assignee)
     open_todos = _open_todos_for_ticket(ticket)
 
     kept = False
     for td in open_todos or []:
         allocated = (td.get("allocated_to") or "").strip()
-
         if (not kept) and allocated == assignee:
             kept = True
             continue
-
         frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
 
     if not kept:
-        frappe.get_doc(
-            {
-                "doctype": "ToDo",
-                "allocated_to": assignee,
-                "reference_type": "HD Ticket",
-                "reference_name": ticket,
-                "status": "Open",
-                "description": (doc.get("subject") or "Auto-assigned (round-robin)")[:140],
-            }
-        ).insert(ignore_permissions=True)
+        frappe.get_doc({
+            "doctype": "ToDo",
+            "allocated_to": assignee,
+            "reference_type": "HD Ticket",
+            "reference_name": ticket,
+            "status": "Open",
+            "description": (doc.get("subject") or "Auto-assigned (round-robin)")[:140],
+        }).insert(ignore_permissions=True)
 
-    # 2) Mirror cache for list views / filters (ToDo is truth)
     _mirror_assign_from_todo(doc)
 
     # IMPORTANT: no frappe.db.commit() here

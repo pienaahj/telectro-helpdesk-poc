@@ -1,6 +1,10 @@
 import json
 import frappe
 
+
+POOL_USER = "helpdesk@local.test"
+
+
 def _cfg_bool(key: str, default: int = 0) -> bool:
     try:
         v = frappe.conf.get(key, default)
@@ -13,7 +17,7 @@ def _cfg_bool(key: str, default: int = 0) -> bool:
 
 def _should_raise() -> bool:
     # Default: do NOT raise (avoid upstream transaction rollback)
-   return int(frappe.conf.get("telephony_assign_guard_raise", 0) or 0) == 1
+    return int(frappe.conf.get("telephony_assign_guard_raise", 0) or 0) == 1
 
 def _snap_ticket_seq_state() -> dict:
     """
@@ -104,6 +108,51 @@ def add(*args, **kwargs):
 
         assign_to = d.get("assign_to") or d.get("assign_to_user") or d.get("allocated_to")
         users = _parse_assign_to_users(assign_to)
+        
+        # ---- Pool short-circuit (no core side effects) ----
+        if doctype == "HD Ticket" and name and users == [POOL_USER]:
+            # Ensure exactly one Open ToDo exists for POOL_USER
+            todos = frappe.get_all(
+                "ToDo",
+                filters={
+                    "reference_type": "HD Ticket",
+                    "reference_name": name,
+                    "allocated_to": POOL_USER,
+                },
+                fields=["name", "status", "creation"],
+                order_by="creation desc",
+                ignore_permissions=True,
+                limit_page_length=50,
+            )
+
+            if todos:
+                newest = todos[0]["name"]
+                if (todos[0].get("status") or "") != "Open":
+                    frappe.db.set_value("ToDo", newest, "status", "Open", update_modified=False)
+                for td in todos[1:]:
+                    if (td.get("status") or "") != "Cancelled":
+                        frappe.db.set_value("ToDo", td["name"], "status", "Cancelled", update_modified=False)
+            else:
+                frappe.get_doc({
+                    "doctype": "ToDo",
+                    "allocated_to": POOL_USER,
+                    "reference_type": "HD Ticket",
+                    "reference_name": name,
+                    "status": "Open",
+                    "description": "Pool",
+                }).insert(ignore_permissions=True)
+
+            # Set _assign
+            frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([POOL_USER]), update_modified=False)
+
+            # Delete DocShare if anything created it earlier in the same request
+            frappe.db.delete("DocShare", {
+                "share_doctype": "HD Ticket",
+                "share_name": name,
+                "user": POOL_USER,
+            })
+
+            return [{"assigned_to": POOL_USER}]
 
         _dbg("add:parsed_users", {"assign_to_raw": assign_to, "users": users})
 
@@ -112,15 +161,15 @@ def add(*args, **kwargs):
             payload = _ensure_core_assign_to_shape(d)
 
             try:
-                core_assign_to.add(payload)
-            except Exception as e:
-                _log_assign_error(
-                    "assign_to.add:core_add_failed",
-                    payload,
-                    e,
-                    extra={"snap_before": snap_before, "doctype": doctype, "name": name},
-                )
-                if _should_raise():
+                try:
+                    core_assign_to.add(payload)
+                except Exception as e:
+                    _log_assign_error(
+                        "assign_to.add:core_add_hd_ticket_failed",
+                        payload,
+                        e,
+                        extra={"snap_before": snap_before},
+                    )
                     raise
                 return []
 
@@ -131,6 +180,15 @@ def add(*args, **kwargs):
 
 
             try:
+                # If pool user is the only assignee, avoid core.get() entirely
+                try:
+                    cur = frappe.db.get_value("HD Ticket", name, "_assign") or ""
+                    if cur:
+                        parsed = json.loads(cur)
+                        if parsed == [POOL_USER]:
+                            return [{"assigned_to": POOL_USER}]
+                except Exception:
+                    pass
                 return _as_assign_list(core_assign_to.get({"doctype": doctype, "name": name}))
             except Exception as e:
                 # IMPORTANT: don't rollback ticket creation because UI-shape failed
@@ -180,14 +238,37 @@ def add(*args, **kwargs):
 
                 continue
 
-            # None exist -> create via core (keeps core side effects)
+            # None exist -> create assignment *without* core side effects for pool user
+            if u == POOL_USER:
+                # 1) Create ToDo directly (no share/message)
+                todo = frappe.get_doc({
+                    "doctype": "ToDo",
+                    "allocated_to": u,
+                    "reference_type": "HD Ticket",
+                    "reference_name": name,
+                    "status": "Open",
+                    "description": ("Pool" or "")[:140],
+                })
+                todo.insert(ignore_permissions=True)
+
+                # 2) Ensure _assign is exactly the pool user
+                frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([u]), update_modified=False)
+
+                # 3) Defensive: remove any DocShare created elsewhere
+                frappe.db.delete("DocShare", {
+                    "share_doctype": "HD Ticket",
+                    "share_name": name,
+                    "user": u,
+                })
+
+                continue  # do NOT call core_assign_to.add for pool user
+
+            # Non-pool: keep current behaviour (core side effects ok)
             payload = dict(d)
             payload["doctype"] = "HD Ticket"
             payload["name"] = name
-            payload["assign_to"] = [u]  # core expects list or JSON-list-string
-
-            try:
-                core_assign_to.add(payload)
+            payload["assign_to"] = [u]
+            core_assign_to.add(payload)
             except Exception as e:
                 _log_assign_error(
                     "assign_to.add:core_add_hd_ticket_failed",
