@@ -23,6 +23,9 @@ fixtures = [
             ["fieldname", "in", [
                 "custom_equipment_ref",
                 "custom_fulfilment_party",
+                "custom_request_type",
+                "custom_requested_by",
+                "custom_due_date",
             ]],
         ],
     },
