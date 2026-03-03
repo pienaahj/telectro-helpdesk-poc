@@ -8,6 +8,13 @@ app_license = "agpl-3.0"
 
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "TP%"]]},
+    
+    {
+        "dt": "Workspace",
+        "filters": [
+            ["name", "=", "TELECTRO-POC Tech"],
+        ],
+    },
 
     {
         "dt": "HD Ticket Type",
