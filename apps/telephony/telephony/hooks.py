@@ -39,6 +39,15 @@ fixtures = [
             ]],
         ],
     },
+    
+    {
+        "dt": "Property Setter",
+        "filters": [
+            ["doc_type", "=", "HD Ticket"],
+            ["field_name", "=", "ticket_type"],
+            ["property", "=", ["default"]],
+        ],
+    },      
 ]
 
 
