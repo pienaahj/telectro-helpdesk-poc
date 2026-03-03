@@ -34,9 +34,11 @@ fixtures = [
 # ------------------
 # TELECTRO Pilot hooks
 # ------------------
+import os
 
-# --- TELECTRO: Round-robin assignment for HD Ticket (pilot) ---
-doc_events = (globals().get("doc_events") or {})
+doc_events = dict(globals().get("doc_events") or {})
+doc_events.setdefault("HD Ticket", {})
+doc_events.setdefault("DocShare", {})
 
 def _append_hook(target, event, handler):
     cur = target.get(event)
@@ -51,35 +53,27 @@ def _append_hook(target, event, handler):
         return
     target[event] = [cur, handler]
 
-doc_events.setdefault("HD Ticket", {})
-doc_events.setdefault("DocShare", {})
+# Gate debug-only instrumentation (default OFF)
+TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 
-# make it merge-safe like your other hooks
-cur = doc_events["DocShare"].get("before_insert")
-if not cur:
-    doc_events["DocShare"]["before_insert"] = "telephony.debug_docshare.log_pool_hd_ticket_docshare"
-elif isinstance(cur, list):
-    if "telephony.debug_docshare.log_pool_hd_ticket_docshare" not in cur:
-        cur.append("telephony.debug_docshare.log_pool_hd_ticket_docshare")
-elif cur != "telephony.debug_docshare.log_pool_hd_ticket_docshare":
-    doc_events["DocShare"]["before_insert"] = [cur, "telephony.debug_docshare.log_pool_hd_ticket_docshare"]
+# --- HD Ticket hooks ---
+_append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intake.populate_from_email")
 
-# keep existing after_insert, but add docshare guard too
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.telectro_round_robin.assign_after_insert")
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.hd_ticket_after_insert")
 
-# validate is already a list (leave as-is)
+# validate: keep deterministic order (bucket guard first, then assign/_assign hygiene)
 doc_events["HD Ticket"]["validate"] = [
-    "telephony.telectro_assign_sync.dedupe_assign_field",
     "telephony.telectro_site_guard.validate_site_fields",
+    "telephony.telectro_assign_sync.dedupe_assign_field",
 ]
 
-# keep existing on_update, add docshare guard too
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_assign_sync.sync_ticket_assignments")
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.docshare_guard.hd_ticket_on_update")
 
-# before_insert remains unchanged
-doc_events["HD Ticket"]["before_insert"] = "telephony.telectro_intake.populate_from_email"
+# --- DocShare debug hook (OFF by default) ---
+if TELECTRO_DEBUG:
+    _append_hook(doc_events["DocShare"], "before_insert", "telephony.debug_docshare.log_pool_hd_ticket_docshare")
 
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
@@ -90,23 +84,28 @@ for p in [
     if p not in app_include_js:
         app_include_js.append(p)
 
-# monkey pathes to guard against notification floods and assignment rule loops (pilot)
+# monkey patches to guard against notification floods and assignment rule loops (pilot)
 before_request = list(globals().get("before_request") or [])
 for fn in [
-  "telephony.monkey_patches.notification_log_guard.apply",
-  "telephony.monkey_patches.assignment_rule_debug.apply",
+    "telephony.monkey_patches.notification_log_guard.apply",
 ]:
-  if fn not in before_request:
-    before_request.append(fn)
+    if fn not in before_request:
+        before_request.append(fn)
 
 before_job = list(globals().get("before_job") or [])
 for fn in [
-  "telephony.monkey_patches.notification_log_guard.apply",
-  "telephony.monkey_patches.assignment_rule_debug.apply",
+    "telephony.monkey_patches.notification_log_guard.apply",
 ]:
-  if fn not in before_job:
-    before_job.append(fn)
+    if fn not in before_job:
+        before_job.append(fn)
 
+# Assignment-rule debug is OFF by default
+if TELECTRO_DEBUG:
+    for fn in ["telephony.monkey_patches.assignment_rule_debug.apply"]:
+        if fn not in before_request:
+            before_request.append(fn)
+        if fn not in before_job:
+            before_job.append(fn)
 
 # ✅ Whitelisted method overrides (must exist at module level)
 override_whitelisted_methods = dict(globals().get("override_whitelisted_methods") or {})

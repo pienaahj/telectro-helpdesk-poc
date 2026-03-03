@@ -31,8 +31,6 @@ def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
     # Mirror _assign from ToDo (canonical truth)
     users = _todo_assignees(ticket)
     frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps(users), update_modified=False)
-def _is_assigned(assign_val) -> bool:
-    return bool(assign_val) and assign_val not in ("", "[]", [], None)
 
 def _get_group(doc) -> str:
     return (doc.get("agent_group") or "").strip()
@@ -73,49 +71,41 @@ def _open_todos_for_ticket(ticket: str):
 
 
 
-def _rr_key(group: str) -> str:
-    # Stored in tabSingles under doctype "TELECTRO_RR" (arbitrary keyspace)
-    return f"rr_idx__{group}"
+def _rr_group(group: str) -> str:
+    return (group or "").strip()
+
+def _rr_cursor_key(group: str) -> str:
+    g = _rr_group(group)
+    return f"telectro:rr:v1:idx:{g}"
+
+def _rr_lock_key(group: str) -> str:
+    g = _rr_group(group)
+    return f"telectro:rr:v1:lock:{g}"
 
 def _get_idx(group: str) -> int:
-    key = _rr_key(group)
-    rows = frappe.db.sql(
-        """
-        SELECT value
-        FROM tabSingles
-        WHERE doctype = %s AND field = %s
-        """,
-        ("TELECTRO_RR", key),
-        as_dict=True,
-    )
-    if not rows:
-        return 0
     try:
-        return int(rows[0].get("value") or 0)
+        v = frappe.cache().get_value(_rr_cursor_key(group))
+        return int(v) if v is not None else 0
     except Exception:
         return 0
 
 def _set_idx(group: str, idx: int) -> None:
-    key = _rr_key(group)
-    # Upsert into tabSingles
-    frappe.db.sql(
-        """
-        INSERT INTO tabSingles (doctype, field, value)
-        VALUES (%s, %s, %s)
-        ON DUPLICATE KEY UPDATE value = VALUES(value)
-        """,
-        ("TELECTRO_RR", key, str(int(idx))),
-    )
+    try:
+        # If your cache supports expires_in_sec, you can add it; otherwise omit.
+        frappe.cache().set_value(_rr_cursor_key(group), int(idx))
+    except Exception:
+        pass
 
 def _next_assignee(group: str) -> str | None:
-    pool = POOLS.get(group) or []
+    pool = POOLS.get(_rr_group(group)) or []
     if not pool:
         return None
 
-    idx = _get_idx(group)
-    assignee = pool[idx % len(pool)]
-    _set_idx(group, idx + 1)
-    return assignee
+    with frappe.cache().lock(_rr_lock_key(group), timeout=10, wait=2):
+        idx = _get_idx(group)
+        assignee = pool[idx % len(pool)]
+        _set_idx(group, idx + 1)
+        return assignee
 
 def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
     ticket_name = (ticket_name or "").strip()
@@ -216,14 +206,7 @@ def assign_after_insert(doc, method=None):
         frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
 
     if not kept:
-        frappe.get_doc({
-            "doctype": "ToDo",
-            "allocated_to": assignee,
-            "reference_type": "HD Ticket",
-            "reference_name": ticket,
-            "status": "Open",
-            "description": (doc.get("subject") or "Auto-assigned (round-robin)")[:140],
-        }).insert(ignore_permissions=True)
+        _ensure_open_todo(ticket, assignee, desc=(doc.get("subject") or "Auto-assigned (round-robin)")[:140])
 
     _mirror_assign_from_todo(doc)
 
@@ -247,9 +230,12 @@ def _todo_assignees(ticket_name: str) -> list[str]:
         if u and u not in seen:
             seen.add(u)
             out.append(u)
-    out.sort()
     return out
 
 def _mirror_assign_from_todo(doc) -> None:
     users = _todo_assignees(doc.name)
     doc.db_set("_assign", json.dumps(users), update_modified=False)
+
+def rr_reset(group: str) -> None:
+    """Reset RR cursor for a given group (testing)."""
+    frappe.cache().delete_value(_rr_cursor_key(group))
