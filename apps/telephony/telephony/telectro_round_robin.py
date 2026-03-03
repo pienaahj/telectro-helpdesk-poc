@@ -10,6 +10,8 @@ POOLS = {
 
 POOL_USER = "helpdesk@local.test"
 
+PARTNER_USER = "partner@local.test"  # TODO: set to your actual partner queue user
+
 def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
     # If already has an Open ToDo, don't interfere
     open_todos = _open_todos_for_ticket(ticket)
@@ -101,7 +103,7 @@ def _next_assignee(group: str) -> str | None:
     if not pool:
         return None
 
-    with frappe.cache().lock(_rr_lock_key(group), timeout=10, wait=2):
+    with frappe.cache().lock(_rr_lock_key(group), timeout=10):
         idx = _get_idx(group)
         assignee = pool[idx % len(pool)]
         _set_idx(group, idx + 1)
@@ -144,6 +146,28 @@ def assign_after_insert(doc, method=None):
         return
 
     group = _get_group(doc)
+    
+    # ✅ NEW: Partner routing overrides RR + pool seeding
+    party = (doc.get("custom_fulfilment_party") or "").strip()
+    if party == "Partner":
+        # If already has an Open ToDo, don't interfere
+        open_todos = _open_todos_for_ticket(ticket)
+        if not open_todos:
+            # If _assign already set, don't interfere
+            assign_users = _parse_assign_users(frappe.db.get_value("HD Ticket", ticket, "_assign") or "")
+            if not assign_users:
+                _ensure_open_todo(
+                    ticket,
+                    PARTNER_USER,
+                    desc=(doc.get("subject") or "Partner")[:140],
+                )
+                _mirror_assign_from_todo(doc)
+        return
+
+    # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
+    if group not in POOLS:
+        _seed_pool_if_unassigned(ticket, subject=(doc.get("subject") or ""))
+        return
 
     # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
     if group not in POOLS:
