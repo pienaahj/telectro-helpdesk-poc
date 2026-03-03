@@ -10,10 +10,20 @@ fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "TP%"]]},
 
     {
+        "dt": "HD Ticket Type",
+        "filters": [
+            ["name", "in", ["Faults", "Service Request", "Assistance"]]
+        ],
+    },
+    
+    {
         "dt": "Custom Field",
         "filters": [
             ["dt", "=", "HD Ticket"],
-            ["fieldname", "in", ["custom_equipment_ref"]],
+            ["fieldname", "in", [
+                "custom_equipment_ref",
+                "custom_fulfilment_party",
+            ]],
         ],
     },
 
@@ -25,6 +35,7 @@ fixtures = [
                 "Clear Customer and filter List",
                 "Claim HD Ticket",
                 "Pull Faults",
+                "Ticket Type UX",
             ]],
         ],
     },

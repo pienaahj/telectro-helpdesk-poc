@@ -1,0 +1,29 @@
+[
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-01-16 11:19:57.927979",
+  "name": "Service Request",
+  "priority": null
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-03-03 12:18:31.515113",
+  "name": "Faults",
+  "priority": null
+ },
+ {
+  "description": null,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-03-03 12:19:07.072703",
+  "name": "Assistance",
+  "priority": null
+ }
+]
