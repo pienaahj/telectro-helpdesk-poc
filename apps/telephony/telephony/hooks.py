@@ -33,6 +33,7 @@ fixtures = [
                 "custom_request_type",
                 "custom_requested_by",
                 "custom_due_date",
+                "custom_request_source",
             ]],
         ],
     },
