@@ -58,7 +58,18 @@ fixtures = [
             ["field_name", "=", "ticket_type"],
             ["property", "=", ["default"]],
         ],
-    },      
+    },  
+    
+    {
+        "dt": "Report",
+        "filters": [
+            ["name", "in", [
+                "My HD Tickets",
+                "Unclaimed Missing Group Over 60m",
+                "Unclaimed Missing Group Over 4H",
+            ]],
+        ],
+    },    
 ]
 
 

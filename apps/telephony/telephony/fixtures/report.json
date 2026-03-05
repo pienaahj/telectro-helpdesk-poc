@@ -1,0 +1,165 @@
+[
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [
+   {
+    "default": "",
+    "fieldname": "user",
+    "fieldtype": "Link",
+    "label": "User",
+    "mandatory": 0,
+    "options": "User",
+    "parent": "My HD Tickets",
+    "parentfield": "filters",
+    "parenttype": "Report",
+    "wildcard_filter": 0
+   }
+  ],
+  "is_standard": "No",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-03-05 12:47:38.273877",
+  "module": "Helpdesk",
+  "name": "My HD Tickets",
+  "prepared_report": 0,
+  "query": "",
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "My HD Tickets",
+  "report_script": "# Custom Script Report (Report.report_script) style\n# Output via old-style: data = [columns, rows]\n\nfilters = filters or {}\n\n# Be tolerant of different callers / route filters\nuser = (\n    (filters.get(\"user\") if isinstance(filters, dict) else None)\n    or (filters.get(\"assigned_user\") if isinstance(filters, dict) else None)\n    or frappe.session.user\n    or \"\"\n).strip()\n\ncolumns = [\n    {\"label\": \"Ticket\", \"fieldname\": \"ticket\", \"fieldtype\": \"Link\", \"options\": \"HD Ticket\", \"width\": 120},\n    {\"label\": \"Subject\", \"fieldname\": \"subject\", \"fieldtype\": \"Data\", \"width\": 360},\n    {\"label\": \"Status\", \"fieldname\": \"status\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Priority\", \"fieldname\": \"priority\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Team\", \"fieldname\": \"team\", \"fieldtype\": \"Data\", \"width\": 120},\n    {\"label\": \"Modified\", \"fieldname\": \"modified\", \"fieldtype\": \"Datetime\", \"width\": 160},\n]\n\nif not user:\n    rows = []\nelse:\n    rows = frappe.db.sql(\n        \"\"\"\n        SELECT\n          t.name as ticket,\n          t.subject,\n          t.status,\n          t.priority,\n          t.agent_group as team,\n          t.modified\n        FROM `tabHD Ticket` t\n        WHERE EXISTS (\n          SELECT 1\n          FROM `tabToDo` td\n          WHERE td.reference_type = 'HD Ticket'\n            AND td.reference_name = t.name\n            AND td.allocated_to = %(user)s\n            AND td.status = 'Open'\n        )\n        ORDER BY t.modified DESC\n        LIMIT 200\n        \"\"\",\n        {\"user\": user},\n        as_dict=True,\n    )\n\ndata = [columns, rows]\n",
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-02-06 11:06:30.093164",
+  "module": "Helpdesk",
+  "name": "Unclaimed Missing Group Over 4H",
+  "prepared_report": 0,
+  "query": "SELECT\n  name AS \"Ticket:Link/HD Ticket:90\",\n  subject AS \"Subject::320\",\n  TIMESTAMPDIFF(MINUTE, modified, NOW()) AS \"Idle Min:Int:90\",\n  modified AS \"Last Updated:Datetime:170\",\n  status AS \"Status::90\",\n  custom_service_area AS \"Service Area::120\",\n  owner AS \"Owner::160\"\nFROM `tabHD Ticket`\nWHERE status IN ('Open','Replied')\n  AND (\n    IFNULL(`_assign`, '') IN ('', '[]')\n    OR `_assign` = '[\"helpdesk@local.test\"]'\n  )\n  AND (agent_group IS NULL OR agent_group = '')\n  AND TIMESTAMPDIFF(MINUTE, modified, NOW()) >= 240\nORDER BY modified ASC\nLIMIT 200;\n",
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Unclaimed Missing Group Over 4H",
+  "report_script": null,
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "parent": "Unclaimed Missing Group Over 4H",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 4H",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 4H",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 4H",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "No",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-02-06 11:06:01.996214",
+  "module": "Helpdesk",
+  "name": "Unclaimed Missing Group Over 60m",
+  "prepared_report": 0,
+  "query": "SELECT\n  name AS \"Ticket:Link/HD Ticket:90\",\n  subject AS \"Subject::320\",\n  TIMESTAMPDIFF(MINUTE, modified, NOW()) AS \"Idle Min:Int:90\",\n  modified AS \"Last Updated:Datetime:170\",\n  status AS \"Status::90\",\n  custom_service_area AS \"Service Area::120\",\n  owner AS \"Owner::160\"\nFROM `tabHD Ticket`\nWHERE status IN ('Open','Replied')\n  AND (\n    IFNULL(`_assign`, '') IN ('', '[]')\n    OR `_assign` = '[\"helpdesk@local.test\"]'\n  )\n  AND (agent_group IS NULL OR agent_group = '')\n  AND TIMESTAMPDIFF(MINUTE, modified, NOW()) >= 60\nORDER BY modified ASC\nLIMIT 200;\n",
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Unclaimed Missing Group Over 60m",
+  "report_script": null,
+  "report_type": "Query Report",
+  "roles": [
+   {
+    "parent": "Unclaimed Missing Group Over 60m",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 60m",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 60m",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Unclaimed Missing Group Over 60m",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   }
+  ],
+  "timeout": 0
+ }
+]
