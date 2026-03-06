@@ -1,5 +1,7 @@
 import frappe
 
+MAX_MAILS_PER_ACCOUNT = 25
+
 # Bump this any time you change logic so you can confirm the scheduler is running the new code.
 JOB_FINGERPRINT = "2026-02-18TDEBUG-02"
 
@@ -102,6 +104,7 @@ def run():
     try:
         total = 0
         per = {}
+        blocked_flood = 0
 
         for acct_name in ACCOUNTS:
             _set("stage", f"acct:{acct_name}:start")
@@ -114,6 +117,8 @@ def run():
 
                 # Pull + process ourselves so we can count + capture last Communication
                 mails = acc.get_inbound_mails() or []
+                mails_total = len(mails)
+                mails = mails[:MAX_MAILS_PER_ACCOUNT]
                 skipped_blocked = 0
                 skipped_dedupe = 0
                 processed = 0
@@ -130,6 +135,15 @@ def run():
 
                     if _is_blocked_meta(meta):
                         skipped_blocked += 1
+                        
+                        if skipped_blocked >= 20:
+                            blocked_flood = 1
+                            _set("stage", f"acct:{acct_name}:blocked_flood")
+                            break
+
+                        # attempt to mark as seen so UNSEEN inbox drains over time
+                        uid = meta.get("uid")
+
                         _set("last_skip_meta", {"acct": acct_name, "reason": "blocked", **meta})
                         continue
 
@@ -174,9 +188,11 @@ def run():
                 entry = {
                     "disabled": False,
                     "mails": len(mails),
+                    "mails_total": mails_total,
                     "processed": processed,
                     "skipped_blocked": skipped_blocked,
                     "skipped_dedupe": skipped_dedupe,
+                    "blocked_flood": blocked_flood,
                 }
                 if uids:
                     entry.update({"uid_min": min(uids), "uid_max": max(uids)})
