@@ -32,8 +32,52 @@ def _mail_identity(m):
 def _set(key, val):
     frappe.cache().set_value(f"{BASE}:{key}", val)
 
-def _get(key):
-    return frappe.cache().get_value(f"{BASE}:{key}")
+DEDUPE_TTL_SECONDS = 6 * 3600  # 6 hours
+
+SUBJECT_BLOCK_CONTAINS = [
+    "assigned a new task",
+    "undelivered mail returned to sender",
+]
+
+SENDER_BLOCK_PREFIXES = [
+    "mailer-daemon",
+    "postmaster",
+]
+
+def _dedupe_key(acct: str, ident: str) -> str:
+    return f"{BASE}:dedupe:{acct}:{ident}"
+
+def _dedupe_seen(acct: str, ident: str) -> bool:
+    if not ident:
+        return False
+    return frappe.cache().get_value(_dedupe_key(acct, ident)) is not None
+
+def _dedupe_mark(acct: str, ident: str) -> None:
+    if not ident:
+        return
+    try:
+        frappe.cache().set_value(_dedupe_key(acct, ident), 1, expires_in_sec=DEDUPE_TTL_SECONDS)
+    except TypeError:
+        frappe.cache().set_value(_dedupe_key(acct, ident), 1)
+
+def _is_blocked_meta(meta: dict) -> bool:
+    subj = (meta.get("subject") or "").lower()
+    frm = (meta.get("from") or "").lower()
+    if any(x in subj for x in SUBJECT_BLOCK_CONTAINS):
+        return True
+    if any(frm.startswith(p) for p in SENDER_BLOCK_PREFIXES):
+        return True
+    return False
+
+def _dedupe_ident(meta: dict) -> str:
+    # Prefer UID; fall back to Message-ID
+    uid = meta.get("uid")
+    if uid:
+        return f"uid:{uid}"
+    mid = meta.get("message_id")
+    if mid:
+        return f"mid:{mid}"
+    return ""
 
 def run():
     last_mail_meta = None
@@ -70,35 +114,68 @@ def run():
 
                 # Pull + process ourselves so we can count + capture last Communication
                 mails = acc.get_inbound_mails() or []
+                skipped_blocked = 0
+                skipped_dedupe = 0
                 processed = 0
                 last_comm = None
                 last_ticket = None
 
+                # counters at account scope (define these before the loop)
+                # skipped_blocked = 0
+                # skipped_dedupe = 0
+
                 for m in mails:
-                    # process() returns a Communication doc (or docname depending on version)
-                    comm = m.process()
                     meta = _mail_identity(m)
-                    last_mail_meta = {"acct": acct_name, **meta}
-                    uid = meta.get("uid")
-                    if uid is not None:
+                    ident = _dedupe_ident(meta)
+
+                    if _is_blocked_meta(meta):
+                        skipped_blocked += 1
+                        _set("last_skip_meta", {"acct": acct_name, "reason": "blocked", **meta})
+                        continue
+
+                    if ident and _dedupe_seen(acct_name, ident):
+                        skipped_dedupe += 1
+                        _set("last_skip_meta", {"acct": acct_name, "reason": "dedupe", **meta})
+                        continue
+
+                    # --- process the mail (this is your existing behavior) ---
+                    try:
+                        comm = m.process()
+                        processed += 1
+                        last_comm = getattr(comm, "name", comm)
+
+                        if ident:
+                            _dedupe_mark(acct_name, ident)
+
                         try:
-                            uids.append(int(uid))
+                            cdoc = frappe.get_doc("Communication", last_comm)
+                            if cdoc.reference_doctype == "HD Ticket":
+                                last_ticket = cdoc.reference_name
                         except Exception:
                             pass
-                    processed += 1
-                    last_comm = getattr(comm, "name", comm)
 
-                    # Try to fetch reference (HD Ticket) if it exists
-                    try:
-                        cdoc = frappe.get_doc("Communication", last_comm)
-                        if cdoc.reference_doctype == "HD Ticket":
-                            last_ticket = cdoc.reference_name
-                    except Exception:
-                        pass
+                        last_mail_meta = {"acct": acct_name, **meta}
+                        uid = meta.get("uid")
+                        if uid is not None:
+                            try:
+                                uids.append(int(uid))
+                            except Exception:
+                                pass
 
-                frappe.db.commit()
+                        frappe.db.commit()  # ✅ commit each successful mail
+                    except Exception as e:
+                        frappe.db.rollback()
+                        _set("last_err", f"{acct_name}: {repr(e)[:200]}")
+                        # continue with next mail
+                        continue
 
-                entry = {"disabled": False, "mails": len(mails), "processed": processed}
+                entry = {
+                    "disabled": False,
+                    "mails": len(mails),
+                    "processed": processed,
+                    "skipped_blocked": skipped_blocked,
+                    "skipped_dedupe": skipped_dedupe,
+                }
                 if uids:
                     entry.update({"uid_min": min(uids), "uid_max": max(uids)})
                 per[acct_name] = entry
