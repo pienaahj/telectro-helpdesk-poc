@@ -155,6 +155,7 @@ def run():
                             pass
 
                         last_mail_meta = {"acct": acct_name, **meta}
+                        _set("last_mail_meta", last_mail_meta)
                         uid = meta.get("uid")
                         if uid is not None:
                             try:
@@ -166,6 +167,7 @@ def run():
                     except Exception as e:
                         frappe.db.rollback()
                         _set("last_err", f"{acct_name}: {repr(e)[:200]}")
+                        _set("stage", f"acct:{acct_name}:mail_error")
                         # continue with next mail
                         continue
 
