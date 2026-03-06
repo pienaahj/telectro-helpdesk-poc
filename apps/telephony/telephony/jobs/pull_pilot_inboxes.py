@@ -7,6 +7,28 @@ BASE = "telephony:pull_pilot_inboxes"
 
 ACCOUNTS = ["Faults", "Routing", "PABX", "Helpdesk"]
 
+# --- mail identity helpers (best-effort across Frappe versions) ---
+
+def _mail_uid(m):
+    return getattr(m, "uid", None)
+
+def _mail_message_id(m):
+    return getattr(m, "message_id", None) or getattr(m, "msgid", None)
+
+def _mail_from(m):
+    return getattr(m, "from_email", None) or getattr(m, "sender", None) or getattr(m, "from_", None)
+
+def _mail_subject(m):
+    return getattr(m, "subject", None)
+
+def _mail_identity(m):
+    return {
+        "uid": _mail_uid(m),
+        "message_id": _mail_message_id(m),
+        "from": _mail_from(m),
+        "subject": _mail_subject(m),
+    }
+
 def _set(key, val):
     frappe.cache().set_value(f"{BASE}:{key}", val)
 
@@ -14,6 +36,7 @@ def _get(key):
     return frappe.cache().get_value(f"{BASE}:{key}")
 
 def run():
+    last_mail_meta = None
     # --- breadcrumbs ---
     _set("fingerprint", JOB_FINGERPRINT)
     _set("last_run", str(frappe.utils.now_datetime()))
@@ -38,7 +61,7 @@ def run():
 
         for acct_name in ACCOUNTS:
             _set("stage", f"acct:{acct_name}:start")
-
+            uids = []
             try:
                 acc = frappe.get_doc("Email Account", acct_name)
                 if not acc.enable_incoming:
@@ -54,6 +77,14 @@ def run():
                 for m in mails:
                     # process() returns a Communication doc (or docname depending on version)
                     comm = m.process()
+                    meta = _mail_identity(m)
+                    last_mail_meta = {"acct": acct_name, **meta}
+                    uid = meta.get("uid")
+                    if uid is not None:
+                        try:
+                            uids.append(int(uid))
+                        except Exception:
+                            pass
                     processed += 1
                     last_comm = getattr(comm, "name", comm)
 
@@ -67,7 +98,10 @@ def run():
 
                 frappe.db.commit()
 
-                per[acct_name] = {"disabled": False, "mails": len(mails), "processed": processed}
+                entry = {"disabled": False, "mails": len(mails), "processed": processed}
+                if uids:
+                    entry.update({"uid_min": min(uids), "uid_max": max(uids)})
+                per[acct_name] = entry
                 total += processed
 
                 # Update global "last_*" based on most recent processed mail
@@ -85,6 +119,8 @@ def run():
                 _set("last_err", f"{acct_name}: {repr(e)[:500]}")
                 _set("stage", f"acct:{acct_name}:error")
 
+        if last_mail_meta:
+            _set("last_mail_meta", last_mail_meta)
         _set("processed_total", total)
         _set("processed_last_run", total)
         _set("per_account", per)
