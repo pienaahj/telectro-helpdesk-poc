@@ -241,6 +241,14 @@ def populate_from_email(doc, method=None):
             except Exception:
                 cust = None
 
+    # ✅ If customer is now known, default campus deterministically (when blank)
+    if not doc.get("custom_site_group"):
+        cust = doc.get("custom_customer")
+        if cust:
+            default_campus = frappe.db.get_value("Customer", cust, "custom_default_campus")
+            if default_campus:
+                doc.set("custom_site_group", default_campus)
+
 
     # 2) Parse structured tags from subject+description
     text = _text_from_ticket(doc)

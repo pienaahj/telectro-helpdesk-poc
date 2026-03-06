@@ -71,6 +71,14 @@ def _require_site_within_campus(doc) -> None:
     """
     site_group = _norm(doc.get("custom_site_group"))
     site = _norm(doc.get("custom_site"))
+    
+    frappe.cache().set_value("telephony:debug:last_site_containment_fail", {
+        "ts": str(frappe.utils.now_datetime()),
+        "ticket_type": doc.get("ticket_type"),
+        "customer": doc.get("custom_customer"),
+        "campus": doc.get("custom_site_group"),
+        "site": doc.get("custom_site"),
+    })
 
     # If either is missing, don't enforce containment (email triage path)
     if not site_group or not site:
