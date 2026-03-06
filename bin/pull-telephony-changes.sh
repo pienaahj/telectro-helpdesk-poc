@@ -98,6 +98,7 @@ cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
 cp_from_container "telectro_claim.py" "telectro_claim.py"
 cp_from_container "telectro_intake.py" "telectro_intake.py"
+cp_from_container "telectro_site_guard.py" "telectro_site_guard.py"
 
 # --- small helpers / guard wrappers ---
 cp_optional_from_container "assign_guard.py" "assign_guard.py"
