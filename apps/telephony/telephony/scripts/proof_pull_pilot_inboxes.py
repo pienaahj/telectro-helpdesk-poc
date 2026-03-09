@@ -66,6 +66,19 @@ def run(limit=10):
             "last_autoreply_sent_at",
             "last_autoreply_sent_to",
             "last_autoreply_error",
+            "fingerprint",
+            "stage",
+            "lock_acquired",
+            "last_run",
+            "last_start",
+            "last_ok",
+            "last_err",
+            "last_mail_meta",
+            "last_skip_meta",
+            "processed_total",
+            "processed_last_run",
+            "per_account",
+            "last_per_account_nonzero",
         ],
     )
 
@@ -103,3 +116,9 @@ def run(limit=10):
         print(r)
 
     print("")
+    # Print summary of pull pilot inboxes job runs
+    print("\nQuick verdict")
+    print("poller_last_ok       :", frappe.cache().get_value(f"{PULL_BASE}:last_ok"))
+    print("poller_last_err      :", frappe.cache().get_value(f"{PULL_BASE}:last_err"))
+    print("last_skip_meta       :", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_skip_meta")))
+    print("last_nonzero_snapshot:", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_per_account_nonzero")))
