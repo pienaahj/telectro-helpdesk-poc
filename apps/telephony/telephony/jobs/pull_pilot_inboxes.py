@@ -197,6 +197,13 @@ def run():
                 if uids:
                     entry.update({"uid_min": min(uids), "uid_max": max(uids)})
                 per[acct_name] = entry
+                interesting = any(
+                    v.get("mails_total", 0) or v.get("processed", 0) or v.get("skipped_blocked", 0) or v.get("skipped_dedupe", 0)
+                    for v in per.values()
+                    if isinstance(v, dict)
+                )
+                if interesting:
+                    _set("last_per_account_nonzero", per)
                 total += processed
 
                 # Update global "last_*" based on most recent processed mail
