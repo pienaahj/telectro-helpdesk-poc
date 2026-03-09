@@ -60,13 +60,7 @@ def _fmt_age(s):
 
 def run():
     cache = frappe.cache()
-
-    # Avoid stale values in long-lived bench console sessions
-    try:
-        frappe.local.cache = {}
-    except Exception:
-        pass
-
+    
     out = {}
     for k in KEYS:
         try:
@@ -74,6 +68,19 @@ def run():
         except Exception as e:
             out[k] = f"<err: {repr(e)[:120]}>"
 
+    print("\nPilot inbox config")
+    for acct_name in ["Faults", "Routing", "PABX", "Helpdesk"]:
+        try:
+            acc = frappe.get_doc("Email Account", acct_name)
+            print({
+                "name": acct_name,
+                "enable_incoming": acc.enable_incoming,
+                "email_id": getattr(acc, "email_id", None),
+                "email_sync_option": getattr(acc, "email_sync_option", None),
+            })
+        except Exception as e:
+            print({"name": acct_name, "error": repr(e)[:200]})
+    
     now = frappe.utils.now_datetime()
 
     last_run_dt = _to_dt(out.get("last_run"))
