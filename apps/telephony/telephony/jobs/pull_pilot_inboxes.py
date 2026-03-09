@@ -3,7 +3,7 @@ import frappe
 MAX_MAILS_PER_ACCOUNT = 25
 
 # Bump this any time you change logic so you can confirm the scheduler is running the new code.
-JOB_FINGERPRINT = "2026-02-18TDEBUG-02"
+JOB_FINGERPRINT = "2026-03-09-poller-stable-01"
 
 BASE = "telephony:pull_pilot_inboxes"
 
