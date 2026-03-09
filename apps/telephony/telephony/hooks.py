@@ -69,9 +69,32 @@ fixtures = [
                 "Unclaimed Missing Group Over 4H",
             ]],
         ],
+    },
+    
+    {
+        "dt": "Scheduled Job Type",
+        "filters": [
+            ["method", "=", "telephony.jobs.pull_pilot_inboxes.run"],
+        ],
     },    
 ]
 
+# ------------------
+# Crons
+# ------------------
+
+scheduler_events = dict(globals().get("scheduler_events") or {})
+
+cron_events = dict(scheduler_events.get("cron") or {})
+minute_expr = "*/1 * * * *"
+minute_jobs = list(cron_events.get(minute_expr) or [])
+
+job_path = "telephony.jobs.pull_pilot_inboxes.run"
+if job_path not in minute_jobs:
+    minute_jobs.append(job_path)
+
+cron_events[minute_expr] = minute_jobs
+scheduler_events["cron"] = cron_events
 
 # ------------------
 # TELECTRO Pilot hooks
