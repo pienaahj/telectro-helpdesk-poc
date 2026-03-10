@@ -81,6 +81,7 @@ def run(limit=10):
             "last_skip",
             "last_ok",
             "last_err",
+            "last_nonfatal_err",
             "processed_total",
             "processed_last_run",
             "last_comm",
@@ -114,9 +115,9 @@ def run(limit=10):
         print(r)
 
     print("")
-    # Print summary of pull pilot inboxes job runs
     print("\nQuick verdict")
-    print("poller_last_ok       :", frappe.cache().get_value(f"{PULL_BASE}:last_ok"))
-    print("poller_last_err      :", frappe.cache().get_value(f"{PULL_BASE}:last_err"))
-    print("last_skip_meta       :", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_skip_meta")))
-    print("last_nonzero_snapshot:", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_per_account_nonzero")))
+    print("poller_last_ok        :", frappe.cache().get_value(f"{PULL_BASE}:last_ok"))
+    print("poller_last_err       :", frappe.cache().get_value(f"{PULL_BASE}:last_err"))
+    print("poller_last_nonfatal  :", frappe.cache().get_value(f"{PULL_BASE}:last_nonfatal_err"))
+    print("last_skip_meta        :", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_skip_meta")))
+    print("last_nonzero_snapshot :", _pretty(frappe.cache().get_value(f"{PULL_BASE}:last_per_account_nonzero")))
