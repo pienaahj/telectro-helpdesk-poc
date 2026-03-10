@@ -11,6 +11,7 @@ KEYS = [
   "last_skip",
   "last_ok",
   "last_err",
+  "last_nonfatal_err",
   "processed_total",
   "processed_last_run",
   "last_comm",
@@ -60,11 +61,11 @@ def _fmt_age(s):
 
 def run():
     cache = frappe.cache()
-    
+
     out = {}
     for k in KEYS:
         try:
-            out[k] = cache.get_value(f"{BASE}:{k}")  # shared=False matches job writes
+            out[k] = cache.get_value(f"{BASE}:{k}")
         except Exception as e:
             out[k] = f"<err: {repr(e)[:120]}>"
 
@@ -80,7 +81,7 @@ def run():
             })
         except Exception as e:
             print({"name": acct_name, "error": repr(e)[:200]})
-    
+
     now = frappe.utils.now_datetime()
 
     last_run_dt = _to_dt(out.get("last_run"))
@@ -96,17 +97,24 @@ def run():
 
     if out.get("last_err"):
         verdict = "ERR"
-        reasons.append("last_err set")
+        reasons.append("fatal last_err set")
     else:
         if ok_age is None:
             verdict = "WARN"
             reasons.append("last_ok missing")
         elif ok_age <= OK_STALE_AFTER_S:
-            verdict = "OK"
-            reasons.append(f"last_ok {_fmt_age(ok_age)} ago")
+            if out.get("last_nonfatal_err"):
+                verdict = "WARN"
+                reasons.append(f"last_ok {_fmt_age(ok_age)} ago")
+                reasons.append("last_nonfatal_err set")
+            else:
+                verdict = "OK"
+                reasons.append(f"last_ok {_fmt_age(ok_age)} ago")
         elif ok_age <= ERR_STALE_AFTER_S:
             verdict = "WARN"
             reasons.append(f"last_ok stale ({_fmt_age(ok_age)} ago)")
+            if out.get("last_nonfatal_err"):
+                reasons.append("last_nonfatal_err set")
         else:
             verdict = "ERR"
             reasons.append(f"last_ok too old ({_fmt_age(ok_age)} ago)")

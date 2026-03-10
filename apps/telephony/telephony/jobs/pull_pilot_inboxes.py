@@ -88,6 +88,7 @@ def run():
     _set("last_run", str(frappe.utils.now_datetime()))
     _set("stage", "start")
     _set("last_err", None)
+    _set("last_nonfatal_err", None)
 
     # --- lock (RedisWrapper supports .lock()) ---
     lock_key = f"{BASE}:lock"
@@ -124,6 +125,7 @@ def run():
                 processed = 0
                 last_comm = None
                 last_ticket = None
+                mail_errors = 0
 
                 # counters at account scope (define these before the loop)
                 # skipped_blocked = 0
@@ -141,7 +143,7 @@ def run():
                             _set("stage", f"acct:{acct_name}:blocked_flood")
                             break
 
-                        # attempt to mark as seen so UNSEEN inbox drains over time
+                        # Mail is already marked seen by Frappe receive pipeline during IMAP fetch when sync rule is UNSEEN.
                         uid = meta.get("uid")
 
                         _set("last_skip_meta", {"acct": acct_name, "reason": "blocked", **meta})
@@ -180,7 +182,8 @@ def run():
                         frappe.db.commit()  # ✅ commit each successful mail
                     except Exception as e:
                         frappe.db.rollback()
-                        _set("last_err", f"{acct_name}: {repr(e)[:200]}")
+                        mail_errors += 1
+                        _set("last_nonfatal_err", f"{acct_name}: {repr(e)[:200]}")
                         _set("stage", f"acct:{acct_name}:mail_error")
                         # continue with next mail
                         continue
@@ -193,12 +196,17 @@ def run():
                     "skipped_blocked": skipped_blocked,
                     "skipped_dedupe": skipped_dedupe,
                     "blocked_flood": blocked_flood,
+                    "mail_errors": mail_errors,
                 }
                 if uids:
                     entry.update({"uid_min": min(uids), "uid_max": max(uids)})
                 per[acct_name] = entry
                 interesting = any(
-                    v.get("mails_total", 0) or v.get("processed", 0) or v.get("skipped_blocked", 0) or v.get("skipped_dedupe", 0)
+                    v.get("mails_total", 0)
+                    or v.get("processed", 0)
+                    or v.get("skipped_blocked", 0)
+                    or v.get("skipped_dedupe", 0)
+                    or v.get("mail_errors", 0)
                     for v in per.values()
                     if isinstance(v, dict)
                 )
@@ -218,7 +226,7 @@ def run():
                 frappe.db.rollback()
                 per[acct_name] = {"error": repr(e)[:500]}
                 # keep going with other accounts, but remember the last error
-                _set("last_err", f"{acct_name}: {repr(e)[:500]}")
+                _set("last_nonfatal_err", f"{acct_name}: {repr(e)[:500]}")
                 _set("stage", f"acct:{acct_name}:error")
 
         if last_mail_meta:
