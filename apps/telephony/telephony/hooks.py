@@ -42,12 +42,7 @@ fixtures = [
         "dt": "Client Script",
         "filters": [
             ["dt", "=", "HD Ticket"],
-            ["name", "in", [
-                "Clear Customer and filter List",
-                "Claim HD Ticket",
-                "Pull Faults",
-                "Ticket Type UX",
-            ]],
+            ["enabled", "=", 1],
         ],
     },
     
