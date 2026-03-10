@@ -76,6 +76,13 @@ fixtures = [
         "filters": [
             ["method", "=", "telephony.jobs.pull_pilot_inboxes.run"],
         ],
+    },
+    
+    {
+        "dt": "HD Team",
+        "filters": [
+            ["name", "in", ["PABX", "Routing", "Helpdesk Team"]],
+        ],
     },    
 ]
 

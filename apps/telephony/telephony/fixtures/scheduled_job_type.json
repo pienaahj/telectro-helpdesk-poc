@@ -1,0 +1,17 @@
+[
+ {
+  "create_log": 1,
+  "cron_format": "*/1 * * * *",
+  "docstatus": 0,
+  "doctype": "Scheduled Job Type",
+  "frequency": "Cron",
+  "last_execution": "2026-03-10 15:26:07.342595",
+  "method": "telephony.jobs.pull_pilot_inboxes.run",
+  "modified": "2026-03-09 12:33:22.637877",
+  "name": "pull_pilot_inboxes.run",
+  "next_execution": "2026-03-10 15:27:00",
+  "scheduler_event": null,
+  "server_script": null,
+  "stopped": 0
+ }
+]
