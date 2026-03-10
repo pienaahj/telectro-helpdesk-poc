@@ -383,6 +383,7 @@ A good runbook outcome is:
 - skipped messages have visible reasons,
 - inbound business outcomes are verified from authoritative evidence.
 
+```
 p.run()
 ```
 
@@ -398,3 +399,10 @@ A good runbook outcome is:
 - message handling can be explained,
 - skipped messages have visible reasons,
 - inbound business outcomes are verified from authoritative evidence.
+
+## SEEN behaviour and pilot intake
+
+- with IMAP + UNSEEN, messages are marked \SEEN at retrieve time in Frappe receive pipeline
+- therefore blocked, skipped, and errored messages may not reappear automatically
+- breadcrumbs / logs are the proof mechanism after fetch
+- mailbox hygiene and observability matter more than retry-via-unseen semantics
