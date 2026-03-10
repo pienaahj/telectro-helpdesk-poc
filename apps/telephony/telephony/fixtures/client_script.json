@@ -4,6 +4,17 @@
   "doctype": "Client Script",
   "dt": "HD Ticket",
   "enabled": 1,
+  "modified": "2026-03-06 09:20:49.832292",
+  "module": null,
+  "name": "Lock Campus",
+  "script": "frappe.ui.form.on(\"HD Ticket\", {\n  setup(frm) {\n    // Campus options: group Locations under Pilot Sites\n    frm.set_query(\"custom_site_group\", () => ({\n      filters: { parent_location: \"Pilot Sites\", is_group: 1 }\n    }));\n\n    // Fault Point options: leaf Locations under selected Campus\n    frm.set_query(\"custom_site\", () => {\n      const filters = { is_group: 0 };\n      if (frm.doc.custom_site_group) {\n        // NOTE: this anchors to direct children only. If your fault points are deeper, we’ll switch to subtree query.\n        filters.parent_location = frm.doc.custom_site_group;\n      }\n      return { filters };\n    });\n\n    // Fault Asset: leaf Locations (optionally also anchor under campus if you want)\n    frm.set_query(\"custom_fault_asset\", () => {\n      const filters = { is_group: 0 };\n      if (frm.doc.custom_site_group) {\n        filters.parent_location = frm.doc.custom_site_group;\n      }\n      return { filters };\n    });\n  },\n\n  refresh(frm) {\n    apply_site_group_lock(frm);\n  },\n\n  // Support either customer fieldname\n  customer(frm) { on_customer_changed(frm); },\n  custom_customer(frm) { on_customer_changed(frm); },\n\n  custom_site_group(frm) {\n    // Campus changed -> clear dependents\n    frm.set_value(\"custom_fault_category\", null);\n    frm.set_value(\"custom_site\", null);\n    frm.set_value(\"custom_fault_asset\", null);\n\n    apply_site_group_lock(frm);\n  },\n\n  custom_fault_category(frm) {\n    // Category changed -> clear point/asset (keeps combos consistent)\n    frm.set_value(\"custom_site\", null);\n    frm.set_value(\"custom_fault_asset\", null);\n  },\n});\n\nfunction on_customer_changed(frm) {\n  // Customer changed -> clear dependent selections immediately\n  frm.set_value(\"custom_fault_category\", null);\n  frm.set_value(\"custom_site\", null);\n  frm.set_value(\"custom_fault_asset\", null);\n\n  // Let existing mapping code populate custom_site_group, then lock it\n  frappe.after_ajax(() => apply_site_group_lock(frm));\n  setTimeout(() => apply_site_group_lock(frm), 250);\n  setTimeout(() => apply_site_group_lock(frm), 800);\n}\n\nfunction apply_site_group_lock(frm) {\n  const has_customer = !!(frm.doc.custom_customer || frm.doc.customer);\n  const should_lock = has_customer && !!frm.doc.custom_site_group;\n  frm.set_df_property(\"custom_site_group\", \"read_only\", should_lock);\n  frm.set_df_property(\"custom_site_group\", \"description\", should_lock ? \"Auto-set from Customer\" : \"\");\n}",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "HD Ticket",
+  "enabled": 1,
   "modified": "2026-02-05 14:55:29.143309",
   "module": null,
   "name": "Claim HD Ticket",
