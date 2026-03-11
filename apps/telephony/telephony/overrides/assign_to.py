@@ -4,6 +4,32 @@ import frappe
 
 POOL_USER = "helpdesk@local.test"
 
+def _dbg(*args, **kwargs):
+    return
+
+def _block_if_needed(*args, **kwargs):
+    return
+
+def _parse_assign_to_users(assign_to):
+    if not assign_to:
+        return []
+
+    if isinstance(assign_to, str):
+        s = assign_to.strip()
+        if not s:
+            return []
+        try:
+            parsed = json.loads(s)
+            if isinstance(parsed, list):
+                return [str(x).strip() for x in parsed if str(x).strip()]
+        except Exception:
+            return [s]
+        return [s]
+
+    if isinstance(assign_to, (list, tuple, set)):
+        return [str(x).strip() for x in assign_to if str(x).strip()]
+
+    return [str(assign_to).strip()]
 
 def _cfg_bool(key: str, default: int = 0) -> bool:
     try:
@@ -90,108 +116,100 @@ def _log_assign_error(title: str, payload, exc: Exception, extra: dict | None = 
         pass
 
 
+import json
+import frappe
+
 @frappe.whitelist()
 def add(*args, **kwargs):
-    d = _merge_args_kwargs(*args, **kwargs)
+    d = dict(kwargs or {})
+    if args and isinstance(args[0], dict):
+        d.update(args[0])
     _dbg("add:enter", d, args=args, kwargs=kwargs)
 
-    # snapshot BEFORE any work
     snap_before = _snap_ticket_seq_state()
     _dbg("add:snap_before", snap_before)
 
     try:
         _block_if_needed(d, "assignment")
 
-        # Only harden idempotency for HD Ticket (pilot scope)
         doctype = (d.get("doctype") or d.get("reference_type") or "").strip()
         name = (d.get("name") or d.get("docname") or d.get("reference_name") or "").strip()
-
         assign_to = d.get("assign_to") or d.get("assign_to_user") or d.get("allocated_to")
         users = _parse_assign_to_users(assign_to)
-        
-        # ---- Pool short-circuit (no core side effects) ----
+
+        _dbg("add:parsed_users", {"assign_to_raw": assign_to, "users": users})
+
+        # ---- Pool short-circuit (true unassigned pool; no core side effects) ----
+        # Note: we do not want to allow "assigning" to the pool user as a way to mark "unassigned".
         if doctype == "HD Ticket" and name and users == [POOL_USER]:
-            # Ensure exactly one Open ToDo exists for POOL_USER
-            todos = frappe.get_all(
+            # Close any open ToDos for the old pool user
+            pool_todos = frappe.get_all(
                 "ToDo",
                 filters={
                     "reference_type": "HD Ticket",
                     "reference_name": name,
                     "allocated_to": POOL_USER,
+                    "status": "Open",
                 },
-                fields=["name", "status", "creation"],
-                order_by="creation desc",
+                fields=["name"],
                 ignore_permissions=True,
-                limit_page_length=50,
+                limit_page_length=200,
             )
+            for td in pool_todos:
+                frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
 
-            if todos:
-                newest = todos[0]["name"]
-                if (todos[0].get("status") or "") != "Open":
-                    frappe.db.set_value("ToDo", newest, "status", "Open", update_modified=False)
-                for td in todos[1:]:
-                    if (td.get("status") or "") != "Cancelled":
-                        frappe.db.set_value("ToDo", td["name"], "status", "Cancelled", update_modified=False)
-            else:
-                frappe.get_doc({
-                    "doctype": "ToDo",
-                    "allocated_to": POOL_USER,
+            # Also normalize away any other open ownership ToDos if this path
+            # is explicitly being used to return ticket to pool
+            open_todos = frappe.get_all(
+                "ToDo",
+                filters={
                     "reference_type": "HD Ticket",
                     "reference_name": name,
                     "status": "Open",
-                    "description": "Pool",
-                }).insert(ignore_permissions=True)
+                },
+                fields=["name", "allocated_to"],
+                ignore_permissions=True,
+                limit_page_length=200,
+            )
+            for td in open_todos:
+                frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
 
-            # Set _assign
-            frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([POOL_USER]), update_modified=False)
+            # True pool = empty assignment
+            frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([]), update_modified=False)
 
-            # Delete DocShare if anything created it earlier in the same request
-            frappe.db.delete("DocShare", {
-                "share_doctype": "HD Ticket",
-                "share_name": name,
-                "user": POOL_USER,
-            })
+            # Defensive cleanup
+            frappe.db.delete(
+                "DocShare",
+                {
+                    "share_doctype": "HD Ticket",
+                    "share_name": name,
+                    "user": POOL_USER,
+                },
+            )
 
-            return [{"assigned_to": POOL_USER}]
-
-        _dbg("add:parsed_users", {"assign_to_raw": assign_to, "users": users})
-
-        # --- Fallback path: delegate to core, but DO NOT call core.get unless we have a valid target
+            _dbg("add:pool_short_circuit", {"doctype": doctype, "name": name, "users": users})
+            return []
+        # --- Fallback path: delegate to core ---
         if doctype != "HD Ticket" or not name or not users:
             payload = _ensure_core_assign_to_shape(d)
-
             try:
-                try:
-                    core_assign_to.add(payload)
-                except Exception as e:
-                    _log_assign_error(
-                        "assign_to.add:core_add_hd_ticket_failed",
-                        payload,
-                        e,
-                        extra={"snap_before": snap_before},
-                    )
-                    raise
-                return []
+                core_assign_to.add(payload)
+            except Exception as e:
+                _log_assign_error(
+                    "assign_to.add:core_add_hd_ticket_failed",
+                    payload,
+                    e,
+                    extra={"snap_before": snap_before},
+                )
+                raise
 
-            # If we don't have a proper doctype/name, we must not call core.get
             if not doctype or not name:
                 _dbg("add:fallback_no_target_return_empty", {"doctype": doctype, "name": name})
                 return []
 
-
             try:
-                # If pool user is the only assignee, avoid core.get() entirely
-                try:
-                    cur = frappe.db.get_value("HD Ticket", name, "_assign") or ""
-                    if cur:
-                        parsed = json.loads(cur)
-                        if parsed == [POOL_USER]:
-                            return [{"assigned_to": POOL_USER}]
-                except Exception:
-                    pass
                 return _as_assign_list(core_assign_to.get({"doctype": doctype, "name": name}))
             except Exception as e:
-                # IMPORTANT: don't rollback ticket creation because UI-shape failed
                 _log_assign_error(
                     "assign_to.add:core_get_failed",
                     {"doctype": doctype, "name": name},
@@ -201,7 +219,6 @@ def add(*args, **kwargs):
                 return []
 
         # --- HD Ticket hardened path ---
-        # De-dupe incoming list
         seen = set()
         uniq_users = []
         for u in users:
@@ -209,7 +226,6 @@ def add(*args, **kwargs):
                 seen.add(u)
                 uniq_users.append(u)
 
-        # For each user: ensure exactly one Open ToDo exists; cancel older duplicates
         for u in uniq_users:
             todos = frappe.get_all(
                 "ToDo",
@@ -227,48 +243,22 @@ def add(*args, **kwargs):
             if todos:
                 newest = todos[0]["name"]
 
-                # Ensure newest is Open
                 if (todos[0].get("status") or "") != "Open":
                     frappe.db.set_value("ToDo", newest, "status", "Open", update_modified=False)
 
-                # Cancel older ones
                 for td in todos[1:]:
                     if (td.get("status") or "") != "Cancelled":
                         frappe.db.set_value("ToDo", td["name"], "status", "Cancelled", update_modified=False)
 
                 continue
 
-            # None exist -> create assignment *without* core side effects for pool user
-            if u == POOL_USER:
-                # 1) Create ToDo directly (no share/message)
-                todo = frappe.get_doc({
-                    "doctype": "ToDo",
-                    "allocated_to": u,
-                    "reference_type": "HD Ticket",
-                    "reference_name": name,
-                    "status": "Open",
-                    "description": ("Pool" or "")[:140],
-                })
-                todo.insert(ignore_permissions=True)
-
-                # 2) Ensure _assign is exactly the pool user
-                frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([u]), update_modified=False)
-
-                # 3) Defensive: remove any DocShare created elsewhere
-                frappe.db.delete("DocShare", {
-                    "share_doctype": "HD Ticket",
-                    "share_name": name,
-                    "user": u,
-                })
-
-                continue  # do NOT call core_assign_to.add for pool user
-
-            # Non-pool: keep current behaviour (core side effects ok)
             payload = dict(d)
             payload["doctype"] = "HD Ticket"
             payload["name"] = name
             payload["assign_to"] = [u]
-            core_assign_to.add(payload)
+
+            try:
+                core_assign_to.add(payload)
             except Exception as e:
                 _log_assign_error(
                     "assign_to.add:core_add_hd_ticket_failed",
@@ -278,13 +268,11 @@ def add(*args, **kwargs):
                 )
                 raise
 
-        # Extra hardening: Closed -> Cancelled (prevents reopen-on-save weirdness)
         try:
             _cancel_closed_todos_for_ticket(name)
         except Exception:
             pass
 
-        # Normalize _assign from OPEN ToDos (canonical)
         try:
             open_users = frappe.get_all(
                 "ToDo",
@@ -304,7 +292,6 @@ def add(*args, **kwargs):
 
         _dbg("add:exit", {"doctype": doctype, "name": name})
 
-        # Return shape: never throw from get()
         try:
             return _as_assign_list(core_assign_to.get({"doctype": "HD Ticket", "name": name}))
         except Exception as e:
@@ -317,7 +304,6 @@ def add(*args, **kwargs):
             return []
 
     except Exception as e:
-        # snapshot AFTER failure (still inside same transaction context)
         snap_after = _snap_ticket_seq_state()
         _dbg("add:exception", {"err": repr(e), "snap_after": snap_after})
 

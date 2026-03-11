@@ -12,6 +12,35 @@ POOL_USER = "helpdesk@local.test"
 
 PARTNER_USER = "partner@local.test"  # TODO: set to your actual partner queue user
 
+def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
+    ticket_name = (ticket_name or "").strip()
+    assignee = (assignee or "").strip()
+    if not ticket_name or not assignee:
+        return
+
+    exists = frappe.db.exists(
+        "ToDo",
+        {
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "allocated_to": assignee,
+            "status": "Open",
+        },
+    )
+    if exists:
+        return
+
+    frappe.get_doc(
+        {
+            "doctype": "ToDo",
+            "allocated_to": assignee,
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "status": "Open",
+            "description": (desc or "")[:140],
+        }
+    ).insert(ignore_permissions=True)
+
 def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
     # If already has an Open ToDo, don't interfere
     open_todos = _open_todos_for_ticket(ticket)
@@ -23,16 +52,8 @@ def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
     if assign_users:
         return
 
-    # Create exactly one Open ToDo for pool user
-    _ensure_open_todo(
-        ticket,
-        POOL_USER,
-        desc=(subject or "Pool")[:140],
-    )
-
-    # Mirror _assign from ToDo (canonical truth)
-    users = _todo_assignees(ticket)
-    frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps(users), update_modified=False)
+    # True pool = no owner, no open ToDo, empty _assign
+    frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps([]), update_modified=False)
 
 def _get_group(doc) -> str:
     return (doc.get("agent_group") or "").strip()
@@ -109,35 +130,6 @@ def _next_assignee(group: str) -> str | None:
         _set_idx(group, idx + 1)
         return assignee
 
-def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
-    ticket_name = (ticket_name or "").strip()
-    assignee = (assignee or "").strip()
-    if not ticket_name or not assignee:
-        return
-
-    exists = frappe.db.exists(
-        "ToDo",
-        {
-            "reference_type": "HD Ticket",
-            "reference_name": ticket_name,
-            "allocated_to": assignee,
-            "status": "Open",
-        },
-    )
-    if exists:
-        return
-
-    frappe.get_doc(
-        {
-            "doctype": "ToDo",
-            "allocated_to": assignee,
-            "reference_type": "HD Ticket",
-            "reference_name": ticket_name,
-            "status": "Open",
-            "description": (desc or "")[:140],
-        }
-    ).insert(ignore_permissions=True)
-
 
 def assign_after_insert(doc, method=None):
     # doc_event hook
@@ -162,11 +154,6 @@ def assign_after_insert(doc, method=None):
                     desc=(doc.get("subject") or "Partner")[:140],
                 )
                 _mirror_assign_from_todo(doc)
-        return
-
-    # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
-    if group not in POOLS:
-        _seed_pool_if_unassigned(ticket, subject=(doc.get("subject") or ""))
         return
 
     # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
