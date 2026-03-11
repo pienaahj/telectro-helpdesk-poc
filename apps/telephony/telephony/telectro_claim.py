@@ -1,8 +1,6 @@
 import json
 import frappe
 
-POOL = "helpdesk@local.test"
-POOL_USER = "helpdesk@local.test"
 
 def _first_assignee(assign_val: str | None):
     if not assign_val:
@@ -29,7 +27,6 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
     if not ticket or not owner_email:
         return
 
-    # 1) force single-owner assignment
     assign_json = json.dumps([owner_email])
     frappe.db.sql(
         """
@@ -40,7 +37,6 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
         (assign_json, ticket),
     )
 
-    # 2) normalize ToDos
     todos = frappe.get_all(
         "ToDo",
         filters={
@@ -54,7 +50,6 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
     )
 
     kept_open = 0
-    closed = 0
 
     for t in todos:
         allocated = (t.get("allocated_to") or "").strip()
@@ -63,7 +58,6 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
             continue
 
         frappe.db.set_value("ToDo", t["name"], "status", "Closed", update_modified=False)
-        closed += 1
 
     if kept_open == 0:
         frappe.get_doc(
@@ -76,9 +70,7 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
                 "description": "Assigned via TELECTRO pilot action",
             }
         ).insert(ignore_permissions=True)
-        kept_open = 1
 
-    # 3) optional audit note
     if note:
         frappe.get_doc(
             {
@@ -87,6 +79,46 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
                 "reference_doctype": "HD Ticket",
                 "reference_name": ticket,
                 "content": f"{note} | Assigned via TELECTRO pilot action",
+            }
+        ).insert(ignore_permissions=True)
+
+
+def _normalize_to_pool(ticket: str, note: str | None = None):
+    """
+    True pool invariant:
+      - HD Ticket._assign = []
+      - NO Open ToDo exists for this ticket
+      - Optionally writes a timeline comment (Info)
+    """
+    ticket = (ticket or "").strip()
+    if not ticket:
+        return
+
+    todos = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "HD Ticket",
+            "reference_name": ticket,
+            "status": "Open",
+        },
+        fields=["name"],
+        order_by="creation asc",
+        limit_page_length=200,
+    )
+
+    for t in todos:
+        frappe.db.set_value("ToDo", t["name"], "status", "Closed", update_modified=False)
+
+    frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps([]), update_modified=False)
+
+    if note:
+        frappe.get_doc(
+            {
+                "doctype": "Comment",
+                "comment_type": "Info",
+                "reference_doctype": "HD Ticket",
+                "reference_name": ticket,
+                "content": f"{note} | Released to TELECTRO pool",
             }
         ).insert(ignore_permissions=True)
 
@@ -100,10 +132,7 @@ def telectro_claim_ticket(ticket: str):
     user = frappe.session.user
     assign_json = json.dumps([user])
 
-    pool_json = json.dumps([POOL_USER])
-
-    # Atomic first-claim-wins:
-    # allow claim if ticket is unassigned OR currently owned by POOL_USER
+    # Atomic first-claim-wins from TRUE POOL only
     frappe.db.sql(
         """
         UPDATE `tabHD Ticket`
@@ -111,12 +140,10 @@ def telectro_claim_ticket(ticket: str):
          WHERE `name` = %s
            AND (
              IFNULL(`_assign`, '') = '' OR `_assign` = '[]'
-             OR `_assign` = %s
            )
         """,
-        (assign_json, ticket, pool_json),
+        (assign_json, ticket),
     )
-
 
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
     if current == assign_json:
@@ -128,12 +155,37 @@ def telectro_claim_ticket(ticket: str):
 
 
 @frappe.whitelist(methods=["POST"])
+def telectro_release_ticket(ticket: str, reason: str = ""):
+    ticket = (ticket or "").strip()
+    reason = (reason or "").strip()
+
+    if not ticket:
+        return {"ok": 0, "reason": "missing_ticket"}
+    if not reason:
+        return {"ok": 0, "reason": "missing_release_reason"}
+
+    current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
+    from_user = _first_assignee(current)
+
+    user = frappe.session.user
+
+    if not from_user:
+        return {"ok": 0, "reason": "not_assigned"}
+    if from_user != user:
+        return {"ok": 0, "reason": "not_owner", "from": from_user, "user": user}
+
+    msg = f"Release: {from_user} -> Pool | Reason: {reason}"
+    _normalize_to_pool(ticket, note=msg)
+    frappe.db.commit()
+
+    return {"ok": 1, "ticket": ticket, "from": from_user, "to": "Pool"}
+
+
+@frappe.whitelist(methods=["POST"])
 def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
     """
-    Pilot: tech-to-tech handoff (reassign) with timeline audit.
-    - Sets HD Ticket._assign to [to_user]
-    - Normalizes ToDo (single Open for to_user; closes others)
-    - Writes a Comment row so it shows in the timeline
+    Deprecated for normal tech flow.
+    Keep temporarily only for controlled/admin use until fully removed.
     """
     ticket = (ticket or "").strip()
     to_user = (to_user or "").strip()
@@ -145,41 +197,17 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
     if not frappe.db.exists("User", to_user):
         return {"ok": 0, "reason": "invalid_user", "to_user": to_user}
 
-    current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
-    from_user = _first_assignee(current)
-    
-    # Pilot guardrail:
-    # - Only the current assignee can handoff
-    # - Ops/Admin (System Manager) can handoff anything (they already have normal assign/unassign too)
     user = frappe.session.user
     roles = frappe.get_roles(user) or []
-
     is_adminish = (user == "Administrator") or ("System Manager" in roles)
 
     if not is_adminish:
-        if not from_user:
-            return {"ok": 0, "reason": "not_assigned"}
-        if from_user != user:
-            return {"ok": 0, "reason": "not_owner", "from": from_user, "user": user}
+        return {"ok": 0, "reason": "not_supervisor"}
 
+    current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
+    from_user = _first_assignee(current)
 
-    if from_user == to_user:
-        # If drift exists (multi-assign), normalize anyway instead of short-circuiting.
-        cur = (current or "").strip()
-        drift = (cur.startswith("[") and cur.endswith("]") and "," in cur)
-
-        if drift:
-            msg = "Normalize: keep {0} as owner".format(to_user)
-            if reason:
-                msg += " | Reason: {0}".format(reason)
-            _normalize_assignment(ticket, to_user, note=msg)
-            frappe.db.commit()
-            return {"ok": 1, "ticket": ticket, "from": from_user, "to": to_user, "normalized": 1}
-
-        return {"ok": 0, "reason": "already_assigned", "ticket": ticket, "assigned_to": to_user}
-
-
-    msg = "Handoff: {0} -> {1}".format(from_user or "Unassigned", to_user)
+    msg = "Supervisor assign: {0} -> {1}".format(from_user or "Pool", to_user)
     if reason:
         msg += " | Reason: {0}".format(reason)
 
