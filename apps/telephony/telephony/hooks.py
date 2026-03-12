@@ -137,6 +137,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_assign_sync.dedupe_assign_field",
 ]
 
+_append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_reassign_on_update.reassign_if_routing_changed")
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_assign_sync.sync_ticket_assignments")
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.docshare_guard.hd_ticket_on_update")
 
