@@ -101,6 +101,7 @@ cp_from_container "telectro_intake.py" "telectro_intake.py"
 cp_from_container "telectro_site_guard.py" "telectro_site_guard.py"
 cp_from_container "telectro_assign_sync.py" "telectro_assign_sync.py"
 cp_from_container "telectro_ticket_routing.py" "telectro_ticket_routing.py"
+cp_from_container "telectro_ticket_edit_guard.py" "telectro_ticket_edit_guard.py"
 
 # --- small helpers / guard wrappers ---
 cp_optional_from_container "assign_guard.py" "assign_guard.py"
