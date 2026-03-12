@@ -133,6 +133,7 @@ _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.
 doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_ticket_routing.seed_ticket_routing",
     "telephony.telectro_site_guard.validate_site_fields",
+    "telephony.telectro_ticket_edit_guard.validate_ticket_edit_rights",
     "telephony.telectro_assign_sync.dedupe_assign_field",
 ]
 

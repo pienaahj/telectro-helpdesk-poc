@@ -1,7 +1,7 @@
 [
  {
   "charts": [],
-  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech</span>\",\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"szSoIM0r19\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"N7mEmfq37w\",\"type\":\"card\",\"data\":{\"card_name\":\"Reference and Contacts\",\"col\":4}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
+  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"vNZWkHdk_N\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"N7mEmfq37w\",\"type\":\"card\",\"data\":{\"card_name\":\"Reference and Contacts\",\"col\":4}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -175,7 +175,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-03-03 18:41:41.674569",
+  "modified": "2026-03-12 09:06:57.670770",
   "module": null,
   "name": "TELECTRO-POC Tech",
   "number_cards": [],
@@ -193,6 +193,23 @@
   ],
   "sequence_id": 28.0,
   "shortcuts": [
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "➕ Log Ticket",
+    "link_to": "HD Ticket",
+    "parent": "TELECTRO-POC Tech",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": "[]",
+    "type": "DocType",
+    "url": null
+   },
    {
     "color": "Grey",
     "doc_view": "List",
