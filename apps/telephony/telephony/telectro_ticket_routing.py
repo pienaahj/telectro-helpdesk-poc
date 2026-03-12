@@ -25,14 +25,30 @@ def _clean(val) -> str:
     return str(val).strip()
 
 
+def _get_old_doc(doc):
+    """
+    During a real save lifecycle, get_doc_before_save() provides previous values.
+    Outside that lifecycle (e.g. plain bench console fetch), it may be None.
+    """
+    try:
+        old_doc = doc.get_doc_before_save()
+        if old_doc:
+            return old_doc
+    except Exception:
+        pass
+    return None
+
+
 def seed_ticket_routing(doc, method=None) -> None:
     """
     Shared routing seeding for both intake paths.
 
-    Current intended behavior preserved from the Server Script:
-    - Email-created tickets: mailbox wins for service area, then area seeds team.
+    Intended behavior:
+    - Email-created/updated tickets: mailbox wins for service area, then area seeds team.
     - Manual-created tickets: preserve chosen area, default only if blank,
-      and seed team only if empty.
+      and seed team if empty.
+    - Manual-updated tickets: if service area changes, refresh agent_group from area
+      so final routing state does not remain stale.
     """
     email_acct = _clean(doc.get("email_account"))
     area = _clean(doc.get("custom_service_area"))
@@ -54,8 +70,26 @@ def seed_ticket_routing(doc, method=None) -> None:
         area = DEFAULT_AREA
         doc.custom_service_area = area
 
+    resolved_team = AREA_TO_TEAM.get(area) or DEFAULT_TEAM
+
+    # New doc: seed team only if empty
+    if doc.is_new():
+        if not team:
+            doc.agent_group = resolved_team
+        return
+
+    # Existing manual doc:
+    # if service area changed during this save, refresh team from current area
+    old_doc = _get_old_doc(doc)
+    if old_doc:
+        old_area = _clean(old_doc.get("custom_service_area"))
+        if old_area != area:
+            if team != resolved_team:
+                doc.agent_group = resolved_team
+            return
+
+    # Fallback: if team is blank on an existing manual doc, seed it
     if not team:
-        resolved_team = AREA_TO_TEAM.get(area) or DEFAULT_TEAM
         doc.agent_group = resolved_team
 
 
