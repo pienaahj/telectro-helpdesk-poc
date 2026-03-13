@@ -393,7 +393,7 @@ Revisit this runbook if any of the following change:
 - assignment override restrictions
 - decision to re-activate or rely on Assignment Rules
 - pilot move toward more complex ownership/dispatch models
-ract
+  ract
 
 The assignment contract is currently supported by repo-backed code and helpers including:
 
@@ -406,6 +406,10 @@ The assignment contract is currently supported by repo-backed code and helpers i
 - manual ticket intake runbook
 - email ticket intake runbook
 - bench verification runbook
+
+## Workspace cleanup and baseline
+
+- see docs/runbooks/ticket-status-and-workspace-baseline.md
 
 ## When to revisit this runbook
 
