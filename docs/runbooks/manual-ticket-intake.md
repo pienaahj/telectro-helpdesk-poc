@@ -217,3 +217,28 @@ Revisit this runbook if any of the following change:
 - equipment / fault-detail capture requirements
 - pilot decision to require more precise location/asset selection at creation time
 
+## Field contract for manual ticket capture
+
+The current pilot manual-capture contract is:
+
+- **`ticket_type`**
+  - broad ticket mode / top-level classification
+  - used to distinguish fault-like vs request-like capture flow
+  - examples: `Faults`, `Incident`, `Service Request`, `Assistance`
+
+- **`custom_request_type`**
+  - request subtype for request-like work
+  - used to describe what kind of request is being made
+  - examples: `Access Request`, `Quote / Pricing`, `Installation / Move`
+
+- **`custom_service_area`**
+  - routing domain / operational ownership field
+  - used to determine which service area should own and route the ticket
+  - examples: `Routing`, `PABX`, `SIM`, `Fiber`, `Faults`, `Other`
+
+### Practical interpretation
+
+- `ticket_type` answers: **what broad kind of ticket is this?**
+- `custom_request_type` answers: **what kind of request is it?**
+- `custom_service_area` answers: **where should this go operationally?**
+
