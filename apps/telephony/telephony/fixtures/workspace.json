@@ -1,7 +1,7 @@
 [
  {
   "charts": [],
-  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"Hu1sY56Gny\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
+  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"gMGojK3xyq\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"WLgJPdDkwX\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Resolved Tickets\",\"col\":3}},{\"id\":\"6jWFB9WRy-\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -103,7 +103,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-03-12 14:49:10.520018",
+  "modified": "2026-03-16 08:55:30.014183",
   "module": null,
   "name": "TELECTRO-POC Tech",
   "number_cards": [],
@@ -127,6 +127,23 @@
     "format": null,
     "icon": null,
     "kanban_board": null,
+    "label": "TELECTRO - Telectro Faults",
+    "link_to": "HD Ticket",
+    "parent": "TELECTRO-POC Tech",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": "[[\"HD Ticket\",\"custom_fulfilment_party\",\"=\",\"Telectro\",false],[\"HD Ticket\",\"ticket_type\",\"in\",[\"Faults\",\"Incident\"],false],[\"HD Ticket\",\"status\",\"!=\",\"Closed\",false],[\"HD Ticket\",\"status\",\"!=\",\"Archived\",false]]",
+    "type": "DocType",
+    "url": "/app/hd-ticket/view/list?custom_fulfilment_party=Telectro&ticket_type=Faults&ticket_type=Incident"
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
     "label": "➕ Log Ticket",
     "link_to": "HD Ticket",
     "parent": "TELECTRO-POC Tech",
@@ -134,7 +151,7 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "restrict_to_domain": null,
-    "stats_filter": "[]",
+    "stats_filter": "[[\"HD Ticket\",\"status\",\"=\",\"Open\",false]]",
     "type": "DocType",
     "url": null
    },
@@ -154,6 +171,23 @@
     "stats_filter": "[[\"HD Ticket\",\"_assign\",\"like\",\"%partner@local.test%\",false],[\"HD Ticket\",\"status\",\"!=\",\"Closed\",false]]",
     "type": "DocType",
     "url": "/app/hd-ticket/view/list?_assign=%5B%22like%22%2C%22%25partner%40local.test%25%22%5D"
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Resolved Tickets",
+    "link_to": "HD Ticket",
+    "parent": "TELECTRO-POC Tech",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": "[[\"HD Ticket\",\"status\",\"=\",\"Resolved\",false]]",
+    "type": "DocType",
+    "url": null
    },
    {
     "color": "Grey",
@@ -188,23 +222,6 @@
     "stats_filter": "[[\"HD Ticket\",\"custom_fulfilment_party\",\"=\",\"Telectro\",false],[\"HD Ticket\",\"ticket_type\",\"in\",[\"Service Request\",\"Assistance\"],false],[\"HD Ticket\",\"status\",\"!=\",\"Closed\",false]]",
     "type": "DocType",
     "url": "/app/hd-ticket/view/list?custom_fulfilment_party=Telectro&ticket_type=Service%20Request"
-   },
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "TELECTRO - Telectro Faults",
-    "link_to": "HD Ticket",
-    "parent": "TELECTRO-POC Tech",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": null,
-    "restrict_to_domain": null,
-    "stats_filter": "[[\"HD Ticket\",\"custom_fulfilment_party\",\"=\",\"Telectro\",false],[\"HD Ticket\",\"ticket_type\",\"in\",[\"Faults\",\"Incident\"],false],[\"HD Ticket\",\"status\",\"!=\",\"Closed\",false]]",
-    "type": "DocType",
-    "url": "/app/hd-ticket/view/list?custom_fulfilment_party=Telectro&ticket_type=Faults&ticket_type=Incident"
    },
    {
     "color": "Grey",

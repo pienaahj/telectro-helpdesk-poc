@@ -29,6 +29,7 @@ fixtures = [
             ["dt", "=", "HD Ticket"],
             ["fieldname", "in", [
                 "custom_equipment_ref",
+                "custom_service_area",
                 "custom_fulfilment_party",
                 "custom_request_type",
                 "custom_requested_by",
