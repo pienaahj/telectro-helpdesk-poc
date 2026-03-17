@@ -28,11 +28,17 @@ fixtures = [
         "filters": [
             ["dt", "=", "HD Ticket"],
             ["fieldname", "in", [
+                "custom_customer",
+                "custom_site_group",
+                "custom_fault_category",
+                "custom_site",
+                "custom_fault_asset",
+                "custom_ownership_model",
+                "custom_severity",
                 "custom_equipment_ref",
                 "custom_service_area",
                 "custom_fulfilment_party",
                 "custom_request_type",
-                "custom_requested_by",
                 "custom_due_date",
                 "custom_request_source",
             ]],
