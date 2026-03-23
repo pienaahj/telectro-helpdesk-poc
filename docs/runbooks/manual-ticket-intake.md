@@ -2,11 +2,24 @@
 
 Goal: document the current intended behavior for manually created `HD Ticket` records in the pilot, so manual intake stays predictable and future changes can be evaluated against a clear baseline.
 
+This runbook describes the system as it behaves **now**. It records current pilot behavior and current operator-facing expectations; it does not try to prematurely settle still-open business-definition questions.
+
+---
+
 ## Purpose
 
-This runbook describes the **current pilot contract** for manual ticket creation.
+This runbook records the current pilot contract for manual ticket creation.
 
 It is intentionally practical and reflects the system as currently designed and proven, not a future idealized workflow.
+
+Use this runbook when:
+
+- validating manual ticket creation behavior
+- checking current defaults and save permissiveness
+- explaining how manual routing currently seeds assignment
+- comparing future changes against the present pilot baseline
+
+---
 
 ## Current design intent
 
@@ -15,6 +28,8 @@ Manual intake should allow an operator to log a valid ticket quickly with the mi
 The pilot does **not** require full pinpointing of the fault or equipment at creation time in every case.
 
 That deeper specificity can be added later during triage or fulfilment.
+
+---
 
 ## Current defaults for new manual tickets
 
@@ -34,9 +49,44 @@ On a new manual `HD Ticket`, the current pilot setup defaults or seeds the follo
 
 These defaults support fast operator intake while still allowing later refinement.
 
+---
+
+## Current operator-facing field contract
+
+The current pilot manual-capture contract is:
+
+- **`ticket_type`**
+  - broad ticket mode / top-level classification
+  - used to distinguish fault-like vs request-like capture flow
+  - examples: `Faults`, `Incident`, `Service Request`, `Assistance`
+
+- **`custom_request_type`**
+  - request subtype for request-like work
+  - used to describe what kind of request is being made
+  - examples: `Access Request`, `Quote / Pricing`, `Installation / Move`
+
+- **`custom_service_area`**
+  - current pilot routing / ownership signal for manual intake
+  - used to seed operational routing and assignment
+  - examples: `Routing`, `PABX`, `SIM`, `Fiber`, `Faults`, `Other`
+
+### Practical interpretation
+
+- `ticket_type` answers: **what broad kind of ticket is this?**
+- `custom_request_type` answers: **what kind of request is it?**
+- `custom_service_area` answers: **where should this go operationally right now?**
+
+### Important note on `custom_service_area`
+
+This runbook records how `custom_service_area` is currently used in the pilot.
+
+Its deeper business meaning and final operational wording are still subject to wider Service Area definition decisions. Until then, this document should be read as **current behavior**, not final semantic doctrine.
+
+---
+
 ## Ticket Type UX behavior
 
-The manual form uses client-side UX logic to switch between two practical modes:
+The manual form uses client-side UX logic to switch between two practical modes.
 
 ### Fault-like mode
 
@@ -64,9 +114,13 @@ In this mode:
 
 ### Important UX note
 
-If fault-oriented fields already contain values, they remain visible even when the form switches to request-like mode. This prevents the UI from hiding data the operator has already entered.
+If fault-oriented fields already contain values, they remain visible even when the form switches to request-like mode.
 
-## Current minimum manual save contract
+This prevents the UI from hiding data the operator has already entered.
+
+---
+
+## Scope and boundary at first capture
 
 The current pilot intentionally allows a manual ticket to be saved without forcing full fault pinpointing.
 
@@ -74,9 +128,9 @@ This is by design.
 
 The system currently aims to require enough information to:
 
-- log the work,
-- preserve the initial context,
-- and allow routing/assignment to happen,
+- log the work
+- preserve the initial context
+- allow routing/assignment to happen
 
 without forcing the operator to capture every possible technical detail up front.
 
@@ -88,7 +142,20 @@ Depending on the case, the operator may not yet know:
 - exact dispatch anchor / fault point
 - full equipment-level detail
 
-The pilot allows those to be added later.
+Those may be added later during triage or fulfilment.
+
+### Current pilot boundary
+
+The current manual intake design optimizes for:
+
+- fast logging
+- enough routing context
+- predictable assignment outcome
+- minimal operator friction
+
+It does **not** yet try to enforce the most detailed possible technical capture at creation time.
+
+---
 
 ## Routing and assignment contract
 
@@ -96,9 +163,11 @@ Manual routing is **not** driven by mailbox input, because manual tickets have n
 
 Instead, manual routing follows this pattern:
 
-1. The operator selects or leaves blank the service/routing fields on the form.
-2. Server-side routing seed logic runs on validation.
-3. Post-insert assignment logic uses the seeded group/team to determine assignment outcome.
+1. the operator selects or leaves blank the service/routing fields on the form
+2. server-side routing seed logic runs on validation
+3. post-insert assignment logic uses the seeded group/team to determine assignment outcome
+
+---
 
 ## Server-side routing seed behavior
 
@@ -113,7 +182,9 @@ The current app-owned routing seed logic behaves as follows for manual tickets:
 
 This logic now lives in app code and is no longer dependent on an enabled Server Script.
 
-## Manual routing examples
+---
+
+## Verified current routing examples
 
 ### Example A — blank service area
 
@@ -122,7 +193,7 @@ If the operator creates a manual ticket and does not specify a service area:
 - `custom_service_area` becomes `Other`
 - `agent_group` becomes `Helpdesk Team`
 
-This is the safe default/manual catch-all path.
+This is the current safe default / catch-all path.
 
 ### Example B — explicit `PABX`
 
@@ -148,6 +219,8 @@ then server-side routing seeds:
 
 and the existing post-insert assignment logic routes the ticket to the Routing assignment path.
 
+---
+
 ## Assignment behavior after insert
 
 Initial assignment is handled after insert by app code.
@@ -155,31 +228,12 @@ Initial assignment is handled after insert by app code.
 Current behavior is:
 
 - known round-robin groups use the configured app-owned pool/rotation logic
-- non-round-robin groups seed the pool user path
-- `_assign` and open `ToDo` state are then normalized/canonicalized by the existing assignment sync logic
+- non-round-robin groups seed the pool-user path
+- `_assign` and open `ToDo` state are then normalized / canonicalized by the existing assignment sync logic
 
 This means manual tickets and email-created tickets converge into the same downstream assignment contract once routing is seeded correctly.
 
-## What is intentionally deferred
-
-The pilot currently does **not** require all of the following at first capture:
-
-- precise equipment selection
-- precise fault anchor / dispatch point
-- deeper asset layering for every case
-
-Those are valid future improvements, but they are intentionally not required for the current pilot intake contract.
-
-## Current pilot boundary
-
-The current manual intake design optimizes for:
-
-- fast logging
-- enough routing context
-- predictable assignment outcome
-- minimal operator friction
-
-It does **not** yet try to enforce the most detailed possible technical capture at creation time.
+---
 
 ## Known UX notes
 
@@ -194,9 +248,11 @@ The client-side mode banner has been hardened so that:
 
 The current save behavior is intentionally permissive enough to allow pilot operators to log tickets with minimum viable routing/location context, rather than blocking until every downstream detail is known.
 
+---
+
 ## Proof points behind this runbook
 
-This behavior has been recently re-proven by:
+This behavior has been re-proven by:
 
 - manual ticket creation tests
 - inbound email ticket creation tests
@@ -205,6 +261,8 @@ This behavior has been recently re-proven by:
   - `agent_group`
   - `_assign`
   - open `ToDo` state
+
+---
 
 ## When to revisit this runbook
 
@@ -216,29 +274,13 @@ Revisit this runbook if any of the following change:
 - assignment-after-insert behavior
 - equipment / fault-detail capture requirements
 - pilot decision to require more precise location/asset selection at creation time
+- final Service Area semantics / wording decision
+ge:
 
-## Field contract for manual ticket capture
-
-The current pilot manual-capture contract is:
-
-- **`ticket_type`**
-  - broad ticket mode / top-level classification
-  - used to distinguish fault-like vs request-like capture flow
-  - examples: `Faults`, `Incident`, `Service Request`, `Assistance`
-
-- **`custom_request_type`**
-  - request subtype for request-like work
-  - used to describe what kind of request is being made
-  - examples: `Access Request`, `Quote / Pricing`, `Installation / Move`
-
-- **`custom_service_area`**
-  - routing domain / operational ownership field
-  - used to determine which service area should own and route the ticket
-  - examples: `Routing`, `PABX`, `SIM`, `Fiber`, `Faults`, `Other`
-
-### Practical interpretation
-
-- `ticket_type` answers: **what broad kind of ticket is this?**
-- `custom_request_type` answers: **what kind of request is it?**
-- `custom_service_area` answers: **where should this go operationally?**
-
+- manual ticket required fields
+- default `ticket_type`
+- routing seed mappings
+- assignment-after-insert behavior
+- equipment / fault-detail capture requirements
+- pilot decision to require more precise location/asset selection at creation time
+- final Service Area semantics / wording decision
