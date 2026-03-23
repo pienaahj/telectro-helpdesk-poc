@@ -2,19 +2,35 @@
 
 ## Purpose
 
-This note records the pilot direction taken on 2026-03-13 after routing and assignment behavior stabilized.
+This note records the pilot baseline established on **2026-03-13** after routing and assignment behavior had stabilized sufficiently to support a cleaner operational working model.
 
-The goal was to establish a cleaner operational baseline for ticket handling, remove stale pilot clutter from daily operator flow, and preserve a clear distinction between active work, genuine completed work, and retained stale history.
+The goal was to:
 
-## Trust boundary
+- establish a clearer ticket-status baseline
+- remove stale pilot clutter from normal operator flow
+- preserve a visible distinction between:
+  - active work
+  - genuine completed work
+  - retained stale pilot history
 
-The routing / assignment behavior trust boundary is **2026-03-12**.
+---
 
-Tickets created before this point are treated as **pre-baseline pilot records** and are not considered reliable operational history for current routing / assignment validation.
+## Operational trust boundary
+
+The routing / assignment trust boundary is **2026-03-12**.
+
+### Meaning
+
+- tickets created **on or after 2026-03-12** are treated as part of the current reliable pilot baseline for routing / assignment validation
+- tickets created **before 2026-03-12** are treated as **pre-baseline pilot records**
+
+Pre-baseline records may still exist for reference, but they are **not** considered trustworthy operational history for validating the current routing / assignment contract.
+
+---
 
 ## Status model
 
-The intended meaning of ticket statuses is now:
+The intended pilot meaning of ticket statuses is:
 
 ### Open
 
@@ -22,7 +38,7 @@ Active operational work.
 
 ### Resolved
 
-Real operational tickets that were completed / resolved through normal flow.
+Genuine operational tickets completed through the normal flow.
 
 ### Closed
 
@@ -30,26 +46,44 @@ Reserved for real terminal operational use where applicable.
 
 ### Archived
 
-Retained stale / non-operational historical pilot records.
+Retained stale or non-operational historical pilot records.
 
-`Archived` is intentionally distinct from `Resolved` so that stale pilot residue is not mixed into ordinary completed operational history.
+### Important distinction
+
+`Archived` is intentionally separate from `Resolved`.
+
+This prevents stale pilot residue from being mixed into genuine completed operational history.
+
+---
 
 ## Cleanup decision taken
 
-Pre-2026-03-12 stale pilot tickets were removed from active flow and retained under **Archived**.
+Pre-2026-03-12 stale pilot tickets were removed from normal active flow and retained under **Archived**.
 
-This was done because older pilot tickets had survived multiple changes to routing and assignment behavior and no longer represented trustworthy operational records. Keeping them mixed into active or resolved working surfaces created unnecessary noise and made current proofing harder.
+This decision was taken because older pilot tickets had survived multiple changes to routing and assignment behavior and no longer represented trustworthy operational records.
+
+Keeping them mixed into active or resolved working surfaces created:
+
+- unnecessary noise
+- weaker reporting clarity
+- harder proofing of the current pilot contract
+
+---
 
 ## Workspace intent
 
-The `TELECTRO-POC Tech` workspace now follows this intent:
+The `TELECTRO-POC Tech` workspace now follows this operational intent:
 
 - **+ Log Ticket** opens `HD Ticket` filtered to `Status = Open`
 - **Resolved Tickets** provides intentional access to genuine completed operational work
 - **Unclaimed (War Room)** remains a primary entry point for pool / claim flow
 - **Archived** is not part of the normal tech working path
 
-This keeps the primary operator path focused on active work while still allowing deliberate access to terminal history.
+### Practical effect
+
+The primary operator path stays focused on active work, while completed and historical records remain deliberately accessible without cluttering day-to-day execution.
+
+---
 
 ## Reporting rule
 
@@ -61,17 +95,25 @@ Operational reporting should normally distinguish between:
 - genuine completed work (`Resolved` / `Closed`)
 - retained stale pilot residue (`Archived`)
 
+This keeps reporting aligned with the operational trust boundary.
+
+---
+
 ## Rationale
 
-The pilot accumulated a significant number of stale tickets created before routing and assignment behavior stabilized. Those records were useful only as historical leftovers and not as trustworthy current operational data.
+The pilot accumulated a significant number of stale tickets before routing and assignment behavior stabilized.
 
-Introducing **Archived** provides a clean separation between:
+Those records were useful only as retained pilot history, not as trustworthy current operational data.
+
+Introducing **Archived** creates a clean separation between:
 
 - current live work
 - genuine completed operational work
 - retained stale pilot residue
 
-This avoids future ambiguity where reporting would otherwise need to separate real completed tickets from cleanup residue using notes or ad hoc filtering.
+This avoids future ambiguity where reporting or workspace views would otherwise have to separate real completed tickets from cleanup residue by ad hoc filtering or interpretation.
+
+---
 
 ## Future direction
 
@@ -81,9 +123,25 @@ In particular:
 
 - operator-facing entry paths should prefer active working views
 - completed operational history should remain intentionally accessible
-- archived pilot residue should remain available but out of the normal operator flow
+- archived pilot residue should remain available, but outside the normal operator flow
 
+---
 
-- operator-facing entry paths should prefer active working views
-- completed operational history should remain intentionally accessible
-- archived pilot residue should remain available but out of the normal operator flow
+## Note
+
+This baseline is a pilot hygiene decision as much as a status decision.
+
+Its purpose is to keep:
+
+- daily work clearer
+- proofing cleaner
+- reports easier to interpret
+- old pilot residue from being mistaken for current operational truth
+n.
+
+Its purpose is to keep:
+
+- daily work clearer
+- proofing cleaner
+- reports easier to interpret
+- old pilot residue from being mistaken for current operational truth

@@ -1,22 +1,37 @@
-# docs/runbooks/mail-health.md
-
 # Mail Health Runbook (Pilot)
 
-Goal: avoid silent failures in pilot email intake. This runbook gives quick “is it alive?” checks and a deterministic proof flow grounded in the current poller and proof helpers.
+Goal: avoid silent failures in pilot email intake by providing quick health checks and a deterministic proof flow grounded in the current poller and proof helpers.
+
+Use this runbook when:
+
+- checking whether pilot mail intake is alive
+- separating poller-health issues from ticket-intake issues
+- validating breadcrumbs and scheduler state
+- proving whether a controlled inbound test mail was handled correctly
+
+Use this alongside:
+
+- **Bench Verification Playbook** for proof discipline
+- **Email Ticket Intake Runbook** for current intake contract
+- **Email Reference** for mail-container/network/mailbox details
+
+---
 
 ## What “healthy” looks like
 
 A healthy pilot mail path currently means all of the following are true:
 
 - `Scheduled Job Type` exists and is enabled for:
-  - `pull_pilot_inboxes.run`
-- Recent scheduler/job activity is present and not dominated by repeated exceptions
-- Poller breadcrumbs show recent execution and sensible state
+  - `telephony.jobs.pull_pilot_inboxes.run`
+- recent scheduler/job activity is present and not dominated by repeated exceptions
+- poller breadcrumbs show recent execution and sensible state
 - Email Accounts used by pilot intake are enabled for incoming mail
-- A controlled inbound test mail produces:
+- a controlled inbound test mail produces:
   - a `Communication`, and typically
   - a linked `HD Ticket`
-- Inbound proof is validated from `Communication` first, then ticket state
+- inbound proof is validated from `Communication` first, then ticket state
+
+---
 
 ## Current preferred proof tools
 
@@ -34,19 +49,23 @@ s.run()
 p.run()
 ```
 
-These two scripts together currently provide the strongest operator-facing proof:
+These two scripts together provide the strongest current operator-facing proof:
 
-- `job_status_pull_pilot_inboxes.py`
-  - quick job health
-  - pilot inbox configuration summary
-  - staleness verdict
-  - key poller breadcrumbs
+### `job_status_pull_pilot_inboxes.py`
 
-- `proof_pull_pilot_inboxes.py`
-  - Stage A / intake breadcrumbs
-  - pull-poller breadcrumbs
-  - latest ticket sanity output
-  - quick verdict section
+- quick job health
+- pilot inbox configuration summary
+- staleness verdict
+- key poller breadcrumbs
+
+### `proof_pull_pilot_inboxes.py`
+
+- Stage A / intake breadcrumbs
+- pull-poller breadcrumbs
+- latest ticket sanity output
+- quick verdict section
+
+---
 
 ## Quick health check
 
@@ -54,10 +73,10 @@ These two scripts together currently provide the strongest operator-facing proof
 
 In the UI:
 
-1. Open **Scheduled Job Type**
-2. Find method:
+1. open **Scheduled Job Type**
+2. find method:
    - `telephony.jobs.pull_pilot_inboxes.run`
-3. Confirm:
+3. confirm:
    - enabled / not stopped
    - frequency is as expected for pilot
    - recent execution timestamps are advancing
@@ -96,7 +115,7 @@ Confirm each has:
 - expected email address
 - `email_sync_option = UNSEEN`
 
-The quick helper script already prints this:
+The quick helper already prints this:
 
 ```python
 import importlib
@@ -106,7 +125,9 @@ importlib.reload(s)
 s.run()
 ```
 
-## Deterministic proof flow (preferred)
+---
+
+## Deterministic proof flow
 
 ### Step 1 — Preflight job health
 
@@ -149,7 +170,7 @@ This gives:
 - Stage A / intake breadcrumbs
 - pull-poller breadcrumbs
 - latest `HD Ticket` sanity list
-- quick verdict fields:
+- quick verdict fields such as:
   - `poller_last_ok`
   - `poller_last_err`
   - `last_skip_meta`
@@ -163,7 +184,7 @@ Prefer:
 
 - clear sender
 - clear subject
-- easy-to-find unique marker in the subject/body
+- easy-to-find unique marker in subject/body
 
 After scheduler pickup or manual run, verify from `Communication` first.
 
@@ -181,17 +202,21 @@ Check:
 
 Only then confirm ticket-level business fields.
 
+---
+
 ## Recommended verification order for inbound mail
 
 When proving inbound behavior, use this order:
 
-1. Poller/job health
+1. poller/job health
 2. `Communication`
 3. linked `HD Ticket`
 4. ticket business fields
 5. Stage A breadcrumbs, if relevant
 
-This avoids false conclusions caused by stale UI/browser/bench assumptions.
+This avoids false conclusions caused by stale UI, browser, or bench assumptions.
+
+---
 
 ## Breadcrumb semantics that matter
 
@@ -206,7 +231,7 @@ telephony:pull_pilot_inboxes:*
 Important keys:
 
 - `fingerprint`
-  - confirms which code build/logic marker is live
+  - confirms which code build / logic marker is live
 
 - `last_run`
   - last time the job executed
@@ -218,7 +243,7 @@ Important keys:
   - last successful completion timestamp
 
 - `last_err`
-  - last recorded error string
+  - last recorded fatal error string
 
 - `last_skip`
   - last time the job skipped, usually due to lock contention
@@ -233,9 +258,9 @@ Important keys:
   - last processed message metadata
 
 - `last_skip_meta`
-  - most recent skipped message metadata, including skip reason such as:
-  - `blocked`
-  - `dedupe`
+  - most recent skipped message metadata, including reasons such as:
+    - `blocked`
+    - `dedupe`
 
 - `per_account`
   - latest run snapshot for all configured pilot inboxes
@@ -266,9 +291,11 @@ Important operational truth:
 - Stage A breadcrumbs appear when actual intake mapping logic runs
 - a zero-mail poller run should not populate Stage A breadcrumbs
 
-## Current pilot truths to treat as contract
+---
 
-These are currently verified truths and should be treated as the pilot contract unless deliberately changed:
+## Current pilot truths
+
+These are currently verified and should be treated as the pilot contract unless deliberately changed:
 
 - `custom_customer` is the effective inbound customer field for pilot intake
 - `customer` is currently not the active pilot customer field on this path
@@ -277,25 +304,32 @@ These are currently verified truths and should be treated as the pilot contract 
 - poller dedupe is identity-based re-ingest protection only
 - dedupe is not business-level duplicate suppression
 
+---
+
 ## Noise handling and mailbox hygiene
 
 Current pilot posture:
 
-- preferred:
-  - use server-side mailbox filtering/rules for obvious bounce and internal-task-notification noise
+### Preferred
 
-- code-level fallback:
-  - poller blocklist prevents ticket creation from known blocked noise
+Use server-side mailbox filtering/rules for obvious bounce and internal-task-notification noise.
 
-- if rules are unavailable:
-  - use periodic manual mailbox cleanup
-  - rely on poller breadcrumbs and job logs for health verification
+### Code-level fallback
+
+The poller blocklist prevents ticket creation from known blocked noise.
+
+### If rules are unavailable
+
+- use periodic manual mailbox cleanup
+- rely on poller breadcrumbs and job logs for health verification
 
 Known pilot boundary:
 
-- broader business-level duplicate suppression is intentionally not pursued in pilot
+- broader business-level duplicate suppression is intentionally out of scope for pilot
 
-## Lightweight preflight helper
+---
+
+## Secondary lightweight helper
 
 A simpler helper still exists:
 
@@ -313,7 +347,9 @@ This is useful for:
 - recent Error Log mentions
 - best-effort breadcrumb key visibility probe
 
-This helper is useful, but it is no longer the preferred full proof path.
+This helper is still useful, but it is no longer the preferred full proof path.
+
+---
 
 ## When things look wrong
 
@@ -334,7 +370,7 @@ This usually separates:
 - processed communication without expected business outcome
 - stale UI assumptions
 
-### If Stage A breadcrumbs look “missing”
+### If Stage A breadcrumbs look missing
 
 Do not assume failure immediately.
 
@@ -354,6 +390,8 @@ Use:
 - one-shot proof queries
 - `importlib.reload(...)` for script modules during active iteration
 
+---
+
 ## Minimal day-to-day operator sequence
 
 For fast daily verification:
@@ -372,22 +410,7 @@ p.run()
 
 If needed, follow with a controlled smoke mail and verify via `Communication`.
 
-## Result expectation
-
-A good runbook outcome is not “a ticket always appears instantly.”
-
-A good runbook outcome is:
-
-- the poller path is provably healthy,
-- message handling can be explained,
-- skipped messages have visible reasons,
-- inbound business outcomes are verified from authoritative evidence.
-
-```
-p.run()
-```
-
-If needed, follow with a controlled smoke mail and verify via `Communication`.
+---
 
 ## Result expectation
 
@@ -395,14 +418,42 @@ A good runbook outcome is not “a ticket always appears instantly.”
 
 A good runbook outcome is:
 
-- the poller path is provably healthy,
-- message handling can be explained,
-- skipped messages have visible reasons,
-- inbound business outcomes are verified from authoritative evidence.
+- the poller path is provably healthy
+- message handling can be explained
+- skipped messages have visible reasons
+- inbound business outcomes are verified from authoritative evidence
+
+---
 
 ## SEEN behaviour and pilot intake
 
-- with IMAP + UNSEEN, messages are marked \SEEN at retrieve time in Frappe receive pipeline
-- therefore blocked, skipped, and errored messages may not reappear automatically
-- breadcrumbs / logs are the proof mechanism after fetch
-- mailbox hygiene and observability matter more than retry-via-unseen semantics
+With IMAP + `UNSEEN`, messages are marked `\SEEN` at retrieve time in the Frappe receive pipeline.
+
+Operational implication:
+
+- blocked, skipped, and errored messages may not reappear automatically
+- breadcrumbs and logs become the proof mechanism after fetch
+- mailbox hygiene and observability matter more than retry-via-unseen assumptions
+
+## Result expectation
+
+A good runbook outcome is not “a ticket always appears instantly.”
+
+A good runbook outcome is:
+
+- the poller path is provably healthy
+- message handling can be explained
+- skipped messages have visible reasons
+- inbound business outcomes are verified from authoritative evidence
+
+---
+
+## SEEN behaviour and pilot intake
+
+With IMAP + `UNSEEN`, messages are marked `\SEEN` at retrieve time in the Frappe receive pipeline.
+
+Operational implication:
+
+- blocked, skipped, and errored messages may not reappear automatically
+- breadcrumbs and logs become the proof mechanism after fetch
+- mailbox hygiene and observability matter more than retry-via-unseen assumptions

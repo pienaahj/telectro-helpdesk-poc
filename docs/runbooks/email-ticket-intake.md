@@ -1,20 +1,35 @@
 # Email Ticket Intake Runbook (Pilot)
 
-Goal: document the current intended behavior for email-created `HD Ticket` records in the pilot, so inbound intake remains understandable, provable, and reproducible.
+Goal: document the current intended behavior for email-created `HD Ticket` records in the pilot so inbound intake remains understandable, provable, and reproducible.
+
+This runbook describes the system as it works **now**, not a future idealized intake design.
+
+Use this runbook when:
+
+- validating email-created tickets
+- checking whether inbound routing / assignment behaved correctly
+- explaining the current pilot intake contract
+- deciding whether an observed issue belongs to poller health, intake enrichment, routing seed, or assignment
+
+For proof technique and source-of-truth order, use this alongside the **Bench Verification Playbook**.
+
+---
 
 ## Purpose
 
-This runbook describes the **current pilot contract** for inbound email ticket creation.
+This runbook records the current pilot contract for inbound email ticket creation.
 
-It reflects the behavior that has been recently proven from:
+It reflects recently proven behavior across:
 
-- scheduler/poller execution,
-- `Communication` creation,
-- ticket enrichment,
-- routing seed behavior,
-- and post-insert assignment outcome.
+- scheduler / poller execution
+- `Communication` creation
+- ticket enrichment
+- routing seed behavior
+- post-insert assignment outcome
 
-It is intentionally practical and describes the system as it works now, not a future idealized intake workflow.
+It is intentionally practical and conservative.
+
+---
 
 ## High-level flow
 
@@ -29,7 +44,9 @@ The current inbound email path is:
 7. post-insert assignment logic runs
 8. `_assign` and `ToDo` state are normalized
 
-## Current proof anchors
+---
+
+## Proof anchors
 
 When proving inbound email behavior, use this order:
 
@@ -50,18 +67,20 @@ It is more reliable than:
 - guessed ticket IDs
 - inferred assignment outcomes without linkage proof
 
+---
+
 ## Poller health contract
 
 The pilot poller is repo-backed and exposed through:
 
 - `telephony.jobs.pull_pilot_inboxes.run`
 
-Current health checks and proofs are supported by:
+Current health checks and proof helpers include:
 
 - `telephony.scripts.job_status_pull_pilot_inboxes`
 - `telephony.scripts.proof_pull_pilot_inboxes`
 
-### Current health semantics
+### Health semantics
 
 - `last_ok`
   - last successful completed run
@@ -78,6 +97,8 @@ Current health checks and proofs are supported by:
 - `last_per_account_nonzero`
   - last meaningful non-idle run snapshot
 
+---
+
 ## Mailbox / inbox contract
 
 The pilot currently uses mailbox-driven email intake.
@@ -91,25 +112,27 @@ Examples already proven include:
 
 For inbound email:
 
-- the mailbox is carried on `email_account`
+- mailbox is carried on `email_account`
 - mailbox value is used for routing seed
 - mailbox-driven routing happens before post-insert assignment
 
-## Email-created ticket enrichment
+---
+
+## Intake enrichment contract
 
 Email-specific enrichment is handled separately from routing.
 
-The intake enrichment path is responsible for things such as:
+The enrichment path is responsible for things such as:
 
 - setting request source
 - mapping sender to customer
 - defaulting campus/site where available
 - parsing selected email/body-derived context where currently supported
-- handling bounce/system/noise paths separately
+- handling bounce / system / noise paths separately
 
-### Important current field truth
+### Current field truth
 
-For the pilot, the effective inbound customer field is:
+The effective inbound customer field is:
 
 - `custom_customer`
 
@@ -121,9 +144,11 @@ The current campus/site field in active pilot use is:
 
 - `custom_site_group`
 
-## Current routing seed behavior for email
+---
 
-Routing seed logic is now app-owned and repo-backed.
+## Routing seed contract for email
+
+Routing seed logic is app-owned and repo-backed.
 
 For email-created tickets:
 
@@ -140,7 +165,7 @@ Current mapping includes:
 - `Fiber` -> `Fiber`
 - `Faults` -> `Faults`
 
-If no explicit mailbox mapping exists, the current fallback is:
+Fallback:
 
 - `custom_service_area = Other`
 
@@ -151,7 +176,7 @@ Current mapping includes:
 - `Routing` -> `Routing`
 - `PABX` -> `PABX`
 
-If no explicit area-to-team mapping exists, the current fallback is:
+Fallback:
 
 - `agent_group = Helpdesk Team`
 
@@ -161,21 +186,23 @@ For email-created tickets, mailbox input is authoritative for routing seed.
 
 That differs from the manual path, where:
 
-- user-selected service area is preserved,
-- and defaults are only applied when missing.
+- user-selected service area is preserved
+- defaults are only applied when missing
+
+---
 
 ## Post-insert assignment contract
 
 After insert, assignment is handled by app code.
 
-Current assignment behavior includes:
+Current behavior includes:
 
 - round-robin assignment for known configured groups
 - pool-user fallback for non-round-robin groups
 - partner override handling
 - `_assign` and open `ToDo` normalization
 
-### Current assignment owner
+### Assignment owner
 
 The current assignment engine is app-owned.
 
@@ -183,9 +210,11 @@ It is not currently driven by enabled Assignment Rules.
 
 ### Important pilot truth
 
-Assignment Rules currently exist in the environment as historical/dormant config, but they are **not** the live active assignment mechanism for the current pilot path.
+Assignment Rules may still exist in the environment as historical or dormant config, but they are **not** the live assignment mechanism for the current pilot path.
 
-## Current assignment examples
+---
+
+## Verified examples
 
 ### Example A — inbound `PABX`
 
@@ -207,20 +236,22 @@ A proven inbound `Routing` ticket currently lands with:
 - `_assign = ["tech.alfa@local.test"]`
 - exactly one open `ToDo` for Alfa
 
-These examples show the current expected pattern:
+These examples show the current pattern:
 
 - mailbox drives routing seed
 - routing seed drives assignment path
 - canonical `_assign` / `ToDo` state is preserved
 
-## Noise blocking and dedupe boundaries
+---
+
+## Noise blocking and dedupe boundary
 
 The poller currently includes low-risk intake protection for:
 
-- blocked/noise messages by metadata
+- blocked / noise messages by metadata
 - identity-based dedupe
 
-### Important dedupe boundary
+### Important boundary
 
 Current dedupe is:
 
@@ -233,6 +264,8 @@ It is **not**:
 
 That broader behavior is intentionally out of scope for the pilot.
 
+---
+
 ## IMAP `UNSEEN` behavior
 
 This was recently re-proven and matters operationally.
@@ -243,7 +276,7 @@ For IMAP with sync option `UNSEEN`:
 
 ### Operational implication
 
-This means the email path behaves more like:
+This behaves more like:
 
 - consume-on-fetch
 
@@ -253,66 +286,55 @@ and less like:
 
 ### Why this matters
 
-Blocked, skipped, or errored messages may not naturally reappear just because the business outcome was incomplete.
+Blocked, skipped, or errored messages may not naturally reappear simply because business processing was incomplete.
 
 That is why:
 
-- breadcrumbs,
-- `Communication`,
-- and explicit proof flow
+- breadcrumbs
+- `Communication`
+- explicit proof flow
 
 matter more than assuming the inbox itself will retry by remaining unseen.
 
-## Current minimum inbound contract
+---
+
+## Scope and current boundary
 
 A valid inbound ticket currently aims to preserve enough information to:
 
 - identify the source mailbox
-- preserve the sender context
+- preserve sender context
 - link the inbound mail to a `Communication`
 - create/update the linked `HD Ticket`
 - seed routing
 - assign predictably
 
-It does **not** require all possible downstream technical detail to be known at intake time.
-
-## What is intentionally deferred
-
-The pilot currently does **not** require every inbound email to fully determine:
+The pilot does **not** currently require every inbound email to fully determine:
 
 - final equipment-level pinpointing
 - exact downstream fault anchor
 - semantic duplicate collapse
 - full customer self-service completion flow
 
-Some of these remain future possibilities, but are intentionally not forced into the current pilot intake contract.
+Some of these may become future workflow steps, but they are intentionally not forced into the current intake contract.
 
-## Current customer/site direction
+---
+
+## Current direction on customer/site enrichment
 
 There is an important strategic distinction in the pilot:
 
 - current backend email enrichment can populate customer/site context where available
-- but the longer-term intent is not to overfit body parsing for everything
-- customer/site confirmation and refinement may increasingly be driven through controlled follow-up flows, such as autoreply / customer link workflows
+- the longer-term direction is not to overfit body parsing for everything
+- customer/site confirmation and refinement may increasingly be driven through controlled follow-up flows, such as autoreply or customer-link workflows
 
-That means current body-derived behavior should be treated as useful pilot enrichment, not the final architecture.
+Current body-derived behavior should therefore be treated as useful pilot enrichment, not final architecture.
 
-## Current pilot boundary
+---
 
-The current email intake design optimizes for:
+## Repo-backed components supporting this contract
 
-- reproducible poller behavior
-- clear proof points
-- predictable mailbox-driven routing
-- deterministic post-insert assignment
-- low-risk noise blocking
-- minimum viable intake context
-
-It does **not** yet try to solve every future workflow problem at intake time.
-
-## Current repo-backed components supporting this contract
-
-This contract is now supported by repo-backed code and docs including:
+This contract is currently supported by repo-backed code and docs including:
 
 - poller job registration
 - poller health proof helpers
@@ -322,7 +344,9 @@ This contract is now supported by repo-backed code and docs including:
 - bench verification runbook
 - manual ticket intake runbook
 
-## Known operational truths to carry forward
+---
+
+## Known operational truths
 
 - `custom_customer` is the effective inbound customer field for pilot intake
 - `custom_site_group` is the current campus/site field in use
@@ -331,6 +355,8 @@ This contract is now supported by repo-backed code and docs including:
 - assignment is currently app-owned, not Assignment Rule-owned
 - IMAP `UNSEEN` behaves as consume-on-fetch in the framework receive pipeline
 - current dedupe is identity-based only
+
+---
 
 ## When to revisit this runbook
 
@@ -346,3 +372,30 @@ Revisit this runbook if any of the following change:
 - IMAP receive behavior assumptions
 - pilot decision to enforce deeper detail at inbound creation time
 
+---
+
+## Known operational truths
+
+- `custom_customer` is the effective inbound customer field for pilot intake
+- `custom_site_group` is the current campus/site field in use
+- `Communication` is the safest authoritative proof point for inbound mail
+- mailbox drives routing seed for email-created tickets
+- assignment is currently app-owned, not Assignment Rule-owned
+- IMAP `UNSEEN` behaves as consume-on-fetch in the framework receive pipeline
+- current dedupe is identity-based only
+
+---
+
+## When to revisit this runbook
+
+Revisit this runbook if any of the following change:
+
+- mailbox-to-service-area mapping
+- area-to-team mapping
+- poller health semantics
+- intake enrichment logic
+- customer/site confirmation flow
+- assignment-after-insert behavior
+- dedupe policy
+- IMAP receive behavior assumptions
+- pilot decision to enforce deeper detail at inbound creation time

@@ -1,168 +1,304 @@
 # telectro-helpdesk-poc
 
-Wrapper repo for an **ERPNext + Frappe Helpdesk** pilot running locally on **macOS** via **Docker Compose**.
+Local **TELECTRO ERPNext + Helpdesk + Telephony** pilot repo for **macOS** using **Docker Compose**.
 
-This repo is intentionally **two-phase**:
+This repo is used to:
 
-1. **Bring up ERPNext** cleanly (baseline stack)
-2. **Add Helpdesk (+ Telephony)** afterwards (keep the base stable and reproducible)
+- stand up a reproducible local pilot
+- verify current live behavior against repo-backed code and exported config
+- support small, evidence-based customization slices
+- keep container work synchronized back to host git
 
----
-
-## What’s in here
-
-- `compose.yaml` (+ `compose.override.yaml` if used)
-- `bin/up.sh` / `bin/down.sh` — start/stop the stack
-- `bin/new-site.sh` — create the site (ERPNext installed here)
-- `bin/helpdesk-install.sh` — add Helpdesk + Telephony to an existing site
-- Helper scripts:
-  - `bin/bench-launch.sh` — jump into `bench --site frontend console`
-  - `bin/pull-telephony-changes.sh` — pull container edits back to host repo
-
-> Tip: Some scripts were created before the “ERPNext first, Helpdesk later” decision.
-> Treat anything except `up/down/new-site/helpdesk-install` as optional until proven needed.
+This repo is intentionally practical and pilot-oriented rather than productized.
 
 ---
 
-## Quick start (ERPNext only)
+## Purpose
 
-### 1 Clone + env
+This project supports a local ERPNext pilot with:
+
+- **ERPNext / Frappe**
+- **Helpdesk**
+- **Telephony customizations**
+- Docker-based local development
+- a workflow that prioritizes:
+  - **read first**
+  - **verify current live behavior first**
+  - **change one small slice at a time**
+  - **sync container edits back to host git**
+
+This README is intentionally high-level. Detailed operational contracts and proof workflows live in the runbooks.
+
+---
+
+## Working method
+
+Current working preference for this repo:
+
+1. **First choice:** edit files **in-container** using VSCode Dev Containers / Container extension
+2. **Second choice:** use **bench console** for site-aware verification and diagnostics
+3. **Last resort:** `docker compose exec ...`, ad hoc shell commands, or heredocs
+
+General rule:
+
+- verify existing code and live behavior before augmenting it
+- keep slices narrow and reversible
+- treat **host git** as the final source of truth
+
+---
+
+## High-level setup model
+
+This repo follows a useful **two-phase** structure:
+
+1. **Bring up ERPNext** cleanly as the baseline stack
+2. **Add Helpdesk (+ Telephony)** afterwards
+
+This keeps base environment bring-up separate from pilot customization work.
+
+---
+
+## Repo contents
+
+Main items include:
+
+- `compose.yaml`
+- `compose.override.yaml` _(if used locally)_
+- `.env` / local env configuration
+- helper scripts in `bin/`
+- Telephony app changes and exported fixtures
+- pilot-specific documentation and developer utilities
+
+Main scripts:
+
+- `bin/up.sh` — start the stack
+- `bin/down.sh` — stop the stack
+- `bin/new-site.sh` — create the site and install ERPNext
+- `bin/helpdesk-install.sh` — install Helpdesk + Telephony onto an existing site
+- `bin/bench-launch.sh` — open `bench --site frontend console`
+- `bin/bench-term.sh` — open a backend shell
+- `bin/pull-telephony-changes.sh` — sync edited Telephony files from container back to host repo
+
+---
+
+## Quick start
+
+### 1. Clone and prepare env
 
 ```bash
 git clone git@github.com:pienaahj/telectro-helpdesk-poc.git
 cd telectro-helpdesk-poc
-cp .env.template .env.local    # edit secrets + SITE_NAME if applicable
+cp .env.template .env.local
 ```
 
----
+Edit local values as needed.
 
-### 2 Start the stack
+### 2. Start the stack
 
 ```bash
 ./bin/up.sh
 ```
 
-### 3 Create the site (ERPNext installed here)
+### 3. Create the site
 
 ```bash
 ./bin/new-site.sh
 ```
 
-### 4 Open ERPNext
+### 4. Open ERPNext
 
-Open:
+Open the configured local site, typically:
 
 - <http://localhost:8080>
-  (or your configured $SITE_NAME, if you’re using nip.io / hostnames)
 
-Login:
+Then log in with the site credentials you configured.
 
-- Administrator
-- password: whatever you configured (often admin in this POC)
+### 5. Install Helpdesk + Telephony
 
-## Add Helpdesk (+ Telephony) after ERPNext
-
-Once ERPNext is up and stable, run:
+Once ERPNext is healthy:
 
 ```bash
 ./bin/helpdesk-install.sh
 ```
 
-What this does (high level):
-
-- ensures node + yarn are usable by the frappe user (bench subprocesses)
-- bench get-app telephony
-- bench get-app helpdesk
-- installs apps on the site
-- migrates + clears cache
-- (optionally) builds assets
-
-## Known gotcha (important)
-
-On the frappe/erpnext image, node/yarn may exist under nvm paths (e.g. /home/frappe/.nvm/...)
-but bench subprocesses run without that PATH, so you can see errors like:
-
-- FileNotFoundError: [Errno 2] No such file or directory: 'yarn'
-- /usr/bin/env: 'node': No such file or directory
-
-The fix we used in the pilot is to provide stable paths:
-
-- /usr/local/bin/node
-- /usr/local/bin/yarn
+At a high level, this installs the additional apps, runs the required migrations, clears cache, and prepares the site for Helpdesk / Telephony work.
 
 ---
 
-## Developer utilities (quality of life)
+## Developer workflow
 
-### Bench console (most-used)
+This repo is no longer just about getting ERPNext running.
+
+It is mainly used for:
+
+- verifying current pilot behavior
+- refining Helpdesk / Telephony customizations
+- validating routing and assignment behavior
+- maintaining exported fixtures
+- keeping local development reproducible
+- supporting TELECTRO-specific workspace, workflow, and ticketing hardening
+
+That means work should be approached from the point of view of:
+
+- **current verified behavior**
+- **small pilot slices**
+- **no business-semantics guessing**
+
+---
+
+## Bench console workflow
+
+For most diagnostics, use:
 
 ```bash
 ./bin/bench-launch.sh
 ```
 
-This drops you into:
+This opens the most useful working context for pilot verification:
 
 - backend container
-- /home/frappe/frappe-bench
-- bench --site frontend console
-  Your helpdesk-install.sh should ensure those exist (usually by symlinking).
+- `/home/frappe/frappe-bench`
+- `bench --site frontend console`
 
-### Pull Telephony edits from container back to host
+Use it for:
 
-During debugging it’s easy to edit files inside the container. Before committing/PRs,
-pull the updated files back into the host repo:
+- inspecting live metadata
+- verifying DocType state
+- running controlled tests
+- reloading Python modules during development
+- checking live behavior instead of guessing from fixtures alone
+
+---
+
+## Backend shell workflow
+
+If you need a plain shell inside the backend container:
+
+```bash
+./bin/bench-term.sh
+```
+
+Use this for:
+
+- file inspection
+- shell-level diagnostics
+- manual bench commands
+- container-level debugging
+
+---
+
+## Syncing container edits back to host
+
+During pilot work it is common to edit files inside the running container.
+
+Before committing, sync those edits back to the host repo:
 
 ```bash
 ./bin/pull-telephony-changes.sh
 git status --porcelain
 ```
 
-This repo treats host git as the final source of truth.
+Rules:
+
+- host git is the source of truth
+- do not leave important edits stranded only inside the container
+- verify the resulting diff before commit or PR
 
 ---
 
-## Assignment (HD Ticket) — UI contract + payload gotchas (pilot critical)
+## Known environment gotcha: node / yarn paths
 
-The pilot hardens assignment behaviour by overriding:
+On the Frappe / ERPNext image, `node` and `yarn` may exist only under user-specific nvm paths.
 
-- frappe.desk.form.assign_to.add
-- frappe.desk.form.assign_to.remove
-- frappe.desk.form.assign_to.remove_multiple
+Bench subprocesses may not inherit that PATH cleanly, which can lead to errors such as:
 
-Override lives in:
+- `FileNotFoundError: [Errno 2] No such file or directory: 'yarn'`
+- `/usr/bin/env: 'node': No such file or directory`
 
-- apps/telephony/telephony/overrides/assign_to.py
+In this pilot, the working fix has been to provide stable paths such as:
 
-### UI contract: response shape must be a list
+- `/usr/local/bin/node`
+- `/usr/local/bin/yarn`
 
-The Assign modal (assign_to.js) expects assign_to.add to return a list-like value (it calls .map()).
-If the override returns an object (e.g. { "results": [...] }), the modal can hang with:
+---
 
-- TypeError: e.map is not a function
+## Documentation
 
-**Rule:** overridden add() must return a plain Python list so the HTTP response is:
+The pilot documentation is organized around a small set of canonical documents to reduce duplication and drift.
+
+### Start here
+
+- [Pilot Docs Index](docs/runbooks/README.md)
+
+### Core runbooks
+
+- [Bench Verification Playbook](docs/runbooks/bench-verification.md)
+- [Mail Health Runbook](docs/runbooks/mail-health.md)
+- [Email Ticket Intake Runbook](docs/runbooks/email-ticket-intake.md)
+- [Manual Ticket Intake Runbook](docs/runbooks/manual-ticket-intake.md)
+- [Ticket Assignment Contract](docs/runbooks/ticket-assignment-contract.md)
+- [Ticket Status and Workspace Baseline](docs/runbooks/ticket-status-and-workspace-baseline.md)
+
+### Reference notes
+
+- Email Reference _(maintained in Obsidian / working notes)_
+
+### Documentation rule
+
+When a topic changes:
+
+1. update the canonical source first
+2. update this README only if the document map or entry points changed
+
+The README stays intentionally high-level; detailed operational behavior belongs in the runbooks and reference notes.
+
+---
+
+## Important dev note: assignment override behavior
+
+The pilot includes hardening around `HD Ticket` assignment by overriding assignment behavior in Telephony.
+
+Override location:
+
+- `apps/telephony/telephony/overrides/assign_to.py`
+
+A few practical rules matter during development:
+
+### Response shape matters
+
+The Assign modal expects `assign_to.add()` to return a list-like result.
+
+If the override returns the wrong shape, the UI can fail with errors such as:
+
+- `TypeError: e.map is not a function`
+
+Rule:
+
+- overridden `add()` must return a plain Python list so the HTTP response becomes:
 
 ```json
 { "message": [ ... ] }
 ```
 
-### UI payload: assign_to may arrive as a JSON list string
+### Incoming payload shape matters too
 
-The UI can post assign_to as a stringified JSON list:
+The UI may send `assign_to` as a JSON-list string, for example:
 
 ```text
 '["tech.alfa@local.test"]'
 ```
 
-If treated as a literal username, core ToDo creation fails with:
+If that is treated as a literal username, ToDo creation can fail with errors such as:
 
-- LinkValidationError: Could not find Allocated To: ["tech.alfa@local.test"]
+- `LinkValidationError: Could not find Allocated To: ["tech.alfa@local.test"]`
 
-**Rule:** normalize assign_to into a list of users (parse JSON list strings).
+Rule:
 
-### Reload notes (bench vs UI)
+- normalize `assign_to` into a real list of users before assignment handling
 
-- Bench console tests may require reloading the module:
+### Reload behavior
+
+During bench-console testing, reloading the module may be enough:
 
 ```python
 import importlib
@@ -170,15 +306,17 @@ from telephony.overrides import assign_to as t
 importlib.reload(t)
 ```
 
-- The browser hits a running server process. After changing override code, the safest refresh is:
+For browser verification after code changes, the safer refresh is usually:
 
 ```bash
 docker compose restart backend
 ```
 
-### DB lock hygiene (avoid InnoDB lock timeouts)
+### DB lock hygiene
 
-Interactive bench sessions can keep transactions open. Always end tests with one of:
+Interactive bench sessions can leave transactions open.
+
+End test cycles with one of:
 
 ```python
 frappe.db.commit()
@@ -186,114 +324,37 @@ frappe.db.commit()
 frappe.db.rollback()
 ```
 
-## Scripts (developer utilities)
-
-These scripts exist to speed up day-to-day pilot work and reduce “container vs host” confusion.
-
-### `bin/bench-launch.sh` — go straight to bench console (most-used)
-
-Launches an interactive bench console inside the backend container:
-
-```bash
-./bin/bench-launch.sh
-```
-
-Equivalent to:
-
-- docker compose exec -it backend bash
-- cd /home/frappe/frappe-bench
-- bench --site frontend console
-
-Use this for fast iteration / diagnostics while developing in the pilot.
-
-`bin/bench-term.sh` **— backend shell only**
-
-Drops you into a plain shell inside the backend container:
-
-```bash
-./bin/bench-term.sh
-```
-
-Use this when you want to inspect files, run OS-level commands, or run bench commands manually.
-
-`bin/pull-telephony-changes.sh` **— sync container edits back to host git**
-
-During debugging it’s easy to edit files inside the container. This script copies the Telephony files we care about
-out of the backend container into the host repo so changes can be committed and pushed.
-
-```bash
-./bin/pull-telephony-changes.sh
-```
-
-Notes:
-
-- This repo treats host git as the source of truth.
-- The script prints git status --porcelain and git diff --stat at the end so you can see exactly what changed.
-
-````bash
-
-### Optional tiny follow-up (nice polish)
-Fix the usage comment inside `bin/bench-term.sh` (it currently says `bench-launch.sh`). Not required for function, but it’s an easy “paper cut” fix that keeps things tidy:
-
-Change:
-
-```bash
-# Usage:
-#   ./bin/bench-launch.sh
-````
-
-to:
-
-```bash
-# Usage:
-#   ./bin/bench-term.sh
-```
-
-That is technically a code change (one comment line), but still tiny and safe to include in this PR if you want.
+This helps avoid lock-related confusion and InnoDB timeout issues.
 
 ---
 
 ## Stop / reset
 
-Stop containers:
+### Stop containers
 
 ```bash
 ./bin/down.sh
 ```
 
-If you want a hard reset (wipe volumes, data, apps):
+### Hard reset
 
 ```bash
 docker compose down -v
 ```
 
-(Only do this if you’re fine losing the site + DB.)
+Only do this if you intentionally want to wipe the site, databases, and related volumes.
 
-## Next steps (pilot checklist)
-
-- dd Company TELECTRO-POC
-- Add Customers / Locations
-- Decide your ticket model (customer, site, asset, service_area, severity)
-- Teams + Assignment Rules
-- SLA profiles
-- Export customizations (if you keep using it):
-
-```bash
-  ./bin/export-customizations.sh
-```
-
-## Todo / improvements
-
-### If we keep doing this, we’ll build a custom image to eliminate runtime package installs
-
-- Bake node/yarn into a custom backend image
-
-This makes installs deterministic and avoids any runtime apt-get fallback. Something like:
-
-- Dockerfile.backend that starts from frappe/erpnext:v15.94.1
-- installs node 20 + yarn classic (or just corepack yarn)
-- use build: for backend in compose
-
-```yaml
 ---
-```
+
+## Pilot guardrails
+
+When working in this repo:
+
+- do not change business semantics from gut feel alone
+- verify live behavior before editing fixtures
+- keep one slice focused at a time
+- prefer proof over assumption
+- export or sync changes only when the intended contract is actually decided
+
+This README intentionally stays at the repo/workflow level. Detailed contracts and proof paths belong in the linked runbooks.
+

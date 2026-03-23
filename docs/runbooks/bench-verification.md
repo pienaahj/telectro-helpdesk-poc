@@ -1,24 +1,31 @@
-# docs/runbooks/bench-verification.md
-
 # Bench Verification Playbook (Pilot)
 
 Goal: verify pilot behavior from current code and committed facts, without being misled by stale bench state, stale browser state, or guessed assumptions.
 
-This playbook should be followed before changing behavior and before claiming proof.
+Use this playbook:
+
+- before changing behavior
+- before claiming proof
+- when results feel contradictory
+- when inbound mail behavior, breadcrumbs, or ticket outcomes need to be verified from current reality
+
+---
 
 ## Why this exists
 
-A recurring pilot problem is not only buggy logic. It is also stale or misleading verification state:
+A recurring pilot problem is not only buggy logic. It is also misleading verification state, for example:
 
 - stale bench session state
 - stale module imports
 - stale browser/UI state
 - proof attempts based on guessed IDs instead of facts
-- reading breadcrumbs out of context
+- breadcrumbs read out of context
 
-This playbook is meant to reduce false debugging trails.
+This playbook exists to reduce false debugging trails and improve proof quality.
 
-## Core principles
+---
+
+## Core rules
 
 ### 1) Verify existing behavior before augmenting it
 
@@ -51,22 +58,29 @@ Prefer:
 - known subject
 - known communication name
 - latest records by creation
-- exact field names verified from meta/DB truth
+- exact field names verified from meta / DB truth
 
 Avoid:
 
 - “it was probably ticket 688”
 - “the browser still shows old state so it must have failed”
 
-### 4) Treat stale session state as a default risk
+### 4) Treat staleness as a default risk
 
-If results feel contradictory, assume staleness first.
+If results feel contradictory, assume staleness first:
+
+- stale bench session
+- stale module import
+- stale browser state
+- stale breadcrumbs context
+
+---
 
 ## Preferred working method
 
 Order of preference:
 
-1. edit/inspect in-container with VSCode Dev Containers / Container extension
+1. inspect/edit in-container with VSCode Dev Containers / Container extension
 2. use `bench console`
 3. use shell / `docker compose exec` / heredocs only as last resort
 
@@ -75,6 +89,8 @@ Why:
 - correct site/app context matters
 - bench console is the safest place for proof queries
 - shell shortcuts are useful but easier to get subtly wrong
+
+---
 
 ## Bench session rules
 
@@ -89,7 +105,7 @@ Use a fresh session when:
 - results contradict the UI
 - results contradict earlier bench output
 
-### Reload modules during active script iteration
+### Reload modules during active iteration
 
 When iterating on Python proof helpers:
 
@@ -110,61 +126,9 @@ Avoid using internal context mutation as a routine debugging technique.
 
 That tends to create more uncertainty than clarity.
 
-## Verification hierarchy by use case
+---
 
-## A) Inbound mail proof
-
-Preferred order:
-
-1. prove poller health
-2. find the resulting `Communication`
-3. confirm linked `HD Ticket`
-4. confirm ticket business fields
-5. inspect Stage A breadcrumbs if needed
-
-Why:
-
-- `Communication` is the most reliable inbound proof anchor currently in this pilot
-
-## B) Poller health proof
-
-Preferred order:
-
-1. `Scheduled Job Type`
-2. `Scheduled Job Log`
-3. poller breadcrumb keyspace
-4. quick status helper
-5. richer proof helper
-
-Recommended scripts:
-
-```python
-import importlib
-import telephony.scripts.job_status_pull_pilot_inboxes as s
-import telephony.scripts.proof_pull_pilot_inboxes as p
-
-importlib.reload(s)
-importlib.reload(p)
-
-s.run()
-p.run()
-```
-
-## C) Field truth / schema truth
-
-If uncertain whether a field is real, populated, or queryable:
-
-- use `meta.get_valid_columns()`
-- inspect actual DB-backed fields
-- prefer schema truth over UI assumptions
-
-This is especially important when differentiating between:
-
-- real DB columns
-- derived/virtual/display fields
-- fields that exist but are not the pilot-active path
-
-## Current pilot truths
+## Current verified pilot truths
 
 These are currently verified and should be treated as proof anchors:
 
@@ -174,6 +138,8 @@ These are currently verified and should be treated as proof anchors:
 - `Communication` is the safest authoritative inbound proof anchor
 - poller dedupe is identity-based only
 - semantic/business duplicate suppression is intentionally out of scope for pilot
+
+---
 
 ## Standard proof flow for inbound test mail
 
@@ -246,6 +212,64 @@ Remember:
 - zero-mail runs do not populate them
 - missing Stage A breadcrumbs do not automatically mean poller failure
 
+---
+
+## Verification hierarchy by use case
+
+### A) Inbound mail proof
+
+Preferred order:
+
+1. prove poller health
+2. find the resulting `Communication`
+3. confirm linked `HD Ticket`
+4. confirm ticket business fields
+5. inspect Stage A breadcrumbs if needed
+
+Why:
+
+- `Communication` is the most reliable inbound proof anchor currently in this pilot
+
+### B) Poller health proof
+
+Preferred order:
+
+1. `Scheduled Job Type`
+2. `Scheduled Job Log`
+3. poller breadcrumb keyspace
+4. quick status helper
+5. richer proof helper
+
+Recommended scripts:
+
+```python
+import importlib
+import telephony.scripts.job_status_pull_pilot_inboxes as s
+import telephony.scripts.proof_pull_pilot_inboxes as p
+
+importlib.reload(s)
+importlib.reload(p)
+
+s.run()
+p.run()
+```
+
+### C) Field truth / schema truth
+
+If uncertain whether a field is real, populated, or queryable:
+
+- use `meta.get_valid_columns()`
+- inspect actual DB-backed fields
+- prefer schema truth over UI assumptions
+
+This is especially important when differentiating between:
+
+- real DB columns
+- derived / virtual / display fields
+- fields that exist but are not the pilot-active path
+
+---
+
 ## Poller breadcrumb interpretation
 
 Poller keyspace base:
@@ -254,7 +278,7 @@ Poller keyspace base:
 telephony:pull_pilot_inboxes:*
 ```
 
-Important operational meanings:
+Important meanings:
 
 - `per_account`
   - latest run snapshot only
@@ -268,8 +292,10 @@ Important operational meanings:
   - useful for blocked noise and dedupe interpretation
 
 - `last_err`
-  - error signal, but not always the entire story
+  - error signal, but not always the whole story
   - always check whether later success has occurred
+
+---
 
 ## Stage A breadcrumb interpretation
 
@@ -281,7 +307,7 @@ telephony:stage_a:*
 
 Use these breadcrumbs to understand intake mapping behavior, not generic poller liveness.
 
-Clean separation:
+Keep the separation clean:
 
 - poller health proof:
   - `telephony:pull_pilot_inboxes:*`
@@ -293,9 +319,11 @@ Clean separation:
 
 That separation matters.
 
+---
+
 ## Anti-patterns
 
-Avoid these common mistakes:
+Avoid these mistakes:
 
 - trusting old browser state over fresh bench queries
 - assuming bench has reloaded changed Python modules
@@ -304,6 +332,8 @@ Avoid these common mistakes:
 - treating missing Stage A breadcrumbs as generic poller failure
 - trying to “fix” uncertainty by mutating `frappe.local.*`
 - expanding scope before verifying the current slice
+
+---
 
 ## Good proof habits
 
@@ -315,6 +345,8 @@ Prefer these habits:
 - verify from authoritative anchors first
 - separate poller-liveness proof from business-outcome proof
 - record concrete proof notes as you go
+
+---
 
 ## Minimal daily-use pattern
 
@@ -338,6 +370,8 @@ Then, if needed:
 - verify from `Communication`
 - confirm resulting ticket business fields
 
+---
+
 ## What “done” looks like for a proof task
 
 A proof task is done when you can clearly state:
@@ -348,7 +382,9 @@ A proof task is done when you can clearly state:
 - what remained unchanged
 - what conclusion is safe to make
 
-Not when “the UI looked right once.”
+Not when the UI happened to look right once.
+
+---
 
 ## Condensed reminder
 
@@ -362,7 +398,9 @@ When in doubt:
 - treat breadcrumbs according to their actual semantics
 
 
-Not when “the UI looked right once.”
+Not when the UI happened to look right once.
+
+---
 
 ## Condensed reminder
 
