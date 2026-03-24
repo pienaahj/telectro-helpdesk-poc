@@ -18,6 +18,7 @@ mkdir -p "${DST_BASE}/scripts"
 mkdir -p "${DST_BASE}/fixtures"
 mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
+mkdir -p "${DST_BASE}/ftelephony/report"
 
 cp_from_container() {
   local src="$1"
@@ -85,6 +86,20 @@ cp_dir_from_container() {
     docker compose cp "${SRC_BASE}/${src_dir}/${entry}" "${DST_BASE}/${dst_dir}/${entry}"
   done
 }
+
+# --------------------------------------------------------------------
+# 2) “Low-risk” directory sync (new)
+#    These are areas where new files are expected and should be pulled
+#    without you updating the script each time.
+# --------------------------------------------------------------------
+
+# Optional: keep these dirs fully synced too (comment out if you want strict lists only)
+# cp_dir_from_container "overrides" "overrides"
+# cp_dir_from_container "scripts" "scripts"
+# cp_dir_from_container "monkey_patches" "monkey_patches"
+
+# Standard report files
+cp_dir_from_container "ftelephony/report" "ftelephony/report"
 
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
