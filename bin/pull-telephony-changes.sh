@@ -59,8 +59,6 @@ cp_dir_from_container() {
   echo "⇒ dir ${dst_dir}/"
   mkdir -p "${DST_BASE}/${dst_dir}"
 
-  # Copy each entry in the source dir into the destination dir
-  # This preserves structure under the dir but avoids `dst_dir/src_dir` nesting.
   docker compose exec -T backend bash -lc "
     cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
     for p in * .*; do
@@ -68,22 +66,30 @@ cp_dir_from_container() {
       [ \"\$p\" = \"..\" ] && continue
       [ \"\$p\" = \".DS_Store\" ] && continue
       [ ! -e \"\$p\" ] && continue
-      echo \"  - \$p\"
-    done
-  " >/dev/null
-
-  # Use docker compose cp per entry (works reliably)
-  docker compose exec -T backend bash -lc "
-    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
-    for p in * .*; do
-      [ \"\$p\" = \".\" ] && continue
-      [ \"\$p\" = \"..\" ] && continue
-      [ \"\$p\" = \".DS_Store\" ] && continue
-      [ ! -e \"\$p\" ] && continue
-      echo \"\$p\"
+      printf '%s\n' \"\$p\"
     done
   " | while IFS= read -r entry; do
-    docker compose cp "${SRC_BASE}/${src_dir}/${entry}" "${DST_BASE}/${dst_dir}/${entry}"
+    if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry}'"; then
+      mkdir -p "${DST_BASE}/${dst_dir}/${entry}"
+      docker compose exec -T backend bash -lc "
+        cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry} &&
+        for p in * .*; do
+          [ \"\$p\" = \".\" ] && continue
+          [ \"\$p\" = \"..\" ] && continue
+          [ \"\$p\" = \".DS_Store\" ] && continue
+          [ ! -e \"\$p\" ] && continue
+          printf '%s\n' \"\$p\"
+        done
+      " | while IFS= read -r subentry; do
+        docker compose cp \
+          "${SRC_BASE}/${src_dir}/${entry}/${subentry}" \
+          "${DST_BASE}/${dst_dir}/${entry}/${subentry}"
+      done
+    else
+      docker compose cp \
+        "${SRC_BASE}/${src_dir}/${entry}" \
+        "${DST_BASE}/${dst_dir}/${entry}"
+    fi
   done
 }
 
