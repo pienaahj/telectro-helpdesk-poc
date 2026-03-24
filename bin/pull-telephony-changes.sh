@@ -18,6 +18,7 @@ mkdir -p "${DST_BASE}/scripts"
 mkdir -p "${DST_BASE}/fixtures"
 mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
+mkdir -p "${DST_BASE}/ftelephony/report"
 
 cp_from_container() {
   local src="$1"
@@ -58,8 +59,6 @@ cp_dir_from_container() {
   echo "⇒ dir ${dst_dir}/"
   mkdir -p "${DST_BASE}/${dst_dir}"
 
-  # Copy each entry in the source dir into the destination dir
-  # This preserves structure under the dir but avoids `dst_dir/src_dir` nesting.
   docker compose exec -T backend bash -lc "
     cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
     for p in * .*; do
@@ -67,24 +66,46 @@ cp_dir_from_container() {
       [ \"\$p\" = \"..\" ] && continue
       [ \"\$p\" = \".DS_Store\" ] && continue
       [ ! -e \"\$p\" ] && continue
-      echo \"  - \$p\"
-    done
-  " >/dev/null
-
-  # Use docker compose cp per entry (works reliably)
-  docker compose exec -T backend bash -lc "
-    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
-    for p in * .*; do
-      [ \"\$p\" = \".\" ] && continue
-      [ \"\$p\" = \"..\" ] && continue
-      [ \"\$p\" = \".DS_Store\" ] && continue
-      [ ! -e \"\$p\" ] && continue
-      echo \"\$p\"
+      printf '%s\n' \"\$p\"
     done
   " | while IFS= read -r entry; do
-    docker compose cp "${SRC_BASE}/${src_dir}/${entry}" "${DST_BASE}/${dst_dir}/${entry}"
+    if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry}'"; then
+      mkdir -p "${DST_BASE}/${dst_dir}/${entry}"
+      docker compose exec -T backend bash -lc "
+        cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry} &&
+        for p in * .*; do
+          [ \"\$p\" = \".\" ] && continue
+          [ \"\$p\" = \"..\" ] && continue
+          [ \"\$p\" = \".DS_Store\" ] && continue
+          [ ! -e \"\$p\" ] && continue
+          printf '%s\n' \"\$p\"
+        done
+      " | while IFS= read -r subentry; do
+        docker compose cp \
+          "${SRC_BASE}/${src_dir}/${entry}/${subentry}" \
+          "${DST_BASE}/${dst_dir}/${entry}/${subentry}"
+      done
+    else
+      docker compose cp \
+        "${SRC_BASE}/${src_dir}/${entry}" \
+        "${DST_BASE}/${dst_dir}/${entry}"
+    fi
   done
 }
+
+# --------------------------------------------------------------------
+# 2) “Low-risk” directory sync (new)
+#    These are areas where new files are expected and should be pulled
+#    without you updating the script each time.
+# --------------------------------------------------------------------
+
+# Optional: keep these dirs fully synced too (comment out if you want strict lists only)
+# cp_dir_from_container "overrides" "overrides"
+# cp_dir_from_container "scripts" "scripts"
+# cp_dir_from_container "monkey_patches" "monkey_patches"
+
+# Standard report files
+cp_dir_from_container "ftelephony/report" "ftelephony/report"
 
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)

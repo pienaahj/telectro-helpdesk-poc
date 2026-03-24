@@ -1,0 +1,43 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-03-24 17:59:20.374752",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-03-24 17:59:20.374752",
+ "modified_by": "Administrator",
+ "module": "FTelephony",
+ "name": "Aging and At-Risk Tickets",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "HD Ticket",
+ "report_name": "Aging and At-Risk Tickets",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Agent Manager"
+  },
+  {
+   "role": "Agent"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "All"
+  },
+  {
+   "role": "TELECTRO-POC Tech"
+  },
+  {
+   "role": "Helpdesk Contact"
+  }
+ ],
+ "timeout": 0
+}
