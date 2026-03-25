@@ -20,6 +20,59 @@ mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
 mkdir -p "${DST_BASE}/ftelephony/report"
 
+mirror_dir_from_container() {
+  local src_dir="$1"
+  local dst_dir="$2"
+
+  if ! docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}'"; then
+    echo "↪ dir missing in container (mirror skipped): ${dst_dir}"
+    return 0
+  fi
+
+  echo "⇄ mirror dir ${dst_dir}/"
+  mkdir -p "${DST_BASE}/${dst_dir}"
+
+  local tmp_manifest
+  tmp_manifest="$(mktemp)"
+
+  docker compose exec -T backend bash -lc "
+    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
+    find . \
+      -path './__pycache__' -prune -o \
+      -path '*/__pycache__' -prune -o \
+      -name '.DS_Store' -prune -o \
+      -print |
+    sed 's#^\./##' |
+    awk 'NF'
+  " | sort > "${tmp_manifest}"
+
+  while IFS= read -r rel; do
+    [ -z "${rel}" ] && continue
+
+    if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${rel}'"; then
+      mkdir -p "${DST_BASE}/${dst_dir}/${rel}"
+    else
+      mkdir -p "$(dirname "${DST_BASE}/${dst_dir}/${rel}")"
+      docker compose cp \
+        "${SRC_BASE}/${src_dir}/${rel}" \
+        "${DST_BASE}/${dst_dir}/${rel}"
+    fi
+  done < "${tmp_manifest}"
+
+  find "${DST_BASE}/${dst_dir}" \
+    \( -name '__pycache__' -o -name '.DS_Store' \) -prune -o \
+    -mindepth 1 -print | \
+  sed "s#^${DST_BASE}/${dst_dir}/##" | sort > "${tmp_manifest}.host"
+
+  comm -23 "${tmp_manifest}.host" "${tmp_manifest}" | while IFS= read -r stale; do
+    [ -z "${stale}" ] && continue
+    echo "✗ remove stale ${dst_dir}/${stale}"
+    rm -rf "${DST_BASE}/${dst_dir}/${stale}"
+  done
+
+  rm -f "${tmp_manifest}" "${tmp_manifest}.host"
+}
+
 cp_from_container() {
   local src="$1"
   local dst="$2"
@@ -105,7 +158,7 @@ cp_dir_from_container() {
 # cp_dir_from_container "monkey_patches" "monkey_patches"
 
 # Standard report files
-cp_dir_from_container "ftelephony/report" "ftelephony/report"
+mirror_dir_from_container "ftelephony/report" "ftelephony/report"
 
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
