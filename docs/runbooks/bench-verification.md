@@ -397,18 +397,15 @@ When in doubt:
 - only then interpret ticket fields
 - treat breadcrumbs according to their actual semantics
 
+## Supervisor operating model (pilot)
 
-Not when the UI happened to look right once.
+For the intended supervisor monitoring, intervention, and report-usage model in the pilot, read the
+[Supervisor Operating Model](./supervisor-operating-model.md).
+
+Use that runbook for:
+
+- supervisor responsibilities
+- intervention expectations
+- report intent and usage
 
 ---
-
-## Condensed reminder
-
-When in doubt:
-
-- fresh bench
-- reload modules
-- prove poller health first
-- prove inbound from `Communication`
-- only then interpret ticket fields
-- treat breadcrumbs according to their actual semantics

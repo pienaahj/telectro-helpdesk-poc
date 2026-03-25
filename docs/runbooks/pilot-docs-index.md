@@ -306,9 +306,29 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
-## Quick decision guide
+### 9) Supervisor monitoring and intervention model
 
-### If the question is:
+**Canonical source:** `docs/runbooks/supervisor-operating-model.md`
+
+**Use for:**
+
+- understanding the intended working model for the pilot
+- understanding the supervisor’s operational shell and reports
+
+**Read this when:**
+
+- you are a supervisor or technician trying to understand how work is intended to flow
+- you are trying to understand the supervisor’s role in monitoring and intervening in the queue
+- you are trying to understand the intended use of the supervisor reports
+
+**Do not duplicate elsewhere:**
+
+- supervisor monitoring model
+- supervisor report intent
+
+---
+
+### If the question is
 
 **“How do I prove this safely?”**  
 Read: **Bench Verification Playbook**
@@ -333,6 +353,9 @@ Read: **Email Reference**
 
 **“How do I stand this repo up and work in it?”**  
 Read: **README.md**
+
+**“How should a supervisor monitor and intervene?”**  
+Read: **Supervisor Operating Model**
 
 ---
 
@@ -451,6 +474,7 @@ At the moment, the doc set has a good emerging split:
 - **Manual Ticket Intake Runbook** = manual capture contract
 - **Ticket Assignment Contract** = ownership model
 - **Ticket Status and Workspace Baseline** = operational trust boundary and archive policy
+- **Supervisor Operating Model** = supervisor monitoring and intervention model
 
 That is a healthy baseline for the pilot.
 
@@ -462,44 +486,6 @@ This index is not the source of truth for any individual topic.
 
 Its job is to point to the source of truth and reduce drift.
 
-  - only if it adds value beyond the existing Email Reference and runbooks
+- only if it adds value beyond the existing Email Reference and runbooks
 
 ---
-
-## Maintenance rule
-
-When a topic changes:
-
-1. update the **canonical source first**
-2. update this index only if:
-   - the canonical source changed name/path
-   - the topic moved
-   - the reading order changed
-   - a new canonical document was added
-
-This index should stay light and navigational, not become another duplicated reference note.
-
----
-
-## Current doc set summary
-
-At the moment, the doc set has a good emerging split:
-
-- **README** = repo entry point
-- **Bench Verification Playbook** = proof method
-- **Email Reference** = command/reference note
-- **Mail Health Runbook** = mail-path health
-- **Email Ticket Intake Runbook** = inbound email contract
-- **Manual Ticket Intake Runbook** = manual capture contract
-- **Ticket Assignment Contract** = ownership model
-- **Ticket Status and Workspace Baseline** = operational trust boundary and archive policy
-
-That is a healthy baseline for the pilot.
-
----
-
-## Note
-
-This index is not the source of truth for any individual topic.
-
-Its job is to point to the source of truth and reduce drift.
