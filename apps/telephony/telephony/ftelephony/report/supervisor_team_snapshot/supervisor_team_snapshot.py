@@ -19,13 +19,13 @@ def get_columns():
             "label": "Technician",
             "fieldname": "technician",
             "fieldtype": "Data",
-            "width": 220,
+            "width": 210,
         },
         {
             "label": "Active Open Tickets",
             "fieldname": "active_open_tickets",
             "fieldtype": "Int",
-            "width": 150,
+            "width": 160,
         },
         {
             "label": "Oldest Active Modified",
@@ -34,10 +34,28 @@ def get_columns():
             "width": 180,
         },
         {
-            "label": "Stale > 24h",
+            "label": "Oldest Stale Hours",
+            "fieldname": "oldest_stale_hours",
+            "fieldtype": "Int",
+            "width": 150,
+        },
+        {
+            "label": "At Risk",
+            "fieldname": "at_risk_count",
+            "fieldtype": "Int",
+            "width": 85,
+        },
+        {
+            "label": "Critical",
+            "fieldname": "critical_count",
+            "fieldtype": "Int",
+            "width": 85,
+        },
+        {
+            "label": "Stale > Threshold",
             "fieldname": "stale_over_threshold",
             "fieldtype": "Int",
-            "width": 120,
+            "width": 145,
         },
     ]
 
@@ -61,9 +79,26 @@ def get_data(include_partner: int, stale_hours: int):
             td.allocated_to AS technician,
             COUNT(DISTINCT h.name) AS active_open_tickets,
             MIN(h.modified) AS oldest_active_modified,
+            MAX(TIMESTAMPDIFF(HOUR, h.modified, NOW())) AS oldest_stale_hours,
             CAST(SUM(
                 CASE
-                    WHEN h.modified < (NOW() - INTERVAL %(stale_hours)s HOUR) THEN 1
+                    WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 24
+                     AND TIMESTAMPDIFF(HOUR, h.modified, NOW()) < 72
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS UNSIGNED) AS at_risk_count,
+            CAST(SUM(
+                CASE
+                    WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 72
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS UNSIGNED) AS critical_count,
+            CAST(SUM(
+                CASE
+                    WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= %(stale_hours)s
+                    THEN 1
                     ELSE 0
                 END
             ) AS UNSIGNED) AS stale_over_threshold
@@ -75,7 +110,11 @@ def get_data(include_partner: int, stale_hours: int):
         WHERE h.status NOT IN ('Resolved', 'Archived')
         {extra_where}
         GROUP BY td.allocated_to
-        ORDER BY active_open_tickets DESC, technician ASC
+        ORDER BY
+            critical_count DESC,
+            at_risk_count DESC,
+            active_open_tickets DESC,
+            technician ASC
         """,
         params,
         as_dict=True,
