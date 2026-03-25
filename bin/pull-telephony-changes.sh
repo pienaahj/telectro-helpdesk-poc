@@ -33,7 +33,9 @@ mirror_dir_from_container() {
   mkdir -p "${DST_BASE}/${dst_dir}"
 
   local tmp_manifest
+  local tmp_host_manifest
   tmp_manifest="$(mktemp)"
+  tmp_host_manifest="$(mktemp)"
 
   docker compose exec -T backend bash -lc "
     cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
@@ -46,31 +48,41 @@ mirror_dir_from_container() {
     awk 'NF'
   " | sort > "${tmp_manifest}"
 
+  echo "  manifest entries: $(wc -l < "${tmp_manifest}" | tr -d ' ')"
+
   while IFS= read -r rel; do
     [ -z "${rel}" ] && continue
 
     if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${rel}'"; then
+      echo "  ↪ mkdir ${dst_dir}/${rel}/"
       mkdir -p "${DST_BASE}/${dst_dir}/${rel}"
     else
+      echo "  → copy ${dst_dir}/${rel}"
       mkdir -p "$(dirname "${DST_BASE}/${dst_dir}/${rel}")"
       docker compose cp \
         "${SRC_BASE}/${src_dir}/${rel}" \
         "${DST_BASE}/${dst_dir}/${rel}"
+
+      if [ ! -e "${DST_BASE}/${dst_dir}/${rel}" ]; then
+        echo "ERROR: mirrored file missing after copy: ${dst_dir}/${rel}" >&2
+        rm -f "${tmp_manifest}" "${tmp_host_manifest}"
+        return 1
+      fi
     fi
   done < "${tmp_manifest}"
 
   find "${DST_BASE}/${dst_dir}" \
     \( -name '__pycache__' -o -name '.DS_Store' \) -prune -o \
     -mindepth 1 -print | \
-  sed "s#^${DST_BASE}/${dst_dir}/##" | sort > "${tmp_manifest}.host"
+    sed "s#^${DST_BASE}/${dst_dir}/##" | sort > "${tmp_host_manifest}"
 
-  comm -23 "${tmp_manifest}.host" "${tmp_manifest}" | while IFS= read -r stale; do
+  comm -23 "${tmp_host_manifest}" "${tmp_manifest}" | while IFS= read -r stale; do
     [ -z "${stale}" ] && continue
-    echo "✗ remove stale ${dst_dir}/${stale}"
+    echo "  ✗ remove stale ${dst_dir}/${stale}"
     rm -rf "${DST_BASE}/${dst_dir}/${stale}"
   done
 
-  rm -f "${tmp_manifest}" "${tmp_manifest}.host"
+  rm -f "${tmp_manifest}" "${tmp_host_manifest}"
 }
 
 cp_from_container() {
@@ -160,6 +172,46 @@ cp_dir_from_container() {
 # Standard report files
 mirror_dir_from_container "ftelephony/report" "ftelephony/report"
 
+# Explicitly pull report files too (since they can be edited in-place in the container, and we want to ensure we get them even if new files are added without updating the script)
+# Report files are also pulled explicitly because mirror_dir_from_container
+# alone did not reliably propagate in-place updates for already-existing host files.
+# Keep these explicit pulls unless/update propagation is re-proved.
+cp_from_container \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py" \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py"
+
+cp_from_container \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.json" \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.json"
+
+cp_from_container \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js" \
+  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js"
+
+cp_from_container \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py" \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py"
+
+cp_from_container \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.json" \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js" \
+  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js"
+
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
@@ -221,17 +273,6 @@ cp_from_container "hooks.py" "hooks.py"
 
 # --- fixtures directory (export-fixtures output) ---
 cp_from_container "fixtures" "fixtures"
-
-# --------------------------------------------------------------------
-# 2) “Low-risk” directory sync (new)
-#    These are areas where new files are expected and should be pulled
-#    without you updating the script each time.
-# --------------------------------------------------------------------
-
-# Optional: keep these dirs fully synced too (comment out if you want strict lists only)
-# cp_dir_from_container "overrides" "overrides"
-# cp_dir_from_container "scripts" "scripts"
-# cp_dir_from_container "monkey_patches" "monkey_patches"
 
 # --------------------------------------------------------------------
 # 3) Normalize fixtures nesting (unchanged)
