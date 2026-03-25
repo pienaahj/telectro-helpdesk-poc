@@ -193,15 +193,16 @@ During pilot work it is common to edit files inside the running container.
 
 Before committing, sync those edits back to the host repo:
 
-```bash
+````bash
 ./bin/pull-telephony-changes.sh
+./bin/restore-fixture-noise.sh
 git status --porcelain
-```
 
 Rules:
 
 - host git is the source of truth
 - do not leave important edits stranded only inside the container
+- remove frappe noise from the resulting diff before commit or PR
 - verify the resulting diff before commit or PR
 
 ---
@@ -278,7 +279,7 @@ Rule:
 
 ```json
 { "message": [ ... ] }
-```
+````
 
 ### Incoming payload shape matters too
 
@@ -357,4 +358,3 @@ When working in this repo:
 - export or sync changes only when the intended contract is actually decided
 
 This README intentionally stays at the repo/workflow level. Detailed contracts and proof paths belong in the linked runbooks.
-
