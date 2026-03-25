@@ -29,6 +29,18 @@ def execute(filters=None):
             "width": 100,
         },
         {
+            "label": "Stale Hours",
+            "fieldname": "stale_hours",
+            "fieldtype": "Int",
+            "width": 105,
+        },
+        {
+            "label": "Attention Band",
+            "fieldname": "attention_band",
+            "fieldtype": "Data",
+            "width": 130,
+        },
+        {
             "label": "Modified",
             "fieldname": "modified",
             "fieldtype": "Datetime",
@@ -36,12 +48,20 @@ def execute(filters=None):
         },
     ]
 
-    data = frappe.db.sql("""
+    data = frappe.db.sql(
+        """
         SELECT
             h.name AS ticket,
             h.subject,
             td.allocated_to AS technician,
             h.status,
+            TIMESTAMPDIFF(HOUR, h.modified, NOW()) AS stale_hours,
+            CASE
+                WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 72 THEN 'Critical'
+                WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 24 THEN 'At Risk'
+                WHEN TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 4 THEN 'Watch'
+                ELSE 'Fresh'
+            END AS attention_band,
             h.modified
         FROM `tabHD Ticket` h
         INNER JOIN `tabToDo` td
@@ -49,8 +69,13 @@ def execute(filters=None):
            AND td.reference_name = h.name
            AND td.status = 'Open'
         WHERE h.status NOT IN ('Resolved', 'Archived')
-          AND h.modified < (NOW() - INTERVAL 24 HOUR)
-        ORDER BY h.modified ASC, td.allocated_to ASC, h.name ASC
-    """, as_dict=True)
+          AND TIMESTAMPDIFF(HOUR, h.modified, NOW()) >= 24
+        ORDER BY
+            stale_hours DESC,
+            td.allocated_to ASC,
+            h.name ASC
+        """,
+        as_dict=True,
+    )
 
     return columns, data
