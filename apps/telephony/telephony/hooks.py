@@ -69,6 +69,7 @@ fixtures = [
                 "My HD Tickets",
                 "Unclaimed Missing Group Over 60m",
                 "Unclaimed Missing Group Over 4H",
+                "Supervisor Team Load Snapshot",
             ]],
         ],
     },

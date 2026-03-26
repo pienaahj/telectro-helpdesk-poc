@@ -95,6 +95,8 @@ cp_from_container() {
   fi
 
   echo "→ ${dst}"
+  # Ensure dst dir exists to avoid `docker compose cp` nesting issues (it doesn't auto-create intermediate dirs, and if dst doesn't exist it creates a dst file instead of copying into it)
+  mkdir -p "$(dirname "${DST_BASE}/${dst}")"
   docker compose cp "${SRC_BASE}/${src}" "${DST_BASE}/${dst}"
 }
 
@@ -104,6 +106,8 @@ cp_optional_from_container() {
 
   if docker compose exec -T backend bash -lc "test -e '/home/frappe/frappe-bench/apps/telephony/telephony/${src}'"; then
     echo "→ ${dst}"
+    # Ensure dst dir exists to avoid `docker compose cp` nesting issues (it doesn't auto-create intermediate dirs, and if dst doesn't exist it creates a dst file instead of copying into it)
+    mkdir -p "$(dirname "${DST_BASE}/${dst}")"
     docker compose cp "${SRC_BASE}/${src}" "${DST_BASE}/${dst}"
   else
     echo "↪ optional missing (skipped): ${dst}"
@@ -208,10 +212,21 @@ cp_from_container \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json" \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json"
 
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js"
+cp_optional_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/__init__.py" \
+  "ftelephony/report/supervisor_team_load_snapshot/__init__.py"
 
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
