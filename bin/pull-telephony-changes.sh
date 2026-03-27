@@ -227,6 +227,22 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
   "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
+
+cp_optional_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
+  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
