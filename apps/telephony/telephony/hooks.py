@@ -8,7 +8,7 @@ app_license = "agpl-3.0"
 
 fixtures = [
     {"dt": "Role", "filters": [["role_name", "like", "TP%"]]},
-    
+
     {
         "dt": "Workspace",
         "filters": [
@@ -22,7 +22,7 @@ fixtures = [
             ["name", "in", ["Faults", "Service Request", "Assistance"]]
         ],
     },
-    
+
     {
         "dt": "Custom Field",
         "filters": [
@@ -44,11 +44,26 @@ fixtures = [
             ]],
         ],
     },
-    
+
     {
         "dt": "Number Card",
         "filters": [
-            ["label", "like", "TELECTRO Ops%"],
+            ["name", "in", [
+                "TELECTRO Ops — Unassigned",
+                "TELECTRO Ops — Unassigned above 60m",
+                "TELECTRO Ops — Unclaimed above 4 hours",
+                "TELECTRO Ops — Total Active",
+                "TELECTRO Ops — Partner Queue",
+            ]],
+        ],
+    },
+
+    {
+        "dt": "Dashboard Chart",
+        "filters": [
+            ["name", "in", [
+                "Supervisor Active Work by Bucket",
+            ]],
         ],
     },
 
@@ -59,44 +74,42 @@ fixtures = [
             ["enabled", "=", 1],
         ],
     },
-    
+
     {
         "dt": "Property Setter",
         "filters": [
             ["doc_type", "=", "HD Ticket"],
             ["field_name", "=", "ticket_type"],
-            ["property", "=", ["default"]],
+            ["property", "=", "default"],
         ],
-    },  
-    
+    },
+
     {
         "dt": "Report",
         "filters": [
             ["name", "in", [
                 "My HD Tickets",
                 "Supervisor Team Load Snapshot",
-                "TELECTRO Ops — Unassigned",
-                "TELECTRO Ops — Unassigned above 60m",
-                "TELECTRO Ops — Unclaimed above 4 hours",
-                "TELECTRO Ops — Total Active",
-                "TELECTRO Ops — Partner Queue",
+                "Supervisor Active Work by Bucket",
+                "Active Tickets by Technician",
+                "Aging and At-Risk Tickets",
             ]],
         ],
     },
-    
+
     {
         "dt": "Scheduled Job Type",
         "filters": [
             ["method", "=", "telephony.jobs.pull_pilot_inboxes.run"],
         ],
     },
-    
+
     {
         "dt": "HD Team",
         "filters": [
             ["name", "in", ["PABX", "Routing", "Helpdesk Team"]],
         ],
-    },    
+    },
 ]
 
 # ------------------
