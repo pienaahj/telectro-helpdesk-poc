@@ -230,7 +230,8 @@ cp_from_container \
 # --------------------------------------------------------------------
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
-
+#  --- ops_kpis ---
+cp_from_container "ops_kpis.py" "ops_kpis.py"
 # --- overrides we care about ---
 cp_from_container "overrides/assign_to.py" "overrides/assign_to.py"
 cp_from_container "overrides/query_report.py" "overrides/query_report.py"
