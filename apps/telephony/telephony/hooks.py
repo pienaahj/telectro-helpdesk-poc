@@ -12,7 +12,7 @@ fixtures = [
     {
         "dt": "Workspace",
         "filters": [
-            ["name", "=", "TELECTRO-POC Tech"],
+            ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops"]],
         ],
     },
 
@@ -44,6 +44,13 @@ fixtures = [
             ]],
         ],
     },
+    
+    {
+        "dt": "Number Card",
+        "filters": [
+            ["label", "like", "TELECTRO Ops%"],
+        ],
+    },
 
     {
         "dt": "Client Script",
@@ -67,9 +74,12 @@ fixtures = [
         "filters": [
             ["name", "in", [
                 "My HD Tickets",
-                "Unclaimed Missing Group Over 60m",
-                "Unclaimed Missing Group Over 4H",
                 "Supervisor Team Load Snapshot",
+                "TELECTRO Ops — Unassigned",
+                "TELECTRO Ops — Unassigned above 60m",
+                "TELECTRO Ops — Unclaimed above 4 hours",
+                "TELECTRO Ops — Total Active",
+                "TELECTRO Ops — Partner Queue",
             ]],
         ],
     },
