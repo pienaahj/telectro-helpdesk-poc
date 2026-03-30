@@ -135,6 +135,68 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
+  "modified": "2026-03-30 15:56:21.811337",
+  "module": "FTelephony",
+  "name": "Unclaimed Over 1 Day",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Unclaimed Over 1 Day",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "Unclaimed Over 1 Day",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
   "modified": "2026-03-24 17:32:25.057243",
   "module": "FTelephony",
   "name": "Active Tickets by Technician",
@@ -178,68 +240,6 @@
    },
    {
     "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-03-26 11:27:39.496421",
-  "module": "FTelephony",
-  "name": "Supervisor Team Load Snapshot",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Supervisor Team Load Snapshot",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Helpdesk Contact"
@@ -306,6 +306,68 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "TELECTRO-POC Tech"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-03-26 11:27:39.496421",
+  "module": "FTelephony",
+  "name": "Supervisor Team Load Snapshot",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Supervisor Team Load Snapshot",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
    }
   ],
   "timeout": 0

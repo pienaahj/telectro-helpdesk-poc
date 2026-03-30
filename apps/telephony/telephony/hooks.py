@@ -17,6 +17,15 @@ fixtures = [
     },
 
     {
+        "dt": "Custom HTML Block",
+        "filters": [
+            ["name", "in", [
+                "Unclaimed Over1 Day Card",
+            ]],
+        ],
+    },
+
+    {
         "dt": "HD Ticket Type",
         "filters": [
             ["name", "in", ["Faults", "Service Request", "Assistance"]]
@@ -93,6 +102,7 @@ fixtures = [
                 "Supervisor Active Work by Bucket",
                 "Active Tickets by Technician",
                 "Aging and At-Risk Tickets",
+                "Unclaimed Over 1 Day",
             ]],
         ],
     },
@@ -181,6 +191,7 @@ app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-02-04-1",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
+    "/assets/telephony/js/telectro_ops_workspace.js?v=2026-03-30-1",
 ]:
     if p not in app_include_js:
         app_include_js.append(p)
