@@ -1,0 +1,43 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-03-30 15:52:17.231529",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-03-30 15:56:21.811337",
+ "modified_by": "Administrator",
+ "module": "FTelephony",
+ "name": "Unclaimed Over 1 Day",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "HD Ticket",
+ "report_name": "Unclaimed Over 1 Day",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Agent Manager"
+  },
+  {
+   "role": "Agent"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "All"
+  },
+  {
+   "role": "TELECTRO-POC Tech"
+  },
+  {
+   "role": "Helpdesk Contact"
+  }
+ ],
+ "timeout": 0
+}

@@ -19,6 +19,8 @@ mkdir -p "${DST_BASE}/fixtures"
 mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
 mkdir -p "${DST_BASE}/ftelephony/report"
+mkdir -p "${DST_BASE}/public/js"
+mkdir -p "${DST_BASE}/api"
 
 mirror_dir_from_container() {
   local src_dir="$1"
@@ -227,7 +229,7 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
   "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
-
+# --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
   "ftelephony/report/supervisor_active_work_by_bucket/__init__.py"
@@ -244,8 +246,25 @@ cp_from_container \
   "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js" \
   "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
 # --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/unclaimed_over_1_day/__init__.py/__init__.py" \
+  "ftelephony/report/unclaimed_over_1_day/__init__.py/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
+# --- workspace api ---
+cp_from_container "api/workspace.py" "api/workspace.py"
 #  --- ops_kpis ---
 cp_from_container "ops_kpis.py" "ops_kpis.py"
 # --- overrides we care about ---
@@ -299,6 +318,9 @@ cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/not
 
 # --- datetime guard ---
 cp_from_container "public/js/telectro_datetime_guard.js" "public/js/telectro_datetime_guard.js"
+
+# --- telectro_ ops_workspace ---
+cp_from_container "public/js/telectro_ops_workspace.js" "public/js/telectro_ops_workspace.js"
 
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
