@@ -2,8 +2,6 @@
   const MOUNT_SELECTOR =
     '#telectro-stale-unclaimed-widget, [data-telectro-widget="stale-unclaimed"]';
 
-  console.log("[telectro_ops_workspace] loaded");
-
   function findInShadowRoots(selector) {
     const nodes = document.querySelectorAll("*");
     for (const node of nodes) {
@@ -45,7 +43,7 @@
           <div class="list-loading-state text-muted">Loading...</div>
         </div>
         <div class="widget-footer">
-          <div class="see-all btn btn-xs">View List</div>
+          <div class="see-all btn btn-xs">View Full List</div>
         </div>
       </div>
     `;
@@ -84,7 +82,7 @@
           <div class="list-no-data-state text-muted">No Data...</div>
         </div>
         <div class="widget-footer">
-          <div class="see-all btn btn-xs">View List</div>
+          <div class="see-all btn btn-xs">View Full List</div>
         </div>
       </div>
     `;
@@ -131,7 +129,7 @@
           ${rowsHtml || '<div class="list-no-data-state text-muted">No Data...</div>'}
         </div>
         <div class="widget-footer">
-          <div class="see-all btn btn-xs">View List</div>
+          <div class="see-all btn btn-xs">View Full List</div>
         </div>
       </div>
     `;
@@ -151,11 +149,7 @@
   }
 
   async function loadCard() {
-    console.log("[telectro_ops_workspace] loadCard called");
-
     const mount = getMount();
-    console.log("[telectro_ops_workspace] mount =", mount);
-
     if (!mount) return;
 
     renderLoading(mount);
@@ -165,8 +159,6 @@
         method: "telephony.api.workspace.unclaimed_over_1_day_card",
         args: { limit: 4 },
       });
-
-      console.log("[telectro_ops_workspace] response=", r);
 
       const payload = r.message || {};
       if (!payload.rows || !payload.rows.length) {

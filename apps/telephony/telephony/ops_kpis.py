@@ -2,11 +2,7 @@ import frappe
 
 _ACTIVE_STATUSES = ("Open", "Replied")
 
-POOL_JSON = '["helpdesk@local.test"]'
-
-# Unclaimed = unassigned-ish OR pool-owned
-_UNCLAIMED_SQL = f"(IFNULL(_assign, '') IN ('', '[]') OR _assign = '{POOL_JSON}')"
-
+_UNCLAIMED_SQL = "(IFNULL(_assign, '') IN ('', '[]'))"
 
 def _count_sql(where_sql: str, params: tuple = ()) -> int:
     row = frappe.db.sql(
