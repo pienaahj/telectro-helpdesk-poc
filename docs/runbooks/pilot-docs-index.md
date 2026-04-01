@@ -357,6 +357,9 @@ Read: **README.md**
 **“How should a supervisor monitor and intervene?”**  
 Read: **Supervisor Operating Model**
 
+**"How to understand the SLA timing signals?"**
+Read: **SLA and Supervisor Risk Signals**
+
 ---
 
 ## Suggested folder / note roles
@@ -475,6 +478,7 @@ At the moment, the doc set has a good emerging split:
 - **Ticket Assignment Contract** = ownership model
 - **Ticket Status and Workspace Baseline** = operational trust boundary and archive policy
 - **Supervisor Operating Model** = supervisor monitoring and intervention model
+- **SLA and Supervisor Risk Signals** = where Helpdesk SLA timing is configured, how `response_by` / `resolution_by` are derived, and how supervisor risk signals should interpret those fields
 
 That is a healthy baseline for the pilot.
 
