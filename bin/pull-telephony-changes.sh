@@ -263,6 +263,23 @@ cp_from_container \
   "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/first_response_missed/__init__.py/__init__.py" \
+  "ftelephony/report/first_response_missed/__init__.py/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/first_response_missed/first_response_missed.js" \
+  "ftelephony/report/first_response_missed/first_response_missed.js"
+
+cp_from_container \
+  "ftelephony/report/first_response_missed/first_response_missed.json" \
+  "ftelephony/report/first_response_missed/first_response_missed.json"
+
+cp_from_container \
+  "ftelephony/report/first_response_missed/first_response_missed.py" \
+  "ftelephony/report/first_response_missed/first_response_missed.py"
+# 1) Explicit “must-have” files (tight guardrails)
+# --------------------------------------------------------------------
 # --- workspace api ---
 cp_from_container "api/workspace.py" "api/workspace.py"
 #  --- ops_kpis ---

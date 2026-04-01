@@ -103,6 +103,7 @@ fixtures = [
                 "Active Tickets by Technician",
                 "Aging and At-Risk Tickets",
                 "Unclaimed Over 1 Day",
+                "First Response Missed",
             ]],
         ],
     },
