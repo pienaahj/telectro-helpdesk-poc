@@ -7,10 +7,10 @@
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
- "idx": 0,
+ "idx": 8,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-03-24 17:32:25.057243",
+ "modified": "2026-04-09 08:53:13.853184",
  "modified_by": "Administrator",
  "module": "FTelephony",
  "name": "Active Tickets by Technician",
@@ -28,12 +28,6 @@
   },
   {
    "role": "System Manager"
-  },
-  {
-   "role": "All"
-  },
-  {
-   "role": "TELECTRO-POC Tech"
   },
   {
    "role": "Helpdesk Contact"
