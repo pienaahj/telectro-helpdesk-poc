@@ -7,10 +7,10 @@
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
- "idx": 0,
+ "idx": 15,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-03-24 16:54:28.327356",
+ "modified": "2026-04-09 08:57:28.457697",
  "modified_by": "Administrator",
  "module": "FTelephony",
  "name": "Supervisor Team Snapshot",
@@ -28,12 +28,6 @@
   },
   {
    "role": "System Manager"
-  },
-  {
-   "role": "All"
-  },
-  {
-   "role": "TELECTRO-POC Tech"
   },
   {
    "role": "Helpdesk Contact"

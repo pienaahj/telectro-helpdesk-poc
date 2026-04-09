@@ -11,68 +11,6 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-03-24 17:59:20.374752",
-  "module": "FTelephony",
-  "name": "Aging and At-Risk Tickets",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Aging and At-Risk Tickets",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
   "modified": "2026-03-27 17:17:52.923676",
   "module": "FTelephony",
   "name": "Supervisor Active Work by Bucket",
@@ -119,6 +57,94 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-01 13:50:55.099029",
+  "module": "FTelephony",
+  "name": "First Response Missed",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "First Response Missed",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [
+   {
+    "default": "",
+    "fieldname": "user",
+    "fieldtype": "Link",
+    "label": "User",
+    "mandatory": 0,
+    "options": "User",
+    "parent": "My HD Tickets",
+    "parentfield": "filters",
+    "parenttype": "Report",
+    "wildcard_filter": 0
+   }
+  ],
+  "is_standard": "No",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-03-05 12:47:38.273877",
+  "module": "Helpdesk",
+  "name": "My HD Tickets",
+  "prepared_report": 0,
+  "query": "",
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "My HD Tickets",
+  "report_script": "# Custom Script Report (Report.report_script) style\n# Output via old-style: data = [columns, rows]\n\nfilters = filters or {}\n\n# Be tolerant of different callers / route filters\nuser = (\n    (filters.get(\"user\") if isinstance(filters, dict) else None)\n    or (filters.get(\"assigned_user\") if isinstance(filters, dict) else None)\n    or frappe.session.user\n    or \"\"\n).strip()\n\ncolumns = [\n    {\"label\": \"Ticket\", \"fieldname\": \"ticket\", \"fieldtype\": \"Link\", \"options\": \"HD Ticket\", \"width\": 120},\n    {\"label\": \"Subject\", \"fieldname\": \"subject\", \"fieldtype\": \"Data\", \"width\": 360},\n    {\"label\": \"Status\", \"fieldname\": \"status\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Priority\", \"fieldname\": \"priority\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Team\", \"fieldname\": \"team\", \"fieldtype\": \"Data\", \"width\": 120},\n    {\"label\": \"Modified\", \"fieldname\": \"modified\", \"fieldtype\": \"Datetime\", \"width\": 160},\n]\n\nif not user:\n    rows = []\nelse:\n    rows = frappe.db.sql(\n        \"\"\"\n        SELECT\n          t.name as ticket,\n          t.subject,\n          t.status,\n          t.priority,\n          t.agent_group as team,\n          t.modified\n        FROM `tabHD Ticket` t\n        WHERE EXISTS (\n          SELECT 1\n          FROM `tabToDo` td\n          WHERE td.reference_type = 'HD Ticket'\n            AND td.reference_name = t.name\n            AND td.allocated_to = %(user)s\n            AND td.status = 'Open'\n        )\n        ORDER BY t.modified DESC\n        LIMIT 200\n        \"\"\",\n        {\"user\": user},\n        as_dict=True,\n    )\n\ndata = [columns, rows]\n",
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "My HD Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
    }
   ],
   "timeout": 0
@@ -197,7 +223,57 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-03-24 17:32:25.057243",
+  "modified": "2026-04-09 08:55:45.687465",
+  "module": "FTelephony",
+  "name": "Aging and At-Risk Tickets",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Aging and At-Risk Tickets",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-09 08:53:13.853184",
   "module": "FTelephony",
   "name": "Active Tickets by Technician",
   "prepared_report": 0,
@@ -230,82 +306,7 @@
     "parent": "Active Tickets by Technician",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
     "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [
-   {
-    "default": "",
-    "fieldname": "user",
-    "fieldtype": "Link",
-    "label": "User",
-    "mandatory": 0,
-    "options": "User",
-    "parent": "My HD Tickets",
-    "parentfield": "filters",
-    "parenttype": "Report",
-    "wildcard_filter": 0
-   }
-  ],
-  "is_standard": "No",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-03-05 12:47:38.273877",
-  "module": "Helpdesk",
-  "name": "My HD Tickets",
-  "prepared_report": 0,
-  "query": "",
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "My HD Tickets",
-  "report_script": "# Custom Script Report (Report.report_script) style\n# Output via old-style: data = [columns, rows]\n\nfilters = filters or {}\n\n# Be tolerant of different callers / route filters\nuser = (\n    (filters.get(\"user\") if isinstance(filters, dict) else None)\n    or (filters.get(\"assigned_user\") if isinstance(filters, dict) else None)\n    or frappe.session.user\n    or \"\"\n).strip()\n\ncolumns = [\n    {\"label\": \"Ticket\", \"fieldname\": \"ticket\", \"fieldtype\": \"Link\", \"options\": \"HD Ticket\", \"width\": 120},\n    {\"label\": \"Subject\", \"fieldname\": \"subject\", \"fieldtype\": \"Data\", \"width\": 360},\n    {\"label\": \"Status\", \"fieldname\": \"status\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Priority\", \"fieldname\": \"priority\", \"fieldtype\": \"Data\", \"width\": 100},\n    {\"label\": \"Team\", \"fieldname\": \"team\", \"fieldtype\": \"Data\", \"width\": 120},\n    {\"label\": \"Modified\", \"fieldname\": \"modified\", \"fieldtype\": \"Datetime\", \"width\": 160},\n]\n\nif not user:\n    rows = []\nelse:\n    rows = frappe.db.sql(\n        \"\"\"\n        SELECT\n          t.name as ticket,\n          t.subject,\n          t.status,\n          t.priority,\n          t.agent_group as team,\n          t.modified\n        FROM `tabHD Ticket` t\n        WHERE EXISTS (\n          SELECT 1\n          FROM `tabToDo` td\n          WHERE td.reference_type = 'HD Ticket'\n            AND td.reference_name = t.name\n            AND td.allocated_to = %(user)s\n            AND td.status = 'Open'\n        )\n        ORDER BY t.modified DESC\n        LIMIT 200\n        \"\"\",\n        {\"user\": user},\n        as_dict=True,\n    )\n\ndata = [columns, rows]\n",
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "My HD Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "My HD Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "My HD Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "My HD Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
    }
   ],
   "timeout": 0
