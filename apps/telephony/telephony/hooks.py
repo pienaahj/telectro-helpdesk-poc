@@ -12,7 +12,7 @@ fixtures = [
     {
         "dt": "Workspace",
         "filters": [
-            ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops"]],
+            ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops", "TELECTRO-POC Coordinator"]],
         ],
     },
 
@@ -190,9 +190,8 @@ if TELECTRO_DEBUG:
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
 for p in [
-    "/assets/telephony/js/telectro_home_redirect.js?v=2026-02-04-1",
+    "/assets/telephony/js/telectro_home_redirect.js?v=2026-04-13-1",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
-    "/assets/telephony/js/telectro_ops_workspace.js?v=2026-03-30-1",
 ]:
     if p not in app_include_js:
         app_include_js.append(p)

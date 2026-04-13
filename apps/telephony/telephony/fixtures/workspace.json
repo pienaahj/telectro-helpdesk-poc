@@ -103,7 +103,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-03-17 15:53:22.209989",
+  "modified": "2026-04-10 18:57:07.498837",
   "module": null,
   "name": "TELECTRO-POC Tech",
   "number_cards": [],
@@ -116,7 +116,7 @@
     "parent": "TELECTRO-POC Tech",
     "parentfield": "roles",
     "parenttype": "Workspace",
-    "role": "TELECTRO-POC Tech"
+    "role": "TELECTRO-POC Role - Tech Workspace"
    }
   ],
   "sequence_id": 28.0,
@@ -248,12 +248,201 @@
    {
     "chart_name": "Supervisor Active Work by Bucket",
     "label": "Supervisor Active Work by Owner Bucket",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "charts",
+    "parenttype": "Workspace"
+   }
+  ],
+  "content": "[{\"id\":\"A3B2vWOcDu\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Coordinator</span>\",\"col\":12}},{\"id\":\"AVIckQR76K\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"wZY1un5TOh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"Sp6S2Wb_HU\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"Eehb2Rift3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"XY6jBjoxVF\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"qICiUWFGcc\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"NG-Wwh4hvG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"afAM_CINTc\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"W7yPuMru1x\",\"type\":\"card\",\"data\":{\"card_name\":\"Supervisor Views / Drill Down Reports\",\"col\":4}},{\"id\":\"w71Bx8Adk9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"YFO_taOCGg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Tickets\",\"col\":3}}]",
+  "custom_blocks": [
+   {
+    "custom_block_name": "Unclaimed more than 1 Day (Top 4)",
+    "label": "Unclaimed more than 1 Day (Top 4)",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "custom_blocks",
+    "parenttype": "Workspace"
+   }
+  ],
+  "docstatus": 0,
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "share-people",
+  "indicator_color": "",
+  "is_hidden": 0,
+  "label": "TELECTRO-POC Coordinator",
+  "links": [
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 0,
+    "label": "Supervisor Views / Drill Down Reports",
+    "link_count": 4,
+    "link_to": null,
+    "link_type": "DocType",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Card Break"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 1,
+    "label": "Supervisor Team Snapshot",
+    "link_count": 0,
+    "link_to": "Supervisor Team Snapshot",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 1,
+    "label": "Active Tickets by Technician",
+    "link_count": 0,
+    "link_to": "Active Tickets by Technician",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 1,
+    "label": "Aging / At-Risk Tickets",
+    "link_count": 0,
+    "link_to": "Aging and At-Risk Tickets",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 1,
+    "label": "Team Load Snapshot",
+    "link_count": 0,
+    "link_to": "Supervisor Team Snapshot",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
+   }
+  ],
+  "modified": "2026-04-10 18:50:49.421173",
+  "module": null,
+  "name": "TELECTRO-POC Coordinator",
+  "number_cards": [
+   {
+    "label": "Total Active",
+    "number_card_name": "TELECTRO Ops — Total Active",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   },
+   {
+    "label": "UNCLAIMED (POOL)",
+    "number_card_name": "UNASSIGNED NOW",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   },
+   {
+    "label": "PARTNER QUEUE",
+    "number_card_name": "TELECTRO Ops — Partner Queue",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   }
+  ],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [
+   {
+    "document_type": "HD Ticket",
+    "label": "Unclaimed Active Tickets",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "quick_lists",
+    "parenttype": "Workspace",
+    "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]"
+   }
+  ],
+  "restrict_to_domain": null,
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "roles",
+    "parenttype": "Workspace",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   }
+  ],
+  "sequence_id": 29.0,
+  "shortcuts": [
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "All Tickets",
+    "link_to": "HD Ticket",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": "[[\"HD Ticket\",\"_assign\",\"!=\",\",[]\",false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]",
+    "type": "DocType",
+    "url": null
+   }
+  ],
+  "title": "TELECTRO-POC Coordinator"
+ },
+ {
+  "charts": [
+   {
+    "chart_name": "Supervisor Active Work by Bucket",
+    "label": "Supervisor Active Work by Owner Bucket",
     "parent": "TELECTRO-POC Ops",
     "parentfield": "charts",
     "parenttype": "Workspace"
    }
   ],
-  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"IVJhffXpX9\",\"type\":\"card\",\"data\":{\"card_name\":\"Supervisor Views / Drill Down Reports\",\"col\":4}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}}]",
+  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"aZ9pcBj-L2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Supervisor Views / Drill Down Reports\",\"col\":4}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}},{\"id\":\"jbvPwhYU8t\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Grant / Revoke Coordinator</b></span>\",\"col\":12}}]",
   "custom_blocks": [
    {
     "custom_block_name": "Unclaimed more than 1 Day (Top 4)",
@@ -272,24 +461,6 @@
   "is_hidden": 0,
   "label": "TELECTRO-POC Ops",
   "links": [
-   {
-    "dependencies": null,
-    "description": null,
-    "hidden": 0,
-    "icon": null,
-    "is_query_report": 0,
-    "label": "Supervisor Views / Drill Down Reports",
-    "link_count": 4,
-    "link_to": null,
-    "link_type": "DocType",
-    "onboard": 0,
-    "only_for": null,
-    "parent": "TELECTRO-POC Ops",
-    "parentfield": "links",
-    "parenttype": "Workspace",
-    "report_ref_doctype": null,
-    "type": "Card Break"
-   },
    {
     "dependencies": null,
     "description": null,
@@ -363,7 +534,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-04-09 11:30:14.352482",
+  "modified": "2026-04-10 18:55:44.268483",
   "module": null,
   "name": "TELECTRO-POC Ops",
   "number_cards": [
@@ -399,6 +570,14 @@
     "parentfield": "quick_lists",
     "parenttype": "Workspace",
     "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]"
+   },
+   {
+    "document_type": "HD Ticket",
+    "label": "Supervisor Views / Drill Down Reports",
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "quick_lists",
+    "parenttype": "Workspace",
+    "quick_list_filter": "[]"
    }
   ],
   "restrict_to_domain": null,
@@ -407,7 +586,7 @@
     "parent": "TELECTRO-POC Ops",
     "parentfield": "roles",
     "parenttype": "Workspace",
-    "role": "TELECTRO-POC Ops Role"
+    "role": "TELECTRO-POC Role - Ops Workspace"
    }
   ],
   "sequence_id": 30.0,
