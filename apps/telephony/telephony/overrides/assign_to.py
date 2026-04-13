@@ -33,12 +33,8 @@ def _roles_for(user: str) -> set[str]:
 
 def _is_operational_intervention_user(user: str) -> bool:
     """
-    Current pilot-safe capability seam.
-
-    Today this should mean: supervisor/admin-like users who are allowed
-    to intervene in assignment state.
-
-    Later, when Coordinator becomes real, just add that role here.
+    Users allowed to intervene in assignment state for the pilot.
+    Keep this narrow.
     """
     if not user or user == "Administrator":
         return True
@@ -48,17 +44,16 @@ def _is_operational_intervention_user(user: str) -> bool:
     allowed = {
         "System Manager",
         "Pilot Admin",
-        "TELECTRO-POC Ops",
-        # future-safe seam:
-        "Coordinator",
+        "TELECTRO-POC Role - Supervisor Governance",
+        "TELECTRO-POC Role - Coordinator Ops",
     }
     return bool(roles & allowed)
 
 
 def _is_regular_agent_user(user: str) -> bool:
     """
-    Broad bucket for non-intervention helpdesk/technician users.
-    Keep this broad and let the intervention check above win.
+    Broad bucket for normal operational users who may work tickets
+    but must not use the generic assign dialog for reassignment.
     """
     if not user or user == "Guest":
         return False
@@ -67,13 +62,14 @@ def _is_regular_agent_user(user: str) -> bool:
         return False
 
     roles = _roles_for(user)
+
     return bool(
         roles
         & {
-            "Helpdesk Role",
-            "HD Agent",
+            "TELECTRO-POC Role - Tech",
+            "TELECTRO-POC Role - Coordinator Ops",
+            "Agent",
             "Support Team",
-            "Technician",
         }
     )
 
