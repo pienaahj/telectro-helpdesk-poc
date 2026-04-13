@@ -339,6 +339,9 @@ cp_from_container "public/js/telectro_datetime_guard.js" "public/js/telectro_dat
 # --- telectro_ ops_workspace ---
 cp_from_container "public/js/telectro_ops_workspace.js" "public/js/telectro_ops_workspace.js"
 
+# --- telectro_home_redirect ---
+cp_from_container "public/js/telectro_home_redirect.js" "public/js/telectro_home_redirect.js"
+
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
 
