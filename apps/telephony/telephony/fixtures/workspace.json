@@ -442,11 +442,25 @@
     "parenttype": "Workspace"
    }
   ],
-  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"aZ9pcBj-L2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Supervisor Views / Drill Down Reports\",\"col\":4}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}},{\"id\":\"jbvPwhYU8t\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Grant / Revoke Coordinator</b></span>\",\"col\":12}}]",
+  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"aZ9pcBj-L2\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Supervisor Views / Drill Down Reports\",\"col\":4}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}},{\"id\":\"jbvPwhYU8t\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Grant / Revoke Coordinator</b></span>\",\"col\":12}},{\"id\":\"yptQo0GT7c\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Current Coordinator Uplift\",\"col\":6}},{\"id\":\"Y6W_VJ1Gxh\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Grant / Revoke Coordinator\",\"col\":6}}]",
   "custom_blocks": [
    {
     "custom_block_name": "Unclaimed more than 1 Day (Top 4)",
     "label": "Unclaimed more than 1 Day (Top 4)",
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "custom_blocks",
+    "parenttype": "Workspace"
+   },
+   {
+    "custom_block_name": "Grant / Revoke Coordinator",
+    "label": "Grant / Revoke Coordinator",
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "custom_blocks",
+    "parenttype": "Workspace"
+   },
+   {
+    "custom_block_name": "Current Coordinator Uplift",
+    "label": "Current Coordinator Uplift",
     "parent": "TELECTRO-POC Ops",
     "parentfield": "custom_blocks",
     "parenttype": "Workspace"
@@ -534,7 +548,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-04-10 18:55:44.268483",
+  "modified": "2026-04-14 16:15:29.970071",
   "module": null,
   "name": "TELECTRO-POC Ops",
   "number_cards": [
