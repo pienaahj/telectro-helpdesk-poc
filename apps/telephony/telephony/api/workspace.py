@@ -136,7 +136,8 @@ def grant_coordinator_uplift(user_email):
         )
 
     doc.role_profile_name = COORDINATOR_TECHNICIAN_PROFILE
-    doc.save()
+    doc.populate_role_profile_roles()
+    doc.save(ignore_permissions=True)
     frappe.db.commit()
 
     doc = frappe.get_doc("User", user_email)
@@ -159,7 +160,8 @@ def revoke_coordinator_uplift(user_email):
         )
 
     doc.role_profile_name = TECHNICIAN_PROFILE
-    doc.save()
+    doc.populate_role_profile_roles()
+    doc.save(ignore_permissions=True)
     frappe.db.commit()
 
     doc = frappe.get_doc("User", user_email)

@@ -65,7 +65,10 @@
             return;
           }
 
-          const method = selected.is_coordinator_uplifted
+          const currentState = d.get_value("current_state");
+          const isCoordinator = currentState === "Coordinator active";
+
+          const method = isCoordinator
             ? "telephony.api.workspace.revoke_coordinator_uplift"
             : "telephony.api.workspace.grant_coordinator_uplift";
 
@@ -74,12 +77,28 @@
               method,
               args: { user_email: selected.name },
               freeze: true,
-              freeze_message: selected.is_coordinator_uplifted
+              freeze_message: isCoordinator
                 ? "Revoking coordinator uplift..."
                 : "Granting coordinator uplift...",
             })
             .then((res) => {
               const msg = res.message || {};
+
+              if (msg.user && byName[msg.user]) {
+                byName[msg.user] = {
+                  ...byName[msg.user],
+                  name: msg.user,
+                  email: msg.user,
+                  full_name: msg.full_name,
+                  enabled: msg.enabled,
+                  role_profile_name: msg.role_profile_name,
+                  is_coordinator_uplifted: msg.is_coordinator_uplifted,
+                  status_label: msg.is_coordinator_uplifted
+                    ? "Coordinator active"
+                    : "Technician only",
+                };
+              }
+
               frappe.show_alert({
                 message: msg.message || "Coordinator uplift updated.",
                 indicator: "green",
