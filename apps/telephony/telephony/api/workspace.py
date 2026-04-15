@@ -66,6 +66,19 @@ def coordinator_uplift_candidates():
     }
 
 
+def _log_coordinator_uplift_change(*, target_user, action, before_profile, after_profile):
+    frappe.get_doc({
+        "doctype": "Comment",
+        "comment_type": "Info",
+        "reference_doctype": "User",
+        "reference_name": target_user,
+        "content": (
+            f"Coordinator uplift {action} by {frappe.session.user}. "
+            f"Profile changed from {before_profile or '-'} to {after_profile or '-'}."
+        ),
+    }).insert(ignore_permissions=True)
+    
+    
 def _require_coordinator_governance_access():
     user = frappe.session.user
 
@@ -125,6 +138,7 @@ def grant_coordinator_uplift(user_email):
     _require_coordinator_governance_access()
 
     doc = _get_user_doc_for_governance(user_email)
+    before_profile = doc.role_profile_name or ""
 
     if _is_coordinator_uplifted_profile(doc):
         return _serialize_governance_state(doc, _("Coordinator uplift already granted."))
@@ -141,6 +155,14 @@ def grant_coordinator_uplift(user_email):
     frappe.db.commit()
 
     doc = frappe.get_doc("User", user_email)
+
+    _log_coordinator_uplift_change(
+        target_user=user_email,
+        action="granted",
+        before_profile=before_profile,
+        after_profile=doc.role_profile_name,
+    )
+
     return _serialize_governance_state(doc, _("Coordinator uplift granted."))
 
 
@@ -149,6 +171,7 @@ def revoke_coordinator_uplift(user_email):
     _require_coordinator_governance_access()
 
     doc = _get_user_doc_for_governance(user_email)
+    before_profile = doc.role_profile_name or ""
 
     if _is_technician_profile(doc):
         return _serialize_governance_state(doc, _("Coordinator uplift already revoked."))
@@ -165,6 +188,14 @@ def revoke_coordinator_uplift(user_email):
     frappe.db.commit()
 
     doc = frappe.get_doc("User", user_email)
+
+    _log_coordinator_uplift_change(
+        target_user=user_email,
+        action="revoked",
+        before_profile=before_profile,
+        after_profile=doc.role_profile_name,
+    )
+
     return _serialize_governance_state(doc, _("Coordinator uplift revoked."))
 
 @frappe.whitelist()
