@@ -7,10 +7,10 @@
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
- "idx": 15,
+ "idx": 27,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-04-09 08:57:28.457697",
+ "modified": "2026-04-15 15:47:35.314321",
  "modified_by": "Administrator",
  "module": "FTelephony",
  "name": "Supervisor Team Snapshot",
@@ -25,9 +25,6 @@
   },
   {
    "role": "Agent"
-  },
-  {
-   "role": "System Manager"
   },
   {
    "role": "Helpdesk Contact"
