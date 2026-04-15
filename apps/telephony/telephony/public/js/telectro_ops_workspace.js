@@ -360,7 +360,7 @@
         const enabledLabel = row.enabled ? "Enabled" : "Disabled";
 
         return `
-          <div class="quick-list-item telectro-current-coordinator-row">
+          <div class="quick-list-item telectro-current-coordinator-row" data-route="${escapeHtml(row.route)}">
             <div class="ellipsis left">
               <div class="ellipsis title" title="${escapeHtml(row.full_name)}">
                 ${escapeHtml(row.full_name)}
@@ -372,6 +372,7 @@
             <div class="status indicator-pill ${enabledClass} ellipsis">
               ${escapeHtml(enabledLabel)}
             </div>
+            <div class="right-arrow">${frappe.utils.icon("right", "xs")}</div>
           </div>
         `;
       })
@@ -396,6 +397,19 @@
         </div>
       </div>
     `;
+
+    mount
+      .querySelectorAll(".telectro-current-coordinator-row")
+      .forEach((el) => {
+        el.addEventListener("click", function (e) {
+          const route = el.getAttribute("data-route");
+          if (!route) return;
+          if (e.ctrlKey || e.metaKey) {
+            frappe.open_in_new_tab = true;
+          }
+          frappe.set_route(route.replace(/^\/app\//, ""));
+        });
+      });
 
     bindCoordinatorViewList(mount, payload.report_route);
   }
