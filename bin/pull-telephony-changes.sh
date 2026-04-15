@@ -247,8 +247,8 @@ cp_from_container \
   "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
 # --------------------------------------------------------------------
 cp_optional_from_container \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py/__init__.py" \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py/__init__.py"
+  "ftelephony/report/unclaimed_over_1_day/__init__.py" \
+  "ftelephony/report/unclaimed_over_1_day/__init__.py"
 
 cp_from_container \
   "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js" \
@@ -264,8 +264,8 @@ cp_from_container \
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
 cp_optional_from_container \
-  "ftelephony/report/first_response_missed/__init__.py/__init__.py" \
-  "ftelephony/report/first_response_missed/__init__.py/__init__.py"
+  "ftelephony/report/first_response_missed/__init__.py" \
+  "ftelephony/report/first_response_missed/__init__.py"
 
 cp_from_container \
   "ftelephony/report/first_response_missed/first_response_missed.js" \
@@ -278,6 +278,22 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/first_response_missed/first_response_missed.py" \
   "ftelephony/report/first_response_missed/first_response_missed.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/coordinator_uplift_history/__init__.py" \
+  "ftelephony/report/coordinator_uplift_history/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js"
+
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json"
+
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py"
 # 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
 # --- workspace api ---
