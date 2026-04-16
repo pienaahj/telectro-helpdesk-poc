@@ -87,6 +87,274 @@
   "disabled": 0,
   "docstatus": 0,
   "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-16 14:28:19.903793",
+  "module": "FTelephony",
+  "name": "Partner Active Tickets",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Partner Active Tickets",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Ops Role"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator-Tech Role"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator Role"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - PABX Tech"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Faults Tech"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Ops Workspace"
+   },
+   {
+    "parent": "Partner Active Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-16 14:29:03.683586",
+  "module": "FTelephony",
+  "name": "Partner Archived Tickets",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Partner Archived Tickets",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Ops Role"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator-Tech Role"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator Role"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - PABX Tech"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Faults Tech"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Ops Workspace"
+   },
+   {
+    "parent": "Partner Archived Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
   "filters": [
    {
     "default": "",

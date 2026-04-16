@@ -7,7 +7,7 @@ def execute(filters=None):
             "label": "Technician",
             "fieldname": "technician",
             "fieldtype": "Data",
-            "width": 220,
+            "width": 300,
         },
         {
             "label": "Ticket",
