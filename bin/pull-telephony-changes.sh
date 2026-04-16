@@ -261,7 +261,6 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py" \
   "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
-# 1) Explicit “must-have” files (tight guardrails)
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/first_response_missed/__init__.py" \
@@ -294,7 +293,38 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py" \
   "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py"
-# 1) Explicit “must-have” files (tight guardrails)
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/partner_active_tickets/__init__.py" \
+  "ftelephony/report/partner_active_tickets/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.js" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.json" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.py" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/partner_archived_tickets/__init__.py" \
+  "ftelephony/report/partner_archived_tickets/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.js" \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.json" \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py" \
+  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py"
 # --------------------------------------------------------------------
 # --- workspace api ---
 cp_from_container "api/workspace.py" "api/workspace.py"

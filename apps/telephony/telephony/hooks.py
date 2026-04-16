@@ -12,7 +12,7 @@ fixtures = [
     {
         "dt": "Workspace",
         "filters": [
-            ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops", "TELECTRO-POC Coordinator"]],
+            ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops", "TELECTRO-POC Coordinator", "TELECTRO-POC Partner"]],
         ],
     },
 
@@ -104,6 +104,8 @@ fixtures = [
                 "Aging and At-Risk Tickets",
                 "Unclaimed Over 1 Day",
                 "First Response Missed",
+                "Partner Active Tickets",
+                "Partner Archived Tickets",
             ]],
         ],
     },
