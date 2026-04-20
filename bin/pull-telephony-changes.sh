@@ -19,6 +19,7 @@ mkdir -p "${DST_BASE}/fixtures"
 mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
 mkdir -p "${DST_BASE}/ftelephony/report"
+mkdir -p "${DST_BASE}/ftelephony/page"
 mkdir -p "${DST_BASE}/public/js"
 mkdir -p "${DST_BASE}/api"
 
@@ -193,7 +194,7 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js" \
   "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js"
-
+# --------------------------------------------------------------------
 cp_from_container \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py" \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py"
@@ -205,62 +206,25 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js" \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/coordinator_uplift_history/__init__.py" \
+  "ftelephony/report/coordinator_uplift_history/__init__.py"
 
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js"
+
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json"
+
+cp_from_container \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py" \
+  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py"
 cp_from_container \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json"
-
-cp_optional_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/__init__.py" \
-  "ftelephony/report/supervisor_team_load_snapshot/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
-  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py" \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/first_response_missed/__init__.py" \
@@ -279,20 +243,20 @@ cp_from_container \
   "ftelephony/report/first_response_missed/first_response_missed.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
-  "ftelephony/report/coordinator_uplift_history/__init__.py" \
-  "ftelephony/report/coordinator_uplift_history/__init__.py"
+  "ftelephony/report/my_tickets/__init__.py" \
+  "ftelephony/report/my_tickets/__init__.py"
 
 cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js"
+  "ftelephony/report/my_tickets/my_tickets.js" \
+  "ftelephony/report/my_tickets/my_tickets.js"
 
 cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json"
+  "ftelephony/report/my_tickets/my_tickets.json" \
+  "ftelephony/report/my_tickets/my_tickets.json"
 
 cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py"
+  "ftelephony/report/my_tickets/my_tickets.py" \
+  "ftelephony/report/my_tickets/my_tickets.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/partner_active_tickets/__init__.py" \
@@ -325,6 +289,136 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py" \
   "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py"
+# --------------------------------------------------------------------
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/partner_submitted_tickets/__init__.py" \
+  "ftelephony/report/partner_submitted_tickets/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.js" \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.json" \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.py" \
+  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
+  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js" \
+  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/__init__.py" \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.py" \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.json" \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.js" \
+  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.js"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/__init__.py" \
+  "ftelephony/report/supervisor_team_load_snapshot/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json"
+
+cp_from_container \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
+  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
+# --------------------------------------------------------------------
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/__init__.py" \
+  "ftelephony/report/supervisor_team_snapshot/__init__.py"
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json"
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js"
+cp_from_container \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
+  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/unclaimed_over_1_day/__init__.py" \
+  "ftelephony/report/unclaimed_over_1_day/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json"
+
+cp_from_container \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py" \
+  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
+# --------------------------------------------------------------------
+
+# Standard page files
+mirror_dir_from_container "ftelephony/page" "ftelephony/page"
+# -----------------------------page---------------------------------------
+cp_optional_from_container \
+  "ftelephony/page/partner_request/__init__.py" \
+  "ftelephony/page/partner_request/__init__.py"
+
+cp_from_container \
+  "ftelephony/page/partner_request/partner_request.js" \
+  "ftelephony/page/partner_request/partner_request.js"
+
+cp_from_container \
+  "ftelephony/page/partner_request/partner_request.json" \
+  "ftelephony/page/partner_request/partner_request.json"
+
+cp_from_container \
+  "ftelephony/page/partner_request/partner_request.py" \
+  "ftelephony/page/partner_request/partner_request.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/page/partner_ticket/__init__.py" \
+  "ftelephony/page/partner_ticket/__init__.py"
+
+cp_from_container \
+  "ftelephony/page/partner_ticket/partner_ticket.js" \
+  "ftelephony/page/partner_ticket/partner_ticket.js"
+
+cp_from_container \
+  "ftelephony/page/partner_ticket/partner_ticket.json" \
+  "ftelephony/page/partner_ticket/partner_ticket.json"
+
+cp_from_container \
+  "ftelephony/page/partner_ticket/partner_ticket.py" \
+  "ftelephony/page/partner_ticket/partner_ticket.py"
 # --------------------------------------------------------------------
 # --- workspace api ---
 cp_from_container "api/workspace.py" "api/workspace.py"

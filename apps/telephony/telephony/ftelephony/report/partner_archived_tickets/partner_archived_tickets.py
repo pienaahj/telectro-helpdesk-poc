@@ -15,8 +15,7 @@ def get_columns():
         {
             "label": "ID",
             "fieldname": "name",
-            "fieldtype": "Dynamic Link",
-            "options": "reference_doctype",
+            "fieldtype": "Data",
             "width": 90,
         },
         {
