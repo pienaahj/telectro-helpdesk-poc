@@ -42,5 +42,3 @@ function suppress_actions() {
   setTimeout(hide, 100);
   setTimeout(hide, 300);
 }
-
-function inject_partner_links() {}

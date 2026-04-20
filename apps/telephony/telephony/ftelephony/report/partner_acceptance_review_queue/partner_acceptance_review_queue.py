@@ -1,5 +1,7 @@
 import frappe
 
+EXCLUDED_STATUSES = ("Resolved", "Closed", "Archived")
+
 
 def execute(filters=None):
     columns = get_columns()
@@ -12,7 +14,8 @@ def get_columns():
         {
             "label": "ID",
             "fieldname": "name",
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "HD Ticket",
             "width": 90,
         },
         {
@@ -28,10 +31,16 @@ def get_columns():
             "width": 120,
         },
         {
-            "label": "Priority",
-            "fieldname": "priority",
+            "label": "Customer",
+            "fieldname": "custom_customer",
             "fieldtype": "Data",
-            "width": 110,
+            "width": 180,
+        },
+        {
+            "label": "Campus",
+            "fieldname": "custom_site_group",
+            "fieldtype": "Data",
+            "width": 180,
         },
         {
             "label": "Request Type",
@@ -52,55 +61,35 @@ def get_columns():
             "width": 150,
         },
         {
-            "label": "Fulfilment Party",
-            "fieldname": "custom_fulfilment_party",
-            "fieldtype": "Data",
-            "width": 150,
-        },
-        {
-            "label": "Request Source",
-            "fieldname": "custom_request_source",
-            "fieldtype": "Data",
-            "width": 140,
-        },
-        {
             "label": "Modified",
             "fieldname": "modified",
             "fieldtype": "Datetime",
             "width": 170,
         },
-        {
-            "label": "Reference DocType",
-            "fieldname": "reference_doctype",
-            "fieldtype": "Data",
-            "hidden": 1,
-            "width": 1,
-        },
     ]
 
 
 def get_data():
-    user = frappe.session.user
-
-    rows = frappe.db.sql(
+    return frappe.db.sql(
         """
         select
             t.name,
             t.subject,
             t.status,
-            t.priority,
+            coalesce(t.custom_customer, '') as custom_customer,
+            coalesce(t.custom_site_group, '') as custom_site_group,
             coalesce(t.custom_request_type, '') as custom_request_type,
             coalesce(t.custom_partner_acceptance_state, '') as custom_partner_acceptance_state,
             t.custom_partner_accepted_on,
-            coalesce(t.custom_fulfilment_party, '') as custom_fulfilment_party,
-            coalesce(t.custom_request_source, '') as custom_request_source,
-            t.modified,
-            'HD Ticket' as reference_doctype
+            t.modified
         from `tabHD Ticket` t
-        where t.owner = %s
-        order by t.modified desc
+        where coalesce(t.custom_request_source, '') = 'Partner'
+          and coalesce(t.custom_partner_acceptance_state, '') = 'Accepted by Partner'
+          and coalesce(t.status, '') not in %s
+        order by
+            t.custom_partner_accepted_on desc,
+            t.modified desc
         """,
-        (user,),
+        (EXCLUDED_STATUSES,),
         as_dict=True,
     )
-    return rows
