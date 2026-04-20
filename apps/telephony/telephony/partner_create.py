@@ -150,19 +150,19 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
     # Optional structured markers if the fields exist
-    _set_if_field_exists(doc, "custom_partner_completion_state", "Completed by Partner")
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
-        _set_if_field_exists(doc, "custom_partner_completed_on", completed_on)
+        _set_if_field_exists(doc, "custom_partner_accepted_on", completed_on)
 
     doc.add_comment(
         "Comment",
-        f"Partner completion note by {user}:\n{note}",
+        f"Partner acceptance note by {user}:\n{note}",
     )
 
     doc.save(ignore_permissions=True)
 
     return {
         "name": doc.name,
-        "custom_partner_completion_state": doc.get("custom_partner_completion_state"),
-        "custom_partner_completed_on": doc.get("custom_partner_completed_on"),
+        "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
+        "custom_partner_accepted_on": doc.get("custom_partner_accepted_on"),
     }

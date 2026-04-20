@@ -242,6 +242,23 @@ cp_from_container \
   "ftelephony/report/first_response_missed/first_response_missed.py" \
   "ftelephony/report/first_response_missed/first_response_missed.py"
 # --------------------------------------------------------------------
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/partner_acceptance_review_queue/__init__.py" \
+  "ftelephony/report/partner_acceptance_review_queue/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.js" \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.js"
+
+cp_from_container \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.json" \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.json"
+
+cp_from_container \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.py" \
+  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.py"
+# --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/my_tickets/__init__.py" \
   "ftelephony/report/my_tickets/__init__.py"
