@@ -19,6 +19,9 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           <button class="btn btn-default btn-sm" id="pt-back-submitted">Submitted Tickets</button>
           <button class="btn btn-default btn-sm" id="pt-back-active">Active Tickets</button>
           <button class="btn btn-default btn-sm" id="pt-back-archived">Archived Tickets</button>
+          <button class="btn btn-primary btn-sm" id="pt-submit-completion" style="display:none;">
+            Submit Completion Note
+          </button>
         </div>
       </div>
 
@@ -81,7 +84,33 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     $body.find(id).text(value || "");
   }
 
+  function clearText() {
+    [
+      "#pt-title",
+      "#pt-meta",
+      "#pt-name",
+      "#pt-status",
+      "#pt-priority",
+      "#pt-request-type",
+      "#pt-due-date",
+      "#pt-ticket-type",
+      "#pt-request-source",
+      "#pt-fulfilment-party",
+      "#pt-customer",
+      "#pt-site-group",
+      "#pt-fault-category",
+      "#pt-fault-asset",
+      "#pt-site",
+      "#pt-ownership-model",
+      "#pt-service-area",
+      "#pt-severity",
+      "#pt-subject",
+      "#pt-summary",
+    ].forEach((id) => setText(id, ""));
+  }
+
   function showError(message) {
+    $body.find("#pt-submit-completion").hide();
     $body
       .find("#pt-error")
       .text(message || "Could not load ticket.")
@@ -92,6 +121,70 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
   function showContent() {
     $body.find("#pt-error").hide();
     $body.find("#pt-content").show();
+    $body.find("#pt-submit-completion").show();
+  }
+
+  function loadTicket() {
+    if (!ticketName) {
+      showError("Missing ticket name.");
+      return;
+    }
+
+    clearText();
+    $body.find("#pt-error").hide();
+    $body.find("#pt-content").hide();
+    $body.find("#pt-submit-completion").hide();
+
+    page.set_title(`Partner Ticket ${ticketName}`);
+    page.set_indicator("Loading…", "blue");
+
+    frappe.call({
+      method: "telephony.partner_create.get_partner_ticket_detail",
+      args: { ticket_name: ticketName },
+      callback: function (r) {
+        const d = r.message;
+        if (!d) {
+          showError("Ticket not found.");
+          page.set_indicator("");
+          return;
+        }
+
+        setText("#pt-title", `Partner Ticket ${d.name || ticketName}`);
+        setText(
+          "#pt-meta",
+          [d.status, d.priority, d.modified].filter(Boolean).join(" • "),
+        );
+
+        setText("#pt-name", d.name);
+        setText("#pt-status", d.status);
+        setText("#pt-priority", d.priority);
+        setText("#pt-request-type", d.custom_request_type);
+        setText("#pt-due-date", d.custom_due_date);
+        setText("#pt-ticket-type", d.ticket_type);
+        setText("#pt-request-source", d.custom_request_source);
+        setText("#pt-fulfilment-party", d.custom_fulfilment_party);
+
+        setText("#pt-customer", d.custom_customer);
+        setText("#pt-site-group", d.custom_site_group);
+        setText("#pt-fault-category", d.custom_fault_category);
+        setText("#pt-fault-asset", d.custom_fault_asset);
+        setText("#pt-site", d.custom_site);
+        setText("#pt-ownership-model", d.custom_ownership_model);
+        setText("#pt-service-area", d.custom_service_area);
+        setText("#pt-severity", d.custom_severity);
+
+        setText("#pt-subject", d.subject);
+        setText("#pt-summary", d.summary);
+
+        showContent();
+        page.set_indicator("");
+      },
+      error: function (xhr) {
+        console.error(xhr);
+        showError("Could not load ticket.");
+        page.set_indicator("");
+      },
+    });
   }
 
   $body.find("#pt-back-submitted").on("click", () => {
@@ -106,59 +199,55 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     frappe.set_route("query-report", "Partner Archived Tickets");
   });
 
-  if (!ticketName) {
-    showError("Missing ticket name.");
-    return;
-  }
+  $body.find("#pt-submit-completion").on("click", () => {
+    const dialog = new frappe.ui.Dialog({
+      title: "Submit Completion Note",
+      fields: [
+        {
+          label: "Completed On",
+          fieldname: "completed_on",
+          fieldtype: "Date",
+          default: frappe.datetime.get_today(),
+        },
+        {
+          label: "Completion Note",
+          fieldname: "note",
+          fieldtype: "Small Text",
+          reqd: 1,
+        },
+      ],
+      primary_action_label: "Submit",
+      primary_action(values) {
+        frappe.call({
+          method: "telephony.partner_create.submit_partner_completion_note",
+          args: {
+            ticket_name: ticketName,
+            note: values.note,
+            completed_on: values.completed_on,
+          },
+          callback: function (r) {
+            frappe.show_alert({
+              message: __("Completion note submitted for {0}", [ticketName]),
+              indicator: "green",
+            });
 
-  page.set_title(`Partner Ticket ${ticketName}`);
-  page.set_indicator("Loading…", "blue");
+            dialog.hide();
+            loadTicket();
+          },
+          error: function (xhr) {
+            console.error(xhr);
+            frappe.msgprint({
+              title: __("Submit failed"),
+              message: __("Could not submit the completion note."),
+              indicator: "red",
+            });
+          },
+        });
+      },
+    });
 
-  frappe.call({
-    method: "telephony.partner_create.get_partner_ticket_detail",
-    args: { ticket_name: ticketName },
-    callback: function (r) {
-      const d = r.message;
-      if (!d) {
-        showError("Ticket not found.");
-        page.set_indicator("");
-        return;
-      }
-
-      setText("#pt-title", `Partner Ticket ${d.name || ticketName}`);
-      setText(
-        "#pt-meta",
-        [d.status, d.priority, d.modified].filter(Boolean).join(" • "),
-      );
-
-      setText("#pt-name", d.name);
-      setText("#pt-status", d.status);
-      setText("#pt-priority", d.priority);
-      setText("#pt-request-type", d.custom_request_type);
-      setText("#pt-due-date", d.custom_due_date);
-      setText("#pt-ticket-type", d.ticket_type);
-      setText("#pt-request-source", d.custom_request_source);
-      setText("#pt-fulfilment-party", d.custom_fulfilment_party);
-
-      setText("#pt-customer", d.custom_customer);
-      setText("#pt-site-group", d.custom_site_group);
-      setText("#pt-fault-category", d.custom_fault_category);
-      setText("#pt-fault-asset", d.custom_fault_asset);
-      setText("#pt-site", d.custom_site);
-      setText("#pt-ownership-model", d.custom_ownership_model);
-      setText("#pt-service-area", d.custom_service_area);
-      setText("#pt-severity", d.custom_severity);
-
-      setText("#pt-subject", d.subject);
-      setText("#pt-summary", d.summary);
-
-      showContent();
-      page.set_indicator("");
-    },
-    error: function (xhr) {
-      console.error(xhr);
-      showError("Could not load ticket.");
-      page.set_indicator("");
-    },
+    dialog.show();
   });
+
+  loadTicket();
 };

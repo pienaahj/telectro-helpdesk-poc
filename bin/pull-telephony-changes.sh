@@ -488,6 +488,9 @@ cp_from_container "hooks.py" "hooks.py"
 # --- fixtures directory (export-fixtures output) ---
 cp_from_container "fixtures" "fixtures"
 
+# --- main directory files ---
+cp_optional_from_container "partner_create.py" "partner_create.py"
+
 # --------------------------------------------------------------------
 # 3) Normalize fixtures nesting (unchanged)
 # --------------------------------------------------------------------
