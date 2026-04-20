@@ -8,6 +8,18 @@ frappe.query_reports["Partner Active Tickets"] = {
   refresh(report) {
     suppress_actions(report);
   },
+
+  formatter(value, row, column, data, default_formatter) {
+    value = default_formatter(value, row, column, data);
+
+    if (!data || !data.name) return value;
+
+    if (column.fieldname === "name" || column.fieldname === "subject") {
+      return `<a href="/app/partner-ticket/${encodeURIComponent(data.name)}">${value}</a>`;
+    }
+
+    return value;
+  },
 };
 
 function suppress_actions(report) {

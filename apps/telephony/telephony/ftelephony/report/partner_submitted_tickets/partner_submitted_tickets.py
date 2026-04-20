@@ -1,9 +1,6 @@
 import frappe
 
 
-ACTIVE_EXCLUDED_STATUSES = ("Closed", "Archived", "Resolved")
-
-
 def execute(filters=None):
     columns = get_columns()
     data = get_data()
@@ -17,7 +14,7 @@ def get_columns():
             "fieldname": "name",
             "fieldtype": "Data",
             "width": 90,
-        },   
+        },
         {
             "label": "Subject",
             "fieldname": "subject",
@@ -37,16 +34,22 @@ def get_columns():
             "width": 110,
         },
         {
-            "label": "Request Source",
-            "fieldname": "custom_request_source",
+            "label": "Request Type",
+            "fieldname": "custom_request_type",
+            "fieldtype": "Data",
+            "width": 170,
+        },
+        {
+            "label": "Fulfilment Party",
+            "fieldname": "custom_fulfilment_party",
             "fieldtype": "Data",
             "width": 150,
         },
         {
-            "label": "Raised By",
-            "fieldname": "raised_by",
+            "label": "Request Source",
+            "fieldname": "custom_request_source",
             "fieldtype": "Data",
-            "width": 220,
+            "width": 140,
         },
         {
             "label": "Modified",
@@ -65,6 +68,8 @@ def get_columns():
 
 
 def get_data():
+    user = frappe.session.user
+
     rows = frappe.db.sql(
         """
         select
@@ -72,16 +77,16 @@ def get_data():
             t.subject,
             t.status,
             t.priority,
+            coalesce(t.custom_request_type, '') as custom_request_type,
+            coalesce(t.custom_fulfilment_party, '') as custom_fulfilment_party,
             coalesce(t.custom_request_source, '') as custom_request_source,
-            coalesce(t.raised_by, '') as raised_by,
             t.modified,
             'HD Ticket' as reference_doctype
         from `tabHD Ticket` t
-        where coalesce(t.custom_fulfilment_party, '') = 'Partner'
-          and coalesce(t.status, '') not in %s
+        where t.owner = %s
         order by t.modified desc
         """,
-        (ACTIVE_EXCLUDED_STATUSES,),
+        (user,),
         as_dict=True,
     )
     return rows

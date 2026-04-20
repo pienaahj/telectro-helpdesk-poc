@@ -97,15 +97,19 @@ fixtures = [
         "dt": "Report",
         "filters": [
             ["name", "in", [
-                "My HD Tickets",
-                "Supervisor Team Load Snapshot",
-                "Supervisor Active Work by Bucket",
                 "Active Tickets by Technician",
                 "Aging and At-Risk Tickets",
-                "Unclaimed Over 1 Day",
+                "Coordinator Uplift History",
                 "First Response Missed",
+                "My HD Tickets",
                 "Partner Active Tickets",
                 "Partner Archived Tickets",
+                "Partner Submitted Tickets",
+                "Supervisor Active Work by Bucket",
+                "Supervisor Active Work by Owner Bucket",
+                "Supervisor Team Load Snapshot",
+                "Supervisor Team Snapshot",
+                "Unclaimed Over 1 Day",
             ]],
         ],
     },
@@ -179,6 +183,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_site_guard.validate_site_fields",
     "telephony.telectro_ticket_edit_guard.validate_ticket_edit_rights",
     "telephony.telectro_assign_sync.dedupe_assign_field",
+    "telephony.partner_create.enforce_partner_create_v1",
 ]
 
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_reassign_on_update.reassign_if_routing_changed")
