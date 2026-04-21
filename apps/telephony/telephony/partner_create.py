@@ -38,6 +38,80 @@ PARTNER_DETAIL_FIELDS = [
     "custom_partner_accepted_on",
 ]
 
+def _canonicalize_ticket_assignments_for_doc(doc):
+    _canonicalize_ticket_assignments(doc.name)
+    
+def _canonicalize_ticket_assignments(ticket_name: str):
+    todos = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "status": "Open",
+        },
+        fields=["name", "allocated_to", "creation"],
+        order_by="creation asc",
+    )
+
+    keep_by_user = {}
+    duplicate_names = []
+
+    for todo in todos:
+        user = (todo.get("allocated_to") or "").strip()
+        if not user:
+            duplicate_names.append(todo["name"])
+            continue
+
+        if user not in keep_by_user:
+            keep_by_user[user] = todo["name"]
+        else:
+            duplicate_names.append(todo["name"])
+
+    for name in duplicate_names:
+        todo = frappe.get_doc("ToDo", name)
+        todo.status = "Closed"
+        todo.save(ignore_permissions=True)
+
+    cleaned_users = list(keep_by_user.keys())
+
+    frappe.db.set_value(
+        "HD Ticket",
+        ticket_name,
+        "_assign",
+        frappe.as_json(cleaned_users),
+        update_modified=False,
+    )
+    
+def _format_partner_acceptance_request_comment(note: str | None = None) -> str:
+    parts = ["Partner Acceptance Requested"]
+    note = (note or "").strip()
+    if note:
+        parts.append(f"Note: {note}")
+    return " | ".join(parts)
+
+def _assert_internal_partner_acceptance_request_access(ticket_name: str, user: str):
+    if not _is_internal_acceptance_reviewer(user):
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    row = frappe.db.get_value(
+        "HD Ticket",
+        ticket_name,
+        ["name", "custom_request_source", "custom_partner_acceptance_state", "status"],
+        as_dict=True,
+    )
+    if not row:
+        frappe.throw("Ticket not found")
+
+    if row.custom_request_source != "Partner":
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    if row.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    current_state = (row.custom_partner_acceptance_state or "").strip()
+    if current_state in {"Pending Partner Acceptance", "Accepted by Partner", "Reviewed by Telectro"}:
+        frappe.throw("Partner acceptance has already been requested or processed")
+        
 def _close_open_todos_for_ticket(ticket_name: str):
     todo_names = frappe.get_all(
         "ToDo",
@@ -50,9 +124,7 @@ def _close_open_todos_for_ticket(ticket_name: str):
     )
 
     for name in todo_names:
-        todo = frappe.get_doc("ToDo", name)
-        todo.status = "Closed"
-        todo.save(ignore_permissions=True)
+        frappe.db.set_value("ToDo", name, "status", "Cancelled", update_modified=False)
 
 
 def _set_assign_list(doc, users: list[str]):
@@ -160,7 +232,29 @@ def enforce_partner_create_v1(doc, method=None):
 
     doc.agent_group = None
 
+@frappe.whitelist()
+def request_partner_acceptance(ticket_name: str, note: str | None = None):
+    user = frappe.session.user
+    _assert_internal_partner_acceptance_request_access(ticket_name, user)
 
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "Pending Partner Acceptance")
+
+    doc.add_comment(
+        "Comment",
+        _format_partner_acceptance_request_comment(note),
+    )
+
+    doc.save(ignore_permissions=True)
+    _canonicalize_ticket_assignments(doc.name)
+    doc.reload()
+
+    return {
+        "name": doc.name,
+        "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
+    }
+    
 @frappe.whitelist()
 def create_partner_ticket(
     custom_customer=None,
@@ -227,8 +321,8 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
     current_state = (doc.get("custom_partner_acceptance_state") or "").strip()
-    if current_state in {"Accepted by Partner", "Reviewed by Telectro"}:
-        frappe.throw("Partner acceptance has already been submitted")
+    if current_state != "Pending Partner Acceptance":
+        frappe.throw("Partner acceptance is not currently pending")
 
     _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
@@ -240,6 +334,8 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
     )
 
     doc.save(ignore_permissions=True)
+    _canonicalize_ticket_assignments(doc.name)
+    doc.reload()
 
     return {
         "name": doc.name,
@@ -264,23 +360,16 @@ def review_partner_acceptance(ticket_name: str, outcome: str, note: str | None =
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
-    _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
-
     if outcome == "resolve":
         _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
         doc.status = "Resolved"
-        _close_open_todos_for_ticket(doc.name)
-        _set_assign_list(doc, [])
 
     elif outcome == "close":
         _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
         doc.status = "Closed"
-        _close_open_todos_for_ticket(doc.name)
-        _set_assign_list(doc, [])
 
     elif outcome == "review_only":
-        current_assign = frappe.parse_json(doc.get("_assign") or "[]") or []
-        _set_assign_list(doc, current_assign)
+        pass
 
     doc.add_comment(
         "Comment",
@@ -288,6 +377,15 @@ def review_partner_acceptance(ticket_name: str, outcome: str, note: str | None =
     )
 
     doc.save(ignore_permissions=True)
+
+    if outcome in {"resolve", "close"}:
+        _close_open_todos_for_ticket(doc.name)
+        frappe.db.set_value("HD Ticket", doc.name, "_assign", "[]", update_modified=False)
+        doc.reload()
+
+    elif outcome == "review_only":
+        _canonicalize_ticket_assignments(doc.name)
+        doc.reload()
 
     return {
         "name": doc.name,
