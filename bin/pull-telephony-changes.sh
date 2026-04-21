@@ -499,6 +499,9 @@ cp_from_container "public/js/telectro_ops_workspace.js" "public/js/telectro_ops_
 # --- telectro_home_redirect ---
 cp_from_container "public/js/telectro_home_redirect.js" "public/js/telectro_home_redirect.js"
 
+# --- partner_acceptance_review ---
+cp_from_container "public/js/partner_acceptance_review.js" "public/js/partner_acceptance_review.js"
+
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
 
