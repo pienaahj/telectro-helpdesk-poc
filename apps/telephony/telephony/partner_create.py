@@ -4,6 +4,15 @@ PARTNER_ROLE = "TELECTRO-POC Role - Partner"
 PARTNER_CREATOR_ROLE = "TELECTRO-POC Role - Partner Creator"
 SERVICE_REQUEST = "Service Request"
 
+INTERNAL_ACCEPTANCE_REVIEW_ROLES = {
+    "System Manager",
+    "Pilot Admin",
+    "TELECTRO-POC Ops Role",
+    "TELECTRO-POC Coordinator Role",
+    "TELECTRO-POC Role - Supervisor Governance",
+    "TELECTRO-POC Role - Coordinator Ops",
+}
+
 PARTNER_DETAIL_FIELDS = [
     "name",
     "subject",
@@ -25,9 +34,42 @@ PARTNER_DETAIL_FIELDS = [
     "custom_severity",
     "custom_request_source",
     "custom_fulfilment_party",
+    "custom_partner_acceptance_state",
+    "custom_partner_accepted_on",
 ]
 
+def _close_open_todos_for_ticket(ticket_name: str):
+    todo_names = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "HD Ticket",
+            "reference_name": ticket_name,
+            "status": "Open",
+        },
+        pluck="name",
+    )
 
+    for name in todo_names:
+        todo = frappe.get_doc("ToDo", name)
+        todo.status = "Closed"
+        todo.save(ignore_permissions=True)
+
+
+def _set_assign_list(doc, users: list[str]):
+    cleaned = []
+    seen = set()
+
+    for user in users or []:
+        user = (user or "").strip()
+        if not user:
+            continue
+        if user in seen:
+            continue
+        seen.add(user)
+        cleaned.append(user)
+
+    doc.set("_assign", frappe.as_json(cleaned))
+    
 def _is_partner_creator(user: str) -> bool:
     if not user or user == "Guest":
         return False
@@ -40,6 +82,11 @@ def _is_partner_user(user: str) -> bool:
     roles = set(frappe.get_roles(user))
     return PARTNER_ROLE in roles or PARTNER_CREATOR_ROLE in roles
 
+def _is_internal_acceptance_reviewer(user: str) -> bool:
+    if not user or user == "Guest":
+        return False
+    roles = set(frappe.get_roles(user))
+    return bool(roles & INTERNAL_ACCEPTANCE_REVIEW_ROLES)
 
 def _assert_partner_ticket_access(ticket_name: str, user: str):
     if not _is_partner_user(user):
@@ -64,10 +111,40 @@ def _assert_partner_ticket_access(ticket_name: str, user: str):
         if row.owner != user:
             frappe.throw("Not permitted", frappe.PermissionError)
 
+def _assert_internal_partner_acceptance_review_access(ticket_name: str, user: str):
+    if not _is_internal_acceptance_reviewer(user):
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    row = frappe.db.get_value(
+        "HD Ticket",
+        ticket_name,
+        ["name", "custom_request_source", "custom_partner_acceptance_state", "status"],
+        as_dict=True,
+    )
+    if not row:
+        frappe.throw("Ticket not found")
+
+    if row.custom_request_source != "Partner":
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    if row.custom_partner_acceptance_state != "Accepted by Partner":
+        frappe.throw("Ticket is not awaiting Partner acceptance review")
+
+    if row.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
 
 def _set_if_field_exists(doc, fieldname: str, value):
     if frappe.get_meta(doc.doctype).has_field(fieldname):
         doc.set(fieldname, value)
+
+
+def _format_partner_acceptance_review_comment(outcome_label: str, note: str | None = None) -> str:
+    parts = [f"Partner Acceptance Review | Outcome: {outcome_label}"]
+    note = (note or "").strip()
+    if note:
+        parts.append(f"Note: {note}")
+    return " | ".join(parts)
 
 
 def enforce_partner_create_v1(doc, method=None):
@@ -149,7 +226,10 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
-    # Optional structured markers if the fields exist
+    current_state = (doc.get("custom_partner_acceptance_state") or "").strip()
+    if current_state in {"Accepted by Partner", "Reviewed by Telectro"}:
+        frappe.throw("Partner acceptance has already been submitted")
+
     _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
         _set_if_field_exists(doc, "custom_partner_accepted_on", completed_on)
@@ -165,4 +245,53 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
         "name": doc.name,
         "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
         "custom_partner_accepted_on": doc.get("custom_partner_accepted_on"),
+    }
+
+@frappe.whitelist()
+def review_partner_acceptance(ticket_name: str, outcome: str, note: str | None = None):
+    user = frappe.session.user
+    _assert_internal_partner_acceptance_review_access(ticket_name, user)
+
+    allowed = {
+        "review_only": "Review only",
+        "resolve": "Resolved",
+        "close": "Closed",
+    }
+    outcome = (outcome or "").strip()
+
+    if outcome not in allowed:
+        frappe.throw("Invalid review outcome")
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
+
+    if outcome == "resolve":
+        _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
+        doc.status = "Resolved"
+        _close_open_todos_for_ticket(doc.name)
+        _set_assign_list(doc, [])
+
+    elif outcome == "close":
+        _set_if_field_exists(doc, "custom_partner_acceptance_state", "Reviewed by Telectro")
+        doc.status = "Closed"
+        _close_open_todos_for_ticket(doc.name)
+        _set_assign_list(doc, [])
+
+    elif outcome == "review_only":
+        current_assign = frappe.parse_json(doc.get("_assign") or "[]") or []
+        _set_assign_list(doc, current_assign)
+
+    doc.add_comment(
+        "Comment",
+        _format_partner_acceptance_review_comment(allowed[outcome], note),
+    )
+
+    doc.save(ignore_permissions=True)
+
+    return {
+        "name": doc.name,
+        "status": doc.status,
+        "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
+        "_assign": doc.get("_assign"),
     }

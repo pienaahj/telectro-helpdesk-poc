@@ -1,8 +1,15 @@
 frappe.query_reports["Partner Submitted Tickets"] = {
   filters: [],
 
-  onload() {
+  onload(report) {
     suppress_actions();
+
+    if (!report.__partner_initial_refresh_done) {
+      report.__partner_initial_refresh_done = true;
+      setTimeout(() => {
+        report.refresh();
+      }, 0);
+    }
   },
 
   refresh() {

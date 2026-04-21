@@ -20,7 +20,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           <button class="btn btn-default btn-sm" id="pt-back-active">Active Tickets</button>
           <button class="btn btn-default btn-sm" id="pt-back-archived">Archived Tickets</button>
           <button class="btn btn-primary btn-sm" id="pt-submit-completion" style="display:none;">
-            Submit Completion Note
+            Submit Acceptance Note
           </button>
         </div>
       </div>
@@ -77,8 +77,10 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     </div>
   `);
 
-  const route = frappe.get_route();
-  const ticketName = route[1];
+  function getTicketName() {
+    const route = frappe.get_route() || [];
+    return route[1];
+  }
 
   function setText(id, value) {
     $body.find(id).text(value || "");
@@ -109,6 +111,22 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     ].forEach((id) => setText(id, ""));
   }
 
+  function hasPartnerAccepted(d) {
+    const state = (d?.custom_partner_acceptance_state || "").trim();
+    return state === "Accepted by Partner" || state === "Reviewed by Telectro";
+  }
+
+  function updateAcceptanceAction(d) {
+    const $btn = $body.find("#pt-submit-completion");
+
+    if (hasPartnerAccepted(d)) {
+      $btn.hide();
+      return;
+    }
+
+    $btn.show();
+  }
+
   function showError(message) {
     $body.find("#pt-submit-completion").hide();
     $body
@@ -121,10 +139,11 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
   function showContent() {
     $body.find("#pt-error").hide();
     $body.find("#pt-content").show();
-    $body.find("#pt-submit-completion").show();
   }
 
   function loadTicket() {
+    const ticketName = getTicketName();
+
     if (!ticketName) {
       showError("Missing ticket name.");
       return;
@@ -177,6 +196,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         setText("#pt-summary", d.summary);
 
         showContent();
+        updateAcceptanceAction(d);
         page.set_indicator("");
       },
       error: function (xhr) {
@@ -200,17 +220,19 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
   });
 
   $body.find("#pt-submit-completion").on("click", () => {
+    const ticketName = getTicketName();
+
     const dialog = new frappe.ui.Dialog({
-      title: "Submit Completion Note",
+      title: "Submit Acceptance Note",
       fields: [
         {
-          label: "Completed On",
+          label: "Accepted On",
           fieldname: "completed_on",
           fieldtype: "Date",
           default: frappe.datetime.get_today(),
         },
         {
-          label: "Completion Note",
+          label: "Acceptance Note",
           fieldname: "note",
           fieldtype: "Small Text",
           reqd: 1,
@@ -227,7 +249,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           },
           callback: function (r) {
             frappe.show_alert({
-              message: __("Completion note submitted for {0}", [ticketName]),
+              message: __("Acceptance note submitted for {0}", [ticketName]),
               indicator: "green",
             });
 
@@ -238,7 +260,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
             console.error(xhr);
             frappe.msgprint({
               title: __("Submit failed"),
-              message: __("Could not submit the completion note."),
+              message: __("Could not submit the acceptance Note."),
               indicator: "red",
             });
           },
@@ -249,5 +271,13 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     dialog.show();
   });
 
+  wrapper.partner_ticket_page = {
+    loadTicket,
+  };
+
   loadTicket();
+};
+
+frappe.pages["partner-ticket"].on_page_show = function (wrapper) {
+  wrapper.partner_ticket_page?.loadTicket?.();
 };
