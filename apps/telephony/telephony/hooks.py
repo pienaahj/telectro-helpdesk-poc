@@ -50,6 +50,9 @@ fixtures = [
                 "custom_request_type",
                 "custom_due_date",
                 "custom_request_source",
+                "custom_partner_acceptance_state",
+                "custom_partner_accepted_on",
+                
             ]],
         ],
     },
