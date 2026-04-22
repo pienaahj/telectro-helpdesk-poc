@@ -174,6 +174,11 @@ def _append_hook(target, event, handler):
 # Gate debug-only instrumentation (default OFF)
 TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 
+# --- Partner Permissions ---
+permission_query_conditions = {
+    "HD Ticket": "telephony.permissions.hd_ticket_query_conditions",
+}
+
 # --- HD Ticket hooks ---
 _append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intake.populate_from_email")
 
@@ -204,6 +209,7 @@ for p in [
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-04-21-1",
+    "/assets/telephony/js/partner_route_guard.js?v=2026-04-22-1",
 ]:
     if p not in app_include_js:
         app_include_js.append(p)

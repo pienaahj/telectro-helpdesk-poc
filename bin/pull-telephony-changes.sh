@@ -242,7 +242,6 @@ cp_from_container \
   "ftelephony/report/first_response_missed/first_response_missed.py" \
   "ftelephony/report/first_response_missed/first_response_missed.py"
 # --------------------------------------------------------------------
-# --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/partner_acceptance_review_queue/__init__.py" \
   "ftelephony/report/partner_acceptance_review_queue/__init__.py"
@@ -510,6 +509,9 @@ cp_from_container "fixtures" "fixtures"
 
 # --- main directory files ---
 cp_optional_from_container "partner_create.py" "partner_create.py"
+
+# --- partner permissions ---
+cp_from_container "permissions.py" "permissions.py"
 
 # --------------------------------------------------------------------
 # 3) Normalize fixtures nesting (unchanged)

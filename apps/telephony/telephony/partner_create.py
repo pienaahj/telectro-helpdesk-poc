@@ -296,7 +296,7 @@ def create_partner_ticket(
     doc.custom_fulfilment_party = "Telectro"
     doc.ticket_type = ticket_type or SERVICE_REQUEST
 
-    doc.insert()
+    doc.insert(ignore_permissions=True)
     return {"name": doc.name}
 
 
