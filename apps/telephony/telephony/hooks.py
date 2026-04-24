@@ -52,7 +52,8 @@ fixtures = [
                 "custom_request_source",
                 "custom_partner_acceptance_state",
                 "custom_partner_accepted_on",
-                
+                "custom_partner_work_state",
+                "custom_partner_work_completed",
             ]],
         ],
     },
@@ -66,6 +67,8 @@ fixtures = [
                 "TELECTRO Ops — Unclaimed above 4 hours",
                 "TELECTRO Ops — Total Active",
                 "TELECTRO Ops — Partner Queue",
+                "Submitted by Partner",
+                "Assigned to Partner",
             ]],
         ],
     },
@@ -105,9 +108,9 @@ fixtures = [
                 "Coordinator Uplift History",
                 "First Response Missed",
                 "My HD Tickets",
-                "Partner Active Tickets",
+                "Tickets Assigned to Partner",
                 "Partner Archived Tickets",
-                "Partner Submitted Tickets",
+                "Tickets Submitted by Partner",
                 "Supervisor Active Work by Bucket",
                 "Supervisor Active Work by Owner Bucket",
                 "Supervisor Team Load Snapshot",
@@ -192,6 +195,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_ticket_edit_guard.validate_ticket_edit_rights",
     "telephony.telectro_assign_sync.dedupe_assign_field",
     "telephony.partner_create.enforce_partner_create_v1",
+    "telephony.partner_create.apply_partner_work_state",
 ]
 
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_reassign_on_update.reassign_if_routing_changed")

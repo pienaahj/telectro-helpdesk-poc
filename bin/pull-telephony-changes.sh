@@ -275,20 +275,20 @@ cp_from_container \
   "ftelephony/report/my_tickets/my_tickets.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
-  "ftelephony/report/partner_active_tickets/__init__.py" \
-  "ftelephony/report/partner_active_tickets/__init__.py"
+  "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
+  "ftelephony/report/tickets_assigned_to_partner/__init__.py"
 
 cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.js" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.js"
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js"
 
 cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.json" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.json"
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json"
 
 cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.py" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.py"
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/partner_archived_tickets/__init__.py" \
@@ -308,20 +308,20 @@ cp_from_container \
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
 cp_optional_from_container \
-  "ftelephony/report/partner_submitted_tickets/__init__.py" \
-  "ftelephony/report/partner_submitted_tickets/__init__.py"
+  "ftelephony/report/tickets_submitted_by_partner/__init__.py" \
+  "ftelephony/report/tickets_submitted_by_partner/__init__.py"
 
 cp_from_container \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.js" \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.js"
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.js" \
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.js"
 
 cp_from_container \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.json" \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.json"
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.json" \
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.json"
 
 cp_from_container \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.py" \
-  "ftelephony/report/partner_submitted_tickets/partner_submitted_tickets.py"
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.py" \
+  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
@@ -512,6 +512,9 @@ cp_optional_from_container "partner_create.py" "partner_create.py"
 
 # --- partner permissions ---
 cp_from_container "permissions.py" "permissions.py"
+
+# -- partner kpis ---
+cp_from_container "partner_kpis.py" "partner_kpis.py"
 
 # --------------------------------------------------------------------
 # 3) Normalize fixtures nesting (unchanged)

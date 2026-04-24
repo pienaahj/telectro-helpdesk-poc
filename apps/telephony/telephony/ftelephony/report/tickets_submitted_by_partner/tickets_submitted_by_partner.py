@@ -1,7 +1,7 @@
 import frappe
 
 
-ARCHIVED_STATUSES = ("Archived", "Resolved", "Closed")
+ACTIVE_EXCLUDED_STATUSES = ("Archived", "Resolved", "Closed")
 
 
 def execute(filters=None):
@@ -37,22 +37,28 @@ def get_columns():
             "width": 110,
         },
         {
-            "label": "Request Source",
-            "fieldname": "custom_request_source",
+            "label": "Request Type",
+            "fieldname": "custom_request_type",
             "fieldtype": "Data",
+            "width": 170,
+        },
+        {
+            "label": "Partner Acceptance State",
+            "fieldname": "custom_partner_acceptance_state",
+            "fieldtype": "Data",
+            "width": 220,
+        },
+        {
+            "label": "Partner Accepted On",
+            "fieldname": "custom_partner_accepted_on",
+            "fieldtype": "Date",
             "width": 150,
         },
         {
             "label": "Fulfilment Party",
             "fieldname": "custom_fulfilment_party",
             "fieldtype": "Data",
-            "width": 150,
-        },
-        {
-            "label": "Raised By",
-            "fieldname": "raised_by",
-            "fieldtype": "Data",
-            "width": 220,
+            "width": 140,
         },
         {
             "label": "Modified",
@@ -78,19 +84,17 @@ def get_data():
             t.subject,
             t.status,
             t.priority,
-            coalesce(t.custom_request_source, '') as custom_request_source,
+            coalesce(t.custom_request_type, '') as custom_request_type,
+            coalesce(t.custom_partner_acceptance_state, '') as custom_partner_acceptance_state,
+            t.custom_partner_accepted_on,
             coalesce(t.custom_fulfilment_party, '') as custom_fulfilment_party,
-            coalesce(t.raised_by, '') as raised_by,
             t.modified,
             'HD Ticket' as reference_doctype
         from `tabHD Ticket` t
-        where (
-                coalesce(t.custom_request_source, '') = 'Partner'
-                or coalesce(t.custom_fulfilment_party, '') = 'Partner'
-              )
-          and coalesce(t.status, '') in %s
+        where coalesce(t.custom_request_source, '') = 'Partner'
+          and coalesce(t.status, '') not in %s
         order by t.modified desc
         """,
-        (ARCHIVED_STATUSES,),
+        (ACTIVE_EXCLUDED_STATUSES,),
         as_dict=True,
     )

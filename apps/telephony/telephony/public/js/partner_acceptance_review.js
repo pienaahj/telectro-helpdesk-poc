@@ -153,8 +153,17 @@ function should_show_request_partner_acceptance(frm) {
     return false;
   }
 
+  if ((d.custom_fulfilment_party || "").trim() === "Partner") {
+    return false;
+  }
+
   const state = (d.custom_partner_acceptance_state || "").trim();
   if (state !== "") {
+    return false;
+  }
+
+  const partnerWorkState = (d.custom_partner_work_state || "").trim();
+  if (partnerWorkState !== "") {
     return false;
   }
 
