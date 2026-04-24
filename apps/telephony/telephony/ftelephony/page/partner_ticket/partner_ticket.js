@@ -16,9 +16,9 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           <div class="text-muted small" id="pt-meta"></div>
         </div>
         <div class="d-flex gap-2">
-          <button class="btn btn-default btn-sm" id="pt-back-submitted">Submitted Tickets</button>
-          <button class="btn btn-default btn-sm" id="pt-back-active">Active Tickets</button>
-          <button class="btn btn-default btn-sm" id="pt-back-archived">Archived Tickets</button>
+          <button class="btn btn-default btn-sm" id="pt-back-submitted">Tickets Submitted by Partner</button>
+          <button class="btn btn-default btn-sm" id="pt-back-active">Tickets Assigned to Partner</button>
+          <button class="btn btn-default btn-sm" id="pt-back-archived">Partner History</button>
           <button class="btn btn-primary btn-sm" id="pt-submit-completion" style="display:none;">
             Submit Acceptance Note
           </button>
@@ -59,6 +59,8 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
                 <tr><th>Ownership</th><td id="pt-ownership-model"></td></tr>
                 <tr><th>Service Area</th><td id="pt-service-area"></td></tr>
                 <tr><th>Severity</th><td id="pt-severity"></td></tr>
+                <tr><th>Partner Work State</th><td id="pt-partner-work-state"></td></tr>
+                <tr><th>Partner Work Completed</th><td id="pt-partner-work-completed"></td></tr>
               </tbody>
             </table>
           </div>
@@ -108,7 +110,25 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       "#pt-severity",
       "#pt-subject",
       "#pt-summary",
+      "#pt-partner-work-state",
+      "#pt-partner-work-completed",
     ].forEach((id) => setText(id, ""));
+  }
+
+  function getPartnerTicketTrain(d) {
+    const requestSource = (d?.custom_request_source || "").trim();
+    const fulfilmentParty = (d?.custom_fulfilment_party || "").trim();
+
+    const isPartnerToTelectro =
+      requestSource === "Partner" && fulfilmentParty !== "Partner";
+
+    const isTelectroToPartner =
+      requestSource !== "Partner" && fulfilmentParty === "Partner";
+
+    return {
+      isPartnerToTelectro,
+      isTelectroToPartner,
+    };
   }
 
   function hasPartnerAccepted(d) {
@@ -116,15 +136,37 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     return state === "Accepted by Partner" || state === "Reviewed by Telectro";
   }
 
-  function updateAcceptanceAction(d) {
+  function updatePartnerAction(d) {
     const $btn = $body.find("#pt-submit-completion");
+    const train = getPartnerTicketTrain(d);
+    const status = (d?.status || "").trim();
+    const acceptanceState = (d?.custom_partner_acceptance_state || "").trim();
+    const workState = (d?.custom_partner_work_state || "").trim();
 
-    if (hasPartnerAccepted(d)) {
-      $btn.hide();
+    $btn.hide();
+    $btn.removeData("action");
+
+    if (["Resolved", "Closed", "Archived"].includes(status)) {
       return;
     }
 
-    $btn.show();
+    if (train.isPartnerToTelectro) {
+      if (acceptanceState === "Pending Partner Acceptance") {
+        $btn.text("Submit Acceptance Note");
+        $btn.data("action", "acceptance-note");
+        $btn.show();
+      }
+      return;
+    }
+
+    if (train.isTelectroToPartner) {
+      if (workState === "" || workState === "Assigned to Partner") {
+        $btn.text("Submit Work Done");
+        $btn.data("action", "work-done");
+        $btn.show();
+      }
+      return;
+    }
   }
 
   function showError(message) {
@@ -191,12 +233,13 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         setText("#pt-ownership-model", d.custom_ownership_model);
         setText("#pt-service-area", d.custom_service_area);
         setText("#pt-severity", d.custom_severity);
-
+        setText("#pt-partner-work-state", d.custom_partner_work_state);
+        setText("#pt-partner-work-completed", d.custom_partner_work_completed);
         setText("#pt-subject", d.subject);
         setText("#pt-summary", d.summary);
 
         showContent();
-        updateAcceptanceAction(d);
+        updatePartnerAction(d);
         page.set_indicator("");
       },
       error: function (xhr) {
@@ -208,11 +251,11 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
   }
 
   $body.find("#pt-back-submitted").on("click", () => {
-    frappe.set_route("query-report", "Partner Submitted Tickets");
+    frappe.set_route("query-report", "Tickets Submitted by Partner");
   });
 
   $body.find("#pt-back-active").on("click", () => {
-    frappe.set_route("query-report", "Partner Active Tickets");
+    frappe.set_route("query-report", "Tickets Assigned to Partner");
   });
 
   $body.find("#pt-back-archived").on("click", () => {
@@ -221,18 +264,41 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
   $body.find("#pt-submit-completion").on("click", () => {
     const ticketName = getTicketName();
+    const action = $body.find("#pt-submit-completion").data("action");
+
+    const isWorkDone = action === "work-done";
+
+    const dialogTitle = isWorkDone
+      ? "Submit Work Done"
+      : "Submit Acceptance Note";
+
+    const dateLabel = isWorkDone ? "Completed On" : "Accepted On";
+
+    const noteLabel = isWorkDone ? "Work Done Note" : "Acceptance Note";
+
+    const successMessage = isWorkDone
+      ? __("Work done note submitted for {0}", [ticketName])
+      : __("Acceptance note submitted for {0}", [ticketName]);
+
+    const errorMessage = isWorkDone
+      ? __("Could not submit the work done note.")
+      : __("Could not submit the acceptance note.");
+
+    const method = isWorkDone
+      ? "telephony.partner_create.submit_partner_work_done_note"
+      : "telephony.partner_create.submit_partner_completion_note";
 
     const dialog = new frappe.ui.Dialog({
-      title: "Submit Acceptance Note",
+      title: dialogTitle,
       fields: [
         {
-          label: "Accepted On",
+          label: dateLabel,
           fieldname: "completed_on",
           fieldtype: "Date",
           default: frappe.datetime.get_today(),
         },
         {
-          label: "Acceptance Note",
+          label: noteLabel,
           fieldname: "note",
           fieldtype: "Small Text",
           reqd: 1,
@@ -241,15 +307,15 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       primary_action_label: "Submit",
       primary_action(values) {
         frappe.call({
-          method: "telephony.partner_create.submit_partner_completion_note",
+          method,
           args: {
             ticket_name: ticketName,
             note: values.note,
             completed_on: values.completed_on,
           },
-          callback: function (r) {
+          callback: function () {
             frappe.show_alert({
-              message: __("Acceptance note submitted for {0}", [ticketName]),
+              message: successMessage,
               indicator: "green",
             });
 
@@ -260,7 +326,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
             console.error(xhr);
             frappe.msgprint({
               title: __("Submit failed"),
-              message: __("Could not submit the acceptance Note."),
+              message: errorMessage,
               indicator: "red",
             });
           },

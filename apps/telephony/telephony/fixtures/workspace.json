@@ -436,7 +436,7 @@
     "icon": null,
     "is_query_report": 0,
     "label": "Partner Queues / Actions",
-    "link_count": 1,
+    "link_count": 2,
     "link_to": null,
     "link_type": "DocType",
     "onboard": 0,
@@ -464,9 +464,27 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "type": "Link"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 1,
+    "label": "Partner Work Completion Review Queue",
+    "link_count": 0,
+    "link_to": "Partner Work Completion Review Queue",
+    "link_type": "Report",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
    }
   ],
-  "modified": "2026-04-20 18:24:32.037089",
+  "modified": "2026-04-24 18:26:46.047201",
   "module": null,
   "name": "TELECTRO-POC Ops",
   "number_cards": [

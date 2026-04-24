@@ -36,8 +36,20 @@ PARTNER_DETAIL_FIELDS = [
     "custom_fulfilment_party",
     "custom_partner_acceptance_state",
     "custom_partner_accepted_on",
+    "custom_partner_work_state",
+    "custom_partner_work_completed",
 ]
 
+def apply_partner_work_state(doc, method=None):
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    request_source = (doc.get("custom_request_source") or "").strip()
+    current_state = (doc.get("custom_partner_work_state") or "").strip()
+
+    is_telectro_to_partner = fulfilment_party == "Partner" and request_source != "Partner"
+
+    if is_telectro_to_partner and not current_state:
+        _set_if_field_exists(doc, "custom_partner_work_state", "Assigned to Partner")
+        
 def _canonicalize_ticket_assignments_for_doc(doc):
     _canonicalize_ticket_assignments(doc.name)
     
@@ -164,22 +176,30 @@ def _assert_partner_ticket_access(ticket_name: str, user: str):
     if not _is_partner_user(user):
         frappe.throw("Not permitted", frappe.PermissionError)
 
+    user_roles = set(frappe.get_roles(user))
+
     row = frappe.db.get_value(
         "HD Ticket",
         ticket_name,
-        ["name", "owner", "custom_request_source"],
+        ["name", "owner", "custom_request_source", "custom_fulfilment_party"],
         as_dict=True,
     )
     if not row:
         frappe.throw("Ticket not found")
 
-    if row.custom_request_source != "Partner":
+    request_source = (row.custom_request_source or "").strip()
+    fulfilment_party = (row.custom_fulfilment_party or "").strip()
+
+    is_partner_origin = request_source == "Partner"
+    is_partner_fulfilment = fulfilment_party == "Partner"
+
+    if not (is_partner_origin or is_partner_fulfilment):
         frappe.throw("Not permitted", frappe.PermissionError)
 
-    # Conservative v1 rule:
-    # creator can see their own submitted ticket,
-    # broader partner role can see partner-origin tickets.
-    if _is_partner_creator(user) and PARTNER_ROLE not in set(frappe.get_roles(user)):
+    # Conservative rule for creator-only users:
+    # if the user has only the Partner Creator role and not the broader Partner role,
+    # they may only access tickets they own.
+    if _is_partner_creator(user) and PARTNER_ROLE not in user_roles:
         if row.owner != user:
             frappe.throw("Not permitted", frappe.PermissionError)
 
@@ -222,6 +242,9 @@ def _format_partner_acceptance_review_comment(outcome_label: str, note: str | No
 def enforce_partner_create_v1(doc, method=None):
     user = frappe.session.user
     if not _is_partner_creator(user):
+        return
+
+    if not doc.is_new():
         return
 
     doc.custom_request_source = "Partner"
@@ -392,4 +415,51 @@ def review_partner_acceptance(ticket_name: str, outcome: str, note: str | None =
         "status": doc.status,
         "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
         "_assign": doc.get("_assign"),
+    }
+    
+@frappe.whitelist()
+def submit_partner_work_done_note(ticket_name: str, note: str, completed_on: str | None = None):
+    user = frappe.session.user
+    _assert_partner_ticket_access(ticket_name, user)
+
+    note = (note or "").strip()
+    if not note:
+        frappe.throw("Work done note is required")
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    work_state = (doc.get("custom_partner_work_state") or "").strip()
+
+    if request_source == "Partner":
+        frappe.throw("Work done can only be submitted for Telectro-assigned Partner tickets")
+
+    if fulfilment_party != "Partner":
+        frappe.throw("Ticket is not assigned to Partner fulfilment")
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    if work_state == "Work Completed by Partner":
+        frappe.throw("Partner work has already been submitted")
+
+    _set_if_field_exists(doc, "custom_partner_work_state", "Work Completed by Partner")
+    if completed_on:
+        _set_if_field_exists(doc, "custom_partner_work_completed", completed_on)
+
+    doc.add_comment(
+        "Comment",
+        f"Partner work done note by {user}:\n{note}",
+    )
+
+    doc.save(ignore_permissions=True)
+    _canonicalize_ticket_assignments(doc.name)
+    doc.reload()
+
+    return {
+        "name": doc.name,
+        "status": doc.status,
+        "custom_partner_work_state": doc.get("custom_partner_work_state"),
+        "custom_partner_work_completed": doc.get("custom_partner_work_completed"),
     }
