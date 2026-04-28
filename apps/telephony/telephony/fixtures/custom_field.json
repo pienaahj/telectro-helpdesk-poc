@@ -494,7 +494,7 @@
   "name": "HD Ticket-custom_service_area",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "\nOther\nRouting\nPABX\nSIM\nFiber\nFaults",
+  "options": "\nOther\nRouting\nPABX\nSIM\nInternet Connection\nFaults\nQuotes & Site Surveys\nCCTV",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",

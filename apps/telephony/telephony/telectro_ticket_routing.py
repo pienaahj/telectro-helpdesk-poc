@@ -5,7 +5,9 @@ MAILBOX_TO_AREA = {
     "PABX": "PABX",
     "Routing": "Routing",
     "SIM": "SIM",
-    "Fiber": "Fiber",
+    "Fiber": "Internet Connection",  # legacy mailbox name / old service area
+    "Fibre": "Internet Connection",  # spelling compatibility
+    "Internet Connection": "Internet Connection",
     "Faults": "Faults",
     # Helpdesk intentionally not mapped -> DEFAULT_AREA
 }
@@ -13,6 +15,16 @@ MAILBOX_TO_AREA = {
 AREA_TO_TEAM = {
     "Routing": "Routing",
     "PABX": "PABX",
+    "SIM": "SIM",
+
+    # Current pilot behaviour:
+    # These are valid Service Areas, but they do not yet have dedicated RR teams.
+    # They fall back to Helpdesk Team unless/until explicit teams/pools are created.
+    #
+    # "Internet Connection": "Internet Connection",
+    # "Faults": "Faults",
+    # "Quotes & Site Surveys": "Quotes & Site Surveys",
+    # "CCTV": "CCTV",
 }
 
 DEFAULT_AREA = "Other"
