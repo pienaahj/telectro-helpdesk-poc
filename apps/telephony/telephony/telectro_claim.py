@@ -46,6 +46,7 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
         },
         fields=["name", "allocated_to", "creation"],
         order_by="creation asc",
+        ignore_permissions=True,
         limit_page_length=200,
     )
 
@@ -103,6 +104,7 @@ def _normalize_to_pool(ticket: str, note: str | None = None):
         },
         fields=["name"],
         order_by="creation asc",
+        ignore_permissions=True,
         limit_page_length=200,
     )
 
@@ -292,4 +294,81 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
         "from": from_user,
         "to": to_user,
         "by": user,
+    }
+    
+@frappe.whitelist()
+def telectro_ticket_assignment_state(ticket: str):
+    """
+    Return current pilot assignment state for an HD Ticket.
+
+    Canonical source:
+      - Open ToDo rows
+
+    Mirror/cache:
+      - HD Ticket._assign
+
+    Used by the Controlled Handoff dialog so the UI does not rely on stale
+    or missing frm.doc._assign data.
+    """
+    ticket = (ticket or "").strip()
+    if not ticket:
+        return {"ok": 0, "reason": "missing_ticket"}
+
+    if not frappe.db.exists("HD Ticket", ticket):
+        return {"ok": 0, "reason": "invalid_ticket", "ticket": ticket}
+
+    doc = frappe.get_doc("HD Ticket", ticket)
+
+    open_todos = frappe.get_all(
+        "ToDo",
+        filters={
+            "reference_type": "HD Ticket",
+            "reference_name": ticket,
+            "status": "Open",
+        },
+        fields=["name", "allocated_to", "creation"],
+        order_by="creation asc",
+        ignore_permissions=True,
+        limit_page_length=20,
+    )
+
+    todo_users = []
+    seen = set()
+
+    for td in open_todos:
+        user = (td.get("allocated_to") or "").strip()
+        if not user or user in seen:
+            continue
+        seen.add(user)
+        todo_users.append(user)
+
+    assign_users = []
+    raw_assign = doc.get("_assign")
+
+    if raw_assign:
+        try:
+            parsed = json.loads(raw_assign) if isinstance(raw_assign, str) else raw_assign
+            if isinstance(parsed, list):
+                assign_users = [
+                    str(x).strip()
+                    for x in parsed
+                    if str(x).strip()
+                ]
+        except Exception:
+            assign_users = []
+
+    effective_users = todo_users or assign_users
+
+    return {
+        "ok": 1,
+        "ticket": ticket,
+        "todo_users": todo_users,
+        "assign_users": assign_users,
+        "effective_users": effective_users,
+        "current_owner": effective_users[0] if effective_users else "",
+        "is_pool": not effective_users,
+        "has_assignment_drift": todo_users != assign_users,
+        "open_todo_count": len(open_todos),
+        "status": doc.status,
+        "fulfilment_party": doc.get("custom_fulfilment_party"),
     }
