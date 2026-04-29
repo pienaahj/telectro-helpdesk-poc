@@ -5,11 +5,15 @@ import frappe
 from telephony.telectro_claim import _normalize_assignment, _normalize_to_pool
 from telephony.telectro_round_robin import POOLS, PARTNER_USER, _next_assignee
 from telephony.telectro_ticket_routing import seed_ticket_routing
-
+from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 
 ROUTING_FIELDS = {
     "ticket_type",
     "custom_request_type",
+    "custom_customer",
+    "custom_site_group",
+    "custom_site",
+    "custom_fault_asset",
     "custom_service_area",
     "custom_fulfilment_party",
     "agent_group",
@@ -121,8 +125,21 @@ def reassign_if_routing_changed(doc, method=None):
                 note=f"Routing change: reassigned to Partner queue | {subject}",
             )
         return
-
-    # 2) Non-RR groups -> true pool
+    # 2) Pilot Campus/Site routing policy
+    policy = resolve_ticket_routing_policy(doc)
+    if policy and policy.get("target_user"):
+        target_user = _clean(policy.get("target_user"))
+        if target_user and current_assignee != target_user:
+            _normalize_assignment(
+                ticket,
+                target_user,
+                note=(
+                    f"Routing change: reassigned via "
+                    f"{policy.get('reason') or 'Campus routing policy'} | {subject}"
+                ),
+            )
+        return
+    # 3) Non-RR groups -> true pool
     if group not in POOLS:
         _normalize_to_pool(
             ticket,
@@ -130,12 +147,12 @@ def reassign_if_routing_changed(doc, method=None):
         )
         return
 
-    # 3) RR groups: keep current assignee if still valid in that pool
+    # 4) RR groups: keep current assignee if still valid in that pool
     pool = [u.strip() for u in (POOLS.get(group) or []) if u and str(u).strip()]
     if current_assignee and current_assignee in pool:
         return
 
-    # 4) Need a new deterministic assignee
+    # 5) Need a new deterministic assignee
     next_user = _clean(_next_assignee(group))
     if next_user:
         _normalize_assignment(
@@ -145,7 +162,7 @@ def reassign_if_routing_changed(doc, method=None):
         )
         return
 
-    # 5) Safety fallback
+    # 6) Safety fallback
     _normalize_to_pool(
         ticket,
         note=f"Routing change: released to pool (no valid RR assignee for group {group}) | {subject}",

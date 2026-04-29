@@ -186,7 +186,45 @@ def _block_if_needed(d, action: str):
         },
     )
 
-    # Privileged operational intervention users are allowed through.
+    # Administrator remains a development escape hatch.
+    # This avoids self-lockout while the pilot rules are still evolving.
+    if current_user == "Administrator":
+        return
+
+    # Pilot accountability rule:
+    # Generic Assign To may only assign an HD Ticket from a true zero-owner base.
+    #
+    # In the TELECTRO pilot, assignment means accountable owner, not contributor list.
+    # If a ticket already has an effective owner, adding another user through the
+    # generic Assign dialog would create parallel accountability.
+    #
+    # Reassignment/handoff must happen through an approved flow that closes the old
+    # owner's Open ToDo and opens exactly one new owner ToDo.
+    if action == "assignment" and effective_users:
+        if state["fulfilment_party"] == "Partner":
+            frappe.throw(
+                "Partner-owned tickets cannot be reassigned here. "
+                "Please use the approved Partner flow."
+            )
+
+        if target_users == effective_users:
+            frappe.throw("This ticket is already assigned.")
+
+        frappe.throw(
+            "This ticket already has an accountable owner. "
+            "Use the approved handoff/reassignment action instead of adding another assignee."
+        )
+
+    # Generic remove is not the allowed release path for any non-Administrator user.
+    # Release should go through the controlled pilot Release action so the pool
+    # invariant is preserved and the reason is captured.
+    if action == "assignment_remove":
+        frappe.throw("Use the Release action to remove assignment from a ticket.")
+
+    # Privileged operational intervention users are allowed through from a zero-owner base.
+    #
+    # Because the single-owner guard above already blocked owned tickets, this only
+    # allows supervisor/coordinator assignment when the ticket is currently unowned.
     if _is_operational_intervention_user(current_user):
         return
 
@@ -198,10 +236,6 @@ def _block_if_needed(d, action: str):
     if state["fulfilment_party"] == "Partner":
         frappe.throw("Partner-owned tickets cannot be reassigned here. Please ask a supervisor.")
 
-    # Generic remove is NEVER the allowed release path for regular agents.
-    if action == "assignment_remove":
-        frappe.throw("Use the Release action to remove assignment from a ticket.")
-
     # Existing ticket in true pool:
     # allow only self-claim through generic assign.
     if state["is_pool"]:
@@ -211,6 +245,9 @@ def _block_if_needed(d, action: str):
 
     # Existing assigned ticket:
     # regular agents may not use generic assign to release or reassign.
+    #
+    # Most owned-ticket cases are already blocked by the pilot accountability rule
+    # above. Keep this as a defensive fallback.
     if action == "assignment":
         if target_users == [POOL_USER]:
             frappe.throw("Use the Release action to return a ticket to pool.")

@@ -1,6 +1,6 @@
 import frappe
 import json
-
+from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 # Per-group round-robin pools
 POOLS = {
     "Routing": ["tech.alfa@local.test", "tech.bravo@local.test"],
@@ -155,7 +155,30 @@ def assign_after_insert(doc, method=None):
                 )
                 _mirror_assign_from_todo(doc)
         return
+     # 2) Pilot Campus/Site routing policy
+    policy = resolve_ticket_routing_policy(doc)
+    if policy and policy.get("target_user"):
+        target_user = str(policy.get("target_user") or "").strip()
 
+        open_todos = _open_todos_for_ticket(ticket)
+        if not open_todos:
+            assign_users = _parse_assign_users(
+                frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
+            )
+
+            if not assign_users:
+                _ensure_open_todo(
+                    ticket,
+                    target_user,
+                    desc=(
+                        policy.get("reason")
+                        or doc.get("subject")
+                        or "Campus routing policy"
+                    )[:140],
+                )
+                _mirror_assign_from_todo(doc)
+
+        return
     # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
     if group not in POOLS:
         _seed_pool_if_unassigned(ticket, subject=(doc.get("subject") or ""))
