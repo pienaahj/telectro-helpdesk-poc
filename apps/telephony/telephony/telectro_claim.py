@@ -181,37 +181,115 @@ def telectro_release_ticket(ticket: str, reason: str = ""):
     return {"ok": 1, "ticket": ticket, "from": from_user, "to": "Pool"}
 
 
+def _roles_for(user: str) -> set[str]:
+    try:
+        return set(frappe.get_roles(user))
+    except Exception:
+        return set()
+
+
+def _is_operational_intervention_user(user: str) -> bool:
+    if not user or user == "Administrator":
+        return True
+
+    roles = _roles_for(user)
+
+    allowed = {
+        "System Manager",
+        "Pilot Admin",
+        "TELECTRO-POC Role - Supervisor Governance",
+        "TELECTRO-POC Role - Coordinator Ops",
+    }
+    return bool(roles & allowed)
+
+
 @frappe.whitelist(methods=["POST"])
 def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
     """
-    Deprecated for normal tech flow.
-    Keep temporarily only for controlled/admin use until fully removed.
+    Controlled pilot reassignment / handoff.
+
+    Pilot rule:
+      - HD Ticket assignment represents the accountable owner.
+      - Handoff transfers accountability.
+      - It does not add a second assignee.
     """
     ticket = (ticket or "").strip()
     to_user = (to_user or "").strip()
     reason = (reason or "").strip()
 
-    if not ticket or not to_user:
-        return {"ok": 0, "reason": "missing_args"}
+    if not ticket:
+        return {"ok": 0, "reason": "missing_ticket"}
 
-    if not frappe.db.exists("User", to_user):
-        return {"ok": 0, "reason": "invalid_user", "to_user": to_user}
+    if not to_user:
+        return {"ok": 0, "reason": "missing_to_user"}
+
+    if not reason:
+        return {"ok": 0, "reason": "missing_handoff_reason"}
 
     user = frappe.session.user
-    roles = frappe.get_roles(user) or []
-    is_adminish = (user == "Administrator") or ("System Manager" in roles)
 
-    if not is_adminish:
-        return {"ok": 0, "reason": "not_supervisor"}
+    if not _is_operational_intervention_user(user):
+        return {"ok": 0, "reason": "not_permitted"}
+
+    if not frappe.db.exists("HD Ticket", ticket):
+        return {"ok": 0, "reason": "invalid_ticket", "ticket": ticket}
+
+    target = frappe.db.get_value(
+        "User",
+        to_user,
+        ["name", "enabled", "user_type"],
+        as_dict=True,
+    )
+
+    if not target:
+        return {"ok": 0, "reason": "invalid_user", "to_user": to_user}
+
+    if not int(target.enabled or 0):
+        return {"ok": 0, "reason": "disabled_user", "to_user": to_user}
+
+    doc = frappe.get_doc("HD Ticket", ticket)
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        return {
+            "ok": 0,
+            "reason": "terminal_ticket",
+            "ticket": ticket,
+            "status": doc.status,
+        }
+
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    if fulfilment_party == "Partner":
+        return {
+            "ok": 0,
+            "reason": "partner_fulfilment_ticket",
+            "ticket": ticket,
+        }
 
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
     from_user = _first_assignee(current)
 
-    msg = "Supervisor assign: {0} -> {1}".format(from_user or "Pool", to_user)
-    if reason:
-        msg += " | Reason: {0}".format(reason)
+    if from_user == to_user:
+        return {
+            "ok": 0,
+            "reason": "already_assigned_to_user",
+            "ticket": ticket,
+            "to_user": to_user,
+        }
+
+    msg = "Controlled handoff: {0} -> {1} | Reason: {2} | By: {3}".format(
+        from_user or "Pool",
+        to_user,
+        reason,
+        user,
+    )
 
     _normalize_assignment(ticket, to_user, note=msg)
     frappe.db.commit()
 
-    return {"ok": 1, "ticket": ticket, "from": from_user, "to": to_user}
+    return {
+        "ok": 1,
+        "ticket": ticket,
+        "from": from_user,
+        "to": to_user,
+        "by": user,
+    }
