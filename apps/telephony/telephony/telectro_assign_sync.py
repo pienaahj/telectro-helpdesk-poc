@@ -178,67 +178,96 @@ def _mirror_assign(ticket: str, users: list[str]) -> None:
 def dedupe_assign_field(doc, method=None) -> None:
     """
     Runs at validate time.
-    Only responsibility: remove duplicate users from doc._assign so any
-    downstream 'sync ToDo from _assign' logic cannot multiply assignments.
+
+    Pilot rule:
+    - _assign is a mirror/cache, not canonical truth.
+    - Open ToDo is canonical.
+    - If Open ToDo exists, keep only the newest accountable owner.
+    - If no Open ToDo exists, collapse _assign to at most one user.
     """
     _validate_site_group_and_leaf(doc)
-    raw = doc.get("_assign")
-    users = _parse_assign_users(raw)
 
-    # de-dupe while preserving order
-    out = []
-    seen = set()
-    for u in users:
-        u = (u or "").strip()
-        if u and u not in seen:
-            seen.add(u)
-            out.append(u)
+    ticket = str(getattr(doc, "name", "") or "").strip()
 
-    # IMPORTANT: _assign is stored as JSON string in DB
-    doc._assign = json.dumps(out)
+    if ticket:
+        todos = _open_todos(ticket)
+        if todos:
+            owner = (todos[0].get("allocated_to") or "").strip()
+            doc._assign = json.dumps([owner] if owner else [])
+            return
+
+    users = _parse_assign_users(doc.get("_assign"))
+    owner = users[0] if users else ""
+    doc._assign = json.dumps([owner] if owner else [])
 
 
 
 def sync_ticket_assignments(doc, method=None, prefer_assign: int = 1) -> None:
+    """
+    Canonicalize pilot assignment state after HD Ticket update.
+
+    Pilot invariant:
+    - Owned ticket:
+        exactly one Open ToDo
+        _assign = ["owner"]
+    - True pool:
+        no Open ToDos
+        _assign = []
+
+    Open ToDo is canonical. _assign is only used as a repair hint when there
+    are no Open ToDos.
+    """
     ticket = str(getattr(doc, "name", "") or "").strip()
     if not ticket:
         return
 
     todos = _open_todos(ticket)
-    print(f"[assign_sync] {ticket} method={method} open_todos_before={len(todos)}")
-    if todos:
-        print("[assign_sync] open todo names:", [t["name"] for t in todos])
 
-    # A) Multiple Open ToDos => keep newest, cancel rest
-    if len(todos) > 1:
-        for td in todos[1:]:
+    # A) If multiple Open ToDos exist, keep newest only.
+    owner = ""
+    keep_todo = None
+
+    for td in todos:
+        user = (td.get("allocated_to") or "").strip()
+        if not user:
             _close_todo(td["name"])
-        todos = _open_todos(ticket)
-        print(f"[assign_sync] {ticket} open_todos_after_close={len(todos)}")
+            continue
 
-    # B) No Open ToDo but _assign exists => recreate (repair)
-    if not todos and prefer_assign:
+        if not owner:
+            owner = user
+            keep_todo = td["name"]
+            continue
+
+        _close_todo(td["name"])
+
+    # B) If no Open ToDo exists, optionally repair from first _assign user.
+    if not owner and prefer_assign:
         assigned = _parse_assign_users(doc.get("_assign"))
-        if assigned:
+        owner = assigned[0] if assigned else ""
+
+        if owner:
             _ensure_open_todo(
                 ticket,
-                assigned[0],
+                owner,
                 desc=(doc.get("subject") or "Repair: recreate missing ToDo"),
             )
+
             todos = _open_todos(ticket)
-            print(f"[assign_sync] {ticket} open_todos_after_recreate={len(todos)}")
+            keep_todo = None
 
-    # C) Mirror from Open ToDo(s) (canonical truth)
-    users = []
-    seen = set()
-    for td in todos or []:
-        u = (td.get("allocated_to") or "").strip()
-        if u and u not in seen:
-            seen.add(u)
-            users.append(u)
+            # Re-read and still enforce exactly one, in case a helper recreated
+            # against dirty historical state.
+            for td in todos:
+                user = (td.get("allocated_to") or "").strip()
 
-    _mirror_assign(ticket, users)
-    print(f"[assign_sync] {ticket} mirrored_users={users}")
+                if user == owner and not keep_todo:
+                    keep_todo = td["name"]
+                    continue
+
+                _close_todo(td["name"])
+
+    # C) Mirror final canonical owner into _assign.
+    _mirror_assign(ticket, [owner] if owner else [])
 
 
 

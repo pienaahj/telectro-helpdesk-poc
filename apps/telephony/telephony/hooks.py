@@ -214,6 +214,7 @@ for p in [
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-04-21-1",
     "/assets/telephony/js/partner_route_guard.js?v=2026-04-22-1",
+    "/assets/telephony/js/telectro_handoff_action.js?v=2026-04-29-3",
 ]:
     if p not in app_include_js:
         app_include_js.append(p)

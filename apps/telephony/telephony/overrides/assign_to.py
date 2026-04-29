@@ -429,19 +429,55 @@ def _cancel_closed_todos_for_ticket(name: str):
 
 
 def _sync_ticket_assign_from_open_todos(name: str):
-    open_users = frappe.get_all(
+    open_todos = frappe.get_all(
         "ToDo",
         filters={
             "reference_type": "HD Ticket",
             "reference_name": name,
             "status": "Open",
         },
-        pluck="allocated_to",
+        fields=["name", "allocated_to", "creation"],
+        order_by="creation desc",
         ignore_permissions=True,
         limit_page_length=200,
     )
-    final_users = sorted({(u or "").strip() for u in (open_users or []) if (u or "").strip()})
-    frappe.db.set_value("HD Ticket", name, "_assign", json.dumps(final_users), update_modified=False)
+
+    owner = ""
+    keep_todo = None
+
+    for td in open_todos:
+        user = (td.get("allocated_to") or "").strip()
+
+        if not user:
+            frappe.db.set_value(
+                "ToDo",
+                td["name"],
+                "status",
+                "Cancelled",
+                update_modified=False,
+            )
+            continue
+
+        if not owner:
+            owner = user
+            keep_todo = td["name"]
+            continue
+
+        frappe.db.set_value(
+            "ToDo",
+            td["name"],
+            "status",
+            "Cancelled",
+            update_modified=False,
+        )
+
+    frappe.db.set_value(
+        "HD Ticket",
+        name,
+        "_assign",
+        json.dumps([owner] if owner else []),
+        update_modified=False,
+    )
 
 
 def _close_open_todos_for_ticket(name: str):
@@ -457,7 +493,7 @@ def _close_open_todos_for_ticket(name: str):
         limit_page_length=200,
     )
     for td in open_todos:
-        frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
+        frappe.db.set_value("ToDo", td["name"], "status", "Cancelled", update_modified=False)
 
 
 def _delete_pool_docshare(name: str):
@@ -491,16 +527,22 @@ def add(*args, **kwargs):
 
         _dbg("add:parsed_users", {"assign_to_raw": d.get("assign_to"), "users": users})
 
-        # True pool short-circuit for HD Ticket
+        # True pool short-circuit for HD Ticket.
         # At this point regular agents have already been blocked above.
         if doctype == "HD Ticket" and name and users == [POOL_USER]:
             _close_open_todos_for_ticket(name)
-            frappe.db.set_value("HD Ticket", name, "_assign", json.dumps([]), update_modified=False)
+            frappe.db.set_value(
+                "HD Ticket",
+                name,
+                "_assign",
+                json.dumps([]),
+                update_modified=False,
+            )
             _delete_pool_docshare(name)
             _dbg("add:pool_short_circuit", {"doctype": doctype, "name": name, "users": users})
             return []
 
-        # Non-HD Ticket or incomplete target: delegate directly to core
+        # Non-HD Ticket or incomplete target: delegate directly to core.
         if doctype != "HD Ticket" or not name or not users:
             try:
                 core_assign_to.add(payload)
@@ -527,7 +569,8 @@ def add(*args, **kwargs):
                 )
                 return []
 
-        # HD Ticket hardened path
+        # HD Ticket hardened path.
+        # Pilot rule: one accountable owner only.
         seen = set()
         uniq_users = []
         for u in users:
@@ -536,13 +579,56 @@ def add(*args, **kwargs):
                 seen.add(u)
                 uniq_users.append(u)
 
-        for u in uniq_users:
+        if len(uniq_users) > 1:
+            frappe.throw(
+                "Pilot tickets support one accountable owner only. "
+                "Use controlled handoff for accountability transfer."
+            )
+
+        if not uniq_users:
+            _sync_ticket_assign_from_open_todos(name)
+            return []
+
+        target_user = uniq_users[0]
+
+        # Cancel every currently-open ToDo that is not the target owner.
+        open_todos = frappe.get_all(
+            "ToDo",
+            filters={
+                "reference_type": "HD Ticket",
+                "reference_name": name,
+                "status": "Open",
+            },
+            fields=["name", "allocated_to", "creation"],
+            order_by="creation desc",
+            ignore_permissions=True,
+            limit_page_length=200,
+        )
+
+        target_open = None
+
+        for td in open_todos:
+            allocated = (td.get("allocated_to") or "").strip()
+
+            if allocated == target_user and not target_open:
+                target_open = td["name"]
+                continue
+
+            frappe.db.set_value(
+                "ToDo",
+                td["name"],
+                "status",
+                "Cancelled",
+                update_modified=False,
+            )
+
+        if not target_open:
             todos = frappe.get_all(
                 "ToDo",
                 filters={
                     "reference_type": "HD Ticket",
                     "reference_name": name,
-                    "allocated_to": u,
+                    "allocated_to": target_user,
                 },
                 fields=["name", "status", "creation"],
                 order_by="creation desc",
@@ -552,29 +638,37 @@ def add(*args, **kwargs):
 
             if todos:
                 newest = todos[0]["name"]
-
-                if (todos[0].get("status") or "") != "Open":
-                    frappe.db.set_value("ToDo", newest, "status", "Open", update_modified=False)
+                frappe.db.set_value(
+                    "ToDo",
+                    newest,
+                    "status",
+                    "Open",
+                    update_modified=False,
+                )
 
                 for td in todos[1:]:
                     if (td.get("status") or "") != "Cancelled":
-                        frappe.db.set_value("ToDo", td["name"], "status", "Cancelled", update_modified=False)
+                        frappe.db.set_value(
+                            "ToDo",
+                            td["name"],
+                            "status",
+                            "Cancelled",
+                            update_modified=False,
+                        )
+            else:
+                one_payload = dict(payload)
+                one_payload["assign_to"] = [target_user]
 
-                continue
-
-            one_payload = dict(payload)
-            one_payload["assign_to"] = [u]
-
-            try:
-                core_assign_to.add(one_payload)
-            except Exception as e:
-                _log_assign_error(
-                    "assign_to.add:core_add_hd_ticket_failed",
-                    one_payload,
-                    e,
-                    extra={"snap_before": snap_before},
-                )
-                raise
+                try:
+                    core_assign_to.add(one_payload)
+                except Exception as e:
+                    _log_assign_error(
+                        "assign_to.add:core_add_hd_ticket_failed",
+                        one_payload,
+                        e,
+                        extra={"snap_before": snap_before},
+                    )
+                    raise
 
         try:
             _cancel_closed_todos_for_ticket(name)
