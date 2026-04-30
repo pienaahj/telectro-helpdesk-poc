@@ -1,7 +1,48 @@
 import json
 import frappe
+from frappe.utils import now_datetime
 
+def _insert_handoff_audit_log(
+    *,
+    ticket: str,
+    ticket_subject: str | None,
+    changed_by: str,
+    from_user: str | None,
+    to_user: str,
+    reason: str,
+    source: str = "Controlled Handoff",
+) -> None:
+    """
+    Durable audit log for accountable-owner transfer.
 
+    This is intentionally separate from timeline comments:
+    - comments are useful for humans on the ticket
+    - this DocType is useful for reports, governance, and demo proof
+    """
+    ticket = (ticket or "").strip()
+    changed_by = (changed_by or "").strip()
+    from_user = (from_user or "").strip()
+    to_user = (to_user or "").strip()
+    reason = (reason or "").strip()
+    source = (source or "").strip() or "Controlled Handoff"
+
+    if not ticket or not changed_by or not to_user or not reason:
+        return
+
+    frappe.get_doc(
+        {
+            "doctype": "TELECTRO Assignment Handoff Log",
+            "ticket": ticket,
+            "ticket_subject": ticket_subject or "",
+            "changed_on": now_datetime(),
+            "changed_by": changed_by,
+            "from_user": from_user or None,
+            "to_user": to_user,
+            "reason": reason,
+            "source": source,
+        }
+    ).insert(ignore_permissions=True)
+    
 def _first_assignee(assign_val: str | None):
     if not assign_val:
         return None
@@ -286,6 +327,17 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
     )
 
     _normalize_assignment(ticket, to_user, note=msg)
+
+    _insert_handoff_audit_log(
+        ticket=ticket,
+        ticket_subject=doc.get("subject"),
+        changed_by=user,
+        from_user=from_user,
+        to_user=to_user,
+        reason=reason,
+        source="Controlled Handoff",
+    )
+
     frappe.db.commit()
 
     return {

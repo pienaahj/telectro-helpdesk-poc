@@ -116,6 +116,7 @@ fixtures = [
                 "Supervisor Team Load Snapshot",
                 "Supervisor Team Snapshot",
                 "Unclaimed Over 1 Day",
+                "TELECTRO Assignment Handoff Audit",
             ]],
         ],
     },
