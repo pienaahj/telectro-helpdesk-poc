@@ -306,6 +306,17 @@ cp_from_container \
   "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py" \
   "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py"
 # --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/telectro_assignment_handoff_audit/__init__.py" \
+  "ftelephony/report/telectro_assignment_handoff_audit/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.json" \
+  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.json"
+
+cp_from_container \
+  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.py" \
+  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/tickets_submitted_by_partner/__init__.py" \
