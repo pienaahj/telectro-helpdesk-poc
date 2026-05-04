@@ -147,27 +147,23 @@ Round-robin assignment is app-owned and cache-backed. It is not currently driven
 
 ---
 
-### Pool-user fallback groups
+### True pool fallback groups
 
 For groups that are **not** in the round-robin pool map:
 
 - no RR user is chosen
-- the ticket is seeded to the pool path instead
+- the ticket remains in the true pool path instead
 
-Current pool user:
+The current pilot pool is a **true pool**, not a fake user assignment.
 
-- `helpdesk@local.test`
+#### True pool behavior
 
-#### Pool fallback behavior
+A true pool ticket has:
 
-If the ticket:
-
-- has no open `ToDo`
-- and `_assign` is empty
-
-then pool fallback creates exactly one open `ToDo` for the pool user and mirrors `_assign` from that `ToDo`.
-
-This is the safe default / unclaimed path.
+```text
+HD Ticket._assign = []
+no Open assignment ToDo
+```
 
 ---
 
@@ -192,13 +188,25 @@ This prevents partner-fulfilment tickets from being silently pulled into the nor
 
 ## Canonical truth model
 
-The pilot currently treats **open `ToDo` state as canonical**.
+The pilot currently treats **open assignment `ToDo` state as canonical** for owned tickets.
 
 That means:
 
-- open `ToDo` rows are the most authoritative assignment state
-- `_assign` mirrors open `ToDo` assignees
+- open assignment `ToDo` rows are the most authoritative assignment state for owned tickets
+- `_assign` mirrors the canonical owner for Frappe/Helpdesk compatibility
 - sync/repair logic restores `_assign` from canonical open `ToDo` state where needed
+
+The current invariant is:
+
+```text
+Owned ticket:
+  exactly one Open assignment ToDo
+  HD Ticket._assign = ["accountable.owner@local.test"]
+
+True pool ticket:
+  no Open assignment ToDo
+  HD Ticket._assign = []
+```
 
 ### Why this matters
 
@@ -255,34 +263,44 @@ Repo-backed repair tooling exists to:
 
 ## User-facing assignment contract
 
-For pilot tech users, direct Assign/Unassign is intentionally restricted.
+For pilot users, ticket assignment represents accountable ownership.
+
+Direct generic Assign/Unassign is intentionally restricted because the generic Frappe assignment UI can create multi-assignee or drift-prone states that do not match the pilot ownership model.
 
 ### Current rule
 
-Users with the pilot tech role should use:
+Users should use the pilot-safe ownership actions:
 
-- Claim
-- Handoff
+- **Claim** — take ownership from the true pool
+- **Release** — return own ticket to the true pool with a reason
+- **Controlled Handoff** — supervisor/coordinator transfer of accountability to a new owner
 
-rather than generic Assign/Unassign actions.
+Generic Assign/Unassign is not the normal pilot reassignment path.
 
-### Why
+### Controlled Handoff
 
-This protects the pilot workflow from:
+Controlled Handoff is the approved accountability-transfer path for supervisor/coordinator intervention.
 
-- accidental direct ownership churn
-- bypassing the intended queue/pool flow
-- UI actions that create inconsistent assignment artifacts
+Controlled Handoff:
 
-### Assign override guard
+- transfers accountability from the current owner or pool to one new accountable owner
+- does not add a second assignee
+- requires a reason
+- writes a ticket timeline comment
+- records a durable audit row in `TELECTRO Assignment Handoff Log`
 
-The current assign override blocks direct assign/unassign operations for:
+The audit row captures:
 
-- `TELECTRO-POC Tech`
-
-while leaving admin/system-level operations available where appropriate.
-
-This is intentional and part of the pilot safety model.
+```text
+ticket
+ticket subject
+changed on
+changed by
+from user
+to user
+reason
+source
+```
 
 ---
 
@@ -322,8 +340,9 @@ A proven manual `PABX` ticket currently lands with:
 
 If the ticket lands in a non-round-robin/default path:
 
-- pool fallback seeds the pool user
-- `_assign` mirrors the pool `ToDo`
+- the ticket remains in the true pool
+- `_assign = []`
+- no Open assignment `ToDo` exists
 
 This is the intended safe fallback / unclaimed path.
 
@@ -345,12 +364,16 @@ It does **not** currently try to provide:
 ## Important operational truths
 
 - assignment is currently app-owned
+- assignment means accountable ownership, not contributor participation
 - routing seed must happen before assignment is expected to behave predictably
-- open `ToDo` state is canonical
-- `_assign` mirrors canonical open `ToDo` state
-- pool fallback is the safe default for non-RR groups
+- open assignment `ToDo` state is canonical for owned tickets
+- `_assign` mirrors canonical ownership state
+- true pool means `_assign = []` and no Open assignment `ToDo`
+- Controlled Handoff is the approved supervisor/coordinator accountability-transfer path
+- Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
+- the audit trail is visible in `TELECTRO Assignment Handoff Audit`
 - partner fulfilment is explicitly overridden
-- pilot tech direct assign/unassign is intentionally blocked
+- generic direct assign/unassign is intentionally guarded
 - disabled Assignment Rules are not the live runtime mechanism
 
 ---

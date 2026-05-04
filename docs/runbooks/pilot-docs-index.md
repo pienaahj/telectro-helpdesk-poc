@@ -253,13 +253,19 @@ This runbook describes **current pilot behavior**. It should not be used as the 
 
 **Use for:**
 
+**Use for:**
+
 - current app-owned assignment model
 - routing -> assignment -> sync flow
 - round-robin groups
-- pool fallback
+- true pool fallback
 - partner override
 - `ToDo` vs `_assign` source-of-truth model
 - claim/handoff restrictions
+- true pool vs owned-ticket assignment invariant
+- Controlled Handoff audit behaviour
+- `TELECTRO Assignment Handoff Log`
+- `TELECTRO Assignment Handoff Audit`
 
 **Read this when:**
 
@@ -314,6 +320,8 @@ Other docs should reference this rather than restating assignment theory.
 
 - understanding the intended working model for the pilot
 - understanding the supervisor’s operational shell and reports
+- understanding the supervisor’s use of Controlled Handoff
+- understanding where the handoff audit report fits in the supervisor/coordinator workflow
 
 **Read this when:**
 
@@ -475,9 +483,9 @@ At the moment, the doc set has a good emerging split:
 - **Mail Health Runbook** = mail-path health
 - **Email Ticket Intake Runbook** = inbound email contract
 - **Manual Ticket Intake Runbook** = manual capture contract
-- **Ticket Assignment Contract** = ownership model
+- **Ticket Assignment Contract** = ownership model, true-pool invariant, Controlled Handoff, and handoff audit trail
 - **Ticket Status and Workspace Baseline** = operational trust boundary and archive policy
-- **Supervisor Operating Model** = supervisor monitoring and intervention model
+- **Supervisor Operating Model** = supervisor monitoring, intervention model, and handoff audit usage
 - **SLA and Supervisor Risk Signals** = where Helpdesk SLA timing is configured, how `response_by` / `resolution_by` are derived, and how supervisor risk signals should interpret those fields
 
 That is a healthy baseline for the pilot.
