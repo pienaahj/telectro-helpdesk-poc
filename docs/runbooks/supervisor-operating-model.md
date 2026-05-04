@@ -1,6 +1,6 @@
-## Supervisor Operating Model — Pilot
+# Supervisor Operating Model — Pilot
 
-### Purpose
+## Purpose
 
 The supervisor function in the pilot supports **queue health, team awareness, and timely intervention**.
 
@@ -79,6 +79,31 @@ For the pilot, the intended working model is:
 
 This keeps the technician flow simple while still giving the supervisor enough operational visibility to manage the queue responsibly.
 
+### Controlled Handoff and accountability audit
+
+When a supervisor or coordinator needs to transfer ticket ownership, the approved path is **Controlled Handoff**.
+
+Controlled Handoff should be used when:
+
+- the current owner is unavailable
+- the ticket needs a different accountable owner
+- workload balancing requires ownership transfer
+- escalation or coordination requires a clear accountable owner change
+
+Controlled Handoff is not a contributor mechanism. It transfers accountable ownership from one owner, or the true pool, to one new accountable owner.
+
+Every successful Controlled Handoff records a durable audit row showing:
+
+```text
+ticket
+changed on
+changed by
+from user
+to user
+reason
+source
+```
+
 ### Supervisor workspace
 
 The `TELECTRO-POC Ops` supervisor workspace is the operational shell for supervisor use.
@@ -138,13 +163,33 @@ This report is intended to show:
 
 This is the supervisor’s **attention list** rather than a general workload list.
 
+#### `TELECTRO Assignment Handoff Audit`
+
+`TELECTRO Assignment Handoff Audit` tells the supervisor **who changed accountable ownership, from whom, to whom, when, and why**.
+
+This report is intended to support governance around supervisor/coordinator intervention.
+
+It shows Controlled Handoff audit rows, including:
+
+- ticket
+- ticket subject
+- changed on
+- changed by
+- from user
+- to user
+- reason
+- source
+
+This is a governance and accountability report, not a productivity score.
+
 ### Reporting intent
 
-The three supervisor reports work together:
+The supervisor reports work together:
 
 - `Supervisor Team Snapshot` shows **who is carrying load**
 - `Active Tickets by Technician` shows **what that load consists of**
 - `Aging and At-Risk Tickets` shows **which owned items may need intervention first**
+- `TELECTRO Assignment Handoff Audit` shows **who transferred accountable ownership, when, and why**
 
 Together they support a supervisor workflow of:
 
@@ -165,4 +210,3 @@ The supervisor layer should support:
 It should not become a simplistic performance scoreboard.
 
 The pilot should use these indicators to improve operational awareness and decision-making first. Stronger SLA-style or comparative measures can be added later once the team flow and queue behaviour are better understood.
-
