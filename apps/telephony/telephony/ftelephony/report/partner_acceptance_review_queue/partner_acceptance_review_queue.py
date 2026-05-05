@@ -1,4 +1,5 @@
 import frappe
+from telephony.partner_create import get_partner_note_summary
 
 EXCLUDED_STATUSES = ("Resolved", "Closed", "Archived")
 
@@ -52,13 +53,19 @@ def get_columns():
             "label": "Partner Acceptance State",
             "fieldname": "custom_partner_acceptance_state",
             "fieldtype": "Data",
-            "width": 190,
+            "width": 200,
         },
         {
             "label": "Partner Accepted On",
             "fieldname": "custom_partner_accepted_on",
             "fieldtype": "Date",
             "width": 150,
+        },
+        {
+            "label": "Partner Acceptance Note",
+            "fieldname": "latest_partner_acceptance_note",
+            "fieldtype": "Small Text",
+            "width": 650,
         },
         {
             "label": "Modified",
@@ -70,7 +77,7 @@ def get_columns():
 
 
 def get_data():
-    return frappe.db.sql(
+    rows = frappe.db.sql(
         """
         select
             t.name,
@@ -93,3 +100,8 @@ def get_data():
         (EXCLUDED_STATUSES,),
         as_dict=True,
     )
+
+    for row in rows:
+        row.update(get_partner_note_summary(row.name))
+
+    return rows

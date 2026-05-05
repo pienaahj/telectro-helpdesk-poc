@@ -1,4 +1,6 @@
 import frappe
+import re
+from html import unescape
 
 PARTNER_ROLE = "TELECTRO-POC Role - Partner"
 PARTNER_CREATOR_ROLE = "TELECTRO-POC Role - Partner Creator"
@@ -40,6 +42,54 @@ PARTNER_DETAIL_FIELDS = [
     "custom_partner_work_completed",
 ]
 
+_COMMENT_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _comment_to_text(content: str | None) -> str:
+    text = content or ""
+    text = _COMMENT_TAG_RE.sub("", text)
+    return unescape(text).strip()
+
+
+def _get_latest_ticket_comment_text(ticket_name: str, startswith: str) -> str:
+    rows = frappe.get_all(
+        "Comment",
+        filters={
+            "reference_doctype": "HD Ticket",
+            "reference_name": ticket_name,
+            "comment_type": "Comment",
+        },
+        fields=["content", "creation"],
+        order_by="creation desc",
+        limit_page_length=20,
+    )
+
+    prefix = (startswith or "").strip()
+
+    for row in rows:
+        text = _comment_to_text(row.get("content"))
+        if text.startswith(prefix):
+            return text
+
+    return ""
+
+
+def get_partner_note_summary(ticket_name: str) -> dict:
+    return {
+        "latest_partner_acceptance_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner acceptance note by",
+        ),
+        "latest_partner_work_done_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner work done note by",
+        ),
+        "latest_partner_review_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Acceptance Review | Outcome:",
+        ),
+    }
+    
 def apply_partner_work_state(doc, method=None):
     fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
     request_source = (doc.get("custom_request_source") or "").strip()
@@ -329,7 +379,11 @@ def get_partner_ticket_detail(ticket_name: str):
     _assert_partner_ticket_access(ticket_name, user)
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
-    return {field: doc.get(field) for field in PARTNER_DETAIL_FIELDS}
+
+    detail = {field: doc.get(field) for field in PARTNER_DETAIL_FIELDS}
+    detail.update(get_partner_note_summary(ticket_name))
+
+    return detail
 
 
 @frappe.whitelist()

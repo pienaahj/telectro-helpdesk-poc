@@ -72,7 +72,26 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
             <div id="pt-subject" class="mb-4 font-weight-bold"></div>
 
             <h5 class="mb-3">Summary</h5>
-            <div id="pt-summary" style="white-space: pre-wrap;"></div>
+            <div id="pt-summary" class="mb-4" style="white-space: pre-wrap;"></div>
+
+            <div id="pt-partner-notes" style="display:none;">
+              <hr>
+
+              <div id="pt-partner-acceptance-note-section" style="display:none;">
+                <h5 class="mb-3">Partner Acceptance Note</h5>
+                <div id="pt-partner-acceptance-note" class="mb-4" style="white-space: pre-wrap;"></div>
+              </div>
+
+              <div id="pt-partner-work-done-note-section" style="display:none;">
+                <h5 class="mb-3">Partner Work Done Note</h5>
+                <div id="pt-partner-work-done-note" class="mb-4" style="white-space: pre-wrap;"></div>
+              </div>
+
+              <div id="pt-partner-review-note-section" style="display:none;">
+                <h5 class="mb-3">Telectro Review Note</h5>
+                <div id="pt-partner-review-note" style="white-space: pre-wrap;"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -112,7 +131,15 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       "#pt-summary",
       "#pt-partner-work-state",
       "#pt-partner-work-completed",
+      "#pt-partner-acceptance-note",
+      "#pt-partner-work-done-note",
+      "#pt-partner-review-note",
     ].forEach((id) => setText(id, ""));
+
+    $body.find("#pt-partner-notes").hide();
+    $body.find("#pt-partner-acceptance-note-section").hide();
+    $body.find("#pt-partner-work-done-note-section").hide();
+    $body.find("#pt-partner-review-note-section").hide();
   }
 
   function getPartnerTicketTrain(d) {
@@ -237,6 +264,32 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         setText("#pt-partner-work-completed", d.custom_partner_work_completed);
         setText("#pt-subject", d.subject);
         setText("#pt-summary", d.summary);
+        setText(
+          "#pt-partner-acceptance-note",
+          d.latest_partner_acceptance_note,
+        );
+        setText("#pt-partner-work-done-note", d.latest_partner_work_done_note);
+        setText("#pt-partner-review-note", d.latest_partner_review_note);
+
+        const hasAcceptanceNote = Boolean(d.latest_partner_acceptance_note);
+        const hasWorkDoneNote = Boolean(d.latest_partner_work_done_note);
+        const hasReviewNote = Boolean(d.latest_partner_review_note);
+
+        if (hasAcceptanceNote || hasWorkDoneNote || hasReviewNote) {
+          $body.find("#pt-partner-notes").show();
+        } else {
+          $body.find("#pt-partner-notes").hide();
+        }
+
+        $body
+          .find("#pt-partner-acceptance-note-section")
+          .toggle(hasAcceptanceNote);
+
+        $body
+          .find("#pt-partner-work-done-note-section")
+          .toggle(hasWorkDoneNote);
+
+        $body.find("#pt-partner-review-note-section").toggle(hasReviewNote);
 
         showContent();
         updatePartnerAction(d);

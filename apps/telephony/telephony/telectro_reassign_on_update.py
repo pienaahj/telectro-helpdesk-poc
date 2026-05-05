@@ -118,12 +118,11 @@ def reassign_if_routing_changed(doc, method=None):
 
     # 1) Partner override
     if party == "Partner":
-        if current_assignee != PARTNER_USER:
-            _normalize_assignment(
-                ticket,
-                PARTNER_USER,
-                note=f"Routing change: reassigned to Partner queue | {subject}",
-            )
+        _normalize_assignment(
+            ticket,
+            PARTNER_USER,
+            note=f"Routing change: reassigned to Partner fulfilment | {subject}",
+        )
         return
     # 2) Pilot Campus/Site routing policy
     policy = resolve_ticket_routing_policy(doc)

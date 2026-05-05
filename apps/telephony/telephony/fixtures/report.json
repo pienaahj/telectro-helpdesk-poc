@@ -223,56 +223,6 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-04-09 08:55:45.687465",
-  "module": "FTelephony",
-  "name": "Aging and At-Risk Tickets",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Aging and At-Risk Tickets",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
   "modified": "2026-04-16 14:29:03.683586",
   "module": "FTelephony",
   "name": "Partner Archived Tickets",
@@ -464,50 +414,6 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-04-15 15:40:20.939924",
-  "module": "FTelephony",
-  "name": "Active Tickets by Technician",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Active Tickets by Technician",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
   "modified": "2026-04-23 11:13:51.020196",
   "module": "FTelephony",
   "name": "Tickets Submitted by Partner",
@@ -638,100 +544,6 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Pilot Admin"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-04-15 15:09:52.735660",
-  "module": "FTelephony",
-  "name": "Coordinator Uplift History",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "User",
-  "reference_report": null,
-  "report_name": "Coordinator Uplift History",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Coordinator Uplift History",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "Coordinator Uplift History",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": null
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-03-26 11:27:39.496421",
-  "module": "FTelephony",
-  "name": "Supervisor Team Load Snapshot",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Supervisor Team Load Snapshot",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Supervisor Team Load Snapshot",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
    }
   ],
   "timeout": 0
@@ -882,6 +694,44 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
+  "modified": "2026-04-15 15:09:52.735660",
+  "module": "FTelephony",
+  "name": "Coordinator Uplift History",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "User",
+  "reference_report": null,
+  "report_name": "Coordinator Uplift History",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Coordinator Uplift History",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Coordinator Uplift History",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": null
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
   "modified": "2026-04-15 15:47:35.314321",
   "module": "FTelephony",
   "name": "Supervisor Team Snapshot",
@@ -910,6 +760,156 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-03-26 11:27:39.496421",
+  "module": "FTelephony",
+  "name": "Supervisor Team Load Snapshot",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Supervisor Team Load Snapshot",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Supervisor Team Load Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-09 08:55:45.687465",
+  "module": "FTelephony",
+  "name": "Aging and At-Risk Tickets",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Aging and At-Risk Tickets",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-15 15:40:20.939924",
+  "module": "FTelephony",
+  "name": "Active Tickets by Technician",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Active Tickets by Technician",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Active Tickets by Technician",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Active Tickets by Technician",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Active Tickets by Technician",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
    }
   ],
   "timeout": 0

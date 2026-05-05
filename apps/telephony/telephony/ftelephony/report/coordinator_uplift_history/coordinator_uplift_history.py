@@ -27,7 +27,7 @@ def execute(filters=None):
             "label": "Details",
             "fieldname": "content",
             "fieldtype": "Data",
-            "width": 700,
+            "width": 1200,
         },
     ]
 

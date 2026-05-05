@@ -1,5 +1,6 @@
 import frappe
 import json
+from telephony.telectro_round_robin import PARTNER_USER
 
 DOCT = "HD Ticket"
 
@@ -174,7 +175,56 @@ def _mirror_assign(ticket: str, users: list[str]) -> None:
     # Mirror/normalize _assign in DB (compat alias used by sync_ticket_assignments)
     _set_assign(ticket, users)
 
-    
+def _is_partner_fulfilment(doc) -> bool:
+    return (doc.get("custom_fulfilment_party") or "").strip() == "Partner"
+
+
+def _enforce_partner_assignment(ticket: str, doc=None) -> None:
+    """
+    Partner fulfilment invariant.
+
+    Partner fulfilment must replace accountable ownership, not append to it:
+      - exactly one Open ToDo for PARTNER_USER
+      - no other Open ToDos
+      - _assign = [PARTNER_USER]
+    """
+    ticket = (ticket or "").strip()
+    if not ticket:
+        return
+
+    todos = _open_todos(ticket)
+
+    keep_partner_todo = None
+
+    for td in todos:
+        user = (td.get("allocated_to") or "").strip()
+
+        if user == PARTNER_USER and keep_partner_todo is None:
+            keep_partner_todo = td["name"]
+            continue
+
+        _close_todo(td["name"])
+
+    if keep_partner_todo is None:
+        _ensure_open_todo(
+            ticket,
+            PARTNER_USER,
+            desc="Assigned via TELECTRO pilot action",
+        )
+
+    assign_json = json.dumps([PARTNER_USER])
+
+    if doc is not None:
+        doc._assign = assign_json
+
+    frappe.db.set_value(
+        DOCT,
+        ticket,
+        "_assign",
+        assign_json,
+        update_modified=False,
+    )  
+  
 def dedupe_assign_field(doc, method=None) -> None:
     """
     Runs at validate time.
@@ -184,10 +234,19 @@ def dedupe_assign_field(doc, method=None) -> None:
     - Open ToDo is canonical.
     - If Open ToDo exists, keep only the newest accountable owner.
     - If no Open ToDo exists, collapse _assign to at most one user.
+
+    Partner fulfilment exception:
+    - Partner fulfilment always normalizes ownership to PARTNER_USER.
+    - This prevents generic Fulfilment Party edits from appending Partner while
+      leaving the previous owner active.
     """
     _validate_site_group_and_leaf(doc)
 
     ticket = str(getattr(doc, "name", "") or "").strip()
+
+    if ticket and _is_partner_fulfilment(doc):
+        _enforce_partner_assignment(ticket, doc=doc)
+        return
 
     if ticket:
         todos = _open_todos(ticket)
@@ -221,6 +280,10 @@ def sync_ticket_assignments(doc, method=None, prefer_assign: int = 1) -> None:
     if not ticket:
         return
 
+    if _is_partner_fulfilment(doc):
+        _enforce_partner_assignment(ticket, doc=doc)
+        return
+    
     todos = _open_todos(ticket)
 
     # A) If multiple Open ToDos exist, keep newest only.
