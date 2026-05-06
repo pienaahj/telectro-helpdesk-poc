@@ -4,6 +4,7 @@ frappe.ui.form.on("HD Ticket", {
   refresh(frm) {
     setTimeout(() => {
       add_controlled_handoff_action(frm);
+      add_share_ticket_context_action(frm);
     }, 300);
   },
 });
@@ -216,4 +217,158 @@ function get_current_accountable_owner(frm) {
 
 function has_custom_button(frm, label) {
   return !!frm.custom_buttons?.[label];
+}
+
+function add_share_ticket_context_action(frm) {
+  if (!should_show_share_ticket_context(frm)) {
+    return;
+  }
+
+  if (has_custom_button(frm, "Share Ticket Context")) {
+    return;
+  }
+
+  frm.add_custom_button("Share Ticket Context", () => {
+    open_share_ticket_context_dialog(frm);
+  });
+}
+
+function open_share_ticket_context_dialog(frm) {
+  const currentOwner =
+    get_current_accountable_owner(frm) || "Pool / Unassigned";
+
+  const dialog = new frappe.ui.Dialog({
+    title: "Share Ticket Context",
+    fields: [
+      {
+        label: "Current Accountable Owner",
+        fieldname: "current_owner",
+        fieldtype: "Data",
+        read_only: 1,
+        default: currentOwner,
+      },
+      {
+        label: "Collaborator",
+        fieldname: "collaborator",
+        fieldtype: "Link",
+        options: "User",
+        reqd: 1,
+        get_query() {
+          return {
+            filters: {
+              enabled: 1,
+              user_type: "System User",
+            },
+          };
+        },
+      },
+      {
+        label: "Note / Reason",
+        fieldname: "note",
+        fieldtype: "Small Text",
+        reqd: 1,
+        description:
+          "Required. This is written to the ticket timeline without changing assignment.",
+      },
+    ],
+    primary_action_label: "Share Context",
+    primary_action(values) {
+      if (!values.collaborator) {
+        frappe.msgprint("Please select a collaborator.");
+        return;
+      }
+
+      if (!values.note || !values.note.trim()) {
+        frappe.msgprint("Please enter a note / reason.");
+        return;
+      }
+
+      frappe.call({
+        method: "telephony.api.workspace.share_ticket_context",
+        args: {
+          ticket_name: frm.doc.name,
+          collaborator: values.collaborator,
+          note: values.note,
+        },
+        freeze: true,
+        freeze_message: "Sharing ticket context...",
+        callback(r) {
+          const msg = r.message || {};
+
+          if (!msg.ok) {
+            frappe.msgprint({
+              title: __("Context not shared"),
+              message: __("Reason: {0}", [msg.reason || "Unknown"]),
+              indicator: "orange",
+            });
+            return;
+          }
+
+          frappe.show_alert({
+            message: __("Ticket context shared with {0}", [
+              msg.collaborator_name || msg.collaborator,
+            ]),
+            indicator: "green",
+          });
+
+          dialog.hide();
+          frm.reload_doc();
+        },
+        error(xhr) {
+          console.error("[telectro_handoff_action] context share failed", xhr);
+          frappe.msgprint({
+            title: __("Context share failed"),
+            message: __("Could not share ticket context."),
+            indicator: "red",
+          });
+        },
+      });
+    },
+  });
+
+  dialog.show();
+}
+
+function should_show_share_ticket_context(frm) {
+  const d = frm.doc || {};
+
+  if (!d.name || frm.is_new()) {
+    return false;
+  }
+
+  if (d.doctype !== "HD Ticket") {
+    return false;
+  }
+
+  if (["Resolved", "Closed", "Archived"].includes(d.status || "")) {
+    return false;
+  }
+
+  return (
+    has_share_ticket_context_role() || is_current_user_accountable_owner(frm)
+  );
+}
+
+function has_share_ticket_context_role() {
+  return [
+    "System Manager",
+    "Pilot Admin",
+    "TELECTRO-POC Role - Supervisor Governance",
+    "TELECTRO-POC Role - Coordinator Ops",
+  ].some((role) => frappe.user.has_role(role));
+}
+
+function is_current_user_accountable_owner(frm) {
+  const currentOwner = get_current_accountable_owner(frm);
+  const currentUser = frappe.session.user;
+
+  if (!currentOwner || !currentUser) {
+    return false;
+  }
+
+  return currentOwner
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .includes(currentUser);
 }
