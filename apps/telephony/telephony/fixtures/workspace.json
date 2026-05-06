@@ -545,7 +545,7 @@
     "is_query_report": 1,
     "label": "Repeat Faults by Location",
     "link_count": 0,
-    "link_to": "Telectro Repeat Faults by Location",
+    "link_to": "TELECTRO Repeat Faults by Location",
     "link_type": "Report",
     "onboard": 0,
     "only_for": null,
@@ -556,7 +556,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-05-06 09:42:05.482875",
+  "modified": "2026-05-06 11:32:38.138655",
   "module": null,
   "name": "TELECTRO-POC Ops",
   "number_cards": [

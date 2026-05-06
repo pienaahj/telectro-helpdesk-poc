@@ -1,6 +1,8 @@
+import json
+
 import frappe
 from frappe import _
-from frappe.utils import cint, pretty_date
+from frappe.utils import cint, pretty_date, strip_html
 
 
 TECHNICIAN_PROFILE = "TELECTRO-POC Profile - Technician"
@@ -10,6 +12,196 @@ ALLOWED_GOVERNANCE_ROLES = {
     "System Manager",
     "TELECTRO-POC Role - Supervisor Governance",
 }
+
+SHARE_CONTEXT_ROLES = {
+    "System Manager",
+    "Pilot Admin",
+    "TELECTRO-POC Role - Supervisor Governance",
+    "TELECTRO-POC Role - Coordinator Ops",
+}
+
+
+@frappe.whitelist()
+def share_ticket_context(ticket_name, collaborator, note):
+    ticket = _get_ticket_for_context_share(ticket_name)
+    collaborator_doc = _get_context_share_collaborator(collaborator)
+    note = (note or "").strip()
+
+    if not note:
+        frappe.throw(_("A note / reason is required."), frappe.ValidationError)
+
+    _require_ticket_context_share_access(ticket)
+
+    before_assign = ticket.get("_assign") or ""
+
+    content = _build_ticket_context_share_comment(
+        ticket=ticket,
+        collaborator_doc=collaborator_doc,
+        note=note,
+    )
+
+    frappe.get_doc(
+        {
+            "doctype": "Comment",
+            "comment_type": "Info",
+            "reference_doctype": "HD Ticket",
+            "reference_name": ticket.name,
+            "content": content,
+        }
+    ).insert(ignore_permissions=True)
+
+    # Defensive proof: this action must never mutate assignment.
+    after_assign = frappe.db.get_value("HD Ticket", ticket.name, "_assign") or ""
+    if after_assign != before_assign:
+        frappe.throw(
+            _("Share Ticket Context attempted to change assignment. No share was applied."),
+            frappe.ValidationError,
+        )
+
+    frappe.db.commit()
+
+    return {
+        "ok": True,
+        "ticket": ticket.name,
+        "collaborator": collaborator_doc.name,
+        "collaborator_name": collaborator_doc.full_name or collaborator_doc.name,
+        "message": _("Ticket context shared."),
+    }
+
+def _get_context_display_value(doctype, name, display_fields):
+    name = (name or "").strip()
+
+    if not name:
+        return "-"
+
+    if not frappe.db.exists(doctype, name):
+        return name
+
+    for fieldname in display_fields:
+        value = frappe.db.get_value(doctype, name, fieldname)
+        if value:
+            return value
+
+    title_field = frappe.get_meta(doctype).title_field
+    if title_field:
+        value = frappe.db.get_value(doctype, name, title_field)
+        if value:
+            return value
+
+    return name
+
+
+def _get_context_customer_name(customer):
+    return _get_context_display_value("Customer", customer, ["customer_name"])
+
+
+def _get_context_location_name(location):
+    return _get_context_display_value("Location", location, ["location_name"])
+
+def _get_ticket_for_context_share(ticket_name):
+    if not ticket_name:
+        frappe.throw(_("A ticket is required."), frappe.ValidationError)
+
+    if not frappe.db.exists("HD Ticket", ticket_name):
+        frappe.throw(_("Ticket {0} was not found.").format(ticket_name))
+
+    return frappe.get_doc("HD Ticket", ticket_name)
+
+
+def _get_context_share_collaborator(collaborator):
+    if not collaborator:
+        frappe.throw(_("A collaborator is required."), frappe.ValidationError)
+
+    if not frappe.db.exists("User", collaborator):
+        frappe.throw(_("User {0} was not found.").format(collaborator))
+
+    doc = frappe.get_doc("User", collaborator)
+
+    if cint(doc.enabled) != 1:
+        frappe.throw(_("User {0} is disabled.").format(collaborator))
+
+    if (doc.user_type or "System User") != "System User":
+        frappe.throw(_("User {0} is not a System User.").format(collaborator))
+
+    return doc
+
+
+def _require_ticket_context_share_access(ticket):
+    user = frappe.session.user
+
+    if user == "Administrator":
+        return
+
+    roles = set(frappe.get_roles(user) or [])
+    if roles & SHARE_CONTEXT_ROLES:
+        return
+
+    assigned_users = set(_parse_assigned_users(ticket.get("_assign")))
+
+    if user in assigned_users:
+        return
+
+    frappe.throw(
+        _("You are not allowed to share context for this ticket."),
+        frappe.PermissionError,
+    )
+
+
+def _parse_assigned_users(raw_assign):
+    if not raw_assign:
+        return []
+
+    if isinstance(raw_assign, list):
+        return [user for user in raw_assign if user]
+
+    if isinstance(raw_assign, str):
+        raw_assign = raw_assign.strip()
+
+        if not raw_assign:
+            return []
+
+        try:
+            parsed = json.loads(raw_assign)
+        except Exception:
+            return [raw_assign]
+
+        if isinstance(parsed, list):
+            return [user for user in parsed if user]
+
+        if parsed:
+            return [str(parsed)]
+
+    return []
+
+
+def _build_ticket_context_share_comment(*, ticket, collaborator_doc, note):
+    collaborator_label = collaborator_doc.full_name or collaborator_doc.name
+
+    customer = _get_context_customer_name(ticket.get("custom_customer") or ticket.get("customer"))
+    campus = _get_context_location_name(ticket.get("custom_site_group"))
+    fault_point = _get_context_location_name(ticket.get("custom_site"))
+    fault_asset = _get_context_location_name(ticket.get("custom_fault_asset"))
+
+    lines = [
+        f"Ticket context shared by {frappe.session.user} with {collaborator_label} ({collaborator_doc.name}).",
+        "",
+        "Reason / note:",
+        strip_html(note),
+        "",
+        "Ticket context:",
+        f"- Ticket: {ticket.name}",
+        f"- Subject: {ticket.subject or '-'}",
+        f"- Status: {ticket.status or '-'}",
+        f"- Customer: {customer}",
+        f"- Campus: {campus}",
+        f"- Fault Point: {fault_point}",
+        f"- Fault Asset: {fault_asset}",
+        f"- Service Area: {ticket.get('custom_service_area') or '-'}",
+        f"- Severity: {ticket.get('custom_severity') or '-'}",
+        f"- Fulfilment Party: {ticket.get('custom_fulfilment_party') or '-'}",
+    ]
+
+    return "<br>".join(frappe.utils.escape_html(line) for line in lines)
 
 @frappe.whitelist()
 def coordinator_uplift_candidates():

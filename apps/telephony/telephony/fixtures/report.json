@@ -11,6 +11,44 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
+  "modified": "2026-05-06 10:00:00",
+  "module": "FTelephony",
+  "name": "TELECTRO Repeat Faults by Location",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "TELECTRO Repeat Faults by Location",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "TELECTRO Repeat Faults by Location",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "TELECTRO Repeat Faults by Location",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
   "modified": "2026-03-27 17:12:31.040967",
   "module": "FTelephony",
   "name": "Supervisor Active Work by Owner Bucket",
