@@ -319,6 +319,22 @@ cp_from_container \
   "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/telectro_repeat_faults_by_location/__init__.py" \
+  "ftelephony/report/telectro_repeat_faults_by_location/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.js" \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.js"
+
+cp_from_container \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.json" \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.json"
+
+cp_from_container \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.py" \
+  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/tickets_submitted_by_partner/__init__.py" \
   "ftelephony/report/tickets_submitted_by_partner/__init__.py"
 
