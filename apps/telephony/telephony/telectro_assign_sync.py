@@ -191,6 +191,14 @@ def _enforce_partner_assignment(ticket: str, doc=None) -> None:
     ticket = (ticket or "").strip()
     if not ticket:
         return
+    
+    # If called during validate for a new ticket, the name can exist in memory
+    # before the HD Ticket row exists in the database. Creating a linked ToDo at
+    # that point fails with "Could not find Reference Name".
+    if not frappe.db.exists("HD Ticket", ticket):
+        if doc is not None:
+            doc._assign = json.dumps([PARTNER_USER])
+        return
 
     todos = _open_todos(ticket)
 
@@ -245,6 +253,12 @@ def dedupe_assign_field(doc, method=None) -> None:
     ticket = str(getattr(doc, "name", "") or "").strip()
 
     if ticket and _is_partner_fulfilment(doc):
+        # Validate can run before a new HD Ticket row exists in the DB.
+        # Do not create linked ToDos here for new docs.
+        if doc.is_new():
+            doc._assign = json.dumps([PARTNER_USER])
+            return
+
         _enforce_partner_assignment(ticket, doc=doc)
         return
 
