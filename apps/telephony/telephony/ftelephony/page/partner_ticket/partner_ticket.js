@@ -19,6 +19,9 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           <button class="btn btn-default btn-sm" id="pt-back-submitted">Tickets Submitted by Partner</button>
           <button class="btn btn-default btn-sm" id="pt-back-active">Tickets Assigned to Partner</button>
           <button class="btn btn-default btn-sm" id="pt-back-archived">Partner History</button>
+          <button class="btn btn-default btn-sm" id="pt-request-rework" style="display:none;">
+            Request Rework
+          </button>
           <button class="btn btn-primary btn-sm" id="pt-submit-completion" style="display:none;">
             Submit Acceptance Note
           </button>
@@ -82,6 +85,11 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
                 <div id="pt-partner-acceptance-note" class="mb-4" style="white-space: pre-wrap;"></div>
               </div>
 
+              <div id="pt-partner-rework-note-section" style="display:none;">
+                <h5 class="mb-3">Rework Required</h5>
+                <div id="pt-partner-rework-note" style="white-space: pre-wrap;"></div>
+              </div>
+
               <div id="pt-partner-work-done-note-section" style="display:none;">
                 <h5 class="mb-3">Partner Work Done Note</h5>
                 <div id="pt-partner-work-done-note" class="mb-4" style="white-space: pre-wrap;"></div>
@@ -134,12 +142,15 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       "#pt-partner-acceptance-note",
       "#pt-partner-work-done-note",
       "#pt-partner-review-note",
+      "#pt-partner-rework-note",
     ].forEach((id) => setText(id, ""));
 
     $body.find("#pt-partner-notes").hide();
     $body.find("#pt-partner-acceptance-note-section").hide();
     $body.find("#pt-partner-work-done-note-section").hide();
     $body.find("#pt-partner-review-note-section").hide();
+    $body.find("#pt-request-rework").hide();
+    $body.find("#pt-request-rework").removeData("action");
   }
 
   function getPartnerTicketTrain(d) {
@@ -164,6 +175,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
   }
 
   function updatePartnerAction(d) {
+    const $reworkBtn = $body.find("#pt-request-rework");
     const $btn = $body.find("#pt-submit-completion");
     const train = getPartnerTicketTrain(d);
     const status = (d?.status || "").trim();
@@ -172,6 +184,8 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
     $btn.hide();
     $btn.removeData("action");
+    $reworkBtn.hide();
+    $reworkBtn.removeData("action");
 
     if (["Resolved", "Closed", "Archived"].includes(status)) {
       return;
@@ -182,7 +196,12 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         $btn.text("Submit Acceptance Note");
         $btn.data("action", "acceptance-note");
         $btn.show();
+
+        $reworkBtn.text("Request Rework");
+        $reworkBtn.data("action", "acceptance-rework");
+        $reworkBtn.show();
       }
+
       return;
     }
 
@@ -198,6 +217,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
   function showError(message) {
     $body.find("#pt-submit-completion").hide();
+    $body.find("#pt-request-rework").hide();
     $body
       .find("#pt-error")
       .text(message || "Could not load ticket.")
@@ -222,6 +242,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     $body.find("#pt-error").hide();
     $body.find("#pt-content").hide();
     $body.find("#pt-submit-completion").hide();
+    $body.find("#pt-request-rework").hide();
 
     page.set_title(`Partner Ticket ${ticketName}`);
     page.set_indicator("Loading…", "blue");
@@ -270,12 +291,19 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         );
         setText("#pt-partner-work-done-note", d.latest_partner_work_done_note);
         setText("#pt-partner-review-note", d.latest_partner_review_note);
+        setText("#pt-partner-rework-note", d.latest_partner_rework_note);
 
         const hasAcceptanceNote = Boolean(d.latest_partner_acceptance_note);
         const hasWorkDoneNote = Boolean(d.latest_partner_work_done_note);
         const hasReviewNote = Boolean(d.latest_partner_review_note);
+        const hasReworkNote = Boolean(d.latest_partner_rework_note);
 
-        if (hasAcceptanceNote || hasWorkDoneNote || hasReviewNote) {
+        if (
+          hasAcceptanceNote ||
+          hasWorkDoneNote ||
+          hasReviewNote ||
+          hasReworkNote
+        ) {
           $body.find("#pt-partner-notes").show();
         } else {
           $body.find("#pt-partner-notes").hide();
@@ -290,6 +318,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           .toggle(hasWorkDoneNote);
 
         $body.find("#pt-partner-review-note-section").toggle(hasReviewNote);
+        $body.find("#pt-partner-rework-note-section").toggle(hasReworkNote);
 
         showContent();
         updatePartnerAction(d);
@@ -313,6 +342,59 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
   $body.find("#pt-back-archived").on("click", () => {
     frappe.set_route("query-report", "Partner Archived Tickets");
+  });
+
+  $body.find("#pt-request-rework").on("click", () => {
+    const ticketName = getTicketName();
+
+    const dialog = new frappe.ui.Dialog({
+      title: "Request Rework",
+      fields: [
+        {
+          label: "Reason",
+          fieldname: "note",
+          fieldtype: "Small Text",
+          reqd: 1,
+          description: "Please explain what needs to be corrected.",
+        },
+      ],
+      primary_action_label: "Request Rework",
+      primary_action(values) {
+        if (!values.note || !values.note.trim()) {
+          frappe.msgprint("Please enter a rework reason.");
+          return;
+        }
+
+        frappe.call({
+          method: "telephony.partner_create.request_partner_acceptance_rework",
+          args: {
+            ticket_name: ticketName,
+            note: values.note,
+          },
+          freeze: true,
+          freeze_message: "Requesting rework…",
+          callback: function () {
+            frappe.show_alert({
+              message: __("Rework requested for {0}", [ticketName]),
+              indicator: "green",
+            });
+
+            dialog.hide();
+            loadTicket();
+          },
+          error: function (xhr) {
+            console.error(xhr);
+            frappe.msgprint({
+              title: __("Request failed"),
+              message: __("Could not request rework."),
+              indicator: "red",
+            });
+          },
+        });
+      },
+    });
+
+    dialog.show();
   });
 
   $body.find("#pt-submit-completion").on("click", () => {
