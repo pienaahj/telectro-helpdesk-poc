@@ -88,6 +88,10 @@ def get_partner_note_summary(ticket_name: str) -> dict:
             ticket_name,
             "Partner Acceptance Review | Outcome:",
         ),
+        "latest_partner_rework_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Acceptance Rework Required | Reason:",
+        ),
     }
     
 def apply_partner_work_state(doc, method=None):
@@ -171,6 +175,9 @@ def _assert_internal_partner_acceptance_request_access(ticket_name: str, user: s
         frappe.throw("Ticket is already in a terminal status")
 
     current_state = (row.custom_partner_acceptance_state or "").strip()
+
+    # Rework Required is intentionally allowed here:
+    # Telectro has performed rework and is requesting Partner acceptance again.
     if current_state in {"Pending Partner Acceptance", "Accepted by Partner", "Reviewed by Telectro"}:
         frappe.throw("Partner acceptance has already been requested or processed")
         
@@ -288,6 +295,10 @@ def _format_partner_acceptance_review_comment(outcome_label: str, note: str | No
         parts.append(f"Note: {note}")
     return " | ".join(parts)
 
+def _format_partner_acceptance_rework_comment(user: str, note: str) -> str:
+    note = (note or "").strip()
+    return f"Partner Acceptance Rework Required | Reason: Partner rework requested by {user}: {note}"
+
 
 def enforce_partner_create_v1(doc, method=None):
     user = frappe.session.user
@@ -397,9 +408,12 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
-    current_state = (doc.get("custom_partner_acceptance_state") or "").strip()
-    if current_state != "Pending Partner Acceptance":
-        frappe.throw("Partner acceptance is not currently pending")
+    current_state = (row.custom_partner_acceptance_state or "").strip()
+
+    # Rework Required is intentionally allowed here:
+    # Telectro has performed rework and is requesting Partner acceptance again.
+    if current_state in {"Pending Partner Acceptance", "Accepted by Partner", "Reviewed by Telectro"}:
+        frappe.throw("Partner acceptance has already been requested or processed")
 
     _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
@@ -418,6 +432,51 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
         "name": doc.name,
         "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
         "custom_partner_accepted_on": doc.get("custom_partner_accepted_on"),
+    }
+
+@frappe.whitelist()
+def request_partner_acceptance_rework(ticket_name: str, note: str):
+    user = frappe.session.user
+    _assert_partner_ticket_access(ticket_name, user)
+
+    note = (note or "").strip()
+    if not note:
+        frappe.throw("Rework reason is required")
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    current_state = (doc.get("custom_partner_acceptance_state") or "").strip()
+
+    if request_source != "Partner":
+        frappe.throw("Rework can only be requested for Partner-originated tickets")
+
+    if fulfilment_party == "Partner":
+        frappe.throw("Partner acceptance rework is not valid for Partner-fulfilment tickets")
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    if current_state != "Pending Partner Acceptance":
+        frappe.throw("Partner acceptance is not currently pending")
+
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "Rework Required")
+
+    doc.add_comment(
+        "Comment",
+        _format_partner_acceptance_rework_comment(user, note),
+    )
+
+    doc.save(ignore_permissions=True)
+    _canonicalize_ticket_assignments(doc.name)
+    doc.reload()
+
+    return {
+        "name": doc.name,
+        "status": doc.status,
+        "custom_partner_acceptance_state": doc.get("custom_partner_acceptance_state"),
+        "_assign": doc.get("_assign"),
     }
 
 @frappe.whitelist()
