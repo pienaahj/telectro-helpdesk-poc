@@ -5,6 +5,7 @@ frappe.ui.form.on("HD Ticket", {
     setTimeout(() => {
       add_request_partner_acceptance_action(frm);
       add_partner_acceptance_review_action(frm);
+      add_partner_work_review_action(frm);
     }, 300);
   },
 });
@@ -189,8 +190,10 @@ function should_show_partner_acceptance_review(frm) {
     return false;
   }
 
+  const workState = (d.custom_partner_work_state || "").trim();
+
   if (
-    (d.custom_partner_acceptance_state || "").trim() !== "Accepted by Partner"
+    !["Work Completed by Partner", "Reviewed by Telectro"].includes(workState)
   ) {
     return false;
   }
@@ -215,4 +218,164 @@ function has_internal_acceptance_review_role() {
 
 function has_custom_button(frm, label) {
   return !!frm.custom_buttons?.[label];
+}
+
+function add_partner_work_review_action(frm) {
+  if (!should_show_partner_work_review(frm)) {
+    return;
+  }
+
+  if (has_custom_button(frm, "Review Partner Work")) {
+    return;
+  }
+
+  frm.add_custom_button("Review Partner Work", () => {
+    const workState = (frm.doc.custom_partner_work_state || "").trim();
+
+    const outcomeOptions =
+      workState === "Reviewed by Telectro"
+        ? ["Resolve ticket", "Close ticket"]
+        : [
+            "Review only",
+            "Accept work",
+            "Request Rework",
+            "Resolve ticket",
+            "Close ticket",
+          ];
+
+    const dialog = new frappe.ui.Dialog({
+      title: "Review Partner Work",
+      fields: [
+        {
+          label: "Outcome",
+          fieldname: "outcome",
+          fieldtype: "Select",
+          options: outcomeOptions.join("\n"),
+          default: outcomeOptions[0],
+          reqd: 1,
+        },
+        {
+          label: "Note",
+          fieldname: "note",
+          fieldtype: "Small Text",
+          description:
+            "Required when requesting rework. Optional for other outcomes.",
+        },
+      ],
+      primary_action_label: "Apply",
+      primary_action(values) {
+        const outcomeMap = {
+          "Review only": "review_only",
+          "Accept work": "accept",
+          "Request Rework": "rework_required",
+          "Resolve ticket": "resolve",
+          "Close ticket": "close",
+        };
+
+        if (
+          values.outcome === "Request Rework" &&
+          (!values.note || !values.note.trim())
+        ) {
+          frappe.msgprint("Please enter a rework reason.");
+          return;
+        }
+
+        frappe.call({
+          method: "telephony.partner_create.review_partner_work_completion",
+          args: {
+            ticket_name: frm.doc.name,
+            outcome: outcomeMap[values.outcome],
+            note: values.note || "",
+          },
+          freeze: true,
+          freeze_message: "Applying Partner work review...",
+          callback() {
+            frappe.show_alert({
+              message: __("Partner work reviewed for {0}", [frm.doc.name]),
+              indicator: "green",
+            });
+
+            dialog.hide();
+            frm.reload_doc();
+          },
+          error(xhr) {
+            console.error(xhr);
+            frappe.msgprint({
+              title: __("Review failed"),
+              message: __("Could not apply Partner work review."),
+              indicator: "red",
+            });
+          },
+        });
+      },
+    });
+
+    dialog.show();
+  });
+}
+
+function should_show_partner_acceptance_review(frm) {
+  const d = frm.doc || {};
+
+  if (!d.name || frm.is_new()) {
+    return false;
+  }
+
+  if (d.doctype !== "HD Ticket") {
+    return false;
+  }
+
+  if ((d.custom_request_source || "").trim() !== "Partner") {
+    return false;
+  }
+
+  if ((d.custom_fulfilment_party || "").trim() === "Partner") {
+    return false;
+  }
+
+  if (
+    (d.custom_partner_acceptance_state || "").trim() !== "Accepted by Partner"
+  ) {
+    return false;
+  }
+
+  if (["Resolved", "Closed", "Archived"].includes(d.status || "")) {
+    return false;
+  }
+
+  return has_internal_acceptance_review_role();
+}
+
+function should_show_partner_work_review(frm) {
+  const d = frm.doc || {};
+
+  if (!d.name || frm.is_new()) {
+    return false;
+  }
+
+  if (d.doctype !== "HD Ticket") {
+    return false;
+  }
+
+  if ((d.custom_fulfilment_party || "").trim() !== "Partner") {
+    return false;
+  }
+
+  if ((d.custom_request_source || "").trim() === "Partner") {
+    return false;
+  }
+
+  const workState = (d.custom_partner_work_state || "").trim();
+
+  if (
+    !["Work Completed by Partner", "Reviewed by Telectro"].includes(workState)
+  ) {
+    return false;
+  }
+
+  if (["Resolved", "Closed", "Archived"].includes(d.status || "")) {
+    return false;
+  }
+
+  return has_internal_acceptance_review_role();
 }

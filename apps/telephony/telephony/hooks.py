@@ -201,6 +201,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_assign_sync.dedupe_assign_field",
     "telephony.partner_create.enforce_partner_create_v1",
     "telephony.partner_create.apply_partner_work_state",
+    "telephony.partner_create.normalize_partner_train_fields",
 ]
 
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_reassign_on_update.reassign_if_routing_changed")
@@ -217,7 +218,7 @@ for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-04-13-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
-    "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-06-1",
+    "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-07-4",
     "/assets/telephony/js/partner_route_guard.js?v=2026-04-22-1",
     "/assets/telephony/js/telectro_handoff_action.js?v=2026-05-06-1",
 ]:

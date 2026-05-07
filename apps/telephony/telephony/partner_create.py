@@ -44,6 +44,25 @@ PARTNER_DETAIL_FIELDS = [
 
 _COMMENT_TAG_RE = re.compile(r"<[^>]+>")
 
+def _format_partner_work_review_comment(outcome_label: str, note: str | None = None) -> str:
+    parts = [f"Partner Work Review | Outcome: {outcome_label}"]
+
+    note = (note or "").strip()
+    if note:
+        if note.lower().startswith("reason:"):
+            note = note.split(":", 1)[1].strip()
+
+        parts.append(f"Note: {note}")
+
+    return " | ".join(parts)
+
+def _format_partner_work_rework_comment(user: str, note: str) -> str:
+    note = (note or "").strip()
+
+    if note.lower().startswith("reason:"):
+        note = note.split(":", 1)[1].strip()
+
+    return f"Partner Work Rework Required | Reason: Telectro rework requested by {user}: {note}"
 
 def _comment_to_text(content: str | None) -> str:
     text = content or ""
@@ -92,6 +111,14 @@ def get_partner_note_summary(ticket_name: str) -> dict:
             ticket_name,
             "Partner Acceptance Rework Required | Reason:",
         ),
+        "latest_partner_work_rework_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Work Rework Required | Reason:",
+        ),
+        "latest_partner_work_review_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Work Review | Outcome:",
+        ),
     }
     
 def apply_partner_work_state(doc, method=None):
@@ -103,6 +130,28 @@ def apply_partner_work_state(doc, method=None):
 
     if is_telectro_to_partner and not current_state:
         _set_if_field_exists(doc, "custom_partner_work_state", "Assigned to Partner")
+        
+def normalize_partner_train_fields(doc, method=None):
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+
+    is_partner_to_telectro = request_source == "Partner" and fulfilment_party != "Partner"
+    is_telectro_to_partner = request_source != "Partner" and fulfilment_party == "Partner"
+
+    if is_partner_to_telectro:
+        _set_if_field_exists(doc, "custom_partner_work_state", "")
+        _set_if_field_exists(doc, "custom_partner_work_completed", None)
+        return
+
+    if is_telectro_to_partner:
+        _set_if_field_exists(doc, "custom_partner_acceptance_state", "")
+        _set_if_field_exists(doc, "custom_partner_accepted_on", None)
+        return
+
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "")
+    _set_if_field_exists(doc, "custom_partner_accepted_on", None)
+    _set_if_field_exists(doc, "custom_partner_work_state", "")
+    _set_if_field_exists(doc, "custom_partner_work_completed", None)
         
 def _canonicalize_ticket_assignments_for_doc(doc):
     _canonicalize_ticket_assignments(doc.name)
@@ -288,12 +337,13 @@ def _set_if_field_exists(doc, fieldname: str, value):
         doc.set(fieldname, value)
 
 
-def _format_partner_acceptance_review_comment(outcome_label: str, note: str | None = None) -> str:
-    parts = [f"Partner Acceptance Review | Outcome: {outcome_label}"]
+def _format_partner_acceptance_rework_comment(user: str, note: str) -> str:
     note = (note or "").strip()
-    if note:
-        parts.append(f"Note: {note}")
-    return " | ".join(parts)
+
+    if note.lower().startswith("reason:"):
+        note = note.split(":", 1)[1].strip()
+
+    return f"Partner Acceptance Rework Required | Reason: Partner rework requested by {user}: {note}"
 
 def _format_partner_acceptance_rework_comment(user: str, note: str) -> str:
     note = (note or "").strip()
@@ -557,6 +607,9 @@ def submit_partner_work_done_note(ticket_name: str, note: str, completed_on: str
     if work_state == "Work Completed by Partner":
         frappe.throw("Partner work has already been submitted")
 
+    if work_state not in {"", "Assigned to Partner", "Rework Required"}:
+        frappe.throw("Partner work cannot be submitted in the current state")
+
     _set_if_field_exists(doc, "custom_partner_work_state", "Work Completed by Partner")
     if completed_on:
         _set_if_field_exists(doc, "custom_partner_work_completed", completed_on)
@@ -575,4 +628,164 @@ def submit_partner_work_done_note(ticket_name: str, note: str, completed_on: str
         "status": doc.status,
         "custom_partner_work_state": doc.get("custom_partner_work_state"),
         "custom_partner_work_completed": doc.get("custom_partner_work_completed"),
+    }
+    
+@frappe.whitelist()
+def request_partner_work_rework(ticket_name: str, note: str):
+    user = frappe.session.user
+
+    if not _is_internal_acceptance_reviewer(user):
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    note = (note or "").strip()
+    if not note:
+        frappe.throw("Rework reason is required")
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    work_state = (doc.get("custom_partner_work_state") or "").strip()
+
+    if request_source == "Partner":
+        frappe.throw("Partner work rework is only valid for Telectro-assigned Partner tickets")
+
+    if fulfilment_party != "Partner":
+        frappe.throw("Ticket is not assigned to Partner fulfilment")
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    if work_state != "Work Completed by Partner":
+        frappe.throw("Partner work is not currently awaiting Telectro review")
+
+    _set_if_field_exists(doc, "custom_partner_work_state", "Rework Required")
+    _set_if_field_exists(doc, "custom_partner_work_completed", None)
+
+    doc.add_comment(
+        "Comment",
+        _format_partner_work_rework_comment(user, note),
+    )
+
+    doc.save(ignore_permissions=True)
+    _canonicalize_ticket_assignments(doc.name)
+    doc.reload()
+
+    return {
+        "name": doc.name,
+        "status": doc.status,
+        "custom_partner_work_state": doc.get("custom_partner_work_state"),
+        "_assign": doc.get("_assign"),
+    }
+    
+@frappe.whitelist()
+def review_partner_work_completion(ticket_name: str, outcome: str, note: str | None = None):
+    user = frappe.session.user
+
+    if not _is_internal_acceptance_reviewer(user):
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    allowed = {
+        "review_only": "Review only",
+        "accept": "Reviewed by Telectro",
+        "rework_required": "Rework Required",
+        "resolve": "Resolved",
+        "close": "Closed",
+    }
+
+    outcome = (outcome or "").strip()
+    note = (note or "").strip()
+
+    if outcome not in allowed:
+        frappe.throw("Invalid Partner work review outcome")
+
+    if outcome == "rework_required" and not note:
+        frappe.throw("A rework reason is required")
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    work_state = (doc.get("custom_partner_work_state") or "").strip()
+
+    if request_source == "Partner":
+        frappe.throw("Partner work review is only valid for Telectro-assigned Partner tickets")
+
+    if fulfilment_party != "Partner":
+        frappe.throw("Ticket is not assigned to Partner fulfilment")
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    if outcome in {"review_only", "accept", "rework_required"}:
+        if work_state != "Work Completed by Partner":
+            frappe.throw("Partner work is not currently awaiting Telectro review")
+
+    elif outcome in {"resolve", "close"}:
+        if work_state not in {"Work Completed by Partner", "Reviewed by Telectro"}:
+            frappe.throw("Partner work is not ready to resolve or close")
+
+    if outcome == "rework_required":
+        _set_if_field_exists(doc, "custom_partner_work_state", "Rework Required")
+        _set_if_field_exists(doc, "custom_partner_work_completed", None)
+
+        doc.add_comment(
+            "Comment",
+            _format_partner_work_rework_comment(user, note),
+        )
+
+    elif outcome == "accept":
+        _set_if_field_exists(doc, "custom_partner_work_state", "Reviewed by Telectro")
+
+        doc.add_comment(
+            "Comment",
+            _format_partner_work_review_comment(allowed[outcome], note),
+        )
+
+    elif outcome == "resolve":
+        _set_if_field_exists(doc, "custom_partner_work_state", "Reviewed by Telectro")
+        doc.status = "Resolved"
+
+        doc.add_comment(
+            "Comment",
+            _format_partner_work_review_comment(allowed[outcome], note),
+        )
+
+    elif outcome == "close":
+        _set_if_field_exists(doc, "custom_partner_work_state", "Reviewed by Telectro")
+        doc.status = "Closed"
+
+        doc.add_comment(
+            "Comment",
+            _format_partner_work_review_comment(allowed[outcome], note),
+        )
+
+    elif outcome == "review_only":
+        doc.add_comment(
+            "Comment",
+            _format_partner_work_review_comment(allowed[outcome], note),
+        )
+
+    doc.save(ignore_permissions=True)
+
+    if outcome in {"resolve", "close"}:
+        _close_open_todos_for_ticket(doc.name)
+        frappe.db.set_value("HD Ticket", doc.name, "_assign", "[]", update_modified=False)
+        doc.reload()
+
+    elif outcome == "accept":
+        # Partner work has been accepted, so it should no longer sit in the Partner queue.
+        _close_open_todos_for_ticket(doc.name)
+        frappe.db.set_value("HD Ticket", doc.name, "_assign", "[]", update_modified=False)
+        doc.reload()
+
+    elif outcome in {"review_only", "rework_required"}:
+        _canonicalize_ticket_assignments(doc.name)
+        doc.reload()
+
+    return {
+        "name": doc.name,
+        "status": doc.status,
+        "custom_partner_work_state": doc.get("custom_partner_work_state"),
+        "_assign": doc.get("_assign"),
     }
