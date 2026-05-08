@@ -84,7 +84,7 @@ def get_columns():
             "label": "Latest Rework Reason",
             "fieldname": "latest_partner_rework_note",
             "fieldtype": "Small Text",
-            "width": 420,
+            "width": 650,
         },
         {
             "label": "Raised By",
