@@ -15,13 +15,19 @@ function add_request_partner_acceptance_action(frm) {
     return;
   }
 
-  if (has_custom_button(frm, "Request Partner Acceptance")) {
+  const state = (frm.doc.custom_partner_acceptance_state || "").trim();
+  const buttonLabel =
+    state === "Rework Required"
+      ? "Request Partner Acceptance Again"
+      : "Request Partner Acceptance";
+
+  if (has_custom_button(frm, buttonLabel)) {
     return;
   }
 
-  frm.add_custom_button("Request Partner Acceptance", () => {
+  frm.add_custom_button(buttonLabel, () => {
     const dialog = new frappe.ui.Dialog({
-      title: "Request Partner Acceptance",
+      title: buttonLabel,
       fields: [
         {
           label: "Note",
@@ -159,42 +165,12 @@ function should_show_request_partner_acceptance(frm) {
   }
 
   const state = (d.custom_partner_acceptance_state || "").trim();
-  if (state !== "") {
+  if (!["", "Rework Required"].includes(state)) {
     return false;
   }
 
   const partnerWorkState = (d.custom_partner_work_state || "").trim();
   if (partnerWorkState !== "") {
-    return false;
-  }
-
-  if (["Resolved", "Closed", "Archived"].includes(d.status || "")) {
-    return false;
-  }
-
-  return has_internal_acceptance_review_role();
-}
-
-function should_show_partner_acceptance_review(frm) {
-  const d = frm.doc || {};
-
-  if (!d.name || frm.is_new()) {
-    return false;
-  }
-
-  if (d.doctype !== "HD Ticket") {
-    return false;
-  }
-
-  if ((d.custom_request_source || "") !== "Partner") {
-    return false;
-  }
-
-  const workState = (d.custom_partner_work_state || "").trim();
-
-  if (
-    !["Work Completed by Partner", "Reviewed by Telectro"].includes(workState)
-  ) {
     return false;
   }
 
