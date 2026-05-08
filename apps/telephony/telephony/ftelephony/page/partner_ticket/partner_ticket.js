@@ -114,6 +114,17 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
                 <h5 class="mb-3">Telectro Review Note</h5>
                 <div id="pt-partner-review-note" style="white-space: pre-wrap;"></div>
               </div>
+
+              <div id="pt-partner-acceptance-request-note-section" style="display:none;">
+                <h5 class="mb-3">Partner Acceptance Requested</h5>
+                <div id="pt-partner-acceptance-request-note" class="mb-4" style="white-space: pre-wrap;"></div>
+              </div>
+
+              <div id="pt-partner-acceptance-request-note-section" style="display:none;">
+                <h5 class="mb-3">Partner Acceptance Requested</h5>
+                <div id="pt-partner-acceptance-request-note" class="mb-4" style="white-space: pre-wrap;"></div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -171,6 +182,8 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       "#pt-partner-rework-note",
       "#pt-partner-work-rework-note",
       "#pt-partner-work-review-note",
+      "#pt-partner-acceptance-request-note",
+      "#pt-partner-acceptance-request-note",
     ].forEach((id) => setText(id, ""));
 
     $body.find("#pt-partner-notes").hide();
@@ -179,6 +192,8 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     $body.find("#pt-partner-review-note-section").hide();
     $body.find("#pt-partner-work-rework-note-section").hide();
     $body.find("#pt-partner-work-review-note-section").hide();
+    $body.find("#pt-partner-acceptance-request-note-section").hide();
+    $body.find("#pt-partner-acceptance-request-note-section").hide();
     $body.find("#pt-request-rework").hide();
     $body.find("#pt-request-rework").removeData("action");
   }
@@ -338,6 +353,14 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           "#pt-partner-work-review-note",
           d.latest_partner_work_review_note,
         );
+        setText(
+          "#pt-partner-acceptance-request-note",
+          d.latest_partner_acceptance_request_note,
+        );
+        setText(
+          "#pt-partner-acceptance-request-note",
+          d.latest_partner_acceptance_request_note,
+        );
 
         const hasAcceptanceNote = Boolean(d.latest_partner_acceptance_note);
         const hasWorkDoneNote = Boolean(d.latest_partner_work_done_note);
@@ -345,12 +368,17 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         const hasReworkNote = Boolean(d.latest_partner_rework_note);
         const hasWorkReworkNote = Boolean(d.latest_partner_work_rework_note);
         const hasWorkReviewNote = Boolean(d.latest_partner_work_review_note);
+        const hasAcceptanceRequestNote = Boolean(
+          d.latest_partner_acceptance_request_note,
+        );
 
         if (
+          hasAcceptanceRequestNote ||
           hasAcceptanceNote ||
           hasWorkDoneNote ||
           hasReviewNote ||
           hasReworkNote ||
+          hasWorkReworkNote ||
           hasWorkReworkNote ||
           hasWorkReviewNote
         ) {
@@ -374,6 +402,14 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         $body
           .find("#pt-partner-work-review-note-section")
           .toggle(hasWorkReviewNote);
+
+        $body
+          .find("#pt-partner-acceptance-request-note-section")
+          .toggle(hasAcceptanceRequestNote);
+
+        $body
+          .find("#pt-partner-acceptance-request-note-section")
+          .toggle(hasAcceptanceRequestNote);
 
         $body.find("#pt-partner-review-note-section").toggle(hasReviewNote);
         $body.find("#pt-partner-rework-note-section").toggle(hasReworkNote);

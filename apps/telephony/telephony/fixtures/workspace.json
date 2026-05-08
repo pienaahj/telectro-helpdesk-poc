@@ -680,6 +680,129 @@
  },
  {
   "charts": [],
+  "content": "[{\"id\":\"79diub4Jyf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Partner Workspace</span>\",\"col\":12}},{\"id\":\"K39g-oOuZF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue Summary</b></span>\",\"col\":12}},{\"id\":\"v4ouFRfNTu\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned to Partner\",\"col\":5}},{\"id\":\"Q-Ac6t4rOz\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted by Partner\",\"col\":5}},{\"id\":\"341ORhFgvH\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"JeVqzSLLrK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Log Ticket\",\"col\":3}},{\"id\":\"-Uu5nIVVD-\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Tikcets</b></span>\",\"col\":12}},{\"id\":\"rbJSYQKFkY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Submitted Tickets\",\"col\":3}},{\"id\":\"xldyPH_uDw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tasked Tickets\",\"col\":3}},{\"id\":\"OJKCy8_hHz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"bylvtw_tnf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Archived, Resolved and Closed Tickets\",\"col\":5}}]",
+  "custom_blocks": [],
+  "docstatus": 0,
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "",
+  "indicator_color": "",
+  "is_hidden": 0,
+  "label": "TELECTRO-POC Partner",
+  "links": [],
+  "modified": "2026-04-29 16:04:07.292862",
+  "module": null,
+  "name": "TELECTRO-POC Partner",
+  "number_cards": [
+   {
+    "label": "Assigned to Partner",
+    "number_card_name": "Assigned to Partner",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   },
+   {
+    "label": "Submitted by Partner",
+    "number_card_name": "Submitted by Partner",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   }
+  ],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "restrict_to_domain": null,
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "roles",
+    "parenttype": "Workspace",
+    "role": "TELECTRO-POC Role - Partner"
+   },
+   {
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "roles",
+    "parenttype": "Workspace",
+    "role": "TELECTRO-POC Role - Partner Creator"
+   }
+  ],
+  "sequence_id": 31.0,
+  "shortcuts": [
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Archived, Resolved and Closed Tickets",
+    "link_to": "Partner Archived Tickets",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Submitted Tickets",
+    "link_to": "Tickets Submitted by Partner",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Tasked Tickets",
+    "link_to": "Tickets Assigned to Partner",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Log Ticket",
+    "link_to": null,
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "URL",
+    "url": "/app/partner-request"
+   }
+  ],
+  "title": "TELECTRO-POC Partner"
+ },
+ {
+  "charts": [],
   "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech Workspace</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"gMGojK3xyq\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"WLgJPdDkwX\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Resolved Tickets\",\"col\":3}},{\"id\":\"6jWFB9WRy-\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
   "custom_blocks": [],
   "docstatus": 0,
@@ -921,128 +1044,5 @@
    }
   ],
   "title": "TELECTRO-POC Tech"
- },
- {
-  "charts": [],
-  "content": "[{\"id\":\"79diub4Jyf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Partner Workspace</span>\",\"col\":12}},{\"id\":\"K39g-oOuZF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue Summary</b></span>\",\"col\":12}},{\"id\":\"v4ouFRfNTu\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned to Partner\",\"col\":5}},{\"id\":\"Q-Ac6t4rOz\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted by Partner\",\"col\":5}},{\"id\":\"341ORhFgvH\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"JeVqzSLLrK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Log Ticket\",\"col\":3}},{\"id\":\"-Uu5nIVVD-\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Tikcets</b></span>\",\"col\":12}},{\"id\":\"rbJSYQKFkY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Submitted Tickets\",\"col\":3}},{\"id\":\"xldyPH_uDw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tasked Tickets\",\"col\":3}},{\"id\":\"OJKCy8_hHz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"bylvtw_tnf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Archived, Resolved and Closed Tickets\",\"col\":5}}]",
-  "custom_blocks": [],
-  "docstatus": 0,
-  "doctype": "Workspace",
-  "for_user": "",
-  "hide_custom": 0,
-  "icon": "",
-  "indicator_color": "",
-  "is_hidden": 0,
-  "label": "TELECTRO-POC Partner",
-  "links": [],
-  "modified": "2026-04-29 16:04:07.292862",
-  "module": null,
-  "name": "TELECTRO-POC Partner",
-  "number_cards": [
-   {
-    "label": "Assigned to Partner",
-    "number_card_name": "Assigned to Partner",
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "number_cards",
-    "parenttype": "Workspace"
-   },
-   {
-    "label": "Submitted by Partner",
-    "number_card_name": "Submitted by Partner",
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "number_cards",
-    "parenttype": "Workspace"
-   }
-  ],
-  "parent_page": "",
-  "public": 1,
-  "quick_lists": [],
-  "restrict_to_domain": null,
-  "roles": [
-   {
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "roles",
-    "parenttype": "Workspace",
-    "role": "TELECTRO-POC Role - Partner"
-   },
-   {
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "roles",
-    "parenttype": "Workspace",
-    "role": "TELECTRO-POC Role - Partner Creator"
-   }
-  ],
-  "sequence_id": 31.0,
-  "shortcuts": [
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "Archived, Resolved and Closed Tickets",
-    "link_to": "Partner Archived Tickets",
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": "HD Ticket",
-    "restrict_to_domain": null,
-    "stats_filter": null,
-    "type": "Report",
-    "url": null
-   },
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "Submitted Tickets",
-    "link_to": "Tickets Submitted by Partner",
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": "HD Ticket",
-    "restrict_to_domain": null,
-    "stats_filter": null,
-    "type": "Report",
-    "url": null
-   },
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "Tasked Tickets",
-    "link_to": "Tickets Assigned to Partner",
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": "HD Ticket",
-    "restrict_to_domain": null,
-    "stats_filter": null,
-    "type": "Report",
-    "url": null
-   },
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "Log Ticket",
-    "link_to": null,
-    "parent": "TELECTRO-POC Partner",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": null,
-    "restrict_to_domain": null,
-    "stats_filter": null,
-    "type": "URL",
-    "url": "/app/partner-request"
-   }
-  ],
-  "title": "TELECTRO-POC Partner"
  }
 ]

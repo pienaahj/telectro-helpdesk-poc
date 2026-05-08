@@ -119,6 +119,14 @@ def get_partner_note_summary(ticket_name: str) -> dict:
             ticket_name,
             "Partner Work Review | Outcome:",
         ),
+        "latest_partner_acceptance_request_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Acceptance Requested",
+        ),
+        "latest_partner_acceptance_request_note": _get_latest_ticket_comment_text(
+            ticket_name,
+            "Partner Acceptance Requested",
+        ),
     }
     
 def apply_partner_work_state(doc, method=None):
@@ -349,6 +357,17 @@ def _format_partner_acceptance_rework_comment(user: str, note: str) -> str:
     note = (note or "").strip()
     return f"Partner Acceptance Rework Required | Reason: Partner rework requested by {user}: {note}"
 
+def _format_partner_acceptance_review_comment(outcome_label: str, note: str | None = None) -> str:
+    parts = [f"Partner Acceptance Review | Outcome: {outcome_label}"]
+
+    note = (note or "").strip()
+    if note:
+        if note.lower().startswith("reason:"):
+            note = note.split(":", 1)[1].strip()
+
+        parts.append(f"Note: {note}")
+
+    return " | ".join(parts)
 
 def enforce_partner_create_v1(doc, method=None):
     user = frappe.session.user
@@ -360,6 +379,11 @@ def enforce_partner_create_v1(doc, method=None):
 
     doc.custom_request_source = "Partner"
     doc.custom_fulfilment_party = "Telectro"
+
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "")
+    _set_if_field_exists(doc, "custom_partner_accepted_on", None)
+    _set_if_field_exists(doc, "custom_partner_work_state", "")
+    _set_if_field_exists(doc, "custom_partner_work_completed", None)
 
     if not doc.ticket_type and frappe.db.exists("HD Ticket Type", SERVICE_REQUEST):
         doc.ticket_type = SERVICE_REQUEST
@@ -430,6 +454,11 @@ def create_partner_ticket(
     doc.custom_fulfilment_party = "Telectro"
     doc.ticket_type = ticket_type or SERVICE_REQUEST
 
+    _set_if_field_exists(doc, "custom_partner_acceptance_state", "")
+    _set_if_field_exists(doc, "custom_partner_accepted_on", None)
+    _set_if_field_exists(doc, "custom_partner_work_state", "")
+    _set_if_field_exists(doc, "custom_partner_work_completed", None)
+
     doc.insert(ignore_permissions=True)
     return {"name": doc.name}
 
@@ -454,16 +483,25 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
 
     note = (note or "").strip()
     if not note:
-        frappe.throw("Completion note is required")
+        frappe.throw("Acceptance note is required")
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
-    current_state = (row.custom_partner_acceptance_state or "").strip()
+    request_source = (doc.get("custom_request_source") or "").strip()
+    fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
+    current_state = (doc.get("custom_partner_acceptance_state") or "").strip()
 
-    # Rework Required is intentionally allowed here:
-    # Telectro has performed rework and is requesting Partner acceptance again.
-    if current_state in {"Pending Partner Acceptance", "Accepted by Partner", "Reviewed by Telectro"}:
-        frappe.throw("Partner acceptance has already been requested or processed")
+    if request_source != "Partner":
+        frappe.throw("Partner acceptance can only be submitted for Partner-originated tickets")
+
+    if fulfilment_party == "Partner":
+        frappe.throw("Partner acceptance is not valid for Partner-fulfilment tickets")
+
+    if doc.status in ("Resolved", "Closed", "Archived"):
+        frappe.throw("Ticket is already in a terminal status")
+
+    if current_state != "Pending Partner Acceptance":
+        frappe.throw("Partner acceptance is not currently pending")
 
     _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
