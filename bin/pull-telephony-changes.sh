@@ -547,6 +547,9 @@ cp_from_container "public/js/partner_acceptance_review.js" "public/js/partner_ac
 # --- handoff actions ---
 cp_from_container "public/js/telectro_handoff_action.js" "public/js/telectro_handoff_action.js"
 
+# --- partner route guard ---
+cp_from_container "public/js/partner_route_guard.js" "public/js/partner_route_guard.js"
+
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
 
