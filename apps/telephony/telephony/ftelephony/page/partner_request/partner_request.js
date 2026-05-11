@@ -93,6 +93,22 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
               placeholder="Describe the issue, impact, and any useful context."
             ></textarea>
           </div>
+
+          <div class="form-group mb-4">
+            <label class="control-label">Add Photo or File</label>
+            <input
+              type="file"
+              class="form-control"
+              id="pr-evidence-files"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+              multiple
+            >
+            <div class="text-muted small mt-2">
+              Add field photos, WhatsApp images, quotes, or supporting documents for this request.
+              Files will be stored privately against the created ticket.
+            </div>
+            <div id="pr-evidence-selected" class="text-muted small mt-2"></div>
+          </div>
         </div>
       </div>
 
@@ -108,6 +124,79 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
     custom_severity: "Sev3",
     custom_request_type: "General Assistance",
   };
+
+  function getSelectedEvidenceFiles() {
+    const input = $body.find("#pr-evidence-files").get(0);
+    return Array.from(input?.files || []);
+  }
+
+  function renderSelectedEvidenceFiles() {
+    const files = getSelectedEvidenceFiles();
+    const $selected = $body.find("#pr-evidence-selected");
+
+    if (!files.length) {
+      $selected.text("");
+      return;
+    }
+
+    const names = files.map(
+      (file) => `${file.name} (${formatBytes(file.size)})`,
+    );
+
+    $selected.text(`Selected: ${names.join(", ")}`);
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes && bytes !== 0) {
+      return "";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    let size = bytes;
+    let unit = 0;
+
+    while (size >= 1024 && unit < units.length - 1) {
+      size = size / 1024;
+      unit += 1;
+    }
+
+    return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadPartnerRequestEvidence(ticketName, files) {
+    const maxBytes = 10 * 1024 * 1024;
+
+    for (const file of files) {
+      if (file.size > maxBytes) {
+        frappe.throw(
+          __("{0} is too large. Maximum size is 10 MB.", [file.name]),
+        );
+      }
+
+      const filedata = await readFileAsDataUrl(file);
+
+      await frappe.call({
+        method: "telephony.partner_create.upload_partner_ticket_attachment",
+        args: {
+          ticket_name: ticketName,
+          file_name: file.name,
+          filedata,
+          content_type: file.type || "",
+        },
+      });
+    }
+  }
 
   function geomForCategory(cat) {
     const c = (cat || "").trim();
@@ -359,7 +448,13 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
     page.set_indicator("Submitting…", "blue");
     $body.find("#pr-submit").prop("disabled", true);
 
+    $body.find("#pr-evidence-files").on("change", () => {
+      renderSelectedEvidenceFiles();
+    });
+
     try {
+      const evidenceFiles = getSelectedEvidenceFiles();
+
       const r = await frappe.call({
         method: "telephony.partner_create.create_partner_ticket",
         args: payload,
@@ -367,9 +462,39 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
 
       const ticketName = r.message?.name;
 
+      if (!ticketName) {
+        throw new Error(
+          "Partner request was created, but no ticket name was returned.",
+        );
+      }
+
+      if (evidenceFiles.length) {
+        page.set_indicator("Uploading evidence…", "blue");
+
+        try {
+          await uploadPartnerRequestEvidence(ticketName, evidenceFiles);
+        } catch (uploadError) {
+          console.error(uploadError);
+
+          frappe.msgprint({
+            title: __("Request submitted, evidence upload failed"),
+            message: __(
+              "The request {0} was created, but one or more files could not be uploaded. Please open the Partner Ticket and add the files there.",
+              [ticketName],
+            ),
+            indicator: "orange",
+          });
+
+          frappe.set_route("partner-ticket", ticketName);
+          return;
+        }
+      }
+
       frappe.show_alert(
         {
-          message: __("Partner request submitted: {0}", [ticketName]),
+          message: evidenceFiles.length
+            ? __("Partner request submitted with evidence: {0}", [ticketName])
+            : __("Partner request submitted: {0}", [ticketName]),
           indicator: "green",
         },
         7,
