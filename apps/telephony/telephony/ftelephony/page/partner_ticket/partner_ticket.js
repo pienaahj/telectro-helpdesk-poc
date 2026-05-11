@@ -77,6 +77,20 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
             <h5 class="mb-3">Summary</h5>
             <div id="pt-summary" class="mb-4" style="white-space: pre-wrap;"></div>
 
+            <hr>
+
+            <div id="pt-attachments-section">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Attachments</h5>
+              </div>
+
+              <div id="pt-attachments-empty" class="text-muted small">
+                No attachments found.
+              </div>
+
+              <div id="pt-attachments-list" class="list-group"></div>
+            </div>
+
             <div id="pt-partner-notes" style="display:none;">
               <hr>
 
@@ -150,6 +164,79 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     wrapper.innerHTML = value;
 
     return (wrapper.innerText || wrapper.textContent || "").trim();
+  }
+
+  function getAttachmentDownloadUrl(ticketName, fileId) {
+    return (
+      "/api/method/telephony.partner_create.download_partner_ticket_attachment" +
+      `?ticket_name=${encodeURIComponent(ticketName)}` +
+      `&file_id=${encodeURIComponent(fileId)}`
+    );
+  }
+
+  function renderAttachments(ticketName, attachments) {
+    const $empty = $body.find("#pt-attachments-empty");
+    const $list = $body.find("#pt-attachments-list");
+
+    $list.empty();
+
+    if (!attachments || !attachments.length) {
+      $empty.show();
+      return;
+    }
+
+    $empty.hide();
+
+    attachments.forEach((file) => {
+      const fileName = file.file_name || file.name || "Attachment";
+      const owner = file.owner || "";
+      const created = file.creation || "";
+      const url = getAttachmentDownloadUrl(ticketName, file.name);
+
+      const $item = $(`
+        <a
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+          href="${url}"
+          target="_blank"
+          rel="noopener"
+        >
+          <div>
+            <div class="font-weight-bold"></div>
+            <div class="text-muted small"></div>
+          </div>
+          <span class="text-muted small">Download</span>
+        </a>
+      `);
+
+      $item.find(".font-weight-bold").text(fileName);
+      $item
+        .find(".text-muted.small")
+        .text([owner, created].filter(Boolean).join(" • "));
+
+      $list.append($item);
+    });
+  }
+
+  function loadAttachments(ticketName) {
+    $body.find("#pt-attachments-empty").text("Loading attachments…").show();
+    $body.find("#pt-attachments-list").empty();
+
+    frappe.call({
+      method: "telephony.partner_create.get_partner_ticket_attachments",
+      args: { ticket_name: ticketName },
+      callback(r) {
+        $body.find("#pt-attachments-empty").text("No attachments found.");
+        renderAttachments(ticketName, r.message || []);
+      },
+      error(xhr) {
+        console.error(xhr);
+        $body
+          .find("#pt-attachments-empty")
+          .text("Could not load attachments.")
+          .show();
+        $body.find("#pt-attachments-list").empty();
+      },
+    });
   }
 
   function clearText() {
@@ -416,6 +503,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
         showContent();
         updatePartnerAction(d);
+        loadAttachments(d.name || ticketName);
         page.set_indicator("");
       },
       error: function (xhr) {
