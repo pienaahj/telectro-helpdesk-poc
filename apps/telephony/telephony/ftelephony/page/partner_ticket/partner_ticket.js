@@ -82,6 +82,13 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
             <div id="pt-attachments-section">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="mb-0">Attachments</h5>
+                <button class="btn btn-default btn-sm" id="pt-upload-attachment">
+                  Upload Attachment
+                </button>
+              </div>
+
+              <div class="text-muted small mb-2">
+                Upload supporting evidence, photos, quotes, or documents for this ticket.
               </div>
 
               <div id="pt-attachments-empty" class="text-muted small">
@@ -145,6 +152,17 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
       </div>
     </div>
   `);
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+
+      reader.readAsDataURL(file);
+    });
+  }
 
   function getTicketName() {
     const route = frappe.get_route() || [];
@@ -237,6 +255,85 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         $body.find("#pt-attachments-list").empty();
       },
     });
+  }
+
+  async function uploadSelectedAttachment(ticketName, file) {
+    if (!file) {
+      frappe.msgprint("Please choose a file to upload.");
+      return;
+    }
+
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      frappe.msgprint("File is too large. Maximum size is 10 MB.");
+      return;
+    }
+
+    const filedata = await readFileAsDataUrl(file);
+
+    await frappe.call({
+      method: "telephony.partner_create.upload_partner_ticket_attachment",
+      args: {
+        ticket_name: ticketName,
+        file_name: file.name,
+        filedata,
+        content_type: file.type || "",
+      },
+      freeze: true,
+      freeze_message: "Uploading attachment…",
+    });
+
+    frappe.show_alert({
+      message: __("Attachment uploaded for {0}", [ticketName]),
+      indicator: "green",
+    });
+
+    loadAttachments(ticketName);
+  }
+
+  function showUploadAttachmentDialog(ticketName) {
+    const dialog = new frappe.ui.Dialog({
+      title: "Upload Attachment",
+      fields: [
+        {
+          fieldname: "upload_html",
+          fieldtype: "HTML",
+          options: `
+            <div class="form-group">
+              <label class="control-label">File</label>
+              <input type="file" class="form-control" id="pt-upload-file-input">
+              <p class="text-muted small mt-2">
+                Maximum size: 10 MB. Files are stored privately and attached to this ticket.
+              </p>
+            </div>
+          `,
+        },
+      ],
+      primary_action_label: "Upload",
+      async primary_action() {
+        const file = dialog.$wrapper.find("#pt-upload-file-input").get(0)
+          ?.files?.[0];
+
+        if (!file) {
+          frappe.msgprint("Please choose a file to upload.");
+          return;
+        }
+
+        try {
+          await uploadSelectedAttachment(ticketName, file);
+          dialog.hide();
+        } catch (e) {
+          console.error(e);
+          frappe.msgprint({
+            title: __("Upload failed"),
+            message: __("Could not upload the attachment."),
+            indicator: "red",
+          });
+        }
+      },
+    });
+
+    dialog.show();
   }
 
   function clearText() {
@@ -516,6 +613,17 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
 
   $body.find("#pt-back-submitted").on("click", () => {
     frappe.set_route("query-report", "Tickets Submitted by Partner");
+  });
+
+  $body.find("#pt-upload-attachment").on("click", () => {
+    const ticketName = getTicketName();
+
+    if (!ticketName) {
+      frappe.msgprint("Missing ticket name.");
+      return;
+    }
+
+    showUploadAttachmentDialog(ticketName);
   });
 
   $body.find("#pt-back-active").on("click", () => {
