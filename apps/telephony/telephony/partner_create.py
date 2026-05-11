@@ -475,6 +475,47 @@ def get_partner_ticket_detail(ticket_name: str):
 
     return detail
 
+@frappe.whitelist()
+def get_partner_ticket_attachments(ticket_name: str):
+    user = frappe.session.user
+    _assert_partner_ticket_access(ticket_name, user)
+
+    rows = frappe.get_all(
+        "File",
+        filters={
+            "attached_to_doctype": "HD Ticket",
+            "attached_to_name": ticket_name,
+        },
+        fields=[
+            "name",
+            "file_name",
+            "is_private",
+            "owner",
+            "creation",
+        ],
+        order_by="creation desc",
+    )
+
+    return rows
+
+@frappe.whitelist()
+def download_partner_ticket_attachment(ticket_name: str, file_id: str):
+    user = frappe.session.user
+    _assert_partner_ticket_access(ticket_name, user)
+
+    f = frappe.get_doc("File", file_id)
+
+    if f.attached_to_doctype != "HD Ticket" or f.attached_to_name != ticket_name:
+        frappe.throw("File is not attached to this ticket", frappe.PermissionError)
+
+    if not f.is_private:
+        frappe.throw("Only private ticket attachments are supported here")
+
+    content = f.get_content()
+
+    frappe.local.response.filename = f.file_name
+    frappe.local.response.filecontent = content
+    frappe.local.response.type = "download"
 
 @frappe.whitelist()
 def submit_partner_completion_note(ticket_name: str, note: str, completed_on: str | None = None):
