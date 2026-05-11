@@ -48,6 +48,36 @@ PARTNER_DETAIL_FIELDS = [
 
 _COMMENT_TAG_RE = re.compile(r"<[^>]+>")
 
+
+def _assert_internal_ticket_attachment_access(ticket_name: str, user: str):
+    if not user or user == "Guest":
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    if user == "Administrator":
+        return
+
+    roles = set(frappe.get_roles(user))
+
+    allowed_roles = {
+        "System Manager",
+        "Pilot Admin",
+        "TELECTRO-POC Role - Tech",
+        "TELECTRO-POC Role - Supervisor Governance",
+        "TELECTRO-POC Role - Coordinator Ops",
+        "Agent",
+        "Support Team",
+    }
+
+    if not roles & allowed_roles:
+        frappe.throw("Not permitted", frappe.PermissionError)
+
+    if not frappe.db.exists("HD Ticket", ticket_name):
+        frappe.throw("Ticket not found")
+
+    if not frappe.has_permission("HD Ticket", "read", ticket_name, user=user):
+        frappe.throw("Not permitted", frappe.PermissionError)
+        
+        
 def _format_partner_work_review_comment(outcome_label: str, note: str | None = None) -> str:
     parts = [f"Partner Work Review | Outcome: {outcome_label}"]
 
@@ -393,6 +423,45 @@ def enforce_partner_create_v1(doc, method=None):
         doc.ticket_type = SERVICE_REQUEST
 
     doc.agent_group = None
+    
+@frappe.whitelist()
+def get_internal_ticket_attachments(ticket_name: str):
+    user = frappe.session.user
+    _assert_internal_ticket_attachment_access(ticket_name, user)
+
+    rows = frappe.get_all(
+        "File",
+        filters={
+            "attached_to_doctype": "HD Ticket",
+            "attached_to_name": ticket_name,
+        },
+        fields=[
+            "name",
+            "file_name",
+            "is_private",
+            "owner",
+            "creation",
+        ],
+        order_by="creation desc",
+    )
+
+    return rows
+
+@frappe.whitelist()
+def download_internal_ticket_attachment(ticket_name: str, file_id: str):
+    user = frappe.session.user
+    _assert_internal_ticket_attachment_access(ticket_name, user)
+
+    f = frappe.get_doc("File", file_id)
+
+    if f.attached_to_doctype != "HD Ticket" or f.attached_to_name != ticket_name:
+        frappe.throw("File is not attached to this ticket", frappe.PermissionError)
+
+    content = f.get_content()
+
+    frappe.local.response.filename = f.file_name
+    frappe.local.response.filecontent = content
+    frappe.local.response.type = "download"
 
 @frappe.whitelist()
 def request_partner_acceptance(ticket_name: str, note: str | None = None):

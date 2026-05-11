@@ -6,9 +6,115 @@ frappe.ui.form.on("HD Ticket", {
       add_request_partner_acceptance_action(frm);
       add_partner_acceptance_review_action(frm);
       add_partner_work_review_action(frm);
+      add_ticket_evidence_action(frm);
     }, 300);
   },
 });
+
+function getInternalAttachmentDownloadUrl(ticketName, fileId) {
+  return (
+    "/api/method/telephony.partner_create.download_internal_ticket_attachment" +
+    `?ticket_name=${encodeURIComponent(ticketName)}` +
+    `&file_id=${encodeURIComponent(fileId)}`
+  );
+}
+
+function should_show_ticket_evidence_action(frm) {
+  const d = frm.doc || {};
+
+  if (!d.name || frm.is_new()) {
+    return false;
+  }
+
+  if (d.doctype !== "HD Ticket") {
+    return false;
+  }
+
+  return (
+    has_internal_acceptance_review_role() ||
+    frappe.user.has_role("TELECTRO-POC Role - Tech")
+  );
+}
+
+function add_ticket_evidence_action(frm) {
+  if (!should_show_ticket_evidence_action(frm)) {
+    return;
+  }
+
+  if (has_custom_button(frm, "Ticket Evidence")) {
+    return;
+  }
+
+  frm.add_custom_button("Ticket Evidence", () => {
+    frappe.call({
+      method: "telephony.partner_create.get_internal_ticket_attachments",
+      args: {
+        ticket_name: frm.doc.name,
+      },
+      freeze: true,
+      freeze_message: "Loading ticket evidence…",
+      callback(r) {
+        show_ticket_evidence_dialog(frm, r.message || []);
+      },
+      error(xhr) {
+        console.error(xhr);
+        frappe.msgprint({
+          title: __("Could not load ticket evidence"),
+          message: __("The ticket evidence list could not be loaded."),
+          indicator: "red",
+        });
+      },
+    });
+  });
+}
+
+function show_ticket_evidence_dialog(frm, files) {
+  const rows = files.length
+    ? files
+        .map((file) => {
+          const url = getInternalAttachmentDownloadUrl(frm.doc.name, file.name);
+          const fileName = frappe.utils.escape_html(
+            file.file_name || file.name || "Attachment",
+          );
+          const owner = frappe.utils.escape_html(file.owner || "");
+          const creation = frappe.utils.escape_html(file.creation || "");
+
+          return `
+            <a class="list-group-item list-group-item-action"
+               href="${url}"
+               target="_blank"
+               rel="noopener">
+              <div class="font-weight-bold">${fileName}</div>
+              <div class="text-muted small">
+                ${[owner, creation].filter(Boolean).join(" • ")}
+              </div>
+            </a>
+          `;
+        })
+        .join("")
+    : `<div class="text-muted">No ticket evidence has been uploaded yet.</div>`;
+
+  const dialog = new frappe.ui.Dialog({
+    title: "Ticket Evidence",
+    size: "large",
+    fields: [
+      {
+        fieldname: "evidence_html",
+        fieldtype: "HTML",
+        options: `
+          <div class="mb-3 text-muted">
+            Photos, WhatsApp images, quotes, and supporting documents attached to this ticket.
+          </div>
+          <div class="list-group">
+            ${rows}
+          </div>
+        `,
+      },
+    ],
+  });
+
+  dialog.show();
+}
 
 function add_request_partner_acceptance_action(frm) {
   if (!should_show_request_partner_acceptance(frm)) {
