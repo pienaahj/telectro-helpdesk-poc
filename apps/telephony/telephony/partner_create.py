@@ -103,6 +103,25 @@ def _comment_to_text(content: str | None) -> str:
     text = _COMMENT_TAG_RE.sub("", text)
     return unescape(text).strip()
 
+def _add_ticket_evidence_upload_comment(ticket_name: str, actor_label: str, file_name: str):
+    try:
+        ticket_name = (ticket_name or "").strip()
+        actor_label = (actor_label or "").strip() or "User"
+        file_name = (file_name or "").strip() or "uploaded file"
+
+        if not ticket_name:
+            return
+
+        doc = frappe.get_doc("HD Ticket", ticket_name)
+        doc.add_comment(
+            "Comment",
+            f"{actor_label} uploaded evidence: {file_name}",
+        )
+    except Exception:
+        frappe.log_error(
+            title="Ticket evidence upload comment failed",
+            message=frappe.get_traceback(),
+        )
 
 def _get_latest_ticket_comment_text(ticket_name: str, startswith: str) -> str:
     rows = frappe.get_all(
@@ -640,6 +659,12 @@ def upload_partner_ticket_attachment(
         }
     )
     file_doc.insert(ignore_permissions=True)
+
+    _add_ticket_evidence_upload_comment(
+        ticket_name=ticket_name,
+        actor_label="Partner",
+        file_name=file_doc.file_name,
+    )
 
     return {
         "name": file_doc.name,
