@@ -1,3 +1,5 @@
+import frappe
+
 app_name = "telephony"
 app_title = "Telephony"
 app_publisher = "Frappe Technologies Pvt. Ltd."
@@ -241,8 +243,13 @@ for fn in [
     if fn not in before_job:
         before_job.append(fn)
 
-# Assignment-rule debug is OFF by default
-if TELECTRO_DEBUG:
+# Assignment-rule timeline debug is OFF by default.
+# This is intentionally separate from TELECTRO_DEBUG because it writes visible HD Ticket comments.
+TELECTRO_RULE_DEBUG_COMMENTS = bool(
+    frappe.conf.get("telectro_rule_debug_comments")
+)
+
+if TELECTRO_RULE_DEBUG_COMMENTS:
     for fn in ["telephony.monkey_patches.assignment_rule_debug.apply"]:
         if fn not in before_request:
             before_request.append(fn)
