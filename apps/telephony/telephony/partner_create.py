@@ -442,7 +442,73 @@ def enforce_partner_create_v1(doc, method=None):
         doc.ticket_type = SERVICE_REQUEST
 
     doc.agent_group = None
-    
+ 
+@frappe.whitelist()
+def upload_internal_ticket_attachment(
+    ticket_name: str,
+    file_name: str,
+    filedata: str,
+    content_type: str | None = None,
+):
+    user = frappe.session.user
+    _assert_internal_ticket_attachment_access(ticket_name, user)
+
+    file_name = (file_name or "").strip()
+    if not file_name:
+        frappe.throw("Filename is required")
+
+    if not filedata:
+        frappe.throw("File data is required")
+
+    # Accept normal base64 or browser data URLs:
+    # data:image/png;base64,....
+    if "," in filedata and filedata.strip().lower().startswith("data:"):
+        header, filedata = filedata.split(",", 1)
+        if not content_type and ";" in header:
+            content_type = header.split(":", 1)[1].split(";", 1)[0]
+
+    try:
+        content = base64.b64decode(filedata)
+    except Exception:
+        frappe.throw("Could not decode uploaded file")
+
+    if not content:
+        frappe.throw("Uploaded file is empty")
+
+    # Conservative V1 size limit: 10 MB.
+    max_bytes = 10 * 1024 * 1024
+    if len(content) > max_bytes:
+        frappe.throw("Uploaded file is too large. Maximum size is 10 MB.")
+
+    safe_name = Path(file_name).name
+
+    file_doc = frappe.get_doc(
+        {
+            "doctype": "File",
+            "file_name": safe_name,
+            "attached_to_doctype": "HD Ticket",
+            "attached_to_name": ticket_name,
+            "is_private": 1,
+            "content": content,
+        }
+    )
+    file_doc.insert(ignore_permissions=True)
+
+    _add_ticket_evidence_upload_comment(
+        ticket_name=ticket_name,
+        actor_label="Telectro",
+        file_name=file_doc.file_name,
+    )
+
+    return {
+        "name": file_doc.name,
+        "file_name": file_doc.file_name,
+        "is_private": file_doc.is_private,
+        "owner": file_doc.owner,
+        "creation": file_doc.creation,
+    }
+
+   
 @frappe.whitelist()
 def get_internal_ticket_attachments(ticket_name: str):
     user = frappe.session.user

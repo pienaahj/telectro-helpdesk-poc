@@ -19,6 +19,79 @@ function getInternalAttachmentDownloadUrl(ticketName, fileId) {
   );
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(reader.error || new Error("Could not read file"));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderTicketEvidenceRows(ticketName, files) {
+  const rows = files.length
+    ? files
+        .map((file) => {
+          const url = getInternalAttachmentDownloadUrl(ticketName, file.name);
+          const fileName = frappe.utils.escape_html(
+            file.file_name || file.name || "Attachment",
+          );
+          const owner = frappe.utils.escape_html(file.owner || "");
+          const creation = frappe.utils.escape_html(file.creation || "");
+
+          return `
+            <a class="list-group-item list-group-item-action"
+               href="${url}"
+               target="_blank"
+               rel="noopener">
+              <div class="font-weight-bold">${fileName}</div>
+              <div class="text-muted small">
+                ${[owner, creation].filter(Boolean).join(" • ")}
+              </div>
+            </a>
+          `;
+        })
+        .join("")
+    : `<div class="text-muted">No ticket evidence has been uploaded yet.</div>`;
+
+  return `
+    <div class="mb-3 text-muted">
+      Photos, WhatsApp images, quotes, and supporting documents attached to this ticket.
+    </div>
+    <div class="list-group">
+      ${rows}
+    </div>
+  `;
+}
+
+function refreshTicketEvidenceDialog(frm, dialog) {
+  frappe.call({
+    method: "telephony.partner_create.get_internal_ticket_attachments",
+    args: {
+      ticket_name: frm.doc.name,
+    },
+    freeze: true,
+    freeze_message: "Refreshing ticket evidence…",
+    callback(r) {
+      const files = r.message || [];
+      dialog.fields_dict.evidence_html.$wrapper.html(
+        renderTicketEvidenceRows(frm.doc.name, files),
+      );
+    },
+    error(xhr) {
+      console.error(xhr);
+      frappe.msgprint({
+        title: __("Could not refresh ticket evidence"),
+        message: __("The ticket evidence list could not be refreshed."),
+        indicator: "red",
+      });
+    },
+  });
+}
+
 function should_show_ticket_evidence_action(frm) {
   const d = frm.doc || {};
 
@@ -69,31 +142,6 @@ function add_ticket_evidence_action(frm) {
 }
 
 function show_ticket_evidence_dialog(frm, files) {
-  const rows = files.length
-    ? files
-        .map((file) => {
-          const url = getInternalAttachmentDownloadUrl(frm.doc.name, file.name);
-          const fileName = frappe.utils.escape_html(
-            file.file_name || file.name || "Attachment",
-          );
-          const owner = frappe.utils.escape_html(file.owner || "");
-          const creation = frappe.utils.escape_html(file.creation || "");
-
-          return `
-            <a class="list-group-item list-group-item-action"
-               href="${url}"
-               target="_blank"
-               rel="noopener">
-              <div class="font-weight-bold">${fileName}</div>
-              <div class="text-muted small">
-                ${[owner, creation].filter(Boolean).join(" • ")}
-              </div>
-            </a>
-          `;
-        })
-        .join("")
-    : `<div class="text-muted">No ticket evidence has been uploaded yet.</div>`;
-
   const dialog = new frappe.ui.Dialog({
     title: "Ticket Evidence",
     size: "large",
@@ -101,16 +149,70 @@ function show_ticket_evidence_dialog(frm, files) {
       {
         fieldname: "evidence_html",
         fieldtype: "HTML",
+        options: renderTicketEvidenceRows(frm.doc.name, files),
+      },
+      {
+        fieldname: "upload_section",
+        fieldtype: "Section Break",
+        label: "Add Evidence",
+      },
+      {
+        fieldname: "upload_html",
+        fieldtype: "HTML",
         options: `
-          <div class="mb-3 text-muted">
-            Photos, WhatsApp images, quotes, and supporting documents attached to this ticket.
-          </div>
-          <div class="list-group">
-            ${rows}
+          <div class="mt-2">
+            <label class="control-label">Add Photo or File</label>
+            <input type="file" class="form-control internal-evidence-file-input" />
+            <div class="text-muted small mt-1">
+              Uploads are stored as private ticket evidence and attached to this HD Ticket.
+            </div>
           </div>
         `,
       },
     ],
+    primary_action_label: "Upload Evidence",
+    primary_action() {
+      const input = dialog.$wrapper.find(".internal-evidence-file-input")[0];
+      const file = input && input.files && input.files[0];
+
+      if (!file) {
+        frappe.msgprint("Please choose a file to upload.");
+        return;
+      }
+
+      readFileAsDataUrl(file)
+        .then((filedata) =>
+          frappe.call({
+            method:
+              "telephony.partner_create.upload_internal_ticket_attachment",
+            args: {
+              ticket_name: frm.doc.name,
+              file_name: file.name,
+              filedata,
+              content_type: file.type || null,
+            },
+            freeze: true,
+            freeze_message: "Uploading ticket evidence…",
+          }),
+        )
+        .then(() => {
+          frappe.show_alert({
+            message: __("Evidence uploaded."),
+            indicator: "green",
+          });
+
+          input.value = "";
+          refreshTicketEvidenceDialog(frm, dialog);
+        })
+        .catch((error) => {
+          console.error(error);
+          frappe.msgprint({
+            title: __("Evidence upload failed"),
+            message: error.message || __("Could not upload ticket evidence."),
+            indicator: "red",
+          });
+        });
+    },
   });
 
   dialog.show();
