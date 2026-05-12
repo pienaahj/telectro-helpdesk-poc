@@ -323,6 +323,22 @@ cp_from_container \
   "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/partner_workflow_war_room/__init__.py" \
+  "ftelephony/report/partner_workflow_war_room/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.js" \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.js"
+
+cp_from_container \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.json" \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.json"
+
+cp_from_container \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.py" \
+  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/telectro_assignment_handoff_audit/__init__.py" \
   "ftelephony/report/telectro_assignment_handoff_audit/__init__.py"
 

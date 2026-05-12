@@ -121,6 +121,7 @@ fixtures = [
                 "Partner Acceptance Review",
                 "Partner Acceptance Review Queue",
                 "Partner Acceptance Rework Queue",
+                "Partner Workflow War Room",
             ]],
         ],
     },
