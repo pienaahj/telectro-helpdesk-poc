@@ -87,44 +87,91 @@
     return BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   }
 
-  function hidePartnerWorkspaceNewButton() {
+  function isPartnerWorkspaceRoute() {
     const path = window.location.pathname || "";
-    const isPartnerWorkspace =
-      path === "/app/telectro-poc-partner" ||
-      path === "/app/telectro-poc-partner-workspace";
+    const hash = window.location.hash || "";
+    const route = window.frappe?.router?.current_route || [];
+    const routeText = Array.isArray(route)
+      ? route.join("/")
+      : String(route || "");
 
-    if (!isPartnerWorkspace) return;
+    return (
+      path === "/app/telectro-poc-partner" ||
+      path === "/app/telectro-poc-partner-workspace" ||
+      path.includes("telectro-poc-partner") ||
+      hash.includes("telectro-poc-partner") ||
+      routeText.includes("telectro-poc-partner")
+    );
+  }
+
+  function normaliseText(value) {
+    return (value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function hideUnsafePartnerWorkspaceActions() {
+    if (!isPartnerWorkspaceRoute()) return;
     if (!isPartnerUser()) return;
 
     const directSelectors = [
       ".btn-new-workspace",
       ".btn-edit-workspace",
       ".duplicate-page",
+      ".page-actions .primary-action",
+      ".standard-actions .primary-action",
+      ".page-head .btn-primary",
     ];
 
     for (const selector of directSelectors) {
       for (const el of document.querySelectorAll(selector)) {
-        hideElement(el);
+        const text = normaliseText(el.textContent);
+        const title = normaliseText(el.getAttribute("title"));
+        const aria = normaliseText(el.getAttribute("aria-label"));
+        const dataLabel = normaliseText(el.getAttribute("data-label"));
+
+        const isUnsafeWorkspaceAction =
+          selector === ".btn-new-workspace" ||
+          selector === ".btn-edit-workspace" ||
+          selector === ".duplicate-page" ||
+          text === "+ New" ||
+          text === "New" ||
+          text === "Edit" ||
+          text === "Duplicate" ||
+          title === "New" ||
+          title === "Edit Workspace" ||
+          title === "Duplicate Workspace" ||
+          aria === "New" ||
+          aria === "Edit Workspace" ||
+          aria === "Duplicate Workspace" ||
+          dataLabel === "New" ||
+          dataLabel === "+ New";
+
+        if (isUnsafeWorkspaceAction) {
+          hideElement(el);
+        }
       }
     }
 
-    const controls = Array.from(
-      document.querySelectorAll("button, a, .dropdown-item"),
-    );
-
-    for (const el of controls) {
-      const text = (el.textContent || "").trim();
-      const title = (el.getAttribute("title") || "").trim();
-      const aria = (el.getAttribute("aria-label") || "").trim();
+    for (const el of document.querySelectorAll(
+      "button, a, .dropdown-item, [role='button']",
+    )) {
+      const text = normaliseText(el.textContent);
+      const title = normaliseText(el.getAttribute("title"));
+      const aria = normaliseText(el.getAttribute("aria-label"));
+      const dataLabel = normaliseText(el.getAttribute("data-label"));
 
       const isUnsafeWorkspaceAction =
         text === "+ New" ||
         text === "New" ||
         text === "Edit" ||
-        title === "Duplicate Workspace" ||
+        text === "Duplicate" ||
+        title === "New" ||
         title === "Edit Workspace" ||
+        title === "Duplicate Workspace" ||
+        aria === "New" ||
+        aria === "Edit Workspace" ||
         aria === "Duplicate Workspace" ||
-        aria === "Edit Workspace";
+        dataLabel === "New" ||
+        dataLabel === "+ New";
 
       if (isUnsafeWorkspaceAction) {
         hideElement(el);
@@ -170,7 +217,7 @@
     guardStarted = true;
 
     guardRoute();
-    hidePartnerWorkspaceNewButton();
+    hideUnsafePartnerWorkspaceActions();
 
     let lastPath = window.location.pathname;
     window.setInterval(() => {
@@ -180,8 +227,17 @@
         guardRoute();
       }
 
-      hidePartnerWorkspaceNewButton();
+      hideUnsafePartnerWorkspaceActions();
     }, 300);
+
+    const observer = new MutationObserver(() => {
+      hideUnsafePartnerWorkspaceActions();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
   }
 
   if (document.readyState === "loading") {

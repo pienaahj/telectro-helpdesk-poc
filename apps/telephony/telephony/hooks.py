@@ -121,6 +121,7 @@ fixtures = [
                 "Partner Acceptance Review",
                 "Partner Acceptance Review Queue",
                 "Partner Acceptance Rework Queue",
+                "Partner Workflow War Room",
             ]],
         ],
     },
@@ -218,8 +219,8 @@ for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-04-13-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
-    "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-11-2"
-    "/assets/telephony/js/partner_route_guard.js?v=2026-05-11-4"
+    "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-11-2",
+    "/assets/telephony/js/partner_route_guard.js?v=2026-05-12-2",
     "/assets/telephony/js/telectro_handoff_action.js?v=2026-05-06-1",
 ]:
     if p not in app_include_js:

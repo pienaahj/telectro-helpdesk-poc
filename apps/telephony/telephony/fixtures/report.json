@@ -644,106 +644,6 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-04-30 00:00:00",
-  "module": "FTelephony",
-  "name": "TELECTRO Assignment Handoff Audit",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "TELECTRO Assignment Handoff Log",
-  "reference_report": null,
-  "report_name": "TELECTRO Assignment Handoff Audit",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "TELECTRO Assignment Handoff Audit",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "TELECTRO Assignment Handoff Audit",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Pilot Admin"
-   },
-   {
-    "parent": "TELECTRO Assignment Handoff Audit",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "TELECTRO Assignment Handoff Audit",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Coordinator Ops"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-04-09 08:55:45.687465",
-  "module": "FTelephony",
-  "name": "Aging and At-Risk Tickets",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Aging and At-Risk Tickets",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Aging and At-Risk Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
   "modified": "2026-04-15 15:40:20.939924",
   "module": "FTelephony",
   "name": "Active Tickets by Technician",
@@ -972,6 +872,202 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
+  "modified": "2026-05-12 09:42:45.130064",
+  "module": "FTelephony",
+  "name": "Partner Workflow War Room",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Partner Workflow War Room",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Ops Role"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator-Tech Role"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator Role"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - PABX Tech"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Faults Tech"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Ops Workspace"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner Creator"
+   },
+   {
+    "parent": "Partner Workflow War Room",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Pilot Admin"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-30 00:00:00",
+  "module": "FTelephony",
+  "name": "TELECTRO Assignment Handoff Audit",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "TELECTRO Assignment Handoff Log",
+  "reference_report": null,
+  "report_name": "TELECTRO Assignment Handoff Audit",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "TELECTRO Assignment Handoff Audit",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "TELECTRO Assignment Handoff Audit",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Pilot Admin"
+   },
+   {
+    "parent": "TELECTRO Assignment Handoff Audit",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "TELECTRO Assignment Handoff Audit",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
   "modified": "2026-04-15 15:47:35.314321",
   "module": "FTelephony",
   "name": "Supervisor Team Snapshot",
@@ -997,6 +1093,56 @@
    },
    {
     "parent": "Supervisor Team Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-09 08:55:45.687465",
+  "module": "FTelephony",
+  "name": "Aging and At-Risk Tickets",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Aging and At-Risk Tickets",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Aging and At-Risk Tickets",
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Helpdesk Contact"
