@@ -291,6 +291,38 @@ cp_from_container \
   "ftelephony/report/my_tickets/my_tickets.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/partner_active_tickets/__init__.py" \
+  "ftelephony/report/partner_active_tickets/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.js" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.json" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.py" \
+  "ftelephony/report/partner_active_tickets/partner_active_tickets.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
+  "ftelephony/report/tickets_assigned_to_partner/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js"
+
+cp_from_container \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json"
+
+cp_from_container \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py" \
+  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
   "ftelephony/report/tickets_assigned_to_partner/__init__.py"
 

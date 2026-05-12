@@ -1,5 +1,7 @@
 import frappe
 
+from telephony.partner_create import get_partner_note_summary
+
 
 ACTIVE_EXCLUDED_STATUSES = ("Closed", "Archived", "Resolved")
 
@@ -49,6 +51,24 @@ def get_columns():
             "width": 220,
         },
         {
+            "label": "Partner Work State",
+            "fieldname": "custom_partner_work_state",
+            "fieldtype": "Data",
+            "width": 190,
+        },
+        {
+            "label": "Partner Work Completed",
+            "fieldname": "custom_partner_work_completed",
+            "fieldtype": "Date",
+            "width": 170,
+        },
+        {
+            "label": "Partner Work Done Note",
+            "fieldname": "latest_partner_work_done_note",
+            "fieldtype": "Small Text",
+            "width": 360,
+        },
+        {
             "label": "Modified",
             "fieldname": "modified",
             "fieldtype": "Datetime",
@@ -74,6 +94,8 @@ def get_data():
             t.priority,
             coalesce(t.custom_request_source, '') as custom_request_source,
             coalesce(t.raised_by, '') as raised_by,
+            coalesce(t.custom_partner_work_state, '') as custom_partner_work_state,
+            t.custom_partner_work_completed,
             t.modified,
             'HD Ticket' as reference_doctype
         from `tabHD Ticket` t
@@ -84,4 +106,7 @@ def get_data():
         (ACTIVE_EXCLUDED_STATUSES,),
         as_dict=True,
     )
+    for row in rows:
+        row.update(get_partner_note_summary(row.name))
+        
     return rows
