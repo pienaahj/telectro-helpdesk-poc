@@ -786,7 +786,7 @@
  },
  {
   "charts": [],
-  "content": "[{\"id\":\"79diub4Jyf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Partner Workspace</span>\",\"col\":12}},{\"id\":\"K39g-oOuZF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue Summary</b></span>\",\"col\":12}},{\"id\":\"v4ouFRfNTu\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned to Partner\",\"col\":5}},{\"id\":\"Q-Ac6t4rOz\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted by Partner\",\"col\":5}},{\"id\":\"341ORhFgvH\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"JeVqzSLLrK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Log Ticket\",\"col\":3}},{\"id\":\"-Uu5nIVVD-\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Tikcets</b></span>\",\"col\":12}},{\"id\":\"rbJSYQKFkY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Submitted Tickets\",\"col\":3}},{\"id\":\"xldyPH_uDw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tasked Tickets\",\"col\":3}},{\"id\":\"OJKCy8_hHz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"bylvtw_tnf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Archived, Resolved and Closed Tickets\",\"col\":5}}]",
+  "content": "[{\"id\":\"79diub4Jyf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Partner Workspace</span>\",\"col\":12}},{\"id\":\"elj8ppHeBp\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Outstanding Work</b></span>\",\"col\":12}},{\"id\":\"By9-Vp_Vx9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Current Work\",\"col\":3}},{\"id\":\"K39g-oOuZF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue Summary</b></span>\",\"col\":12}},{\"id\":\"v4ouFRfNTu\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Assigned to Partner\",\"col\":5}},{\"id\":\"Q-Ac6t4rOz\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Submitted by Partner\",\"col\":5}},{\"id\":\"341ORhFgvH\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"JeVqzSLLrK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Log Ticket\",\"col\":3}},{\"id\":\"-Uu5nIVVD-\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Tikcets</b></span>\",\"col\":12}},{\"id\":\"rbJSYQKFkY\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Submitted Tickets\",\"col\":3}},{\"id\":\"xldyPH_uDw\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Tasked Tickets\",\"col\":3}},{\"id\":\"OJKCy8_hHz\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"bylvtw_tnf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Archived, Resolved and Closed Tickets\",\"col\":5}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -797,7 +797,7 @@
   "is_hidden": 0,
   "label": "TELECTRO-POC Partner",
   "links": [],
-  "modified": "2026-04-29 16:04:07.292862",
+  "modified": "2026-05-13 15:21:17.074142",
   "module": null,
   "name": "TELECTRO-POC Partner",
   "number_cards": [
@@ -836,6 +836,23 @@
   ],
   "sequence_id": 31.0,
   "shortcuts": [
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "Current Work",
+    "link_to": "Partner Current Work",
+    "parent": "TELECTRO-POC Partner",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
+   },
    {
     "color": "Grey",
     "doc_view": "List",
