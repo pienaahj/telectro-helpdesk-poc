@@ -9,7 +9,7 @@
     "parenttype": "Workspace"
    }
   ],
-  "content": "[{\"id\":\"A3B2vWOcDu\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Coordinator Workspace</span>\",\"col\":12}},{\"id\":\"AVIckQR76K\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"wZY1un5TOh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"Sp6S2Wb_HU\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"Eehb2Rift3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"XY6jBjoxVF\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"qICiUWFGcc\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"NG-Wwh4hvG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"afAM_CINTc\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"W7yPuMru1x\",\"type\":\"card\",\"data\":{\"card_name\":\"Supervisor Views / Drill Down Reports\",\"col\":3}},{\"id\":\"2H668FLejB\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner Queues / Actions\",\"col\":6}},{\"id\":\"SdgPENJV3r\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner War Room\",\"col\":3}},{\"id\":\"w71Bx8Adk9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"YFO_taOCGg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Tickets\",\"col\":3}}]",
+  "content": "[{\"id\":\"A3B2vWOcDu\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Coordinator Workspace</span>\",\"col\":12}},{\"id\":\"AVIckQR76K\",\"type\":\"paragraph\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"wZY1un5TOh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"Sp6S2Wb_HU\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"Eehb2Rift3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"XY6jBjoxVF\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"qICiUWFGcc\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"NG-Wwh4hvG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"afAM_CINTc\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"W7yPuMru1x\",\"type\":\"card\",\"data\":{\"card_name\":\"Supervisor Views / Drill Down Reports\",\"col\":3}},{\"id\":\"2H668FLejB\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner Queues / Actions\",\"col\":6}},{\"id\":\"SdgPENJV3r\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner War Room\",\"col\":3}},{\"id\":\"w71Bx8Adk9\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"YFO_taOCGg\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Tickets\",\"col\":3}},{\"id\":\"4qeCJVn7Eh\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Current Outstanding Work \",\"col\":4}}]",
   "custom_blocks": [
    {
     "custom_block_name": "Unclaimed more than 1 Day (Top 4)",
@@ -245,7 +245,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-05-12 10:56:02.980889",
+  "modified": "2026-05-13 14:48:48.998193",
   "module": null,
   "name": "TELECTRO-POC Coordinator",
   "number_cards": [
@@ -310,6 +310,23 @@
     "stats_filter": "[[\"HD Ticket\",\"_assign\",\"!=\",\",[]\",false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]",
     "type": "DocType",
     "url": null
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "🔥 Current Outstanding Work ",
+    "link_to": "My Current Work",
+    "parent": "TELECTRO-POC Coordinator",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
    }
   ],
   "title": "TELECTRO-POC Coordinator"
@@ -324,7 +341,7 @@
     "parenttype": "Workspace"
    }
   ],
-  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops Workspace</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"Jb4gKR0LIo\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Supervisor Views / Drill Down Reports<b></b></span>\",\"col\":12}},{\"id\":\"8xkW2NhV7Y\",\"type\":\"card\",\"data\":{\"card_name\":\"View / Report List\",\"col\":3}},{\"id\":\"wIJgQZRc8r\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner Queues / Actions\",\"col\":6}},{\"id\":\"__2BwgE9kZ\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner War Room\",\"col\":3}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}},{\"id\":\"jbvPwhYU8t\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Grant / Revoke Coordinator</b></span>\",\"col\":12}},{\"id\":\"yptQo0GT7c\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Current Coordinator Uplift\",\"col\":6}},{\"id\":\"Y6W_VJ1Gxh\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Grant / Revoke Coordinator\",\"col\":6}},{\"id\":\"rGv2cqHX12\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Coordinator Uplift History\",\"col\":3}}]",
+  "content": "[{\"id\":\"Svr-klAmEh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Ops Workspace</span>\",\"col\":12}},{\"id\":\"SRjaoKeWkr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Queue / Workload Summary</b></span>\",\"col\":12}},{\"id\":\"pU8jZSLRhg\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Active\",\"col\":4}},{\"id\":\"CUCtkXkX9K\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"UNCLAIMED (POOL)\",\"col\":4}},{\"id\":\"5wkfRwqone\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"PARTNER QUEUE\",\"col\":4}},{\"id\":\"NZeS7FIOfR\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Supervisor Active Work by Owner Bucket\",\"col\":12}},{\"id\":\"07PLqxEJtw\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Priority Issues - Top 4 View</b></span>\",\"col\":12}},{\"id\":\"ncOfiscIbG\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Unclaimed Active Tickets\",\"col\":6}},{\"id\":\"a9ABbZxaot\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Unclaimed more than 1 Day (Top 4)\",\"col\":6}},{\"id\":\"Jb4gKR0LIo\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Supervisor Views / Drill Down Reports<b></b></span>\",\"col\":12}},{\"id\":\"8xkW2NhV7Y\",\"type\":\"card\",\"data\":{\"card_name\":\"View / Report List\",\"col\":3}},{\"id\":\"wIJgQZRc8r\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner Queues / Actions\",\"col\":6}},{\"id\":\"__2BwgE9kZ\",\"type\":\"card\",\"data\":{\"card_name\":\"Partner War Room\",\"col\":3}},{\"id\":\"Rbu3m8xzT5\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>My Shortcuts</b></span>\",\"col\":12}},{\"id\":\"vB0_MoHfeb\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets / Work</b></span>\",\"col\":12}},{\"id\":\"huq7PC1jaa\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"All Active Tickets\",\"col\":3}},{\"id\":\"Yng3JTEGy8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Current Outstanding Work \",\"col\":4}},{\"id\":\"jbvPwhYU8t\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Grant / Revoke Coordinator</b></span>\",\"col\":12}},{\"id\":\"yptQo0GT7c\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Current Coordinator Uplift\",\"col\":6}},{\"id\":\"Y6W_VJ1Gxh\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Grant / Revoke Coordinator\",\"col\":6}},{\"id\":\"rGv2cqHX12\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Coordinator Uplift History\",\"col\":3}}]",
   "custom_blocks": [
    {
     "custom_block_name": "Unclaimed more than 1 Day (Top 4)",
@@ -664,7 +681,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-05-12 10:54:09.881672",
+  "modified": "2026-05-13 14:49:06.106031",
   "module": null,
   "name": "TELECTRO-POC Ops",
   "number_cards": [
@@ -713,6 +730,23 @@
   ],
   "sequence_id": 30.0,
   "shortcuts": [
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "🔥 Current Outstanding Work ",
+    "link_to": "My Current Work",
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
+   },
    {
     "color": "Grey",
     "doc_view": "List",
@@ -875,7 +909,7 @@
  },
  {
   "charts": [],
-  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech Workspace</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"gMGojK3xyq\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"WLgJPdDkwX\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Resolved Tickets\",\"col\":3}},{\"id\":\"6jWFB9WRy-\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
+  "content": "[{\"id\":\"NOntliHnKn\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">TELECTRO-POC Tech Workspace</span>\",\"col\":12}},{\"id\":\"YkKsYcP-pt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"➕ Log Ticket\",\"col\":3}},{\"id\":\"gMGojK3xyq\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>History</b></span>\",\"col\":12}},{\"id\":\"WLgJPdDkwX\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Resolved Tickets\",\"col\":3}},{\"id\":\"qIh2cdKQFZ\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Focus area</b></span>\",\"col\":12}},{\"id\":\"0X7STfIni2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 Unclaimed (War Room)\",\"col\":3}},{\"id\":\"W79r2ZtHUN\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"🔥 My Current Work - Outstanding Things\",\"col\":4}},{\"id\":\"SnRSMx0xl4\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"uI08W2K1b0\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tickets</b></span>\",\"col\":12}},{\"id\":\"xa0ag4Pbjn\",\"type\":\"card\",\"data\":{\"card_name\":\"Ticket queues\",\"col\":4}},{\"id\":\"zVFhy5VI7o\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational Queues</b></span>\",\"col\":12}},{\"id\":\"IIzknGFSOI\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Partner Queue\",\"col\":3}},{\"id\":\"pWCg8icCDP\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Requests\",\"col\":3}},{\"id\":\"pSkNbL55JS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Telectro Faults\",\"col\":3}},{\"id\":\"RkjcGgLx1c\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"TELECTRO - Untriaged\",\"col\":3}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -977,7 +1011,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2026-04-29 15:50:01.806657",
+  "modified": "2026-05-13 14:48:14.781102",
   "module": null,
   "name": "TELECTRO-POC Tech",
   "number_cards": [],
@@ -1018,6 +1052,23 @@
     "format": null,
     "icon": null,
     "kanban_board": null,
+    "label": "🔥 Unclaimed (War Room)",
+    "link_to": null,
+    "parent": "TELECTRO-POC Tech",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "URL",
+    "url": "/app/query-report/TELECTRO%20Unclaimed%20War%20Room"
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
     "label": "TELECTRO - Telectro Requests",
     "link_to": "HD Ticket",
     "parent": "TELECTRO-POC Tech",
@@ -1028,6 +1079,23 @@
     "stats_filter": "[[\"HD Ticket\",\"custom_fulfilment_party\",\"=\",\"Telectro\",false],[\"HD Ticket\",\"ticket_type\",\"in\",[\"Service Request\",\"Assistance\"],false],[\"HD Ticket\",\"status\",\"!=\",\"Closed\",false],[\"HD Ticket\",\"status\",\"!=\",\"Archived\",false]]",
     "type": "DocType",
     "url": "/app/hd-ticket/view/list?custom_fulfilment_party=Telectro&ticket_type=Service%20Request"
+   },
+   {
+    "color": "Grey",
+    "doc_view": "List",
+    "format": null,
+    "icon": null,
+    "kanban_board": null,
+    "label": "🔥 My Current Work - Outstanding Things",
+    "link_to": "My Current Work",
+    "parent": "TELECTRO-POC Tech",
+    "parentfield": "shortcuts",
+    "parenttype": "Workspace",
+    "report_ref_doctype": "HD Ticket",
+    "restrict_to_domain": null,
+    "stats_filter": null,
+    "type": "Report",
+    "url": null
    },
    {
     "color": "Grey",
@@ -1079,23 +1147,6 @@
     "stats_filter": "[[\"HD Ticket\",\"status\",\"=\",\"Resolved\",false]]",
     "type": "DocType",
     "url": null
-   },
-   {
-    "color": "Grey",
-    "doc_view": "List",
-    "format": null,
-    "icon": null,
-    "kanban_board": null,
-    "label": "🔥 Unclaimed (War Room)",
-    "link_to": null,
-    "parent": "TELECTRO-POC Tech",
-    "parentfield": "shortcuts",
-    "parenttype": "Workspace",
-    "report_ref_doctype": null,
-    "restrict_to_domain": null,
-    "stats_filter": null,
-    "type": "URL",
-    "url": "/app/query-report/TELECTRO%20Unclaimed%20War%20Room"
    },
    {
     "color": "Grey",

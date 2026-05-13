@@ -275,6 +275,22 @@ cp_from_container \
   "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/my_current_work/__init__.py" \
+  "ftelephony/report/my_current_work/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/my_current_work/my_current_work.js" \
+  "ftelephony/report/my_current_work/my_current_work.js"
+
+cp_from_container \
+  "ftelephony/report/my_current_work/my_current_work.json" \
+  "ftelephony/report/my_current_work/my_current_work.json"
+
+cp_from_container \
+  "ftelephony/report/my_current_work/my_current_work.py" \
+  "ftelephony/report/my_current_work/my_current_work.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/my_tickets/__init__.py" \
   "ftelephony/report/my_tickets/__init__.py"
 

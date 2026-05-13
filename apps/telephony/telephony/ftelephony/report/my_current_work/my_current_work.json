@@ -1,0 +1,85 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2026-05-13 13:48:56.675644",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": null,
+ "modified": "2026-05-13 13:48:56.675644",
+ "modified_by": "Administrator",
+ "module": "FTelephony",
+ "name": "My Current Work",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "HD Ticket",
+ "report_name": "My Current Work",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Agent Manager"
+  },
+  {
+   "role": "Agent"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "All"
+  },
+  {
+   "role": "TELECTRO-POC Tech"
+  },
+  {
+   "role": "Helpdesk Contact"
+  },
+  {
+   "role": "TELECTRO-POC Ops Role"
+  },
+  {
+   "role": "TELECTRO-POC Coordinator-Tech Role"
+  },
+  {
+   "role": "TELECTRO-POC Coordinator Role"
+  },
+  {
+   "role": "TELECTRO-POC Role - Tech"
+  },
+  {
+   "role": "TELECTRO-POC Role - PABX Tech"
+  },
+  {
+   "role": "TELECTRO-POC Role - Faults Tech"
+  },
+  {
+   "role": "TELECTRO-POC Role - Supervisor Governance"
+  },
+  {
+   "role": "TELECTRO-POC Role - Coordinator Ops"
+  },
+  {
+   "role": "TELECTRO-POC Role - Tech Workspace"
+  },
+  {
+   "role": "TELECTRO-POC Role - Coordinator Workspace"
+  },
+  {
+   "role": "TELECTRO-POC Role - Ops Workspace"
+  },
+  {
+   "role": "TELECTRO-POC Role - Partner"
+  },
+  {
+   "role": "TELECTRO-POC Role - Partner Creator"
+  },
+  {
+   "role": "Pilot Admin"
+  }
+ ],
+ "timeout": 0
+}
