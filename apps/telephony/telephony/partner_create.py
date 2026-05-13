@@ -48,6 +48,26 @@ PARTNER_DETAIL_FIELDS = [
 
 _COMMENT_TAG_RE = re.compile(r"<[^>]+>")
 
+TICKET_EVIDENCE_MAX_BYTES = 10 * 1024 * 1024
+
+TICKET_EVIDENCE_ALLOWED_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".pdf",
+    ".txt",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+}
+
+TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".pdf",
+}
 
 def _assert_internal_ticket_attachment_access(ticket_name: str, user: str):
     if not user or user == "Guest":
@@ -122,6 +142,85 @@ def _add_ticket_evidence_upload_comment(ticket_name: str, actor_label: str, file
             title="Ticket evidence upload comment failed",
             message=frappe.get_traceback(),
         )
+
+def _extract_base64_file_content(filedata: str, content_type: str | None = None) -> tuple[bytes, str | None]:
+    if not filedata:
+        frappe.throw("File data is required")
+
+    # Accept normal base64 or browser data URLs:
+    # data:image/png;base64,....
+    if "," in filedata and filedata.strip().lower().startswith("data:"):
+        header, filedata = filedata.split(",", 1)
+        if not content_type and ";" in header:
+            content_type = header.split(":", 1)[1].split(";", 1)[0]
+
+    try:
+        content = base64.b64decode(filedata)
+    except Exception:
+        frappe.throw("Could not decode uploaded file")
+
+    if not content:
+        frappe.throw("Uploaded file is empty")
+
+    return content, content_type
+
+
+def _validate_ticket_evidence_upload(file_name: str, content: bytes) -> str:
+    safe_name = Path(file_name or "").name.strip()
+
+    if not safe_name:
+        frappe.throw("Filename is required")
+
+    suffix = Path(safe_name).suffix.lower()
+
+    if not suffix:
+        frappe.throw("Uploaded file must have a file extension")
+
+    if suffix not in TICKET_EVIDENCE_ALLOWED_EXTENSIONS:
+        allowed = ", ".join(sorted(TICKET_EVIDENCE_ALLOWED_EXTENSIONS))
+        frappe.throw(f"Unsupported evidence file type. Allowed types: {allowed}")
+
+    if len(content) > TICKET_EVIDENCE_MAX_BYTES:
+        frappe.throw("Uploaded file is too large. Maximum size is 10 MB.")
+
+    return safe_name
+
+
+def _create_private_ticket_evidence_file(
+    ticket_name: str,
+    file_name: str,
+    filedata: str,
+    actor_label: str,
+    content_type: str | None = None,
+):
+    content, content_type = _extract_base64_file_content(filedata, content_type)
+    safe_name = _validate_ticket_evidence_upload(file_name, content)
+
+    file_doc = frappe.get_doc(
+        {
+            "doctype": "File",
+            "file_name": safe_name,
+            "attached_to_doctype": "HD Ticket",
+            "attached_to_name": ticket_name,
+            "is_private": 1,
+            "content": content,
+        }
+    )
+    file_doc.insert(ignore_permissions=True)
+
+    _add_ticket_evidence_upload_comment(
+        ticket_name=ticket_name,
+        actor_label=actor_label,
+        file_name=file_doc.file_name,
+    )
+
+    return {
+        "name": file_doc.name,
+        "file_name": file_doc.file_name,
+        "is_private": file_doc.is_private,
+        "owner": file_doc.owner,
+        "creation": file_doc.creation,
+    }
 
 def _get_latest_ticket_comment_text(ticket_name: str, startswith: str) -> str:
     rows = frappe.get_all(
@@ -453,60 +552,13 @@ def upload_internal_ticket_attachment(
     user = frappe.session.user
     _assert_internal_ticket_attachment_access(ticket_name, user)
 
-    file_name = (file_name or "").strip()
-    if not file_name:
-        frappe.throw("Filename is required")
-
-    if not filedata:
-        frappe.throw("File data is required")
-
-    # Accept normal base64 or browser data URLs:
-    # data:image/png;base64,....
-    if "," in filedata and filedata.strip().lower().startswith("data:"):
-        header, filedata = filedata.split(",", 1)
-        if not content_type and ";" in header:
-            content_type = header.split(":", 1)[1].split(";", 1)[0]
-
-    try:
-        content = base64.b64decode(filedata)
-    except Exception:
-        frappe.throw("Could not decode uploaded file")
-
-    if not content:
-        frappe.throw("Uploaded file is empty")
-
-    # Conservative V1 size limit: 10 MB.
-    max_bytes = 10 * 1024 * 1024
-    if len(content) > max_bytes:
-        frappe.throw("Uploaded file is too large. Maximum size is 10 MB.")
-
-    safe_name = Path(file_name).name
-
-    file_doc = frappe.get_doc(
-        {
-            "doctype": "File",
-            "file_name": safe_name,
-            "attached_to_doctype": "HD Ticket",
-            "attached_to_name": ticket_name,
-            "is_private": 1,
-            "content": content,
-        }
-    )
-    file_doc.insert(ignore_permissions=True)
-
-    _add_ticket_evidence_upload_comment(
+    return _create_private_ticket_evidence_file(
         ticket_name=ticket_name,
+        file_name=file_name,
+        filedata=filedata,
         actor_label="Telectro",
-        file_name=file_doc.file_name,
+        content_type=content_type,
     )
-
-    return {
-        "name": file_doc.name,
-        "file_name": file_doc.file_name,
-        "is_private": file_doc.is_private,
-        "owner": file_doc.owner,
-        "creation": file_doc.creation,
-    }
 
    
 @frappe.whitelist()
@@ -685,60 +737,13 @@ def upload_partner_ticket_attachment(
     user = frappe.session.user
     _assert_partner_ticket_access(ticket_name, user)
 
-    file_name = (file_name or "").strip()
-    if not file_name:
-        frappe.throw("Filename is required")
-
-    if not filedata:
-        frappe.throw("File data is required")
-
-    # Accept normal base64 or browser data URLs:
-    # data:image/png;base64,....
-    if "," in filedata and filedata.strip().lower().startswith("data:"):
-        header, filedata = filedata.split(",", 1)
-        if not content_type and ";" in header:
-            content_type = header.split(":", 1)[1].split(";", 1)[0]
-
-    try:
-        content = base64.b64decode(filedata)
-    except Exception:
-        frappe.throw("Could not decode uploaded file")
-
-    if not content:
-        frappe.throw("Uploaded file is empty")
-
-    # Conservative V1 size limit: 10 MB.
-    max_bytes = 10 * 1024 * 1024
-    if len(content) > max_bytes:
-        frappe.throw("Uploaded file is too large. Maximum size is 10 MB.")
-
-    safe_name = Path(file_name).name
-
-    file_doc = frappe.get_doc(
-        {
-            "doctype": "File",
-            "file_name": safe_name,
-            "attached_to_doctype": "HD Ticket",
-            "attached_to_name": ticket_name,
-            "is_private": 1,
-            "content": content,
-        }
-    )
-    file_doc.insert(ignore_permissions=True)
-
-    _add_ticket_evidence_upload_comment(
+    return _create_private_ticket_evidence_file(
         ticket_name=ticket_name,
+        file_name=file_name,
+        filedata=filedata,
         actor_label="Partner",
-        file_name=file_doc.file_name,
+        content_type=content_type,
     )
-
-    return {
-        "name": file_doc.name,
-        "file_name": file_doc.file_name,
-        "is_private": file_doc.is_private,
-        "owner": file_doc.owner,
-        "creation": file_doc.creation,
-    }
 
 @frappe.whitelist()
 def submit_partner_completion_note(ticket_name: str, note: str, completed_on: str | None = None):

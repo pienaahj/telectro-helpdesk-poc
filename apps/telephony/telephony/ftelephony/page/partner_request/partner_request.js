@@ -100,11 +100,12 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
               type="file"
               class="form-control"
               id="pr-evidence-files"
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt"
               multiple
             >
             <div class="text-muted small mt-2">
               Add field photos, WhatsApp images, quotes, or supporting documents for this request.
+              Maximum size: 10 MB. JPG, PNG, PDF, Word, Excel, and text files are supported in V1.
               Files will be stored privately against the created ticket.
             </div>
             <div id="pr-evidence-selected" class="text-muted small mt-2"></div>

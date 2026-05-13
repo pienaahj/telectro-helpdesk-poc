@@ -303,7 +303,7 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
               <label class="control-label">File</label>
               <input type="file" class="form-control" id="pt-upload-file-input">
               <p class="text-muted small mt-2">
-                Maximum size: 10 MB. Files are stored privately and attached to this ticket.
+                Maximum size: 10 MB. JPG, PNG, PDF, Word, Excel, and text files are supported in V1. Files are stored privately and attached to this ticket.
               </p>
             </div>
           `,
