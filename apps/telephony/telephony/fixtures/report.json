@@ -644,50 +644,6 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-04-15 15:40:20.939924",
-  "module": "FTelephony",
-  "name": "Active Tickets by Technician",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Active Tickets by Technician",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
-   },
-   {
-    "parent": "Active Tickets by Technician",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
   "modified": "2026-05-07 10:30:33.940938",
   "module": "FTelephony",
   "name": "Partner Acceptance Rework Queue",
@@ -818,44 +774,6 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Pilot Admin"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-04-15 15:09:52.735660",
-  "module": "FTelephony",
-  "name": "Coordinator Uplift History",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "User",
-  "reference_report": null,
-  "report_name": "Coordinator Uplift History",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Coordinator Uplift History",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "Coordinator Uplift History",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": null
    }
   ],
   "timeout": 0
@@ -1018,6 +936,234 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
+  "modified": "2026-04-15 15:09:52.735660",
+  "module": "FTelephony",
+  "name": "Coordinator Uplift History",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "User",
+  "reference_report": null,
+  "report_name": "Coordinator Uplift History",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Coordinator Uplift History",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Coordinator Uplift History",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": null
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-15 15:47:35.314321",
+  "module": "FTelephony",
+  "name": "Supervisor Team Snapshot",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Supervisor Team Snapshot",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Supervisor Team Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "Supervisor Team Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "Supervisor Team Snapshot",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-05-13 13:48:56.675644",
+  "module": "FTelephony",
+  "name": "My Current Work",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "My Current Work",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent Manager"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Agent"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "All"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Tech"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Helpdesk Contact"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Ops Role"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator-Tech Role"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator Role"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - PABX Tech"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Faults Tech"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Ops Workspace"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Partner Creator"
+   },
+   {
+    "parent": "My Current Work",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Pilot Admin"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
   "modified": "2026-04-30 00:00:00",
   "module": "FTelephony",
   "name": "TELECTRO Assignment Handoff Audit",
@@ -1068,34 +1214,134 @@
   "javascript": null,
   "json": null,
   "letter_head": null,
-  "modified": "2026-04-15 15:47:35.314321",
+  "modified": "2026-05-06 10:00:00",
   "module": "FTelephony",
-  "name": "Supervisor Team Snapshot",
+  "name": "TELECTRO Repeat Faults by Location",
   "prepared_report": 0,
   "query": null,
   "ref_doctype": "HD Ticket",
   "reference_report": null,
-  "report_name": "Supervisor Team Snapshot",
+  "report_name": "TELECTRO Repeat Faults by Location",
   "report_script": null,
   "report_type": "Script Report",
   "roles": [
    {
-    "parent": "Supervisor Team Snapshot",
+    "parent": "TELECTRO Repeat Faults by Location",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "TELECTRO Repeat Faults by Location",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-15 15:40:20.939924",
+  "module": "FTelephony",
+  "name": "Active Tickets by Technician",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Active Tickets by Technician",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Active Tickets by Technician",
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Agent Manager"
    },
    {
-    "parent": "Supervisor Team Snapshot",
+    "parent": "Active Tickets by Technician",
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Agent"
    },
    {
-    "parent": "Supervisor Team Snapshot",
+    "parent": "Active Tickets by Technician",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "Helpdesk Contact"
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   }
+  ],
+  "timeout": 0
+ },
+ {
+  "add_total_row": 0,
+  "add_translate_data": 0,
+  "columns": [],
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Report",
+  "filters": [],
+  "is_standard": "Yes",
+  "javascript": null,
+  "json": null,
+  "letter_head": null,
+  "modified": "2026-04-20 17:18:02.195272",
+  "module": "FTelephony",
+  "name": "Partner Acceptance Review Queue",
+  "prepared_report": 0,
+  "query": null,
+  "ref_doctype": "HD Ticket",
+  "reference_report": null,
+  "report_name": "Partner Acceptance Review Queue",
+  "report_script": null,
+  "report_type": "Script Report",
+  "roles": [
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "System Manager"
+   },
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Ops Role"
+   },
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Coordinator Role"
+   },
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "Partner Acceptance Review Queue",
+    "parentfield": "roles",
+    "parenttype": "Report",
+    "role": "Pilot Admin"
    }
   ],
   "timeout": 0
@@ -1202,68 +1448,6 @@
     "parentfield": "roles",
     "parenttype": "Report",
     "role": "Helpdesk Contact"
-   }
-  ],
-  "timeout": 0
- },
- {
-  "add_total_row": 0,
-  "add_translate_data": 0,
-  "columns": [],
-  "disabled": 0,
-  "docstatus": 0,
-  "doctype": "Report",
-  "filters": [],
-  "is_standard": "Yes",
-  "javascript": null,
-  "json": null,
-  "letter_head": null,
-  "modified": "2026-04-20 17:18:02.195272",
-  "module": "FTelephony",
-  "name": "Partner Acceptance Review Queue",
-  "prepared_report": 0,
-  "query": null,
-  "ref_doctype": "HD Ticket",
-  "reference_report": null,
-  "report_name": "Partner Acceptance Review Queue",
-  "report_script": null,
-  "report_type": "Script Report",
-  "roles": [
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "System Manager"
-   },
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Ops Role"
-   },
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator Role"
-   },
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Coordinator Ops"
-   },
-   {
-    "parent": "Partner Acceptance Review Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Pilot Admin"
    }
   ],
   "timeout": 0
