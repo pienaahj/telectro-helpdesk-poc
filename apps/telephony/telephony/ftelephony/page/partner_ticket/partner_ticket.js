@@ -153,6 +153,155 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     </div>
   `);
 
+  function makeEvidencePhotoFilename() {
+    const stamp = frappe.datetime
+      .now_datetime()
+      .replace(/[-: ]/g, "")
+      .replace(/\..*$/, "");
+
+    return `partner-ticket-evidence-photo-${stamp}.png`;
+  }
+
+  function uploadPartnerEvidenceDataUrl(
+    ticketName,
+    fileName,
+    filedata,
+    contentType,
+  ) {
+    return frappe.call({
+      method: "telephony.partner_create.upload_partner_ticket_attachment",
+      args: {
+        ticket_name: ticketName,
+        file_name: fileName,
+        filedata,
+        content_type: contentType || "image/png",
+      },
+      freeze: true,
+      freeze_message: "Uploading captured photo…",
+    });
+  }
+
+  async function showCapturePhotoDialog(ticketName) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      frappe.msgprint({
+        title: __("Camera not available"),
+        message: __(
+          "This browser does not support direct camera capture. Please upload a JPG or PNG file instead.",
+        ),
+        indicator: "orange",
+      });
+      return;
+    }
+
+    let stream = null;
+
+    const dialog = new frappe.ui.Dialog({
+      title: "Take Evidence Photo",
+      size: "large",
+      fields: [
+        {
+          fieldname: "camera_html",
+          fieldtype: "HTML",
+          options: `
+            <div class="partner-ticket-evidence-camera">
+              <video
+                class="partner-ticket-evidence-video"
+                autoplay
+                playsinline
+                style="width:100%; max-height:60vh; background:#111; border-radius:8px;"
+              ></video>
+              <canvas class="partner-ticket-evidence-canvas" style="display:none;"></canvas>
+              <div class="text-muted small mt-2">
+                Captured photos are stored as PNG ticket evidence.
+              </div>
+            </div>
+          `,
+        },
+      ],
+      primary_action_label: "Capture and Upload",
+      async primary_action() {
+        const video = dialog.$wrapper
+          .find(".partner-ticket-evidence-video")
+          .get(0);
+        const canvas = dialog.$wrapper
+          .find(".partner-ticket-evidence-canvas")
+          .get(0);
+
+        if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+          frappe.msgprint("Camera is not ready yet. Please try again.");
+          return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const filedata = canvas.toDataURL("image/png");
+        const fileName = makeEvidencePhotoFilename();
+
+        try {
+          await uploadPartnerEvidenceDataUrl(
+            ticketName,
+            fileName,
+            filedata,
+            "image/png",
+          );
+
+          frappe.show_alert({
+            message: __("Captured photo uploaded."),
+            indicator: "green",
+          });
+
+          dialog.hide();
+          loadAttachments(ticketName);
+        } catch (e) {
+          console.error(e);
+          frappe.msgprint({
+            title: __("Photo upload failed"),
+            message: e?.message || __("Could not upload captured photo."),
+            indicator: "red",
+          });
+        }
+      },
+    });
+
+    dialog.onhide = () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+
+    dialog.show();
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+        },
+        audio: false,
+      });
+
+      const video = dialog.$wrapper
+        .find(".partner-ticket-evidence-video")
+        .get(0);
+      video.srcObject = stream;
+    } catch (e) {
+      console.error(e);
+
+      frappe.msgprint({
+        title: __("Camera access failed"),
+        message: __(
+          "Could not access the camera. Check browser permissions, or upload a JPG/PNG file instead.",
+        ),
+        indicator: "red",
+      });
+
+      dialog.hide();
+    }
+  }
+
   function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -299,17 +448,58 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
           fieldname: "upload_html",
           fieldtype: "HTML",
           options: `
+            <style>
+              .partner-ticket-upload-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 0.75rem;
+                align-items: center;
+              }
+
+              .partner-ticket-upload-row .partner-ticket-capture-photo {
+                white-space: nowrap;
+                min-width: 120px;
+              }
+
+              @media (max-width: 576px) {
+                .partner-ticket-upload-row {
+                  grid-template-columns: 1fr;
+                }
+
+                .partner-ticket-upload-row .partner-ticket-capture-photo {
+                  width: 100%;
+                }
+              }
+            </style>
+
             <div class="form-group">
-              <label class="control-label">File</label>
-              <input type="file" class="form-control" id="pt-upload-file-input">
+              <label class="control-label">Add Evidence</label>
+
+              <div class="partner-ticket-upload-row">
+                <input
+                  type="file"
+                  class="form-control"
+                  id="pt-upload-file-input"
+                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                >
+
+                <button
+                  type="button"
+                  class="btn btn-default partner-ticket-capture-photo"
+                >
+                  Take Photo
+                </button>
+              </div>
+
               <p class="text-muted small mt-2">
-                Maximum size: 10 MB. JPG, PNG, PDF, Word, Excel, and text files are supported in V1. Files are stored privately and attached to this ticket.
+                Maximum size: 10 MB. JPG, PNG, PDF, Word, Excel, and text files are supported in V1.
+                Files are stored privately and attached to this ticket.
               </p>
             </div>
           `,
         },
       ],
-      primary_action_label: "Upload",
+      primary_action_label: "Upload Selected File",
       async primary_action() {
         const file = dialog.$wrapper.find("#pt-upload-file-input").get(0)
           ?.files?.[0];
@@ -334,6 +524,9 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
     });
 
     dialog.show();
+    dialog.$wrapper.find(".partner-ticket-capture-photo").on("click", () => {
+      showCapturePhotoDialog(ticketName);
+    });
   }
 
   function clearText() {
