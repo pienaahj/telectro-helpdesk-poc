@@ -323,6 +323,22 @@ cp_from_container \
   "ftelephony/report/partner_active_tickets/partner_active_tickets.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/partner_current_work/__init__.py" \
+  "ftelephony/report/partner_current_work/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/partner_current_work/partner_current_work.js" \
+  "ftelephony/report/partner_current_work/partner_current_work.js"
+
+cp_from_container \
+  "ftelephony/report/partner_current_work/partner_current_work.json" \
+  "ftelephony/report/partner_current_work/partner_current_work.json"
+
+cp_from_container \
+  "ftelephony/report/partner_current_work/partner_current_work.py" \
+  "ftelephony/report/partner_current_work/partner_current_work.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
   "ftelephony/report/tickets_assigned_to_partner/__init__.py"
 
