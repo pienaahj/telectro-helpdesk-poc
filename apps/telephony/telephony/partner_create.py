@@ -69,6 +69,88 @@ TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
     ".pdf",
 }
 
+def _notify_partner_acceptance_submitted(
+    ticket_name: str,
+    notify_user: str,
+    submitted_by: str,
+    note: str | None = None,
+):
+    """
+    Notify the current Telectro assignee that the Partner submitted acceptance.
+
+    This is intentionally scoped to the current assigned user only.
+    It creates an in-app Notification Log alert and does not change assignment,
+    ToDo, routing, or Partner workflow state.
+    """
+    ticket_name = str(ticket_name or "").strip()
+    notify_user = str(notify_user or "").strip()
+    submitted_by = str(submitted_by or "").strip() or frappe.session.user
+    note = str(note or "").strip()
+
+    if not ticket_name or not notify_user:
+        return None
+
+    if notify_user in ("Administrator", "Guest"):
+        return None
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
+    ticket_label = frappe.utils.escape_html(ticket_name)
+    submitted_by_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", submitted_by, "full_name") or submitted_by
+    )
+
+    notification_subject = (
+        f"<strong>{submitted_by_label}</strong> submitted Partner acceptance for "
+        f"<strong>HD Ticket</strong> "
+        f'<b class="subject-title">{subject}</b>'
+    )
+
+    email_content = (
+        f"<p>Partner acceptance has been submitted for "
+        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
+    )
+
+    if note:
+        email_content += (
+            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
+        )
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": notification_subject,
+        "for_user": notify_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket_name,
+        "email_content": email_content,
+    })
+    notification.insert(ignore_permissions=True)
+
+    return notification.name
+
+def _first_assigned_user_from_doc(doc):
+    raw_assign = doc.get("_assign")
+
+    if not raw_assign:
+        return ""
+
+    try:
+        parsed = frappe.parse_json(raw_assign) if isinstance(raw_assign, str) else raw_assign
+    except Exception:
+        parsed = []
+
+    if not isinstance(parsed, list):
+        return ""
+
+    for value in parsed:
+        user = str(value or "").strip()
+        if user:
+            return user
+
+    return ""
+
 def _notify_partner_acceptance_requested(
     ticket_name: str,
     partner_user: str,
@@ -819,10 +901,13 @@ def upload_partner_ticket_attachment(
 
 @frappe.whitelist()
 def submit_partner_completion_note(ticket_name: str, note: str, completed_on: str | None = None):
+    ticket_name = str(ticket_name or "").strip()
+    note = str(note or "").strip()
+    completed_on = str(completed_on or "").strip()
+
     user = frappe.session.user
     _assert_partner_ticket_access(ticket_name, user)
 
-    note = (note or "").strip()
     if not note:
         frappe.throw("Acceptance note is required")
 
@@ -844,6 +929,8 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
     if current_state != "Pending Partner Acceptance":
         frappe.throw("Partner acceptance is not currently pending")
 
+    notify_user = _first_assigned_user_from_doc(doc)
+
     _set_if_field_exists(doc, "custom_partner_acceptance_state", "Accepted by Partner")
     if completed_on:
         _set_if_field_exists(doc, "custom_partner_accepted_on", completed_on)
@@ -854,6 +941,14 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
     )
 
     doc.save(ignore_permissions=True)
+
+    _notify_partner_acceptance_submitted(
+        ticket_name=doc.name,
+        notify_user=notify_user,
+        submitted_by=user,
+        note=note,
+    )
+
     _canonicalize_ticket_assignments(doc.name)
     doc.reload()
 
