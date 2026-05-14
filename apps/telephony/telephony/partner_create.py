@@ -69,58 +69,65 @@ TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
     ".pdf",
 }
 
-def _notify_partner_acceptance_rework_requested(
+def _create_ticket_notification_alert(
     ticket_name: str,
-    notify_user: str,
-    requested_by: str,
+    for_user: str,
+    actor_user: str,
+    action_text: str,
+    email_intro: str,
     note: str | None = None,
+    note_label: str = "Note",
 ):
     """
-    Notify the Telectro assignee that the Partner requested acceptance rework.
+    Create a scoped in-app Notification Log alert for an HD Ticket.
 
-    This is intentionally scoped to the current Telectro assignee only.
-    It creates an in-app Notification Log alert and does not change assignment,
-    ToDo, routing, or Partner workflow state.
+    This helper intentionally creates Notification Log rows only.
+    It does not change assignment, ToDo, routing, workflow state, or email
+    delivery behaviour.
     """
     ticket_name = str(ticket_name or "").strip()
-    notify_user = str(notify_user or "").strip()
-    requested_by = str(requested_by or "").strip() or frappe.session.user
+    for_user = str(for_user or "").strip()
+    actor_user = str(actor_user or "").strip() or frappe.session.user
+    action_text = str(action_text or "").strip()
+    email_intro = str(email_intro or "").strip()
     note = str(note or "").strip()
+    note_label = str(note_label or "Note").strip() or "Note"
 
-    if not ticket_name or not notify_user:
+    if not ticket_name or not for_user or not action_text:
         return None
 
-    if notify_user in ("Administrator", "Guest"):
+    if for_user in ("Administrator", "Guest"):
         return None
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
     subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
     ticket_label = frappe.utils.escape_html(ticket_name)
-    requested_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", requested_by, "full_name") or requested_by
+    actor_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", actor_user, "full_name") or actor_user
     )
 
     notification_subject = (
-        f"<strong>{requested_by_label}</strong> requested Partner acceptance rework for "
+        f"<strong>{actor_label}</strong> {frappe.utils.escape_html(action_text)} "
         f"<strong>HD Ticket</strong> "
         f'<b class="subject-title">{subject}</b>'
     )
 
     email_content = (
-        f"<p>Partner acceptance rework was requested for "
+        f"<p>{frappe.utils.escape_html(email_intro)} "
         f"<strong>HD Ticket {ticket_label}</strong>.</p>"
     )
 
     if note:
         email_content += (
-            f"<p><strong>Reason:</strong> {frappe.utils.escape_html(note)}</p>"
+            f"<p><strong>{frappe.utils.escape_html(note_label)}:</strong> "
+            f"{frappe.utils.escape_html(note)}</p>"
         )
 
     notification = frappe.get_doc({
         "doctype": "Notification Log",
         "subject": notification_subject,
-        "for_user": notify_user,
+        "for_user": for_user,
         "type": "Alert",
         "document_type": "HD Ticket",
         "document_name": ticket_name,
@@ -129,6 +136,22 @@ def _notify_partner_acceptance_rework_requested(
     notification.insert(ignore_permissions=True)
 
     return notification.name
+
+def _notify_partner_acceptance_rework_requested(
+    ticket_name: str,
+    notify_user: str,
+    requested_by: str,
+    note: str | None = None,
+):
+    return _create_ticket_notification_alert(
+        ticket_name=ticket_name,
+        for_user=notify_user,
+        actor_user=requested_by,
+        action_text="requested Partner acceptance rework for",
+        email_intro="Partner acceptance rework was requested for",
+        note=note,
+        note_label="Reason",
+    )
 
 def _notify_partner_work_rework_requested(
     ticket_name: str,
@@ -136,60 +159,15 @@ def _notify_partner_work_rework_requested(
     requested_by: str,
     note: str | None = None,
 ):
-    """
-    Notify the Partner assignee that Telectro requested Partner work rework.
-
-    This is intentionally scoped to the Partner assignee only.
-    It creates an in-app Notification Log alert and does not change assignment,
-    ToDo, routing, or Partner workflow state.
-    """
-    ticket_name = str(ticket_name or "").strip()
-    partner_user = str(partner_user or "").strip()
-    requested_by = str(requested_by or "").strip() or frappe.session.user
-    note = str(note or "").strip()
-
-    if not ticket_name or not partner_user:
-        return None
-
-    if partner_user in ("Administrator", "Guest"):
-        return None
-
-    doc = frappe.get_doc("HD Ticket", ticket_name)
-
-    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
-    ticket_label = frappe.utils.escape_html(ticket_name)
-    requested_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", requested_by, "full_name") or requested_by
+    return _create_ticket_notification_alert(
+        ticket_name=ticket_name,
+        for_user=partner_user,
+        actor_user=requested_by,
+        action_text="requested Partner work rework for",
+        email_intro="Telectro has requested Partner work rework for",
+        note=note,
+        note_label="Reason",
     )
-
-    notification_subject = (
-        f"<strong>{requested_by_label}</strong> requested Partner work rework for "
-        f"<strong>HD Ticket</strong> "
-        f'<b class="subject-title">{subject}</b>'
-    )
-
-    email_content = (
-        f"<p>Telectro has requested Partner work rework for "
-        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
-    )
-
-    if note:
-        email_content += (
-            f"<p><strong>Reason:</strong> {frappe.utils.escape_html(note)}</p>"
-        )
-
-    notification = frappe.get_doc({
-        "doctype": "Notification Log",
-        "subject": notification_subject,
-        "for_user": partner_user,
-        "type": "Alert",
-        "document_type": "HD Ticket",
-        "document_name": ticket_name,
-        "email_content": email_content,
-    })
-    notification.insert(ignore_permissions=True)
-
-    return notification.name
 
 def _notify_partner_work_completed(
     ticket_name: str,
@@ -197,60 +175,15 @@ def _notify_partner_work_completed(
     submitted_by: str,
     note: str | None = None,
 ):
-    """
-    Notify the Telectro-side ticket owner that Partner work was completed.
-
-    For Partner-fulfilled tickets, _assign usually points to the Partner while
-    work is with Partner. The Telectro review signal therefore goes to the
-    HD Ticket owner in V1.
-    """
-    ticket_name = str(ticket_name or "").strip()
-    notify_user = str(notify_user or "").strip()
-    submitted_by = str(submitted_by or "").strip() or frappe.session.user
-    note = str(note or "").strip()
-
-    if not ticket_name or not notify_user:
-        return None
-
-    if notify_user in ("Administrator", "Guest"):
-        return None
-
-    doc = frappe.get_doc("HD Ticket", ticket_name)
-
-    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
-    ticket_label = frappe.utils.escape_html(ticket_name)
-    submitted_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", submitted_by, "full_name") or submitted_by
+    return _create_ticket_notification_alert(
+        ticket_name=ticket_name,
+        for_user=notify_user,
+        actor_user=submitted_by,
+        action_text="completed Partner work for",
+        email_intro="Partner work has been completed and is ready for Telectro review for",
+        note=note,
+        note_label="Note",
     )
-
-    notification_subject = (
-        f"<strong>{submitted_by_label}</strong> completed Partner work for "
-        f"<strong>HD Ticket</strong> "
-        f'<b class="subject-title">{subject}</b>'
-    )
-
-    email_content = (
-        f"<p>Partner work has been completed for "
-        f"<strong>HD Ticket {ticket_label}</strong> and is ready for Telectro review.</p>"
-    )
-
-    if note:
-        email_content += (
-            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
-        )
-
-    notification = frappe.get_doc({
-        "doctype": "Notification Log",
-        "subject": notification_subject,
-        "for_user": notify_user,
-        "type": "Alert",
-        "document_type": "HD Ticket",
-        "document_name": ticket_name,
-        "email_content": email_content,
-    })
-    notification.insert(ignore_permissions=True)
-
-    return notification.name
 
 def _notify_partner_acceptance_submitted(
     ticket_name: str,
@@ -258,60 +191,15 @@ def _notify_partner_acceptance_submitted(
     submitted_by: str,
     note: str | None = None,
 ):
-    """
-    Notify the current Telectro assignee that the Partner submitted acceptance.
-
-    This is intentionally scoped to the current assigned user only.
-    It creates an in-app Notification Log alert and does not change assignment,
-    ToDo, routing, or Partner workflow state.
-    """
-    ticket_name = str(ticket_name or "").strip()
-    notify_user = str(notify_user or "").strip()
-    submitted_by = str(submitted_by or "").strip() or frappe.session.user
-    note = str(note or "").strip()
-
-    if not ticket_name or not notify_user:
-        return None
-
-    if notify_user in ("Administrator", "Guest"):
-        return None
-
-    doc = frappe.get_doc("HD Ticket", ticket_name)
-
-    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
-    ticket_label = frappe.utils.escape_html(ticket_name)
-    submitted_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", submitted_by, "full_name") or submitted_by
+    return _create_ticket_notification_alert(
+        ticket_name=ticket_name,
+        for_user=notify_user,
+        actor_user=submitted_by,
+        action_text="submitted Partner acceptance for",
+        email_intro="Partner acceptance has been submitted for",
+        note=note,
+        note_label="Note",
     )
-
-    notification_subject = (
-        f"<strong>{submitted_by_label}</strong> submitted Partner acceptance for "
-        f"<strong>HD Ticket</strong> "
-        f'<b class="subject-title">{subject}</b>'
-    )
-
-    email_content = (
-        f"<p>Partner acceptance has been submitted for "
-        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
-    )
-
-    if note:
-        email_content += (
-            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
-        )
-
-    notification = frappe.get_doc({
-        "doctype": "Notification Log",
-        "subject": notification_subject,
-        "for_user": notify_user,
-        "type": "Alert",
-        "document_type": "HD Ticket",
-        "document_name": ticket_name,
-        "email_content": email_content,
-    })
-    notification.insert(ignore_permissions=True)
-
-    return notification.name
 
 def _first_assigned_user_from_doc(doc):
     raw_assign = doc.get("_assign")
@@ -340,60 +228,15 @@ def _notify_partner_acceptance_requested(
     requested_by: str,
     note: str | None = None,
 ):
-    """
-    Notify the Partner ticket owner that Telectro has requested Partner acceptance.
-
-    This is intentionally scoped to the Partner owner only.
-    It creates an in-app Notification Log alert and does not change assignment,
-    ToDo, routing, or Partner workflow state.
-    """
-    ticket_name = str(ticket_name or "").strip()
-    partner_user = str(partner_user or "").strip()
-    requested_by = str(requested_by or "").strip() or frappe.session.user
-    note = str(note or "").strip()
-
-    if not ticket_name or not partner_user:
-        return None
-
-    if partner_user in ("Administrator", "Guest"):
-        return None
-
-    doc = frappe.get_doc("HD Ticket", ticket_name)
-
-    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
-    ticket_label = frappe.utils.escape_html(ticket_name)
-    requested_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", requested_by, "full_name") or requested_by
+    return _create_ticket_notification_alert(
+        ticket_name=ticket_name,
+        for_user=partner_user,
+        actor_user=requested_by,
+        action_text="requested Partner acceptance for",
+        email_intro="Telectro has requested Partner acceptance for",
+        note=note,
+        note_label="Note",
     )
-
-    notification_subject = (
-        f"<strong>{requested_by_label}</strong> requested Partner acceptance for "
-        f"<strong>HD Ticket</strong> "
-        f'<b class="subject-title">{subject}</b>'
-    )
-
-    email_content = (
-        f"<p>Telectro has requested Partner acceptance for "
-        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
-    )
-
-    if note:
-        email_content += (
-            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
-        )
-
-    notification = frappe.get_doc({
-        "doctype": "Notification Log",
-        "subject": notification_subject,
-        "for_user": partner_user,
-        "type": "Alert",
-        "document_type": "HD Ticket",
-        "document_name": ticket_name,
-        "email_content": email_content,
-    })
-    notification.insert(ignore_permissions=True)
-
-    return notification.name
 
 def _assert_internal_ticket_attachment_access(ticket_name: str, user: str):
     if not user or user == "Guest":
