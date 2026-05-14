@@ -69,6 +69,67 @@ TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
     ".pdf",
 }
 
+def _notify_partner_acceptance_requested(
+    ticket_name: str,
+    partner_user: str,
+    requested_by: str,
+    note: str | None = None,
+):
+    """
+    Notify the Partner ticket owner that Telectro has requested Partner acceptance.
+
+    This is intentionally scoped to the Partner owner only.
+    It creates an in-app Notification Log alert and does not change assignment,
+    ToDo, routing, or Partner workflow state.
+    """
+    ticket_name = str(ticket_name or "").strip()
+    partner_user = str(partner_user or "").strip()
+    requested_by = str(requested_by or "").strip() or frappe.session.user
+    note = str(note or "").strip()
+
+    if not ticket_name or not partner_user:
+        return None
+
+    if partner_user in ("Administrator", "Guest"):
+        return None
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
+    ticket_label = frappe.utils.escape_html(ticket_name)
+    requested_by_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", requested_by, "full_name") or requested_by
+    )
+
+    notification_subject = (
+        f"<strong>{requested_by_label}</strong> requested Partner acceptance for "
+        f"<strong>HD Ticket</strong> "
+        f'<b class="subject-title">{subject}</b>'
+    )
+
+    email_content = (
+        f"<p>Telectro has requested Partner acceptance for "
+        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
+    )
+
+    if note:
+        email_content += (
+            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
+        )
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": notification_subject,
+        "for_user": partner_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket_name,
+        "email_content": email_content,
+    })
+    notification.insert(ignore_permissions=True)
+
+    return notification.name
+
 def _assert_internal_ticket_attachment_access(ticket_name: str, user: str):
     if not user or user == "Guest":
         frappe.throw("Not permitted", frappe.PermissionError)
@@ -602,6 +663,9 @@ def download_internal_ticket_attachment(ticket_name: str, file_id: str):
 
 @frappe.whitelist()
 def request_partner_acceptance(ticket_name: str, note: str | None = None):
+    ticket_name = str(ticket_name or "").strip()
+    note = str(note or "").strip()
+
     user = frappe.session.user
     _assert_internal_partner_acceptance_request_access(ticket_name, user)
 
@@ -615,6 +679,14 @@ def request_partner_acceptance(ticket_name: str, note: str | None = None):
     )
 
     doc.save(ignore_permissions=True)
+
+    _notify_partner_acceptance_requested(
+        ticket_name=doc.name,
+        partner_user=doc.owner,
+        requested_by=user,
+        note=note,
+    )
+
     _canonicalize_ticket_assignments(doc.name)
     doc.reload()
 
