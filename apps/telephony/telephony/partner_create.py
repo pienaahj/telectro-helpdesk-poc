@@ -69,6 +69,67 @@ TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
     ".pdf",
 }
 
+def _notify_partner_work_completed(
+    ticket_name: str,
+    notify_user: str,
+    submitted_by: str,
+    note: str | None = None,
+):
+    """
+    Notify the Telectro-side ticket owner that Partner work was completed.
+
+    For Partner-fulfilled tickets, _assign usually points to the Partner while
+    work is with Partner. The Telectro review signal therefore goes to the
+    HD Ticket owner in V1.
+    """
+    ticket_name = str(ticket_name or "").strip()
+    notify_user = str(notify_user or "").strip()
+    submitted_by = str(submitted_by or "").strip() or frappe.session.user
+    note = str(note or "").strip()
+
+    if not ticket_name or not notify_user:
+        return None
+
+    if notify_user in ("Administrator", "Guest"):
+        return None
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
+    ticket_label = frappe.utils.escape_html(ticket_name)
+    submitted_by_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", submitted_by, "full_name") or submitted_by
+    )
+
+    notification_subject = (
+        f"<strong>{submitted_by_label}</strong> completed Partner work for "
+        f"<strong>HD Ticket</strong> "
+        f'<b class="subject-title">{subject}</b>'
+    )
+
+    email_content = (
+        f"<p>Partner work has been completed for "
+        f"<strong>HD Ticket {ticket_label}</strong> and is ready for Telectro review.</p>"
+    )
+
+    if note:
+        email_content += (
+            f"<p><strong>Note:</strong> {frappe.utils.escape_html(note)}</p>"
+        )
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": notification_subject,
+        "for_user": notify_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket_name,
+        "email_content": email_content,
+    })
+    notification.insert(ignore_permissions=True)
+
+    return notification.name
+
 def _notify_partner_acceptance_submitted(
     ticket_name: str,
     notify_user: str,
@@ -1056,14 +1117,19 @@ def review_partner_acceptance(ticket_name: str, outcome: str, note: str | None =
     
 @frappe.whitelist()
 def submit_partner_work_done_note(ticket_name: str, note: str, completed_on: str | None = None):
+    ticket_name = str(ticket_name or "").strip()
+    note = str(note or "").strip()
+    completed_on = str(completed_on or "").strip()
+
     user = frappe.session.user
     _assert_partner_ticket_access(ticket_name, user)
 
-    note = (note or "").strip()
     if not note:
         frappe.throw("Work done note is required")
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
+    
+    notify_user = str(doc.owner or "").strip()
 
     request_source = (doc.get("custom_request_source") or "").strip()
     fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
@@ -1094,6 +1160,14 @@ def submit_partner_work_done_note(ticket_name: str, note: str, completed_on: str
     )
 
     doc.save(ignore_permissions=True)
+
+    _notify_partner_work_completed(
+        ticket_name=doc.name,
+        notify_user=notify_user,
+        submitted_by=user,
+        note=note,
+    )
+
     _canonicalize_ticket_assignments(doc.name)
     doc.reload()
 
