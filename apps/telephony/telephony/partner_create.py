@@ -69,6 +69,67 @@ TICKET_EVIDENCE_PREVIEW_EXTENSIONS = {
     ".pdf",
 }
 
+def _notify_partner_acceptance_rework_requested(
+    ticket_name: str,
+    notify_user: str,
+    requested_by: str,
+    note: str | None = None,
+):
+    """
+    Notify the Telectro assignee that the Partner requested acceptance rework.
+
+    This is intentionally scoped to the current Telectro assignee only.
+    It creates an in-app Notification Log alert and does not change assignment,
+    ToDo, routing, or Partner workflow state.
+    """
+    ticket_name = str(ticket_name or "").strip()
+    notify_user = str(notify_user or "").strip()
+    requested_by = str(requested_by or "").strip() or frappe.session.user
+    note = str(note or "").strip()
+
+    if not ticket_name or not notify_user:
+        return None
+
+    if notify_user in ("Administrator", "Guest"):
+        return None
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    subject = frappe.utils.escape_html(doc.get("subject") or ticket_name)
+    ticket_label = frappe.utils.escape_html(ticket_name)
+    requested_by_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", requested_by, "full_name") or requested_by
+    )
+
+    notification_subject = (
+        f"<strong>{requested_by_label}</strong> requested Partner acceptance rework for "
+        f"<strong>HD Ticket</strong> "
+        f'<b class="subject-title">{subject}</b>'
+    )
+
+    email_content = (
+        f"<p>Partner acceptance rework was requested for "
+        f"<strong>HD Ticket {ticket_label}</strong>.</p>"
+    )
+
+    if note:
+        email_content += (
+            f"<p><strong>Reason:</strong> {frappe.utils.escape_html(note)}</p>"
+        )
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": notification_subject,
+        "for_user": notify_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket_name,
+        "email_content": email_content,
+    })
+    notification.insert(ignore_permissions=True)
+
+    return notification.name
+
 def _notify_partner_work_rework_requested(
     ticket_name: str,
     partner_user: str,
@@ -1082,14 +1143,18 @@ def submit_partner_completion_note(ticket_name: str, note: str, completed_on: st
 
 @frappe.whitelist()
 def request_partner_acceptance_rework(ticket_name: str, note: str):
+    ticket_name = str(ticket_name or "").strip()
+    note = str(note or "").strip()
+
     user = frappe.session.user
     _assert_partner_ticket_access(ticket_name, user)
 
-    note = (note or "").strip()
     if not note:
         frappe.throw("Rework reason is required")
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
+    
+    notify_user = _first_assigned_user_from_doc(doc)
 
     request_source = (doc.get("custom_request_source") or "").strip()
     fulfilment_party = (doc.get("custom_fulfilment_party") or "").strip()
@@ -1115,6 +1180,13 @@ def request_partner_acceptance_rework(ticket_name: str, note: str):
     )
 
     doc.save(ignore_permissions=True)
+    
+    _notify_partner_acceptance_rework_requested(
+        ticket_name=doc.name,
+        notify_user=notify_user,
+        requested_by=user,
+        note=note,
+    )
     _canonicalize_ticket_assignments(doc.name)
     doc.reload()
 
