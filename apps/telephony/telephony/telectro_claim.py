@@ -2,6 +2,71 @@ import json
 import frappe
 from frappe.utils import now_datetime
 
+def _notify_controlled_handoff_receiver(ticket: str, to_user: str, from_user: str | None, reason: str, changed_by: str):
+    ...
+
+def _notify_controlled_handoff_receiver(
+    ticket: str,
+    to_user: str,
+    from_user: str | None,
+    reason: str,
+    changed_by: str,
+):
+    """
+    Notify the receiving user after a Controlled Handoff.
+
+    This is intentionally scoped to the receiver only.
+
+    Native assignment notifications are not produced by the TELECTRO
+    controlled handoff path because assignment is normalised directly.
+    This helper creates one explicit action-required Notification Log.
+    """
+    ticket = (ticket or "").strip()
+    to_user = (to_user or "").strip()
+    from_user = (from_user or "").strip()
+    reason = (reason or "").strip()
+    changed_by = (changed_by or "").strip() or frappe.session.user
+
+    if not ticket or not to_user:
+        return None
+
+    doc = frappe.get_doc("HD Ticket", ticket)
+
+    subject = frappe.utils.escape_html(doc.get("subject") or ticket)
+    from_label = frappe.utils.escape_html(from_user or "Pool")
+    to_label = frappe.utils.escape_html(to_user)
+    changed_by_label = frappe.utils.escape_html(
+        frappe.db.get_value("User", changed_by, "full_name") or changed_by
+    )
+    reason_label = frappe.utils.escape_html(reason)
+
+    notification_subject = (
+        f"<strong>{changed_by_label}</strong> handed off "
+        f"<strong>HD Ticket</strong> "
+        f'<b class="subject-title">{subject}</b> to you'
+    )
+
+    email_content = (
+        f"<p>You have received a controlled handoff for "
+        f"<strong>HD Ticket {frappe.utils.escape_html(ticket)}</strong>.</p>"
+        f"<p><strong>From:</strong> {from_label}<br>"
+        f"<strong>To:</strong> {to_label}<br>"
+        f"<strong>Reason:</strong> {reason_label}</p>"
+    )
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": notification_subject,
+        "for_user": to_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket,
+        "email_content": email_content,
+    })
+    notification.insert(ignore_permissions=True)
+
+    return notification.name
+    
 def _insert_handoff_audit_log(
     *,
     ticket: str,
@@ -336,6 +401,14 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
         to_user=to_user,
         reason=reason,
         source="Controlled Handoff",
+    )
+
+    _notify_controlled_handoff_receiver(
+        ticket=ticket,
+        to_user=to_user,
+        from_user=from_user,
+        reason=reason,
+        changed_by=user,
     )
 
     frappe.db.commit()
