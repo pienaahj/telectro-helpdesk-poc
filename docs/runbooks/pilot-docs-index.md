@@ -488,6 +488,7 @@ At the moment, the doc set has a good emerging split:
 - **Supervisor Operating Model** = supervisor monitoring, intervention model, and handoff audit usage
 - **SLA and Supervisor Risk Signals** = where Helpdesk SLA timing is configured, how `response_by` / `resolution_by` are derived, and how supervisor risk signals should interpret those fields
 - **Ticket Evidence V1** = private HD Ticket evidence model, supported formats, Partner/internal upload flows, Take Photo capture, and known limitations.
+- **Notification V1 Operating Model** = which workflow events notify, who receives them, and which events are intentionally silent in V1.
 
 That is a healthy baseline for the pilot.
 
