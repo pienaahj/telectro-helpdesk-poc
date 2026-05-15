@@ -1,0 +1,30 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "is_standard": "Yes",
+ "module": "FTelephony",
+ "name": "My Team Load",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "HD Ticket",
+ "report_name": "My Team Load",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "TELECTRO-POC Role - Supervisor Governance"
+  },
+  {
+   "role": "TELECTRO-POC Role - Coordinator Ops"
+  },
+  {
+   "role": "Pilot Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

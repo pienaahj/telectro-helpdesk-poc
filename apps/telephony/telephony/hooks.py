@@ -127,6 +127,7 @@ fixtures = [
                 "Partner Workflow War Room",
                 "My Current Work",
                 "Partner Current Work",
+                "My Team Load",
             ]],
         ],
     },
