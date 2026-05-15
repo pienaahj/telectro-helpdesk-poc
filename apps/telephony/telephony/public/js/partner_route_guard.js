@@ -18,6 +18,7 @@
     "/app/email-account",
     "/app/user",
     "/app/role",
+    "/app/notification-settings",
   ];
 
   const TARGET_ROUTE = "/app/telectro-poc-partner";
@@ -27,23 +28,6 @@
     el.classList.add("hide");
     el.style.setProperty("display", "none", "important");
     el.setAttribute("aria-hidden", "true");
-  }
-
-  function redirectAway() {
-    const currentPath = window.location.pathname || "";
-    if (currentPath === TARGET_ROUTE) return;
-
-    if (window.frappe && typeof frappe.set_route === "function") {
-      frappe.show_alert?.({
-        message: __("This area is not available for Partner users."),
-        indicator: "orange",
-      });
-
-      frappe.set_route("telectro-poc-partner");
-      return;
-    }
-
-    window.location.href = TARGET_ROUTE;
   }
 
   function getRoles() {
@@ -87,6 +71,44 @@
     return BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   }
 
+  function getPartnerHdTicketRouteName() {
+    const path = window.location.pathname || "";
+    const pathMatch = path.match(/^\/app\/hd-ticket\/([^/?#]+)/);
+    if (pathMatch?.[1]) {
+      return decodeURIComponent(pathMatch[1]);
+    }
+
+    const route = window.frappe?.router?.current_route || [];
+    if (Array.isArray(route)) {
+      if (route[0] === "Form" && route[1] === "HD Ticket" && route[2]) {
+        return String(route[2]);
+      }
+
+      if (route[0] === "hd-ticket" && route[1]) {
+        return String(route[1]);
+      }
+
+      if (route[0] === "HD Ticket" && route[1]) {
+        return String(route[1]);
+      }
+    }
+
+    return "";
+  }
+
+  function redirectToPartnerTicket(ticketName) {
+    if (!ticketName) {
+      redirectAway();
+      return;
+    }
+
+    if (window.frappe && typeof frappe.set_route === "function") {
+      frappe.set_route("partner-ticket", ticketName);
+      return;
+    }
+
+    window.location.href = `/app/partner-ticket/${encodeURIComponent(ticketName)}`;
+  }
   function isPartnerWorkspaceRoute() {
     const path = window.location.pathname || "";
     const hash = window.location.hash || "";
@@ -200,6 +222,13 @@
     const path = window.location.pathname || "";
 
     if (!isPartnerUser()) return;
+
+    const partnerTicketName = getPartnerHdTicketRouteName();
+    if (partnerTicketName) {
+      redirectToPartnerTicket(partnerTicketName);
+      return;
+    }
+
     if (!isBlockedPath(path)) return;
 
     redirectAway();
