@@ -56,6 +56,7 @@ fixtures = [
                 "custom_partner_accepted_on",
                 "custom_partner_work_state",
                 "custom_partner_work_completed",
+                "custom_take_ownership_on_create",
             ]],
         ],
     },
