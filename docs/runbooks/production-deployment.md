@@ -534,3 +534,24 @@ The following local POC details should not be copied directly into production:
 - public exposure of database, Redis, backend, scheduler, worker, or websocket ports
 - storing secrets or certificate keys in Git
 - assuming a Mac-built Docker image will run on the Ubuntu server
+
+## Production Users, Teams, and Service Areas
+
+The Telectro service-area/team spreadsheet is an external input document.
+
+It can be used to design:
+
+- service-area coverage
+- initial team structure
+- routing expectations
+- user-role planning
+
+It should not be treated as a final production user-import source until:
+
+- email addresses are confirmed
+- login requirements are confirmed
+- notification expectations are confirmed
+- role profiles are confirmed
+- Boschendal access model is confirmed
+-
+
