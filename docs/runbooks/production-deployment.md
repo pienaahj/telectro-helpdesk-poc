@@ -1576,3 +1576,399 @@ The following still need to be confirmed:
 - expected restore time
 - whether certificate material is backed up or reissued
 - where production secrets are stored
+
+## Production HTTPS and Certificate Model
+
+HTTPS is required for production browser access.
+
+The certificate confirms to the browser that the production web address is trusted and that traffic between the user and the site is encrypted.
+
+Certificate availability is an important input, but it does not by itself complete HTTPS setup.
+
+HTTPS requires:
+
+- agreed production hostname
+- DNS pointing that hostname to the production server
+- firewall access on required ports
+- certificate files
+- private key
+- reverse proxy configuration
+- renewal ownership
+- browser smoke testing
+
+### Plain-language explanation
+
+Users should access the system through a secure web address such as:
+
+```text
+https://support.telectro.co.za
+```
+
+The browser checks whether:
+
+- the certificate is valid
+- the certificate matches the address
+- the certificate is not expired
+- the certificate was issued by a trusted certificate authority
+- the server is presenting the correct certificate chain
+
+If any of these are wrong, users may see browser warnings or may be blocked from accessing the site.
+
+### Hostname and certificate match
+
+The certificate must match the production hostname.
+
+Example:
+
+```text
+Production hostname:
+support.telectro.co.za
+```
+
+The certificate must be valid for:
+
+```text
+support.telectro.co.za
+```
+
+or for a wildcard that covers it, such as:
+
+```text
+*.telectro.co.za
+```
+
+A certificate for one hostname does not automatically work for a different hostname.
+
+For example, a certificate for:
+
+```text
+www.telectro.co.za
+```
+
+does not necessarily cover:
+
+```text
+support.telectro.co.za
+```
+
+unless the certificate includes that name or is a suitable wildcard certificate.
+
+### DNS requirement
+
+The chosen production hostname must point to the production server.
+
+Required decision:
+
+```text
+Who controls DNS for the Telectro domain?
+```
+
+Required action:
+
+```text
+Create or update the DNS record so the production hostname points to the production server public IP address.
+```
+
+Example:
+
+```text
+support.telectro.co.za -> production server public IP
+```
+
+HTTPS cannot be tested properly from normal user browsers until DNS points to the correct server or a controlled temporary hosts-file test is used.
+
+### Firewall requirement
+
+The production server must allow browser traffic.
+
+Expected public ports:
+
+```text
+80   HTTP, mainly for redirect/certificate validation/renewal
+443  HTTPS, normal browser access
+```
+
+Port `443` is required for normal HTTPS access.
+
+Port `80` is commonly used for:
+
+- redirecting HTTP users to HTTPS
+- certificate validation/renewal, depending on certificate approach
+- initial smoke testing
+
+Administrative SSH access may also be required:
+
+```text
+22   SSH, preferably restricted where possible
+```
+
+Database, Redis, backend, worker, scheduler, and websocket ports should not be publicly exposed.
+
+### Certificate files
+
+Certificate material commonly includes:
+
+```text
+certificate file
+private key file
+chain/intermediate certificate file
+```
+
+File extensions may vary.
+
+Examples:
+
+```text
+.crt
+.key
+.pem
+.ca-bundle
+fullchain.pem
+privkey.pem
+```
+
+The exact file names are less important than understanding what each file is for.
+
+### Certificate file roles
+
+#### Certificate file
+
+The certificate file identifies the hostname and the certificate authority that issued the certificate.
+
+This file is usually safe to distribute to the server components that need it.
+
+#### Private key file
+
+The private key proves that the server is allowed to use the certificate.
+
+This file is sensitive.
+
+Rules:
+
+- do not commit the private key to Git
+- do not paste the private key into runbooks
+- do not send it through casual channels
+- restrict file permissions on the server
+- only allow required administrators/services to read it
+
+If the private key is exposed, the certificate should be considered compromised and may need to be replaced.
+
+#### Chain/intermediate certificate file
+
+The chain file helps browsers verify that the certificate was issued by a trusted certificate authority.
+
+If the chain is missing or incorrect, some browsers or devices may show trust errors even if the certificate itself is valid.
+
+### Certificate storage on the server
+
+The agreed certificate storage path must be documented before deployment.
+
+Example intent:
+
+```text
+/opt/telectro-erpnext/certs
+```
+
+or:
+
+```text
+/etc/telectro-erpnext/certs
+```
+
+The final path should depend on the chosen production compose and reverse proxy structure.
+
+Storage rules:
+
+- certificate files live on the production server
+- certificate private keys stay outside Git
+- file ownership and permissions must be restricted
+- the Docker/reverse proxy service must be able to read the required files
+- the path must be included in the deployment/restore notes
+
+### Reverse proxy responsibility
+
+In production, HTTPS should normally be handled by a reverse proxy.
+
+Expected traffic flow:
+
+```text
+Browser
+  -> HTTPS on port 443
+  -> reverse proxy
+  -> internal Docker network
+  -> ERPNext/Frappe frontend/backend services
+```
+
+The reverse proxy is responsible for:
+
+- listening on ports `80` and `443`
+- presenting the certificate
+- redirecting HTTP to HTTPS, if configured
+- forwarding traffic to the correct internal service
+- preserving required headers for Frappe/ERPNext
+
+Possible reverse proxy choices include:
+
+- Traefik
+- Nginx
+- Caddy
+
+The project should use the simplest reverse proxy model that fits the chosen production Docker Compose structure.
+
+### Frappe / ERPNext site URL
+
+The Frappe site configuration should align with the production hostname.
+
+Example:
+
+```text
+Production hostname:
+support.telectro.co.za
+
+Frappe site name:
+support.telectro.co.za
+```
+
+This avoids confusion in:
+
+- bench commands
+- site configuration
+- email links
+- notification links
+- browser redirects
+- HTTPS configuration
+
+The final site name must be decided before production site creation or restore.
+
+### Email links and HTTPS
+
+If the system sends email notifications, links in those emails should point to the HTTPS production address.
+
+For example:
+
+```text
+https://support.telectro.co.za/app
+```
+
+not:
+
+```text
+http://localhost:8080
+```
+
+and not an internal Docker hostname.
+
+This means the production site URL and email configuration must be checked together.
+
+### Certificate renewal
+
+Every certificate has an expiry date.
+
+The production plan must document:
+
+- certificate expiry date
+- who owns renewal
+- how renewal is done
+- where renewed files must be placed
+- whether services must be restarted/reloaded after renewal
+- how renewal is tested
+
+An expired certificate can cause browser warnings and may block users from accessing the system.
+
+### Manual certificate vs automated certificate
+
+There are two broad certificate models.
+
+#### Manual / supplied certificate
+
+Telectro supplies the certificate files.
+
+Deployment responsibility:
+
+- place files on server
+- configure reverse proxy to use them
+- track expiry date
+- replace files before expiry
+- reload/restart proxy after renewal
+
+This appears to be the current likely model because Telectro has confirmed that a certificate is available.
+
+#### Automated certificate
+
+A reverse proxy or certificate tool requests and renews the certificate automatically, for example through Let's Encrypt.
+
+Deployment responsibility:
+
+- configure DNS
+- expose required ports
+- configure reverse proxy/certificate resolver
+- monitor renewal
+- confirm renewal works
+
+This may be considered later, but should not be assumed unless Telectro confirms this is preferred.
+
+### Certificate handling during backup and restore
+
+Certificate private keys and secrets need careful restore handling.
+
+The restore plan must answer:
+
+- are certificate files backed up?
+- where are they stored?
+- who can access them?
+- can the certificate be reissued instead?
+- what happens if the private key is lost?
+- what happens if the private key is exposed?
+
+Certificate private keys must not be included in Git-based backups or documentation.
+
+### HTTPS smoke checks
+
+After deployment, confirm:
+
+- production URL opens over HTTPS
+- browser shows no certificate warning
+- certificate hostname matches the production hostname
+- certificate is not expired
+- certificate chain is trusted
+- login page loads
+- app assets load without `/assets/...` errors
+- HTTP redirects to HTTPS, if configured
+- email-generated links use the HTTPS production hostname
+
+Suggested browser check:
+
+```text
+Open the production URL in a normal browser session and confirm the lock/security indicator is clean.
+```
+
+Suggested command-line checks may be added later once the production hostname is known.
+
+### Minimum HTTPS pass set for first technical deployment
+
+For the first technical deployment, the minimum acceptable HTTPS state is:
+
+- production hostname confirmed
+- certificate hostname match confirmed
+- DNS points to the production server, or a temporary controlled test method is documented
+- ports `80` and `443` are open as required
+- reverse proxy presents the certificate
+- browser access over HTTPS works without warnings
+- login page loads without missing asset errors
+- certificate expiry date is recorded
+- renewal owner is recorded
+
+### Open decisions
+
+The following still need to be confirmed:
+
+- final production hostname
+- whether the certificate is single-name or wildcard
+- exact certificate file names supplied by Telectro
+- certificate expiry date
+- certificate renewal owner
+- certificate storage path on the server
+- reverse proxy choice
+- whether HTTP should redirect to HTTPS
+- whether certificate renewal is manual or automated
+- whether certificate files are backed up or reissued during restore
