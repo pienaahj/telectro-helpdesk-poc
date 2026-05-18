@@ -1972,3 +1972,411 @@ The following still need to be confirmed:
 - whether HTTP should redirect to HTTPS
 - whether certificate renewal is manual or automated
 - whether certificate files are backed up or reissued during restore
+
+## Production Email Model
+
+Email is a production dependency, but it should be introduced in controlled phases.
+
+There are three separate concerns that should not be mixed together:
+
+```text
+Frappe User email address:
+The login identity for a person.
+
+Outgoing email:
+The system sends emails through SMTP.
+
+Incoming email:
+The system reads a mailbox and creates tickets from received emails.
+```
+
+A production user can exist before all email features are fully proven, but password reset emails, welcome emails, email notifications, and incoming ticket creation depend on email configuration being correct.
+
+### Plain-language explanation
+
+For production, email answers several different questions:
+
+- Can users log in with their real email address?
+- Can the system send password reset or welcome emails?
+- Can the system send controlled notifications?
+- Should the system receive emails and create tickets from them?
+- Which mailbox should be used for system sending?
+- Which mailbox should be used for incoming support requests, if any?
+
+These should be handled step by step.
+
+### Frappe User email address
+
+In Frappe/ERPNext, a user account is usually identified by an email address.
+
+Example:
+
+```text
+technician@telectro.co.za
+```
+
+This email address is the user's login identity.
+
+This is different from configuring a mailbox that Frappe connects to.
+
+A user account answers:
+
+```text
+Who can log in?
+```
+
+It does not automatically prove:
+
+```text
+Can the system send email?
+Can the system read a mailbox?
+Can password reset emails be delivered?
+```
+
+### Frappe Email Account
+
+A Frappe Email Account is a configured mailbox/server connection.
+
+It may be used for:
+
+```text
+sending outgoing email
+receiving incoming email
+or both
+```
+
+A Frappe Email Account usually requires mail server details such as:
+
+- SMTP server
+- SMTP port
+- username
+- password or app-password
+- sender address
+- security mode
+- IMAP/POP server, if incoming mail is required
+- IMAP/POP port, if incoming mail is required
+
+This requires authentication to the real mail server.
+
+### Outgoing email
+
+Outgoing email means the system sends messages to users.
+
+Examples:
+
+- welcome emails
+- password reset emails
+- assignment/update notifications, if enabled
+- controlled test messages
+- workflow-related communication, if configured later
+
+Outgoing email should be proven before full user onboarding.
+
+Required information:
+
+- SMTP server
+- SMTP port
+- SMTP username
+- SMTP password or app-password
+- sender email address
+- whether TLS/SSL is required
+- whether the sender address is allowed by Telectro mail policy
+- controlled test recipient
+
+Suggested sender examples:
+
+```text
+support@telectro.co.za
+helpdesk@telectro.co.za
+no-reply@telectro.co.za
+```
+
+The final sender address must be confirmed by Telectro.
+
+### Incoming email
+
+Incoming email means the system reads a mailbox and creates tickets from received emails.
+
+This is more complex than outgoing email.
+
+Incoming email may introduce:
+
+- duplicate ticket risk
+- mail loops
+- signature images as attachments
+- unexpected attachments
+- spam/noise
+- sender/contact mapping issues
+- permission/routing ambiguity
+- mailbox polling errors
+- confusion between human replies and new tickets
+
+Incoming helpdesk mailbox processing should only be enabled when explicitly in scope.
+
+Recommended first production stance:
+
+```text
+Phase 1:
+Outgoing email only.
+
+Phase 2:
+Incoming helpdesk mailbox after production site, HTTPS, backup, restore, and user access are stable.
+```
+
+### Recommended production email rollout
+
+#### Phase 1: Local functional proof
+
+Continue using the local Docker mail server for development and pilot workflow testing.
+
+This proves:
+
+- workflows
+- role behaviour
+- notification creation
+- ticket routing
+- user interface behaviour
+- Partner-safe routing
+- email-triggered logic in a controlled environment, if needed
+
+This does not prove real SMTP delivery.
+
+#### Phase 2: Controlled outgoing SMTP proof
+
+Configure one real outgoing mail account or test mailbox.
+
+Use a controlled Telectro test recipient.
+
+Prove:
+
+- Frappe can authenticate to SMTP
+- one controlled email can be sent
+- the email arrives in a real inbox
+- sender address looks correct
+- email is not blocked, quarantined, or rejected
+- generated links use the HTTPS production hostname
+
+Do not send bulk welcome/password reset emails before this passes.
+
+#### Phase 3: Small user login batch
+
+Create or activate a small first batch of users.
+
+Suggested users:
+
+- one administrator/internal admin
+- one technician
+- one coordinator/supervisor
+- one Partner/customer-side user, if Partner access is in scope
+
+Prove:
+
+- users can log in
+- role profiles are correct
+- workspace landing is correct
+- password reset/welcome email works, if used
+- no user receives inappropriate access
+
+#### Phase 4: Wider user onboarding
+
+Only after SMTP and login smoke checks pass, create or activate the wider confirmed production user list.
+
+Before wider onboarding, confirm:
+
+- email addresses are correct
+- users who should log in are marked clearly
+- users who are contacts only are not created as login users unnecessarily
+- role/profile assignments are confirmed
+- notification expectations are confirmed
+
+#### Phase 5: Incoming mailbox processing, if required
+
+Enable incoming helpdesk mailbox processing only after first production stability is proven.
+
+Before enabling, confirm:
+
+- mailbox address
+- IMAP/POP access method
+- polling behaviour
+- ticket creation rules
+- sender/contact mapping
+- attachment handling expectation
+- spam/noise expectations
+- mail loop prevention
+- who monitors failed intake
+
+### User creation and email delivery
+
+Production user creation and production email delivery are related, but not the same.
+
+A user can be created with an email address before outgoing email is proven.
+
+However:
+
+- welcome emails will not deliver until SMTP works
+- password resets will not deliver until SMTP works
+- notification emails will not deliver until SMTP works
+- incorrect email addresses may create onboarding problems
+
+Recommended rule:
+
+```text
+Do not bulk-create or invite all real users until outgoing SMTP has been proven.
+```
+
+### Login users vs contacts only
+
+The production user spreadsheet should distinguish between:
+
+```text
+Login user:
+A person who signs in to the system.
+
+Contact only:
+A person recorded as a contact but not expected to log in.
+
+Notification recipient:
+A person who may receive email communication.
+
+Partner/customer-side user:
+A restricted user who may access Partner/customer-safe surfaces.
+```
+
+Do not assume every person in a contact list needs a login account.
+
+This is especially important for Boschendal contacts.
+
+### Partner/customer-side email considerations
+
+Partner/customer-side users need extra care.
+
+Before creating Partner/customer-side login users, confirm:
+
+- should they log in at all?
+- should they only receive email?
+- should they see Partner-safe ticket pages?
+- should they create new requests?
+- should they see only their own organisation/customer tickets?
+- should they receive Notification Log alerts?
+- should they receive emails?
+
+Partner/customer-side access should not be inferred from an email address alone.
+
+The access model must be confirmed before production onboarding.
+
+### Notification expectations
+
+The current pilot Notification V1 model is based on in-app Notification Log alerts.
+
+Email notifications should not be promised automatically unless configured and tested.
+
+Plain-language position:
+
+```text
+In-system notifications and workspace/report visibility remain the operational source of truth.
+
+Email may be added for selected high-value events after outgoing email is proven.
+```
+
+This avoids promising full email-driven operations before SMTP behaviour is confirmed.
+
+### Email links and production URL
+
+Any email generated by production should point to the production HTTPS hostname.
+
+Correct example:
+
+```text
+https://support.telectro.co.za/app
+```
+
+Incorrect examples:
+
+```text
+http://localhost:8080
+http://frontend:8080
+http://backend:8000
+```
+
+Before sending production emails, confirm that generated links use the production HTTPS address.
+
+### Test mailbox
+
+A controlled Telectro mailbox is useful for first proof.
+
+Suggested use:
+
+- first outgoing SMTP test
+- first password reset/welcome email test
+- first notification email test, if enabled
+- first incoming mailbox test, if incoming mail is in scope
+
+The test mailbox should be used before emailing the wider user list.
+
+### Email smoke checks
+
+Outgoing email smoke check:
+
+- SMTP account configured
+- SMTP authentication succeeds
+- one controlled email sends
+- real inbox receives the email
+- sender address is correct
+- links point to HTTPS production hostname
+- no unexpected bulk email is triggered
+
+Incoming email smoke check, only if in scope:
+
+- mailbox connection succeeds
+- one controlled inbound email is received
+- expected ticket is created
+- sender/contact mapping is acceptable
+- attachments do not break intake
+- no duplicate ticket is created
+- no mail loop occurs
+
+### Minimum email pass set for first technical deployment
+
+For first technical deployment, email can be handled in one of two ways.
+
+#### If outgoing email is in scope
+
+Minimum pass set:
+
+- SMTP details confirmed
+- controlled sender mailbox confirmed
+- controlled recipient confirmed
+- one outgoing test email delivered
+- generated links use HTTPS production hostname
+- no bulk onboarding email sent before proof
+
+#### If outgoing email is not yet in scope
+
+Minimum pass set:
+
+- email marked as deferred
+- users are not told to rely on password reset/welcome emails
+- onboarding uses a controlled manual process
+- incoming mailbox processing remains disabled
+- Telectro understands email is not yet part of the technical deployment pass
+
+### More Open decisions
+
+The following still need to be confirmed:
+
+- system sender email address
+- SMTP server
+- SMTP port
+- SMTP security mode
+- SMTP username
+- SMTP password/app-password handling
+- controlled test recipient
+- whether welcome emails should be sent
+- whether password reset emails should be used during onboarding
+- whether email notifications are required for first production use
+- whether incoming helpdesk mailbox processing is in scope
+- incoming mailbox address, if required
+- IMAP/POP details, if required
+- who monitors failed email sending
+- who monitors incoming email intake
+- whether Boschendal contacts are login users, contacts only, or notification recipients
