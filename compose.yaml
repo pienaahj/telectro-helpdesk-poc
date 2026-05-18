@@ -120,8 +120,6 @@ services:
     restart: unless-stopped
     networks:
       - frappe_network
-    ports:
-      - "8080:8080"
     environment:
       FRAPPE_PY: backend
       FRAPPE_PY_PORT: "8000"
@@ -222,8 +220,6 @@ services:
     image: frappe/erpnext:v15.94.1
     networks:
       - frappe_network
-    ports:
-    - "9000:9000"
     deploy:
       restart_policy:
         condition: on-failure
