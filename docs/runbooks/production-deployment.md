@@ -2380,3 +2380,456 @@ The following still need to be confirmed:
 - who monitors failed email sending
 - who monitors incoming email intake
 - whether Boschendal contacts are login users, contacts only, or notification recipients
+
+## Production Open Decisions and Telectro Inputs
+
+This section consolidates the open decisions and missing inputs required before production deployment can proceed safely.
+
+The purpose is to give Telectro a clear, plain-language checklist of what is still needed.
+
+This list should be reviewed before production deployment starts.
+
+### 1. Access address / hostname
+
+Required decision:
+
+```text
+What web address should users type into their browser?
+```
+
+Examples:
+
+```text
+https://support.telectro.co.za
+https://helpdesk.telectro.co.za
+https://erp.telectro.co.za
+```
+
+Inputs needed:
+
+- final production hostname
+- confirmation that Telectro controls the domain
+- name/contact of the person who can update DNS
+- confirmation that the hostname should be used in email links
+- confirmation that this hostname matches or is covered by the certificate
+
+Why this matters:
+
+The hostname connects the browser URL, DNS, HTTPS certificate, Frappe site name, and email links.
+
+### 2. DNS
+
+Required decision:
+
+```text
+Who will point the production hostname to the production server?
+```
+
+Inputs needed:
+
+- DNS owner/contact
+- DNS provider, if known
+- production server public IP address
+- timing for DNS change
+- whether a temporary test hostname is needed before final go-live
+
+Why this matters:
+
+Users cannot reliably access the system by the production hostname until DNS points to the server.
+
+### 3. Production server
+
+Required decision:
+
+```text
+Which Ubuntu server will host production?
+```
+
+Inputs needed:
+
+- server provider/location
+- Ubuntu version
+- public IP address
+- CPU/RAM/disk details if available
+- SSH access method
+- deployment/admin user
+- who has server admin access
+- whether Docker is approved on the server
+- whether outbound internet access is available
+- whether there is a separate staging/test server
+
+Why this matters:
+
+The production deployment, backups, restore, HTTPS, and smoke tests depend on the server being available and prepared.
+
+### 4. Firewall / public access
+
+Required decision:
+
+```text
+Who controls firewall rules and public access?
+```
+
+Inputs needed:
+
+- firewall owner/contact
+- confirmation that port `443` can be opened for HTTPS
+- confirmation that port `80` can be opened if required for redirect/certificate validation
+- SSH access policy
+- whether SSH can be restricted to trusted IP addresses
+- confirmation that database/Redis/internal service ports should remain private
+
+Expected public ports:
+
+```text
+80   HTTP, mainly for redirect/certificate validation/renewal
+443  HTTPS, normal browser access
+```
+
+Administrative access:
+
+```text
+22   SSH, preferably restricted where possible
+```
+
+Why this matters:
+
+Production should expose only what users and administrators require.
+
+### 5. Certificate
+
+Required decision:
+
+```text
+What certificate files are available and who owns renewal?
+```
+
+Inputs needed:
+
+- certificate hostname
+- whether certificate is wildcard or single-name
+- certificate expiry date
+- certificate file
+- private key file
+- chain/intermediate certificate file, if supplied
+- renewal owner
+- renewal process
+- whether certificate can be reissued if needed
+- approved method for transferring certificate files to the server
+
+Important rule:
+
+```text
+Certificate private keys must not be committed to Git or pasted into documentation.
+```
+
+Why this matters:
+
+HTTPS will not work safely unless the certificate matches the hostname, the private key is protected, and renewal responsibility is clear.
+
+### 6. Reverse proxy
+
+Required decision:
+
+```text
+Which service will handle HTTPS traffic?
+```
+
+Inputs needed:
+
+- preferred reverse proxy approach, if Telectro has one
+- whether Traefik, Nginx, or another proxy is preferred
+- whether Telectro already has an existing public reverse proxy
+- whether the ERPNext stack should manage HTTPS itself
+- whether HTTP should redirect to HTTPS
+
+Why this matters:
+
+The reverse proxy presents the certificate and forwards browser traffic to the internal ERPNext/Frappe services.
+
+### 7. Email sending
+
+Required decision:
+
+```text
+Which email address should the system send from?
+```
+
+Inputs needed:
+
+- sender email address
+- SMTP server
+- SMTP port
+- SMTP security mode
+- SMTP username
+- SMTP password or app-password handling
+- whether the sender is allowed by Telectro mail policy
+- controlled test recipient
+- whether welcome/password reset emails should be used for onboarding
+
+Suggested sender examples:
+
+```text
+support@telectro.co.za
+helpdesk@telectro.co.za
+no-reply@telectro.co.za
+```
+
+Why this matters:
+
+Real user onboarding, password reset, and email notifications depend on outgoing SMTP being proven first.
+
+### 8. Incoming support mailbox
+
+Required decision:
+
+```text
+Should the system read incoming emails and create tickets during first production use?
+```
+
+Inputs needed if incoming email is in scope:
+
+- incoming mailbox address
+- IMAP/POP server
+- IMAP/POP port
+- authentication method
+- polling expectation
+- attachment expectation
+- spam/noise handling expectation
+- who monitors failed intake
+- whether this mailbox is dedicated to Helpdesk
+
+Recommended first-production stance:
+
+```text
+Prove outgoing email first.
+Enable incoming helpdesk mailbox later unless explicitly required for first production use.
+```
+
+Why this matters:
+
+Incoming email is more complex than outgoing email and can introduce duplicates, mail loops, signatures as attachments, spam, and routing ambiguity.
+
+### 9. Users and contacts
+
+Required decision:
+
+```text
+Who should exist in production and what access should each person have?
+```
+
+Inputs needed:
+
+- confirmed user/contact spreadsheet
+- name
+- email address
+- organisation/customer/partner
+- login user vs contact only
+- role/profile required
+- notification expectation
+- whether the person should receive email
+- whether the person should be able to create requests
+- whether the person should access Partner/customer-safe pages
+- whether the person is internal Telectro, Boschendal, Partner, or contact-only
+
+Important distinction:
+
+```text
+Login user:
+A person who signs in to the system.
+
+Contact only:
+A person recorded for reference or communication, but not expected to log in.
+
+Notification recipient:
+A person who may receive email communication.
+
+Partner/customer-side user:
+A restricted user who may access safe external-facing pages.
+```
+
+Why this matters:
+
+An email address alone does not define permissions. Access must be deliberate, especially for Boschendal and Partner/customer-side users.
+
+### 10. Teams, service areas, and routing
+
+Required decision:
+
+```text
+How should service-area skills and team coverage translate into production configuration?
+```
+
+Inputs needed:
+
+- confirmed service-area/team matrix
+- which staff cover which service areas
+- default routing behaviour
+- campus/customer-specific routing expectations
+- whether Boschendal has dedicated coverage
+- fallback owner/team when no clear match exists
+- who may reassign or hand off tickets
+
+Why this matters:
+
+The team spreadsheet can guide production setup, but final routing should only be configured after users and access roles are confirmed.
+
+### 11. Backup storage
+
+Required decision:
+
+```text
+Where will production backups be stored?
+```
+
+Inputs needed:
+
+- backup location
+- backup owner
+- whether backups are stored on-server or off-server
+- retention period
+- who can access backups
+- whether server snapshots are available
+- whether backups are encrypted/protected
+- monitoring expectation
+- restore owner
+
+Why this matters:
+
+Production deployment is not safe unless backup and restore expectations are clear before users depend on the system.
+
+### 12. Restore expectation
+
+Required decision:
+
+```text
+When and how will restore be tested?
+```
+
+Inputs needed:
+
+- restore test owner
+- restore test target
+- acceptable restore test timing
+- expected restore time objective, if any
+- whether a staging/test server can be used for restore proof
+- what counts as successful restore
+
+Why this matters:
+
+A backup that has never been restored should not be treated as fully proven.
+
+### 13. Deployment ownership
+
+Required decision:
+
+```text
+Who approves and performs the first production deployment?
+```
+
+Inputs needed:
+
+- deployment owner
+- technical approver
+- Telectro contact during deployment
+- maintenance window
+- communication method during deployment
+- who can approve rollback
+- who can approve go-live
+
+Why this matters:
+
+Deployment should be controlled and auditable, with clear responsibility for decisions.
+
+### 14. Smoke-test sign-off
+
+Required decision:
+
+```text
+Who signs off that the technical deployment passed smoke testing?
+```
+
+Inputs needed:
+
+- smoke-test owner
+- Telectro validation contact
+- required test users
+- required test workflows
+- expected sign-off format
+- list of checks that may be deferred
+
+Minimum first technical deployment pass set:
+
+```text
+HTTPS browser access
+container/service health
+Administrator login
+at least one internal user login
+expected workspace landing
+controlled ticket creation
+key reports load
+backup taken
+rollback path understood
+```
+
+Why this matters:
+
+Technical deployment should not be confused with operational go-live.
+
+### 15. Operational go-live
+
+Required decision:
+
+```text
+When should real users start relying on the system?
+```
+
+Inputs needed:
+
+- go-live owner
+- go-live date/window
+- first user group
+- support contact during go-live
+- what happens if users find issues
+- whether old process remains available temporarily
+- whether incoming email is part of go-live
+- whether Partner/customer-side users are included in first go-live
+
+Why this matters:
+
+A successful technical deployment does not automatically mean the organisation is ready to switch operational behaviour.
+
+### 16. Open items summary
+
+Before first production deployment, the following must be known:
+
+- production hostname
+- DNS owner
+- production server access
+- firewall owner
+- certificate details
+- certificate renewal owner
+- reverse proxy approach
+- production secrets approach
+- SMTP sender account, if email is in scope
+- initial user/contact list status
+- backup location
+- rollback path
+- smoke-test owner
+- go-live/sign-off owner
+
+Before operational go-live, the following should be proven:
+
+- HTTPS access
+- service health
+- admin login
+- internal user login
+- workspace landing
+- controlled ticket creation
+- key reports
+- evidence handling, if in scope
+- Notification Log, if in scope
+- outgoing email, if in scope
+- backup taken
+- rollback understood
+- deferred items recorded
