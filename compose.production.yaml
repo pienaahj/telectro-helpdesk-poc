@@ -1,0 +1,93 @@
+# compose.production.yaml
+#
+# Production deployment skeleton.
+#
+# This file is not intended to be used blindly yet.
+# It documents the intended production shape:
+#
+# - Traefik handles public HTTP/HTTPS.
+# - Browser traffic enters through ports 80/443 only.
+# - Traefik routes ERPNext/Frappe browser traffic to the frontend nginx service.
+# - Backend, database, Redis, workers, scheduler, and websocket remain internal.
+# - Certificate material is mounted from ./certs and must not be committed to Git.
+#
+# Expected command shape later:
+#
+# docker compose -f compose.yaml -f compose.production.yaml up -d
+#
+# IMPORTANT:
+# The current base compose.yaml still loads .env and contains local-only/test assumptions.
+# Before real production use, the compose structure must be reviewed so local .env,
+# local mail defaults, test passwords, and development helper services do not merge
+# into the production config.
+
+services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+
+      # Public entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      # HTTP -> HTTPS redirect
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      # File provider for supplied certificate configuration.
+      # Exact config file will be added once certificate layout is confirmed.
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+
+      # Keep dashboard disabled for production by default.
+      # If enabled for diagnostics, protect it and do not expose it publicly.
+      - "--api.dashboard=false"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./certs:/certs:ro"
+      - "./traefik/dynamic:/etc/traefik/dynamic:ro"
+    networks:
+      - frappe_network
+
+  frontend:
+    # In production, Traefik should route to frontend/nginx, not directly to backend.
+    # The direct host port 8080 from compose.yaml is local-only and should not be
+    # exposed in production once the compose structure is finalised.
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.erpnext.rule=Host(`${PRODUCTION_HOSTNAME:?Set PRODUCTION_HOSTNAME}`)"
+      - "traefik.http.routers.erpnext.entrypoints=websecure"
+      - "traefik.http.routers.erpnext.tls=true"
+      - "traefik.http.routers.erpnext.service=erpnext-frontend"
+
+      - "traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080"
+
+    environment:
+      FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:?Set SITE_NAME}
+      WEB_PORT: "8080"
+
+  backend:
+    environment:
+      # Production should use SITE_NAME rather than hard-coded "frontend".
+      # The current base healthcheck still uses frontend and must be adjusted later.
+      TELECTRO_DEBUG: "0"
+
+  # Production should not expose websocket directly to the host.
+  # The frontend/nginx service should reach websocket internally through Docker networking.
+  # Local Docker mail server is not part of production.
+  # Production email should use a real SMTP account configured in Frappe.
+  mail:
+    profiles:
+      - local-only
+
+  # bench-runner is local repair/tooling only and should not run in production.
+  bench-runner:
+    profiles:
+      - local-only
