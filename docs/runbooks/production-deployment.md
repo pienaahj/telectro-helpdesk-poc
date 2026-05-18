@@ -553,5 +553,273 @@ It should not be treated as a final production user-import source until:
 - notification expectations are confirmed
 - role profiles are confirmed
 - Boschendal access model is confirmed
--
 
+## First Production Deployment Command Flow
+
+This section describes the intended first production deployment flow.
+
+The exact commands may change after the production server, hostname, secrets model, certificate layout, and Docker Compose production structure are confirmed.
+
+The goal of this section is to define the order of operations before writing deployment scripts.
+
+The first production deployment should be manual, controlled, and auditable. Automation can be added later after the manual process is proven.
+
+### 1. Confirm production inputs
+
+Before touching the production server, confirm the required production inputs.
+
+Required inputs:
+
+- production hostname / web address
+- production server IP address
+- SSH access method
+- administrator access owner
+- firewall owner
+- certificate files and expiry date
+- SMTP account details, if outgoing email will be tested
+- initial user/contact spreadsheet status
+- backup location
+- rollback expectation
+- go-live/sign-off owner
+
+Do not begin production deployment if the hostname, server access, certificate handling, and backup location are still unknown.
+
+### 2. Prepare Ubuntu server
+
+Prepare the Ubuntu server as a Docker host.
+
+Expected preparation:
+
+- confirm Ubuntu version
+- update package lists
+- install required OS updates
+- create or confirm deployment/admin user
+- configure SSH access
+- confirm disk space
+- confirm outbound internet access
+- confirm firewall rules
+- install Docker
+- install Docker Compose plugin
+- confirm Docker runs after reboot
+
+The production server should not expose database, Redis, backend, worker, scheduler, or websocket ports directly to the internet.
+
+Expected public ports:
+
+```text
+80   HTTP, mainly for redirect/certificate validation/renewal
+443  HTTPS, normal browser access
+```
+
+Administrative SSH access may also be required, preferably restricted where possible.
+
+### 3. Clone repository
+
+Clone the project repository on the production server using a controlled deployment path.
+
+Example deployment location:
+
+```text
+/opt/telectro-erpnext
+```
+
+The exact path can be changed, but it should be documented and used consistently.
+
+The production server should deploy from Git, not from manually copied edited files.
+
+### 4. Checkout release tag
+
+Production should deploy from a Git tag, not from a moving branch.
+
+Expected flow:
+
+```text
+git fetch --tags
+git checkout <release-tag>
+```
+
+The release tag should represent a known reviewed state.
+
+Avoid deploying directly from a working branch unless this is explicitly agreed as an emergency/manual intervention.
+
+### 5. Configure production environment and secrets
+
+Create the required production environment and secret files on the server.
+
+These values must not be committed to Git.
+
+Examples of production secrets:
+
+- database root password
+- site database password
+- Frappe Administrator password
+- SMTP password or app-password
+- certificate private key
+- deployment SSH key or token, if used later
+- any API keys or integration credentials
+
+The repository may contain safe examples such as:
+
+```text
+.env.example
+```
+
+But the real production values must live only on the server or in an approved secrets store.
+
+### 6. Place certificate files
+
+Place certificate files on the production server in the agreed location.
+
+Typical certificate material may include:
+
+```text
+certificate file
+private key file
+chain/intermediate certificate file
+```
+
+The private key is sensitive.
+
+Rules:
+
+- do not commit certificate private keys to Git
+- do not paste private keys into runbooks
+- restrict file permissions
+- document expiry date
+- document renewal owner
+- document renewal process
+
+The certificate must match the chosen production hostname.
+
+### 7. Start Docker Compose stack
+
+Start the production Docker Compose stack using the production compose files.
+
+The exact compose command depends on the final production compose structure.
+
+Expected intent:
+
+```text
+docker compose -f compose.yaml -f compose.production.yaml up -d
+```
+
+The production stack should use:
+
+- production-safe secrets
+- stable image versions or a controlled custom image
+- persistent volumes
+- internal Docker networking
+- HTTPS reverse proxy configuration
+- no direct public database/Redis/backend exposure
+
+### 8. Run migration and build steps
+
+After the stack is running, run the required Frappe/ERPNext site commands.
+
+Expected operations may include:
+
+```text
+bench --site <production-site> migrate
+bench --site <production-site> clear-cache
+bench --site <production-site> clear-website-cache
+bench build
+```
+
+The exact commands should be confirmed once the final production image and compose structure are chosen.
+
+If the production image already contains built assets, the build step may be different or unnecessary.
+
+### 9. Run service health checks
+
+Confirm that the containers are running and healthy.
+
+Checks should include:
+
+- backend health
+- frontend/reverse proxy health
+- database health
+- Redis health
+- websocket service
+- queue workers
+- scheduler
+- site ping endpoint
+- browser access
+
+Example intent:
+
+```text
+/api/method/ping returns successfully
+```
+
+Do not proceed to user testing until service health checks pass.
+
+### 10. Run smoke checks
+
+Run a small production smoke-test checklist before calling the deployment successful.
+
+Minimum smoke checks:
+
+- administrator login
+- internal user login
+- Partner user login, if available
+- expected workspace landing
+- create or open a test ticket
+- run key reports
+- Partner-safe ticket page opens
+- evidence list/upload/download works, if in scope
+- Notification Log visibility works, if in scope
+- outgoing email test succeeds, if SMTP is configured
+- HTTPS browser access is clean
+
+Smoke testing proves that the deployment is usable.
+
+It is not the same as operational go-live.
+
+### 11. Take first known-good backup
+
+After the first successful technical deployment and smoke test, take a known-good backup.
+
+The backup should include:
+
+- database
+- Frappe sites data
+- private files
+- public files/assets if required
+- relevant configuration
+- any production-specific restore notes
+
+The backup location and retention policy must be documented.
+
+A backup that has never been restored should not be treated as fully proven.
+
+### 12. Document rollback path
+
+Before go-live, document how to roll back.
+
+Rollback options may include:
+
+- return to previous Git tag
+- restore previous database/site backup
+- restore previous compose configuration
+- restart previous known-good containers
+- disable public access temporarily if the deployment is unsafe
+
+The rollback path must be understandable before production users depend on the system.
+
+### 13. Separate deployment from go-live
+
+The first production deployment is a technical milestone.
+
+It does not automatically mean operational go-live.
+
+Production go-live should happen only after:
+
+- deployment completed
+- HTTPS confirmed
+- backup completed
+- rollback understood
+- smoke checks passed
+- required users confirmed
+- Telectro sign-off received
+- support/contact process agreed
+-
