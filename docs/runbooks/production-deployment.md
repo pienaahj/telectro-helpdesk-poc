@@ -822,4 +822,436 @@ Production go-live should happen only after:
 - required users confirmed
 - Telectro sign-off received
 - support/contact process agreed
--
+
+## Production Smoke-Test Checklist
+
+This checklist defines the minimum checks that should pass after a production deployment before the deployment is treated as technically successful.
+
+Smoke testing is not the same as operational go-live.
+
+A smoke test answers:
+
+```text
+Is the deployed system reachable, usable, and safe enough for controlled validation?
+```
+
+Operational go-live answers:
+
+```text
+Are real users ready to start depending on the system?
+```
+
+The first production deployment should pass smoke testing before Telectro is asked to validate operational workflows.
+
+### Smoke-test principles
+
+- Use a small controlled set of test users.
+- Do not create all production users until the login, role, email, and workspace behaviour has been proven.
+- Do not use real operational tickets for the first smoke test.
+- Keep test tickets clearly identifiable.
+- Record the smoke-test date, tester, release tag, and result.
+- If a smoke test fails, fix the cause before go-live rather than treating it as a training issue.
+
+Suggested smoke-test record:
+
+```text
+Date:
+Release tag:
+Production hostname:
+Tester:
+Result:
+Notes:
+```
+
+### 1. HTTPS and browser access
+
+Confirm:
+
+- production hostname opens in a browser
+- browser shows HTTPS without certificate warnings
+- certificate matches the production hostname
+- certificate is not expired
+- HTTP access redirects to HTTPS, if configured
+- login page loads without asset errors
+- no obvious `/assets/...` 404 errors appear in browser/network checks
+
+Pass condition:
+
+```text
+A user can open the production URL over HTTPS and reach the login page without browser certificate warnings or missing asset errors.
+```
+
+### 2. Container and service health
+
+Confirm the production Docker stack is healthy.
+
+Check:
+
+- reverse proxy / frontend is running
+- backend is running and healthy
+- database is running
+- Redis cache is running
+- Redis queue is running
+- websocket service is running
+- queue workers are running
+- scheduler is running
+- no restart loop is visible
+
+Example checks may include:
+
+```text
+docker compose ps
+/api/method/ping
+container logs
+```
+
+Pass condition:
+
+```text
+Required containers are running, the site ping succeeds, and no core service is repeatedly restarting.
+```
+
+### 3. Administrator login
+
+Confirm the Administrator or agreed admin user can log in.
+
+Check:
+
+- login succeeds
+- Desk loads
+- no setup wizard appears unexpectedly
+- user can access expected admin areas
+- site version/app list can be checked if needed
+
+Pass condition:
+
+```text
+Admin user can log in and access Desk successfully.
+```
+
+### 4. Internal user login
+
+Confirm at least one internal Telectro user can log in.
+
+Use a controlled test/internal user, not the full production user list.
+
+Check:
+
+- login succeeds
+- expected role profile applies
+- expected workspace appears
+- Helpdesk / ticket areas are reachable as intended
+- user does not receive inappropriate administrator access
+
+Suggested users to test when available:
+
+- technician
+- coordinator
+- supervisor/ops
+
+Pass condition:
+
+```text
+Internal user can log in and sees the expected internal workspace and permissions.
+```
+
+### 5. Partner / customer-side login
+
+If Partner or customer login is in scope for the first deployment, confirm at least one controlled Partner-side user.
+
+Check:
+
+- login succeeds
+- Partner workspace loads
+- Partner user does not land on raw Desk surfaces
+- Partner route guard still blocks inappropriate pages
+- Partner user can open only Partner-safe ticket pages
+- Partner user cannot access raw HD Ticket list/form/report surfaces outside the safe model
+
+Pass condition:
+
+```text
+Partner-side user can access the intended Partner-safe surfaces and is blocked from internal/raw Desk surfaces.
+```
+
+### 6. Workspace landing behaviour
+
+Confirm landing behaviour for the expected user types.
+
+Check:
+
+- Partner user lands on `TELECTRO-POC Partner`
+- Technician user lands on `TELECTRO-POC Tech`
+- Coordinator user lands on `TELECTRO-POC Coordinator`
+- Supervisor/Ops user lands on `TELECTRO-POC Ops`
+
+Pass condition:
+
+```text
+Each tested user lands on the expected workspace without manual URL correction.
+```
+
+### 7. Ticket creation smoke test
+
+Create one clearly marked test ticket.
+
+Suggested subject:
+
+```text
+SMOKE TEST - Production deployment validation
+```
+
+Check:
+
+- ticket can be created
+- required fields work
+- routing/assignment behaves as expected
+- ticket opens after creation
+- timeline/activity is usable
+- no unexpected server error appears
+
+Pass condition:
+
+```text
+A controlled test ticket can be created, opened, and routed without errors.
+```
+
+### 8. Internal ticket workflow
+
+Using the smoke-test ticket, confirm the basic internal workflow.
+
+Check:
+
+- internal user can open the ticket
+- ticket status can be updated as expected
+- assignment/ownership is visible
+- comments can be added
+- relevant reports include or exclude the ticket correctly
+
+Pass condition:
+
+```text
+Internal users can work with a ticket through the expected basic workflow.
+```
+
+### 9. Partner-safe ticket workflow
+
+If Partner workflow is in scope, test with a controlled Partner-visible ticket.
+
+Check:
+
+- Partner-safe ticket page opens
+- Partner sees safe ticket fields only
+- Partner acceptance/work actions appear only when expected
+- Partner action updates backend state correctly
+- internal user can review the Partner action
+- Partner cannot bypass via raw HD Ticket routes
+
+Pass condition:
+
+```text
+Partner workflow can be completed through Partner-safe pages without exposing internal ticket surfaces.
+```
+
+### 10. Evidence / attachment smoke test
+
+If ticket evidence is in scope for the first deployment, test a small safe file.
+
+Check:
+
+- internal user can upload evidence
+- Partner user can upload evidence, if in scope
+- evidence is stored as private file
+- evidence appears in the controlled evidence list
+- evidence can be downloaded through the controlled endpoint
+- raw private file URL is not relied on as the primary access path
+
+Suggested test file:
+
+```text
+small PNG or PDF clearly marked as smoke-test evidence
+```
+
+Pass condition:
+
+```text
+Evidence upload/list/download works through the controlled UI and endpoint model.
+```
+
+### 11. Reports and queues
+
+Open the key production reports.
+
+Minimum internal checks:
+
+- My Current Work
+- My Team Load
+- Partner Current Work, if Partner workflow is in scope
+- Partner Acceptance Review Queue, if acceptance workflow is in scope
+- Partner Acceptance Rework Queue, if acceptance rework is in scope
+
+Check:
+
+- report loads
+- columns render
+- data rows render or show an acceptable empty state
+- report does not expose inappropriate data to restricted users
+- workspace shortcut opens the expected report
+
+Pass condition:
+
+```text
+Key operational reports load and show expected scoped data for the tested users.
+```
+
+### 12. Notification Log smoke test
+
+If Notification V1 is in scope, create or trigger a controlled notification scenario.
+
+Check:
+
+- Notification Log row is created
+- internal user can see relevant notification
+- Partner user can see relevant Partner-safe notification, if applicable
+- Partner notification routes to `/app/partner-ticket/<ticket>`
+- mark-as-read works
+- Notification Settings is not exposed to Partner users if it should remain blocked
+
+Pass condition:
+
+```text
+Notification Log alerts appear and route correctly without exposing unsafe pages.
+```
+
+### 13. Outgoing email smoke test
+
+If SMTP is configured for the first deployment, send one controlled test email.
+
+Check:
+
+- Frappe can authenticate to SMTP
+- test email sends successfully
+- real inbox receives the email
+- sender address is correct
+- message is not rejected or quarantined
+- no unexpected bulk notification is triggered
+
+Suggested recipient:
+
+```text
+controlled Telectro test mailbox
+```
+
+Pass condition:
+
+```text
+A controlled outgoing email is delivered successfully to a real inbox.
+```
+
+### 14. Incoming email smoke test
+
+Only run this if incoming helpdesk mailbox processing is explicitly in scope.
+
+Check:
+
+- mailbox connection succeeds
+- one controlled inbound email is received
+- expected ticket is created
+- sender/contact is handled correctly
+- attachments/signatures do not break the intake
+- no mail loop occurs
+
+Suggested subject:
+
+```text
+SMOKE TEST - inbound helpdesk email
+```
+
+Pass condition:
+
+```text
+One controlled inbound email creates the expected ticket without duplicates or loops.
+```
+
+If incoming mailbox processing is not in scope for first deployment, record it as deferred.
+
+### 15. Backup smoke check
+
+After the deployment passes core smoke checks, take a first known-good backup.
+
+Check backup includes:
+
+- database
+- site files
+- private files
+- public files/assets if required
+- production-specific configuration notes
+
+Pass condition:
+
+```text
+A first known-good backup exists and its location is documented.
+```
+
+A backup should not be treated as fully proven until a restore has been tested.
+
+### 16. Rollback readiness check
+
+Before operational go-live, confirm that rollback is understood.
+
+Check:
+
+- previous release/tag is known, if applicable
+- backup location is known
+- restore owner is known
+- public access can be disabled if needed
+- rollback decision owner is known
+
+Pass condition:
+
+```text
+The team knows how to stop, revert, or restore if the deployment is unsafe.
+```
+
+### 17. Smoke-test sign-off
+
+Record the result.
+
+Suggested sign-off format:
+
+```text
+Smoke-test date:
+Release tag:
+Production hostname:
+Tester:
+Passed:
+Failed checks:
+Deferred checks:
+Notes:
+```
+
+A smoke test can pass with explicitly deferred items, but only if those deferred items are not required for the first production use.
+
+Example deferred items:
+
+- incoming email intake
+- full real user onboarding
+- browser/mobile push notifications
+- advanced monitoring
+- automated deployment pipeline
+
+### Minimum pass set for first technical deployment
+
+For the first technical deployment to be considered successful, the following should pass:
+
+- HTTPS browser access
+- container/service health
+- Administrator login
+- at least one internal user login
+- expected workspace landing
+- controlled ticket creation
+- key reports load
+- backup taken
+- rollback path understood
+
+Additional checks become required when those features are part of the first production use.
