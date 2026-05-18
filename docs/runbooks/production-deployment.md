@@ -1255,3 +1255,324 @@ For the first technical deployment to be considered successful, the following sh
 - rollback path understood
 
 Additional checks become required when those features are part of the first production use.
+
+## Production Backup and Restore Model
+
+The production deployment is not safe until backup and restore expectations are clear.
+
+A backup is useful only if the team knows:
+
+- what is backed up
+- where it is stored
+- who can access it
+- how long it is retained
+- how to restore it
+- how to prove that restore works
+
+A backup that has never been restored should not be treated as fully proven.
+
+### Backup goals
+
+The backup model must support two different needs:
+
+```text
+Recovery:
+Restore the system after data loss, server failure, or accidental deletion.
+
+Rollback:
+Return to a previous known-good application/database state after a bad deployment.
+```
+
+Recovery and rollback are related, but they are not exactly the same thing.
+
+Rollback is usually time-sensitive and deployment-related.
+
+Restore is usually broader and disaster-recovery related.
+
+### What must be backed up
+
+A production backup should include enough data to recreate the working site.
+
+Minimum backup scope:
+
+- MariaDB database
+- Frappe site directory
+- private files
+- public files
+- uploaded ticket evidence
+- site configuration required for restore
+- production-specific notes required to rebuild the environment
+
+For the ERPNext/Helpdesk deployment, the most important data is:
+
+```text
+database
+sites data
+private files
+public files
+```
+
+The Docker images and application code should be recoverable from Git tags or image registry tags.
+
+Production secrets and certificate private keys should not be stored in Git. Their backup/storage approach must be agreed separately.
+
+### What should not be treated as the only backup
+
+The following are not enough on their own:
+
+- Docker containers
+- running volumes with no export
+- screenshots
+- Git repository only
+- application image only
+- database backup without files
+- files backup without database
+- local developer machine copy
+
+The database and files must remain aligned.
+
+For example, a File record in the database may point to a private file on disk. Restoring one without the other can leave broken attachments or evidence links.
+
+### Backup timing
+
+Backups should happen at predictable points.
+
+Required backup moments:
+
+- before first production deployment
+- after first successful technical deployment and smoke test
+- before every production upgrade/deploy
+- after major confirmed configuration changes
+- before risky data repair or migration work
+
+Suggested routine backup pattern:
+
+```text
+daily backup
+retain recent backups for short-term recovery
+retain selected older backups for longer-term recovery
+```
+
+The exact retention policy must be agreed with Telectro.
+
+### First production deployment backup timing
+
+The first production deployment should have at least two backup-related milestones.
+
+Before deployment:
+
+```text
+Confirm where production backups will be stored.
+Confirm who owns backup storage.
+Confirm how backup files will be protected.
+```
+
+After deployment and smoke test:
+
+```text
+Take a first known-good backup.
+Record backup location.
+Record release tag.
+Record production hostname.
+Record smoke-test result.
+```
+
+This first known-good backup becomes the initial recovery point for the production site.
+
+### Backup storage
+
+Backups should not live only inside the same Docker volume as the application.
+
+Preferred storage characteristics:
+
+- outside the running database container
+- outside temporary container filesystems
+- accessible to the deployment/admin user
+- protected from casual access
+- protected from accidental deletion where possible
+- enough disk space for retention period
+- included in server-level backup/snapshot process if one exists
+
+Possible storage options:
+
+```text
+server backup directory
+mounted backup disk
+network share
+managed server snapshot
+off-server backup storage
+```
+
+For first production deployment, the exact backup location must be documented even if the long-term backup system is improved later.
+
+### Backup security
+
+Backups may contain sensitive operational data.
+
+Backups may include:
+
+- customer details
+- contact details
+- ticket history
+- comments
+- attachments
+- evidence files
+- email-related content
+- internal operational notes
+
+Backup files should therefore be protected.
+
+Rules:
+
+- do not commit backups to Git
+- do not store backups in the application repo
+- restrict file permissions
+- avoid copying backups to personal machines unless explicitly needed
+- avoid sending backups through casual channels
+- document who is allowed to access backups
+
+### Secrets and certificates
+
+Secrets and certificate private keys need their own handling.
+
+Examples:
+
+- database passwords
+- Frappe Administrator password
+- SMTP password or app-password
+- certificate private key
+- deployment SSH key
+- integration credentials
+
+These should not be stored in Git or pasted into runbooks.
+
+The backup/restore plan must answer:
+
+- where secrets are stored
+- who can access them
+- how a restore gets the required secrets back
+- how certificates are restored or reissued
+- who owns certificate renewal
+
+If secrets are lost, a database/file restore may still not be enough to make the site operational.
+
+### Restore model
+
+A restore procedure should explain how to rebuild a working site from backup.
+
+At minimum, restore documentation should cover:
+
+- which backup file or backup set to use
+- where the backup is located
+- how to stop the running stack safely
+- how to restore the database
+- how to restore site files
+- how to restore private/public files
+- how to apply required secrets/configuration
+- how to start the stack again
+- how to run migrations if needed
+- how to run smoke checks after restore
+
+The restore process must be tested before production reliance becomes high.
+
+### Restore test expectation
+
+A restore test should prove that the backup is usable.
+
+A basic restore test should confirm:
+
+- site starts after restore
+- Administrator login works
+- key users can log in
+- tickets are visible
+- private evidence files are accessible through controlled endpoints
+- reports load
+- Notification Log still behaves as expected
+- email configuration is either restored or intentionally reconfigured
+- HTTPS still works or is intentionally reattached
+
+Suggested restore-test record:
+
+```text
+Restore-test date:
+Backup used:
+Restore target:
+Tester:
+Result:
+Issues found:
+Follow-up actions:
+```
+
+### Rollback model
+
+Rollback is the deployment escape path.
+
+Rollback answers:
+
+```text
+If this deployment is bad, how do we return to the previous known-good state?
+```
+
+Rollback may involve:
+
+- checking out the previous Git tag
+- restoring the previous database backup
+- restoring previous site files
+- restoring previous compose/environment configuration
+- restarting the previous known-good stack
+- disabling public access temporarily
+
+Rollback should be planned before the deployment starts.
+
+Do not deploy if there is no known rollback path.
+
+### Backup and rollback before each deploy
+
+Before each production deployment, record:
+
+```text
+Current release/tag:
+Target release/tag:
+Backup taken:
+Backup location:
+Rollback target:
+Rollback owner:
+Deployment owner:
+Smoke-test owner:
+```
+
+After deployment, record:
+
+```text
+Deployment result:
+Smoke-test result:
+Known issues:
+Rollback needed:
+First known-good backup after deploy:
+```
+
+### Minimum backup pass set for first technical deployment
+
+For the first technical production deployment, the minimum acceptable backup state is:
+
+- backup location known
+- backup owner known
+- backup method documented
+- first known-good backup taken after smoke test
+- backup location recorded
+- rollback path documented
+- restore test either completed or explicitly scheduled as a follow-up
+
+### Open decisions
+
+The following still need to be confirmed:
+
+- backup storage location
+- backup retention period
+- whether backups are copied off-server
+- whether server snapshots are available
+- who owns backup monitoring
+- who performs restore if needed
+- expected restore time
+- whether certificate material is backed up or reissued
+- where production secrets are stored
