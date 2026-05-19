@@ -2,21 +2,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FILES=(-f compose.yaml)
+# Local development now follows standard Docker Compose behaviour:
+#
+#   docker compose up -d
+#
+# Docker Compose automatically loads:
+#
+#   compose.yaml
+#   compose.override.yaml
+#
+# Local-only browser ports and local volume naming belong in compose.override.yaml.
+# Production must use explicit -f compose.yaml -f compose.production.yaml instead.
+compose() { docker compose "$@"; }
 
-# Local-only Compose settings:
-# - localhost port exposure
-# - local development services
-# - anything that should not be part of production
-[[ -f compose.local.yaml ]] && FILES+=(-f compose.local.yaml)
-
-# Local override kept for machine-specific overrides, such as pinned local volume names.
-[[ -f compose.override.yaml ]] && FILES+=(-f compose.override.yaml)
-
-compose() { docker compose "${FILES[@]}" "$@"; }
-
-echo "🐳 starting local stack with:"
-printf ' - %s\n' "${FILES[@]}"
+echo "🐳 starting local stack with standard Docker Compose:"
+echo " - compose.yaml"
+echo " - compose.override.yaml, if present"
 
 compose up -d
 
@@ -51,7 +52,7 @@ print("apps paths on sys.path:", apps_paths)
 PY
 '
 
-# optional: wait for backend healthy (your backend has a healthcheck)
+# optional: wait for backend healthy
 echo "⏳ waiting for backend to be healthy..."
 for i in {1..60}; do
   cid="$(compose ps -q backend 2>/dev/null || true)"

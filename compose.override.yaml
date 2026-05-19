@@ -3,6 +3,14 @@ services:
     volumes:
       - assets:/home/frappe/frappe-bench/sites/assets
 
+  frontend:
+    ports:
+      - "8080:8080"
+
+  websocket:
+    ports:
+      - "9000:9000"
+
 volumes:
   assets:
     name: telectro-helpdesk-poc_assets
