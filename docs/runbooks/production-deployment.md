@@ -2844,17 +2844,18 @@ The production merge currently proves that:
 - local helper services such as the test mail server and `bench-runner` are not active in the normal production merge
 - browser traffic is intended to enter through Traefik on ports `80` and `443`
 - Traefik routes browser traffic to the frontend/nginx service
+- production site-name usage is parameterised through `SITE_NAME` for:
+  - frontend site header
+  - backend healthcheck site header
+  - create-site default site name
 
-Remaining production risks still visible in the rendered production config:
+Remaining production risks still visible or not fully resolved:
 
-- hard-coded MariaDB/root passwords from the local POC compose file
-- hard-coded site creation/admin passwords in the `create-site` command
-- local site-name assumptions such as `frontend`
-- backend healthcheck still checks the local site name
+- hard-coded MariaDB/root passwords are still present in the rendered production config from the shared base compose
+- production secrets model is documented but not fully wired through all services yet
 - frontend image still uses a moving `edge` tag
-- final production secrets model is not implemented yet
-
-This means the current production Compose files are suitable for structure discussion and validation, but not yet for a real deployment.
+- production image/app installation strategy is not final
+- real hostname, certificate layout, SMTP details, backup location, and user inputs are still pending from Telectro
 
 ## Production Secrets Skeleton
 
@@ -2913,4 +2914,3 @@ Minimum production secrets pass set before first real deployment:
 - certificate private key is present on the server but absent from Git
 - SMTP/mailbox secrets are only added when email is in scope
 - backup credentials/storage paths are documented outside the repo or stored in a protected server-local file
-
