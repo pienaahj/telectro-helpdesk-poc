@@ -2857,6 +2857,8 @@ Remaining production risks still visible or not fully resolved:
 - production image/app installation strategy is not final
 - real hostname, certificate layout, SMTP details, backup location, and user inputs are still pending from Telectro
 
+Production site-name usage is now parameterised through `SITE_NAME` for the frontend site header, backend healthcheck site header, and create-site default site name.
+
 ## Production Secrets Skeleton
 
 The repository may contain example files that describe required production values, but real production secrets must not be committed to Git.
@@ -2914,3 +2916,87 @@ Minimum production secrets pass set before first real deployment:
 - certificate private key is present on the server but absent from Git
 - SMTP/mailbox secrets are only added when email is in scope
 - backup credentials/storage paths are documented outside the repo or stored in a protected server-local file
+
+## Production Update and Security Patch Policy
+
+Frappe/ERPNext update notifications must not be ignored, especially when they mention security fixes.
+
+However, updates must not be applied casually during the pilot or directly on production without a controlled rehearsal. Framework, ERPNext, Helpdesk, and custom app behaviour are tightly coupled, and updates may introduce:
+
+- database migrations
+- asset rebuild requirements
+- Helpdesk UI changes
+- permission or routing behaviour changes
+- workspace/report fixture drift
+- custom app compatibility issues
+- Partner containment regressions
+- evidence/attachment handling regressions
+
+For the pilot, update notifications should be recorded and reviewed, but not clicked through blindly.
+
+Before production go-live, a controlled update rehearsal should be completed on a branch or staging/local copy.
+
+Minimum update rehearsal sequence:
+
+1. Record current versions:
+
+   ```bash
+       bench version
+       bench --site frontend list-apps
+   ```
+
+2. Take a backup before updating:
+
+   ```bash
+       bench --site frontend backup --with-files
+   ```
+
+3. Update deliberately according to the chosen production image/app strategy.
+4. Run migrations:
+
+   ```bash
+       bench --site frontend migrate
+   ```
+
+5. Rebuild assets if needed:
+
+   ```bash
+       bench build
+   ```
+
+6. Restart services.
+
+7. Run the pilot smoke test.
+
+Minimum smoke test after any framework/app update:
+
+- Administrator login
+- internal user login
+- Partner user login
+- role-based landing pages
+- Partner route containment
+- HD Ticket open/save
+- manual ticket creation
+- Partner Request creation
+- Partner Acceptance flow
+- Partner Work flow
+- evidence upload/list/download
+- Take Photo path
+- My Current Work report
+- Partner Current Work report
+- key workspace pages
+- Notification Log check
+- production compose render check
+
+Production rule:
+
+Do not go live knowingly behind on available security fixes unless the risk is explicitly accepted and recorded.
+
+If an update cannot be applied before go-live, record:
+
+- current installed versions
+- available target versions
+- reason for deferral
+- risk owner
+- planned update window
+- rollback plan
