@@ -3022,3 +3022,52 @@ It runs a Frappe backup with files for the selected site and copies the artifact
 The helper is useful for local rehearsal and pre-change safety checks, but it is not the final production backup system. Production still requires a server-side backup location, retention policy, restore test, and ownership decision.
 
 The backups/ directory contains sensitive database and private-file data and must remain ignored by Git.
+
+### Local Compose Default
+
+For local development, the supported startup command is:
+
+```bash
+docker compose up -d
+```
+
+or:
+
+```bash
+./bin/up.sh
+```
+
+Local browser-facing ports are defined in compose.override.yaml, which Docker Compose loads automatically together with compose.yaml.
+
+Expected local published ports:
+
+```bash
+docker compose ps frontend websocket
+```
+
+Expected shape:
+
+```bash
+frontend    0.0.0.0:8080->8080/tcp
+websocket   0.0.0.0:9000->9000/tcp
+```
+
+If frontend only shows:
+
+```bash
+8080/tcp
+```
+
+then the frontend container is running but not published to the host, and the browser will not reach <http://localhost:8080>.
+
+Production must not use the plain local command. Production must use the explicit production merge, for example:
+
+```bash
+docker compose \
+  --env-file /opt/telectro-helpdesk/.env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  up -d
+```
+
+Because production explicitly selects compose.yaml and compose.production.yaml, the local compose.override.yaml is not included in the production merge.

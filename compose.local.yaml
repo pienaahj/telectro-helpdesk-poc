@@ -1,8 +1,13 @@
-services:
-  frontend:
-    ports:
-      - "8080:8080"
+# compose.local.yaml
+#
+# Deprecated local override.
+#
+# Local defaults now live in compose.override.yaml so plain:
+#
+#   docker compose up -d
+#
+# works as expected.
+#
+# This file is kept temporarily to avoid breaking old helper commands.
 
-  websocket:
-    ports:
-      - "9000:9000"
+services: {}
