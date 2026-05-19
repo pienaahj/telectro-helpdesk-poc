@@ -57,10 +57,6 @@
       "/app/helpdesk",
       "/app/workspace",
       "/app/workspace/",
-      "/app/telectro-poc-tech",
-      "/app/telectro-poc-coordinator",
-      "/app/telectro-poc-ops",
-      "/app/telectro-poc-partner",
     ].includes(path);
   }
 
