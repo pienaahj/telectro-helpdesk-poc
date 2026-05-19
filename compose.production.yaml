@@ -87,8 +87,17 @@ services:
   backend:
     environment:
       # Production should use SITE_NAME rather than hard-coded "frontend".
-      # The current base healthcheck still uses frontend and must be adjusted later.
       TELECTRO_DEBUG: "0"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS -H 'X-Frappe-Site-Name: ${SITE_NAME:?Set SITE_NAME}' http://localhost:8000/api/method/ping >/dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   # Production should not expose websocket directly to the host.
   # The frontend/nginx service should reach websocket internally through Docker networking.
@@ -102,3 +111,35 @@ services:
   bench-runner:
     profiles:
       - local-only
+
+  create-site:
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+      SOCKETIO_PORT: "9000"
+      SITE_NAME: ${SITE_NAME:?Set SITE_NAME}
+      FRAPPE_ADMIN_PASSWORD: ${FRAPPE_ADMIN_PASSWORD:?Set FRAPPE_ADMIN_PASSWORD}
+      DB_ROOT_USERNAME: ${DB_ROOT_USERNAME:-root}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
+
+    command:
+      - >
+        wait-for-it -t 120 db:3306;
+        wait-for-it -t 120 redis-cache:6379;
+        wait-for-it -t 120 redis-queue:6379;
+        export start=`date +%s`;
+        until [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".db_host // empty"` ]] && \
+          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_cache // empty"` ]] && \
+          [[ -n `grep -hs ^ sites/common_site_config.json | jq -r ".redis_queue // empty"` ]];
+        do
+          echo "Waiting for sites/common_site_config.json to be created";
+          sleep 5;
+          if (( `date +%s`-start > 120 )); then
+            echo "could not find sites/common_site_config.json with required keys";
+            exit 1
+          fi
+        done;
+        echo "sites/common_site_config.json found";
+        bench new-site --mariadb-user-host-login-scope='%' --admin-password=$$FRAPPE_ADMIN_PASSWORD --db-root-username=$$DB_ROOT_USERNAME --db-root-password=$$MARIADB_ROOT_PASSWORD --install-app erpnext --set-default $$SITE_NAME;
