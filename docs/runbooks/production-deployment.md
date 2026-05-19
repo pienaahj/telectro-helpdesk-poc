@@ -2856,3 +2856,61 @@ Remaining production risks still visible in the rendered production config:
 
 This means the current production Compose files are suitable for structure discussion and validation, but not yet for a real deployment.
 
+## Production Secrets Skeleton
+
+The repository may contain example files that describe required production values, but real production secrets must not be committed to Git.
+
+Example/template files are safe to commit when they contain placeholder values only, such as:
+
+- `.env.production.example`
+- certificate layout examples
+- Traefik dynamic TLS examples
+- documentation describing required values
+
+Real production files must stay server-local and outside Git, for example:
+
+- real production `.env` file
+- MariaDB/root passwords
+- Frappe Administrator password
+- SMTP username/password
+- incoming mailbox credentials
+- certificate private key
+- backup storage credentials
+- SSH/private deployment credentials
+
+Suggested server-local production env path:
+
+```bash
+/opt/telectro-helpdesk/.env.production
+```
+
+Suggested production command shape:
+
+```bash
+docker compose \
+  --env-file /opt/telectro-helpdesk/.env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  up -d
+```
+
+The current production Compose skeleton is not fully wired to this secrets model yet. The rendered production config still exposes local/test assumptions that must be removed or parameterised before real deployment, including:
+
+- hard-coded MariaDB/root passwords
+- hard-coded site creation/admin passwords
+- local frontend site-name assumptions
+- backend healthcheck targeting the local site name
+- moving frontend nginx edge image tag
+
+The next production engineering step should be to replace those local/test assumptions with explicit production variables or Docker secrets, then validate the rendered production config again.
+
+Minimum production secrets pass set before first real deployment:
+
+- real values are stored only on the production server
+- no real secrets are committed to Git
+- production compose command explicitly references the production env file
+- rendered production config no longer contains local/test passwords
+- certificate private key is present on the server but absent from Git
+- SMTP/mailbox secrets are only added when email is in scope
+- backup credentials/storage paths are documented outside the repo or stored in a protected server-local file
+
