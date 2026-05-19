@@ -3000,3 +3000,21 @@ If an update cannot be applied before go-live, record:
 - risk owner
 - planned update window
 - rollback plan
+
+### Local Backup Helper
+
+A local/manual helper script exists at:
+
+```bash
+    ./bin/backup-site.sh
+```
+
+It runs a Frappe backup with files for the selected site and copies the artifacts to:
+
+```bash
+    ./backups/<SITE>/
+```
+
+The helper is useful for local rehearsal and pre-change safety checks, but it is not the final production backup system. Production still requires a server-side backup location, retention policy, restore test, and ownership decision.
+
+The backups/ directory contains sensitive database and private-file data and must remain ignored by Git.
