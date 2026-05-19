@@ -2848,14 +2848,18 @@ The production merge currently proves that:
   - frontend site header
   - backend healthcheck site header
   - create-site default site name
+- production DB root password values are parameterised through `MARIADB_ROOT_PASSWORD` in the production override
+- the production frontend/nginx image is supplied through `ERPNEXT_NGINX_IMAGE` so production does not silently inherit the moving local `edge` tag
 
 Remaining production risks still visible or not fully resolved:
 
-- hard-coded MariaDB/root passwords are still present in the rendered production config from the shared base compose
-- production secrets model is documented but not fully wired through all services yet
-- frontend image still uses a moving `edge` tag
+- production secrets model is documented but not fully converted to Docker secrets
+- the final production frontend/nginx image tag still needs to be selected and tested
 - production image/app installation strategy is not final
 - real hostname, certificate layout, SMTP details, backup location, and user inputs are still pending from Telectro
+- production DB root password values are parameterised through `MARIADB_ROOT_PASSWORD` in the production override
+- production no longer silently inherits the local `frappe/erpnext-nginx:edge` image tag
+- the final production frontend/nginx image tag still needs to be selected and tested
 
 Production site-name usage is now parameterised through `SITE_NAME` for the frontend site header, backend healthcheck site header, and create-site default site name.
 

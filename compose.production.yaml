@@ -70,6 +70,9 @@ services:
     # In production, Traefik should route to frontend/nginx, not directly to backend.
     # The direct host port 8080 from compose.yaml is local-only and should not be
     # exposed in production once the compose structure is finalised.
+
+    image: ${ERPNEXT_NGINX_IMAGE:?Set ERPNEXT_NGINX_IMAGE}
+    
     labels:
       - "traefik.enable=true"
 
@@ -88,6 +91,10 @@ services:
     environment:
       # Production should use SITE_NAME rather than hard-coded "frontend".
       TELECTRO_DEBUG: "0"
+
+      # Override local/test DB root password values from the base compose.
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
 
     healthcheck:
       test:
@@ -143,3 +150,17 @@ services:
         done;
         echo "sites/common_site_config.json found";
         bench new-site --mariadb-user-host-login-scope='%' --admin-password=$$FRAPPE_ADMIN_PASSWORD --db-root-username=$$DB_ROOT_USERNAME --db-root-password=$$MARIADB_ROOT_PASSWORD --install-app erpnext --set-default $$SITE_NAME;
+
+  db:
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost --password=$$MARIADB_ROOT_PASSWORD",
+        ]
+      interval: 1s
+      retries: 20
