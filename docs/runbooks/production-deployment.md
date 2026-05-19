@@ -2833,3 +2833,26 @@ Before operational go-live, the following should be proven:
 - backup taken
 - rollback understood
 - deferred items recorded
+
+### Current Compose Skeleton Status
+
+The current production Compose skeleton is implementation-adjacent but not yet production-ready.
+
+The production merge currently proves that:
+
+- local development ports `8080` and `9000` are not exposed
+- local helper services such as the test mail server and `bench-runner` are not active in the normal production merge
+- browser traffic is intended to enter through Traefik on ports `80` and `443`
+- Traefik routes browser traffic to the frontend/nginx service
+
+Remaining production risks still visible in the rendered production config:
+
+- hard-coded MariaDB/root passwords from the local POC compose file
+- hard-coded site creation/admin passwords in the `create-site` command
+- local site-name assumptions such as `frontend`
+- backend healthcheck still checks the local site name
+- frontend image still uses a moving `edge` tag
+- final production secrets model is not implemented yet
+
+This means the current production Compose files are suitable for structure discussion and validation, but not yet for a real deployment.
+

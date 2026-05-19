@@ -16,10 +16,21 @@
 # docker compose -f compose.yaml -f compose.production.yaml up -d
 #
 # IMPORTANT:
-# The current base compose.yaml still loads .env and contains local-only/test assumptions.
-# Before real production use, the compose structure must be reviewed so local .env,
-# local mail defaults, test passwords, and development helper services do not merge
-# into the production config.
+# This production override currently prevents known local-only helper services
+# such as mail and bench-runner from running in the normal production merge by
+# assigning them to a local-only profile.
+#
+# This file is still not production-ready. The rendered production config still
+# needs production-safe handling for:
+#
+# - database/admin passwords
+# - site creation secrets
+# - production site-name usage in create-site and healthchecks
+# - pinned production image tags
+# - final server-local secrets handling
+#
+# Do not use this blindly for a real deployment until those items are resolved
+# and validated against the real Telectro production inputs.
 
 services:
   traefik:
