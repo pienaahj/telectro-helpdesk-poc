@@ -217,6 +217,13 @@ def classify_partner_action(row):
                 "note_key": "latest_partner_review_note",
             }
 
+        if not acceptance_state and not work_state:
+            return {
+                "bucket": "New Ticket from Partner",
+                "waiting_on": "Telectro",
+                "note_key": "latest_partner_review_note",
+            }
+
     if fulfilment_party == "Partner":
         if work_state == "Work Completed by Partner":
             return {
@@ -263,12 +270,13 @@ def get_latest_note_for_action(note_key, notes):
 
 def action_sort_key(action_bucket):
     order = {
-        "Partner Acceptance Rework Required": 10,
-        "Partner Work Completed / Telectro Review Needed": 20,
-        "Partner Accepted / Telectro Review Needed": 30,
-        "Pending Partner Acceptance": 40,
-        "Partner Work Rework Required": 50,
-        "Assigned to Partner": 60,
+        "New Ticket from Partner": 10,
+        "Partner Acceptance Rework Required": 20,
+        "Partner Work Completed / Telectro Review Needed": 30,
+        "Partner Accepted / Telectro Review Needed": 40,
+        "Pending Partner Acceptance": 50,
+        "Partner Work Rework Required": 60,
+        "Assigned to Partner": 70,
     }
 
     return order.get(action_bucket or "", 999)
