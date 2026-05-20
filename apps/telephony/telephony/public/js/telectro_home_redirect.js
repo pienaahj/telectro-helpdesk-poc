@@ -2,8 +2,26 @@
   let redirectStarted = false;
   let lastPath = "";
 
+  const ROUTES = {
+    tech: "/app/telectro-poc-tech",
+    coordinator: "/app/telectro-poc-coordinator",
+    ops: "/app/telectro-poc-ops",
+    partner: "/app/telectro-poc-partner",
+  };
+
+  const GENERIC_LANDING_PATHS = new Set([
+    "/app",
+    "/app/",
+    "/app/home",
+    "/app/helpdesk",
+    "/app/workspace",
+    "/app/workspace/",
+  ]);
+
+  const TELECTRO_WORKSPACE_PATHS = new Set(Object.values(ROUTES));
+
   function getDeskRoute(path) {
-    return path.replace(/^\/app\//, "");
+    return path.replace(/^\/app\/?/, "");
   }
 
   function getRoles() {
@@ -28,7 +46,8 @@
     return Array.isArray(roles) && roles.includes(role);
   }
 
-  function getTargetPath(roles) {
+  function getRoleFlags(roles) {
+    const isSystemManager = hasRole(roles, "System Manager");
     const isSupervisor = hasRole(
       roles,
       "TELECTRO-POC Role - Supervisor Governance",
@@ -39,28 +58,89 @@
       hasRole(roles, "TELECTRO-POC Role - Partner") ||
       hasRole(roles, "TELECTRO-POC Role - Partner Creator");
 
-    if (isSupervisor) return "/app/telectro-poc-ops";
-    if (isCoordinator) return "/app/telectro-poc-coordinator";
-    if (isTech) return "/app/telectro-poc-tech";
-    if (isPartner) return "/app/telectro-poc-partner";
+    return {
+      isSystemManager,
+      isSupervisor,
+      isCoordinator,
+      isTech,
+      isPartner,
+      isPrivilegedInternal: isSystemManager || isSupervisor,
+    };
+  }
+
+  function getTargetPath(roles) {
+    const flags = getRoleFlags(roles);
+
+    if (flags.isSupervisor) return ROUTES.ops;
+    if (flags.isCoordinator) return ROUTES.coordinator;
+    if (flags.isTech) return ROUTES.tech;
+    if (flags.isPartner) return ROUTES.partner;
 
     return "";
   }
 
-  function shouldNormalize(path) {
-    if (!path) return false;
+  function isUsersOwnWorkspace(path, roles) {
+    const flags = getRoleFlags(roles);
 
-    return [
-      "/app",
-      "/app/",
-      "/app/home",
-      "/app/helpdesk",
-      "/app/workspace",
-      "/app/workspace/",
-    ].includes(path);
+    if (path === ROUTES.ops) {
+      return flags.isSupervisor;
+    }
+
+    if (path === ROUTES.coordinator) {
+      return flags.isCoordinator;
+    }
+
+    if (path === ROUTES.tech) {
+      return flags.isTech || flags.isCoordinator || flags.isSupervisor;
+    }
+
+    if (path === ROUTES.partner) {
+      return flags.isPartner;
+    }
+
+    return false;
   }
 
-  function normalizeLandingRoute() {
+  function canStayOnExplicitTelectroWorkspace(path, roles, isInitialCheck) {
+    const flags = getRoleFlags(roles);
+
+    if (!TELECTRO_WORKSPACE_PATHS.has(path)) {
+      return true;
+    }
+
+    // On initial boot/login, never trust a stale workspace route inherited from
+    // the previous browser user. Send the user to their own landing workspace.
+    if (isInitialCheck) {
+      return isUsersOwnWorkspace(path, roles);
+    }
+
+    // After boot, allow System Manager / Supervisor Governance users to inspect
+    // explicit POC workspaces for maintenance.
+    if (flags.isPrivilegedInternal) {
+      return true;
+    }
+
+    return isUsersOwnWorkspace(path, roles);
+  }
+
+  function shouldNormalize(path, roles, isInitialCheck) {
+    if (!path) return false;
+
+    if (GENERIC_LANDING_PATHS.has(path)) {
+      return true;
+    }
+
+    if (
+      TELECTRO_WORKSPACE_PATHS.has(path) &&
+      !canStayOnExplicitTelectroWorkspace(path, roles, isInitialCheck)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function normalizeLandingRoute(isInitialCheck = false) {
     const roles = getRoles();
     if (!roles.length) return;
 
@@ -68,7 +148,7 @@
     const target = getTargetPath(roles);
 
     if (!target) return;
-    if (!shouldNormalize(path)) return;
+    if (!shouldNormalize(path, roles, isInitialCheck)) return;
     if (path === target) return;
 
     if (window.frappe && typeof frappe.set_route === "function") {
@@ -90,7 +170,7 @@
     if (redirectStarted) return;
     redirectStarted = true;
 
-    normalizeLandingRoute();
+    normalizeLandingRoute(true);
 
     lastPath = window.location.pathname || "";
 
@@ -99,7 +179,7 @@
 
       if (currentPath !== lastPath) {
         lastPath = currentPath;
-        normalizeLandingRoute();
+        normalizeLandingRoute(false);
       }
     }, 300);
   }
