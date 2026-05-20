@@ -29,6 +29,7 @@ def get_columns():
         {"label": "Subject", "fieldname": "subject", "fieldtype": "Data", "width": 280},
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
         {"label": "Priority", "fieldname": "priority", "fieldtype": "Data", "width": 90},
+        {"label": "Severity", "fieldname": "custom_severity", "fieldtype": "Data", "width": 90},
         {"label": "Customer", "fieldname": "custom_customer", "fieldtype": "Link", "options": "Customer", "width": 150},
         {"label": "Campus", "fieldname": "custom_site_group", "fieldtype": "Link", "options": "Location", "width": 150},
         {"label": "Service Area", "fieldname": "custom_service_area", "fieldtype": "Data", "width": 130},
@@ -54,12 +55,12 @@ def get_data(filters):
     # Priority order matters. A ticket needing review/rework should appear in that bucket
     # before generic "Assigned to me".
     sources = [
+        _get_assigned_to_me(user),
+        _get_shared_with_me(user),
         _get_partner_acceptance_review_needed(user, broad_partner_visibility),
         _get_partner_acceptance_rework_follow_up(user, broad_partner_visibility),
         _get_partner_work_review_needed(user, broad_partner_visibility),
         _get_partner_work_currently_with_partner(user, broad_partner_visibility),
-        _get_assigned_to_me(user),
-        _get_shared_with_me(user),
     ]
 
     for source_rows in sources:
@@ -71,7 +72,15 @@ def get_data(filters):
             rows.append(row)
             seen.add(name)
 
-    return rows
+    return sorted(
+        rows,
+        key=lambda row: (
+            _bucket_group_sort(row.get("bucket")),
+            _severity_sort_value(row.get("custom_severity")),
+            -_modified_sort_value(row).timestamp(),
+            str(row.get("name") or ""),
+        ),
+    )
 
 
 def _is_internal_user(user: str) -> bool:
@@ -94,6 +103,7 @@ def _base_select():
             t.subject,
             t.status,
             t.priority,
+            t.custom_severity,
             t.custom_customer,
             t.custom_site_group,
             t.custom_service_area,
@@ -105,6 +115,31 @@ def _base_select():
         from `tabHD Ticket` t
     """
 
+def _bucket_group_sort(bucket: str) -> int:
+    if bucket in ("Assigned to me", "Shared with me"):
+        return 10
+    return 20
+
+
+def _severity_sort_value(severity: str) -> int:
+    severity = (severity or "").strip()
+
+    order = {
+        "Sev1": 10,
+        "Sev2": 20,
+        "Sev3": 30,
+        "Sev4": 40,
+    }
+
+    return order.get(severity, 99)
+
+
+def _modified_sort_value(row):
+    value = row.get("modified")
+    if value:
+        return value
+
+    return frappe.utils.get_datetime("1900-01-01")
 
 def _scope_condition(broad_partner_visibility: bool):
     if broad_partner_visibility:
