@@ -128,6 +128,7 @@ fixtures = [
                 "My Current Work",
                 "Partner Current Work",
                 "My Team Load",
+                "New Partner Tickets",
             ]],
         ],
     },
