@@ -3,9 +3,14 @@ console.log("telectro_handoff_action.js loaded");
 frappe.ui.form.on("HD Ticket", {
   refresh(frm) {
     setTimeout(() => {
+      hide_split_and_merge_section(frm);
       add_controlled_handoff_action(frm);
       add_share_ticket_context_action(frm);
     }, 300);
+  },
+
+  onload_post_render(frm) {
+    hide_split_and_merge_section(frm);
   },
 });
 
@@ -371,4 +376,27 @@ function is_current_user_accountable_owner(frm) {
     .map((value) => value.trim())
     .filter(Boolean)
     .includes(currentUser);
+}
+
+function hide_split_and_merge_section(frm) {
+  const fields = [
+    "split_and_merge_section",
+    "is_merged",
+    "merged_with",
+    "ticket_split_from",
+  ];
+
+  fields.forEach((fieldname) => {
+    if (frm.fields_dict[fieldname]) {
+      frm.set_df_property(fieldname, "hidden", 1);
+    }
+  });
+
+  // Fallback for already-rendered section remnants.
+  setTimeout(() => {
+    $(".form-section .section-head")
+      .filter((_, el) => (el.innerText || "").trim() === "Split and Merge")
+      .closest(".form-section")
+      .hide();
+  }, 100);
 }
