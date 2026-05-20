@@ -20,6 +20,68 @@ SHARE_CONTEXT_ROLES = {
     "TELECTRO-POC Role - Coordinator Ops",
 }
 
+def _share_ticket_read_access(ticket, collaborator_user: str):
+    existing = frappe.get_all(
+        "DocShare",
+        filters={
+            "share_doctype": "HD Ticket",
+            "share_name": ticket.name,
+            "user": collaborator_user,
+        },
+        fields=["name", "read", "write", "share"],
+        limit_page_length=1,
+    )
+
+    if existing:
+        share_name = existing[0]["name"]
+        frappe.db.set_value("DocShare", share_name, "read", 1, update_modified=False)
+        return share_name
+
+    share = frappe.get_doc({
+        "doctype": "DocShare",
+        "share_doctype": "HD Ticket",
+        "share_name": ticket.name,
+        "user": collaborator_user,
+        "read": 1,
+        "write": 0,
+        "share": 0,
+        "submit": 0,
+    })
+    share.insert(ignore_permissions=True)
+    return share.name
+
+def _create_ticket_context_share_notification(ticket, collaborator_doc, note: str):
+    collaborator_user = collaborator_doc.name
+
+    if collaborator_user in ("Administrator", "Guest"):
+        return None
+
+    actor_user = frappe.session.user
+    actor_label = frappe.db.get_value("User", actor_user, "full_name") or actor_user
+    subject = frappe.utils.escape_html(ticket.get("subject") or ticket.name)
+
+    notification = frappe.get_doc({
+        "doctype": "Notification Log",
+        "subject": (
+            f"<strong>{frappe.utils.escape_html(actor_label)}</strong> "
+            f"shared ticket context for <strong>HD Ticket</strong> "
+            f'<b class="subject-title">{subject}</b>'
+        ),
+        "for_user": collaborator_user,
+        "type": "Alert",
+        "document_type": "HD Ticket",
+        "document_name": ticket.name,
+        "email_content": (
+            f"<p>Ticket context was shared with you for "
+            f"<strong>HD Ticket {frappe.utils.escape_html(ticket.name)}</strong>.</p>"
+            f"<p><strong>Reason / note:</strong> "
+            f"{frappe.utils.escape_html(note or '')}</p>"
+        ),
+    })
+    notification.insert(ignore_permissions=True)
+    return notification.name
+
+
 
 @frappe.whitelist()
 def share_ticket_context(ticket_name, collaborator, note):
@@ -58,14 +120,25 @@ def share_ticket_context(ticket_name, collaborator, note):
             frappe.ValidationError,
         )
 
-    frappe.db.commit()
+    docshare_name = _share_ticket_read_access(
+        ticket=ticket,
+        collaborator_user=collaborator_doc.name,
+    )
+
+    notification_name = _create_ticket_context_share_notification(
+        ticket=ticket,
+        collaborator_doc=collaborator_doc,
+        note=note,
+    )
 
     return {
-        "ok": True,
+        "ok": 1,
+        "message": _("Ticket context shared."),
         "ticket": ticket.name,
         "collaborator": collaborator_doc.name,
         "collaborator_name": collaborator_doc.full_name or collaborator_doc.name,
-        "message": _("Ticket context shared."),
+        "docshare": docshare_name,
+        "notification": notification_name,
     }
 
 def _get_context_display_value(doctype, name, display_fields):
