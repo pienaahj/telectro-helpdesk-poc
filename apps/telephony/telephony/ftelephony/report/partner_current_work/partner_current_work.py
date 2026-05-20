@@ -159,8 +159,9 @@ def get_data():
     return sorted(
         data,
         key=lambda row: (
-            action_sort_key(row.get("current_work_bucket")),
             -modified_sort_value(row).timestamp(),
+            action_sort_key(row.get("current_work_bucket")),
+            str(row.get("name") or ""),
         ),
     )
 
