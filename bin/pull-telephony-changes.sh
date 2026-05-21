@@ -323,6 +323,22 @@ cp_from_container \
   "ftelephony/report/my_team_load/my_team_load.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/my_team_tickets/__init__.py" \
+  "ftelephony/report/my_team_tickets/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/my_team_tickets/my_team_tickets.js" \
+  "ftelephony/report/my_team_tickets/my_team_tickets.js"
+
+cp_from_container \
+  "ftelephony/report/my_team_tickets/my_team_tickets.json" \
+  "ftelephony/report/my_team_tickets/my_team_tickets.json"
+
+cp_from_container \
+  "ftelephony/report/my_team_tickets/my_team_tickets.py" \
+  "ftelephony/report/my_team_tickets/my_team_tickets.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/my_tickets/__init__.py" \
   "ftelephony/report/my_tickets/__init__.py"
 
