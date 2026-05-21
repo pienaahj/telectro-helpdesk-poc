@@ -1,0 +1,162 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "naming_series:",
+  "creation": "2026-05-21 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Setup",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "naming_series",
+    "enabled",
+    "coverage_scope",
+    "customer",
+    "campus",
+    "service_area",
+    "user",
+    "coverage_role",
+    "priority",
+    "notes"
+  ],
+  "fields": [
+    {
+      "default": "TSC-.YYYY.-.#####",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "hidden": 1,
+      "label": "Naming Series",
+      "options": "TSC-.YYYY.-.#####",
+      "reqd": 1
+    },
+    {
+      "default": "1",
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "in_list_view": 1,
+      "label": "Enabled"
+    },
+    {
+      "fieldname": "coverage_scope",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Coverage Scope",
+      "options": "Customer/Campus\nCustomer\nCampus\nDefault",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Customer",
+      "options": "Customer"
+    },
+    {
+      "fieldname": "campus",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Campus",
+      "options": "Location"
+    },
+    {
+      "fieldname": "service_area",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Service Area",
+      "reqd": 1
+    },
+    {
+      "fieldname": "user",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "User",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "default": "Eligible",
+      "fieldname": "coverage_role",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Coverage Role",
+      "options": "Primary\nBackup\nEligible",
+      "reqd": 1
+    },
+    {
+      "default": "100",
+      "fieldname": "priority",
+      "fieldtype": "Int",
+      "in_list_view": 1,
+      "label": "Priority"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "istable": 0,
+  "links": [],
+  "modified": "2026-05-21 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "FTelephony",
+  "name": "TELECTRO Service Coverage",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Pilot Admin",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Supervisor Governance",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Coordinator Ops",
+      "share": 0,
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "priority",
+  "sort_order": "ASC",
+  "states": [],
+  "track_changes": 1
+}

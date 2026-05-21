@@ -20,6 +20,7 @@ mkdir -p "${DST_BASE}/monkey_patches"
 mkdir -p "${DST_BASE}/jobs"
 mkdir -p "${DST_BASE}/ftelephony/report"
 mkdir -p "${DST_BASE}/ftelephony/page"
+mkdir -p "${DST_BASE}/ftelephony/doctype"
 mkdir -p "${DST_BASE}/public/js"
 mkdir -p "${DST_BASE}/api"
 
@@ -175,6 +176,21 @@ cp_dir_from_container() {
 # cp_dir_from_container "overrides" "overrides"
 # cp_dir_from_container "scripts" "scripts"
 # cp_dir_from_container "monkey_patches" "monkey_patches"
+
+# Standard DocType files
+mirror_dir_from_container "ftelephony/doctype" "ftelephony/doctype"
+
+cp_from_container \
+  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.py" \
+  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.py"
+
+cp_from_container \
+  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json" \
+  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json"
+  
+cp_from_container \
+  "ftelephony/doctype/telectro_service_coverage/__init__.py" \
+  "ftelephony/doctype/telectro_service_coverage/__init__.py"
 
 # Standard report files
 mirror_dir_from_container "ftelephony/report" "ftelephony/report"
