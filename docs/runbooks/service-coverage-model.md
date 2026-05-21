@@ -274,6 +274,103 @@ Routing:
   Gradually consume service coverage once the model is stable.
 ```
 
+## Verified existing implementation anchors
+
+Initial code inspection confirms that the pilot already has stable ticket context fields that can support service coverage without adding new HD Ticket fields.
+
+Existing HD Ticket context fields:
+
+```text
+custom_customer
+custom_site_group
+custom_service_area
+```
+
+These fields are already used across:
+
+```text
+HD Ticket custom field fixtures
+site/campus validation
+ticket routing
+Partner ticket creation
+Partner-safe ticket detail
+Partner reports
+My Current Work
+Repeat Faults by Location
+Share Ticket Context
+workspace/report context display
+```
+
+This means the Service Coverage model should consume the existing ticket context rather than create parallel customer, campus, or service-area fields.
+
+## Verified routing anchors
+
+Existing routing already separates several concerns:
+
+```text
+custom_service_area -> agent_group/team routing
+custom_site_group -> campus-aware routing policy
+_assign / ToDo -> accountable owner state
+```
+
+The current campus-aware routing policy treats Campus / `custom_site_group` as the primary routing anchor and returns a policy result rather than directly mutating `_assign`.
+
+This is a useful boundary for V1.
+
+Service Coverage should not initially replace the current routing policy. It should first provide a verified coverage lookup model that can be consumed by reports and later by routing.
+
+## V1 implementation decision
+
+For V1, Service Coverage should power visibility before assignment.
+
+Initial consumer:
+
+```text
+My Team Tickets / Team Work Queue
+```
+
+Purpose:
+
+```text
+Show active tickets that fall within the current user's customer/campus/service-area coverage context.
+```
+
+Non-goal for V1:
+
+```text
+Do not automatically reassign tickets from Service Coverage yet.
+Do not change Partner workflow ownership rules.
+Do not change the single-accountable-owner invariant.
+Do not replace My Current Work or My Team Load.
+```
+
+Recommended report relationship:
+
+```text
+My Current Work:
+  Personal action queue: assigned, shared, and workflow items needing attention.
+
+My Team Load:
+  Aggregate workload/count view.
+
+My Team Tickets / Team Work Queue:
+  Drill-through list of actual tickets in the user's coverage context.
+```
+
+## Proposed V1 lookup behaviour
+
+Suggested first matching order:
+
+```text
+1. Match active coverage rows for exact Customer + Campus + Service Area.
+2. If no rows match, try Campus + Service Area.
+3. If no rows match, try Customer + Service Area.
+4. If no rows match, try Default + Service Area.
+5. If no rows match, fall back to existing team/queue visibility.
+```
+
+V1 should be read-only from a routing perspective. Once the report behaviour is proven with real Telectro data, routing can consume the same coverage lookup later.
+
 ## Relationship to Partner workflow
 
 Partner workflow states remain separate from service coverage.
@@ -352,4 +449,3 @@ How should inactive/temporary coverage be handled?
 5. Build My Team Tickets or Team Work Queue as the first consumer.
 6. Only then adjust routing to use coverage.
 ```
-
