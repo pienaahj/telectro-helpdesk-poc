@@ -625,6 +625,9 @@ cp_from_container "telectro_ticket_routing.py" "telectro_ticket_routing.py"
 cp_from_container "telectro_ticket_edit_guard.py" "telectro_ticket_edit_guard.py"
 cp_from_container "telectro_reassign_on_update.py" "telectro_reassign_on_update.py"
 
+# --- coverage helpers ---
+cp_from_container "service_coverage.py" "service_coverage.py"
+
 # --- small helpers / guard wrappers ---
 cp_optional_from_container "assign_guard.py" "assign_guard.py"
 
