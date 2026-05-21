@@ -491,6 +491,7 @@ At the moment, the doc set has a good emerging split:
 - **Notification V1 Operating Model** = which workflow events notify, who receives them, and which events are intentionally silent in V1.
 - **Pilot Outstanding Issues Timeline** = timeline and status of known issues, including evidence and notification limitations.
 - **Production Deployment Runbook** = what needs to be tested locally vs on staging/prod, and recommended rollout phases.
+- **Service Coverage Model** = how service coverage is currently modeled in the system, how it interacts with assignment and routing, and known limitations.
 
 That is a healthy baseline for the pilot.
 
