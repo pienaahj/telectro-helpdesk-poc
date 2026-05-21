@@ -21,6 +21,104 @@ Where possible, the questions avoid technical implementation terms and focus on 
 
 The answers to these questions must be confirmed before production deployment starts.
 
+## Current Deployment Readiness Status
+
+This section records the current practical readiness position for the first production-facing technical deployment.
+
+It should be reviewed with Telectro before scheduling deployment.
+
+### Ready / largely proven in pilot
+
+The following areas have working pilot implementation and local proof:
+
+- Core ERPNext/Frappe/Helpdesk application stack in Docker
+- TELECTRO role profiles and role-based workspaces
+- Internal Tech, Coordinator, and Ops workspace landing behaviour
+- Partner workspace and Partner route containment
+- Manual ticket creation and internal ticket workflow
+- Partner Request, Partner Acceptance, and Partner Work review flows
+- Controlled ticket evidence model using private Frappe File records
+- Internal and Partner-safe evidence upload/list/download paths
+- Take Photo evidence capture path
+- My Current Work report
+- My Team Load report
+- My Team Tickets report based on Service Coverage
+- Partner Current Work and Partner workflow reports
+- Production Docker Compose skeleton direction with Traefik entry through ports 80/443
+- Production smoke-test checklist
+- Backup/restore expectations
+- HTTPS/certificate handling guidance
+- Production email rollout model
+
+### Partially ready / needs production wiring
+
+The following areas have a clear direction but still need production-specific configuration or final implementation before real deployment:
+
+- Final production hostname and Frappe site name alignment
+- Production `.env` / secrets model
+- Final production image/app installation strategy
+- Final production frontend/nginx image tag
+- Certificate file placement on the server
+- Reverse proxy TLS wiring using the supplied certificate
+- Production backup command/location/retention implementation
+- Restore test procedure on production-like infrastructure
+- SMTP/outgoing email configuration, if email is in first deployment scope
+- Initial production user creation approach
+- Initial TELECTRO Service Coverage row setup from the confirmed personnel/service-area matrix
+
+### Waiting on Telectro
+
+The following inputs are still required from Telectro before production deployment can be scheduled safely:
+
+- Final production hostname
+- DNS owner/contact and DNS change timing
+- Clean Ubuntu VM/server access
+- Public IP address
+- SSH/admin access method
+- Firewall owner/contact
+- Confirmation that ports 80 and 443 may be opened
+- Certificate hostname, file set, expiry date, and renewal owner
+- Approved method for transferring certificate files/private key
+- SMTP details, if outgoing email is required for first deployment
+- Decision on whether incoming mailbox processing is in scope for first deployment
+- Confirmed production user/contact list
+- Confirmed service-area/team/coverage matrix
+- Backup storage location
+- Backup retention expectation
+- Restore owner/test expectation
+- Deployment owner
+- Smoke-test sign-off owner
+- Operational go-live owner/date/window
+
+### Deliberate non-goals for first technical deployment
+
+The following should not block the first controlled technical deployment unless Telectro explicitly moves them into scope:
+
+- Fully automated GitHub deployment pipeline
+- Docker Swarm or multi-server clustering
+- High-availability setup
+- Incoming helpdesk email automation
+- WhatsApp/media intake automation
+- Browser/mobile push notifications
+- Advanced monitoring dashboards
+- Service Coverage automatically changing assignment/routing
+- Bulk automated user import
+- Full notification/email tuning
+
+### Current deployment stance
+
+The current recommended stance is:
+
+```text
+Deploy manually from a reviewed Git tag to a clean Ubuntu server.
+Use the production Docker Compose merge.
+Expose only ports 80/443 publicly, plus restricted SSH where required.
+Configure HTTPS using the supplied Telectro certificate.
+Run migrations and smoke tests.
+Take a first known-good backup.
+Treat this as technical deployment first, not operational go-live.
+```
+
 ## 1. Access address
 
 What address should users type into their browser to access the system?
@@ -1086,6 +1184,7 @@ Minimum internal checks:
 
 - My Current Work
 - My Team Load
+- My Team Tickets
 - Partner Current Work, if Partner workflow is in scope
 - Partner Acceptance Review Queue, if acceptance workflow is in scope
 - Partner Acceptance Rework Queue, if acceptance rework is in scope
