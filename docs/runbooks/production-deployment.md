@@ -709,6 +709,90 @@ Welcome/password reset email allowed
 Notes
 ```
 
+### Telectro onboarding spreadsheet input review
+
+An updated Telectro spreadsheet was received for production user/contact and service-area planning.
+
+Spreadsheet tabs reviewed:
+
+```text
+Boschendal
+Telectro default
+Lanzerac
+Personnel
+User accounts
+```
+
+The spreadsheet provides two different kinds of production input:
+
+```text
+User/contact onboarding:
+- Personnel
+- User accounts
+
+Service-area coverage:
+- Boschendal
+- Telectro default
+- Lanzerac
+```
+
+Initial user-account interpretation:
+
+```text
+Internal Telectro login users:
+- Jacques Loubser
+- Pierre
+- Sean
+- Armandt
+- Kyle
+- Jayden
+- Dewaldt
+- Christo
+- Hendrik Pienaar
+
+Partner login user:
+- CN Services
+
+Boschendal-side contacts / undecided access:
+- Zayros Gabriels
+- Jan Dorfling
+- Jasmine Batey
+```
+
+Important note:
+
+```text
+The spreadsheet should not be treated as a direct import file yet.
+It is a planning/input source that still needs access decisions, role/profile mapping, and data cleanup before production account creation.
+```
+
+Open cleanup items:
+
+```text
+- Confirm Dewald vs Dewaldt naming and email address.
+- Confirm whether Boschendal IT staff should be Customer Website Users, contacts only, notification recipients, or another customer-side access type.
+- Confirm exact role profile mapping for "Technician / Supervisor" users.
+- Confirm exact role profile mapping for "Coordinator / Supervisor" users.
+- Confirm whether CN Services needs Partner-only access and which Partner organisation/ticket visibility rules apply.
+- Align spreadsheet Service Area labels with app values:
+  - Internet Connectivity vs Internet Connection
+  - Quotes & Surveys vs Quotes & Site Surveys
+```
+
+Service-area coverage interpretation:
+
+```text
+The Boschendal, Telectro default, and Lanzerac tabs provide coverage signals by person and service area.
+These should inform routing, team visibility, and My Team Load style reports, but should not be imported blindly until user accounts and final service-area labels are confirmed.
+```
+
+Current decision:
+
+```text
+Use the spreadsheet as the current production onboarding and service-coverage input source.
+Do not bulk-create users or coverage records from it until the open cleanup items are confirmed.
+```
+
 #### Internal Telectro users
 
 Internal users should normally be System Users with the correct Telectro role profile.
