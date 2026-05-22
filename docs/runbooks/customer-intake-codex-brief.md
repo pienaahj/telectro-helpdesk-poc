@@ -45,7 +45,7 @@ In scope for the first implementation:
 
 Possible form fields:
 
-```test
+```text
 Contact name
 Contact email
 Contact phone
@@ -66,8 +66,6 @@ The first slice must not attempt to build a full portal.
 
 Out of scope:
 
-
-- full customer portal
 - customer account management
 - customer ticket history
 - customer self-service dashboard
@@ -118,7 +116,7 @@ The implementation pass must stay within the reviewed plan unless it stops and e
 
 Use the following prompt for the first Codex pass.
 
-```test
+```text
 You are working in the ERPNext/Frappe/Helpdesk pilot repo for Telectro.
 
 Task: planning only. Do not edit files.
