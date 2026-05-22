@@ -99,3 +99,65 @@ Use native Helpdesk Customer Portal as the base, then add only the minimum Telec
 - production-ready Redis/search decision
 ```
 
+## Customer containment proof
+
+A follow-up containment check was performed with the proof customer user:
+
+```text
+User: test@boschendal.co.za
+user_type: Website User
+effective roles: Customer, All, Guest
+```
+
+The user had the intended HD Ticket permission shape:
+
+```text
+read = True
+create = True
+write = True
+delete = False
+```
+
+Browser route checks:
+
+```text
+/helpdesk/my-tickets        allowed
+/helpdesk/my-tickets/798    allowed
+/app                        blocked / not permitted
+/app/telectro-poc-ops       blocked / not permitted
+/app/telectro-poc-tech      blocked / not permitted
+/app/report                 blocked / not permitted
+/app/hd-ticket              blocked / not permitted
+```
+
+Permission-aware bench proof used `frappe.get_list()` as the customer user:
+
+```text
+row_count: 1
+visible ticket: 798
+```
+
+The customer user could see only their own native customer-created ticket:
+
+```text
+HD Ticket: 798
+raised_by = test@boschendal.co.za
+owner = test@boschendal.co.za
+contact = Customer
+custom_request_source = Customer
+custom_service_area = Other
+status = Open
+```
+
+Important testing note:
+
+```text
+frappe.get_all() bypasses normal list permissions and is not valid for customer containment proof.
+Use frappe.get_list() or browser/API behaviour when proving portal visibility.
+```
+
+Conclusion:
+
+```text
+Native Helpdesk customer portal containment is viable for a Customer Website User with safe HD Ticket read/create/write and no delete permission.
+```
