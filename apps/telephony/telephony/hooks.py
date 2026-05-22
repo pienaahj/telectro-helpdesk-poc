@@ -273,4 +273,7 @@ override_whitelisted_methods.update({
     # ✅ Report alias (stops disabled-report login loops)
     "frappe.desk.query_report.get_script": "telephony.overrides.query_report.get_script",
     "frappe.desk.query_report.run": "telephony.overrides.query_report.run",
+    
+    # ✅ Redis search override (stops search on subject type of Customer site)
+    "helpdesk.api.article.search": "telephony.api.customer_article_search",
 })

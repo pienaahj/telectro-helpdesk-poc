@@ -625,6 +625,7 @@ cp_from_container \
 # --------------------------------------------------------------------
 # --- workspace api ---
 cp_from_container "api/workspace.py" "api/workspace.py"
+cp_from_container "api/__init__.py" "api/__init__.py"
 #  --- ops_kpis ---
 cp_from_container "ops_kpis.py" "ops_kpis.py"
 # --- overrides we care about ---
