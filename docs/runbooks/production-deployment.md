@@ -49,6 +49,10 @@ The following areas have working pilot implementation and local proof:
 - Backup/restore expectations
 - HTTPS/certificate handling guidance
 - Production email rollout model
+- Native Helpdesk customer portal selected as Customer Intake V1 foundation
+- Customer Website User containment proof
+- Customer portal Service Area capture and routing proof
+- Native customer portal private attachment/evidence proof
 
 ### Partially ready / needs production wiring
 
@@ -65,6 +69,7 @@ The following areas have a clear direction but still need production-specific co
 - SMTP/outgoing email configuration, if email is in first deployment scope
 - Initial production user creation approach
 - Initial TELECTRO Service Coverage row setup from the confirmed personnel/service-area matrix
+- Customer Intake V1 production setup: Customer Website Users, Contact to HD Customer links, Customer role permissions, and Default HD Ticket Template field configuration
 
 ### Waiting on Telectro
 
@@ -2479,6 +2484,99 @@ The following still need to be confirmed:
 - who monitors failed email sending
 - who monitors incoming email intake
 - whether Boschendal contacts are login users, contacts only, or notification recipients
+
+## Customer Intake V1 Production Model
+
+### Customer Intake V1 production readiness notes
+
+Customer Intake V1 should use the native Helpdesk customer portal as the production foundation.
+
+Detailed discovery and proof are captured in:
+
+```text
+docs/runbooks/customer-portal-discovery.md
+```
+
+Current production recommendation:
+
+```text
+Use native Helpdesk customer portal for customer web intake.
+Do not build a custom Customer Intake page for V1 unless a future blocker proves the native portal cannot meet pilot requirements.
+```
+
+Minimum production setup expectations:
+
+```text
+- Customer users should be Website Users, not Desk/System Users.
+- Customer users should use the Customer role with safe HD Ticket read/create/write and no delete.
+- Customer Contacts must be linked to HD Customer records for organisation resolution.
+- The Default HD Ticket Template should expose custom_service_area as a required customer-visible field.
+- custom_request_source should remain backend/hook-owned and should resolve to Customer for portal-created tickets.
+- Native customer attachments can be used for Customer Intake evidence if files remain private and attach directly to HD Ticket.
+```
+
+Customer Intake V1 should not expose these fields yet:
+
+```text
+custom_site_group = Campus
+custom_site = Fault Point
+```
+
+Reason:
+
+```text
+These are Location Link fields. Native Helpdesk does not add customer-specific Location filtering by itself, and broad Location read access could expose unrelated sites or fault points. Campus/Fault Point should remain hidden until a controlled customer-safe Location lookup/filtering model is implemented and proven.
+```
+
+Redis / article suggestions decision:
+
+```text
+Customer article suggestions are suppressed for the pilot.
+Redis Stack / RediSearch is not required for first production deployment unless Telectro explicitly wants customer self-service knowledge base suggestions.
+```
+
+Current handling:
+
+```text
+helpdesk.api.article.search -> telephony.api.customer_article_search
+```
+
+The override returns an empty list so the customer portal does not fail when Redis lacks RediSearch / FT.SEARCH support.
+
+Customer evidence decision:
+
+```text
+Native Helpdesk customer portal attachment upload is viable for initial Customer Intake evidence.
+Uploaded files must remain private File records attached to HD Ticket.
+Custom customer/partner evidence UI, if added later, should use controlled upload/list/download endpoints and must not expose raw private file URLs.
+```
+
+Production smoke checks for Customer Intake:
+
+```text
+- Customer Website User can log in.
+- Customer can open /helpdesk/my-tickets/new.
+- Customer can create a ticket with Service Area selected.
+- Created ticket has owner/raised_by set to the customer user.
+- Created ticket resolves contact and HD Customer correctly.
+- Created ticket has custom_request_source = Customer.
+- Created ticket stores custom_service_area from the portal.
+- Existing Telectro routing consumes the selected Service Area.
+- Customer can upload an attachment during ticket creation.
+- Uploaded file is private and attached to HD Ticket.
+- Customer can view only their own tickets.
+- Customer cannot access /app, /app/report, /app/hd-ticket, or Telectro workspaces.
+```
+
+Open production decisions:
+
+```text
+- Confirm final customer user onboarding process.
+- Confirm who creates/maintains Contact -> HD Customer links.
+- Confirm final Customer role/HD Ticket permission fixture.
+- Confirm file size and allowed file type expectations for customer uploads.
+- Decide whether future Campus/Fault Point capture should use a controlled lookup, a simplified Select field, or remain internal-only.
+```
 
 ## Production Open Decisions and Telectro Inputs
 
