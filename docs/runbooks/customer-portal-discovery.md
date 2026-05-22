@@ -161,3 +161,61 @@ Conclusion:
 ```text
 Native Helpdesk customer portal containment is viable for a Customer Website User with safe HD Ticket read/create/write and no delete permission.
 ```
+
+## Customer organisation linkage proof
+
+A follow-up proof confirmed how native Helpdesk resolves the `HD Ticket.customer` field for customer portal tickets.
+
+Helpdesk does not resolve `HD Ticket.customer` from ERPNext `Customer` directly. It uses:
+
+```text
+Contact → Dynamic Link → HD Customer
+```
+
+The proof customer contact initially had no Dynamic Links:
+
+```text
+Contact: Customer
+email_id: test@boschendal.co.za
+Dynamic Links: []
+HD Customers: none
+```
+
+After creating HD Customer `Boschendal` and linking Contact `Customer` to it through a Dynamic Link, Helpdesk customer resolution returned:
+
+```text
+get_customer("Customer") = ["Boschendal"]
+get_customer("test@boschendal.co.za") = ["Boschendal"]
+```
+
+A new native customer portal ticket then resolved the organisation correctly:
+
+```text
+HD Ticket: 799
+owner = test@boschendal.co.za
+raised_by = test@boschendal.co.za
+contact = Customer
+customer = Boschendal
+subject = Subject: Native customer portal organisation linkage proof
+priority = Medium
+ticket_type = Faults
+agent_group = Helpdesk Team
+via_customer_portal = 1
+custom_request_source = Customer
+custom_service_area = Other
+_assign = ["hendrik@local.test"]
+```
+
+Important notes:
+
+```text
+- Existing ticket 798 remained customer = None because it was created before the Contact → HD Customer link existed.
+- New native portal tickets created after the link correctly set customer = Boschendal.
+- The native customer portal Close action can be mistaken for closing the view; this is a UX risk to revisit before production use.
+```
+
+Conclusion:
+
+```text
+Native Helpdesk customer portal can support organisation-aware customer intake once customer Contacts are linked to HD Customer records.
+```
