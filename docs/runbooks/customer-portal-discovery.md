@@ -219,3 +219,96 @@ Conclusion:
 ```text
 Native Helpdesk customer portal can support organisation-aware customer intake once customer Contacts are linked to HD Customer records.
 ```
+
+## Customer Location Link-field containment discovery
+
+A follow-up discovery checked whether native Helpdesk customer portal should expose the Telectro Location Link fields:
+
+```text
+custom_site_group = Campus
+custom_site = Fault Point
+```
+
+The customer proof user remained a contained Website User:
+
+```text
+User: test@boschendal.co.za
+roles: Customer, All, Guest
+user_type: Website User
+```
+
+Location permissions for the customer user were:
+
+```text
+read = False
+create = False
+write = False
+delete = False
+```
+
+A permission-aware Location list check as the customer failed:
+
+```text
+frappe.get_list("Location") as customer -> PermissionError
+```
+
+This is the safe default because the Location tree contains a mixed hierarchy of campus/group records and detailed child fault points.
+
+The relevant native Helpdesk portal field methods were inspected:
+
+```python
+def get_visible_custom_fields():
+    return frappe.db.get_all(
+        "HD Ticket Template Field",
+        {"parent": "Default", "hide_from_customer": 0},
+        pluck="fieldname",
+    )
+
+
+def get_customer_portal_fields(doctype, fields):
+    visible_custom_fields = get_visible_custom_fields()
+    customer_portal_fields = [
+        "name",
+        "subject",
+        "status",
+        "priority",
+        "response_by",
+        "resolution_by",
+        "creation",
+        *visible_custom_fields,
+    ]
+    fields = [field for field in fields if field.get("value") in customer_portal_fields]
+    return fields
+```
+
+Finding:
+
+```text
+Native Helpdesk only allowlists fields from HD Ticket Template Field.
+It does not itself add customer-specific Location filtering or containment.
+```
+
+Decision:
+
+```text
+Do not expose custom_site_group or custom_site directly on the customer portal yet.
+```
+
+Recommended phased approach:
+
+```text
+Phase 1:
+Keep customer portal intake limited to Service Area, which is already proven as a safe Select field.
+
+Phase 2:
+Design a controlled customer-safe Location lookup that derives allowed Location records from the customer organisation / HD Customer / Contact relationship.
+
+Phase 3:
+Only expose Campus/Fault Point after proving the lookup cannot leak unrelated Location records.
+```
+
+Conclusion:
+
+```text
+Customer-visible Location Link fields need a separate containment design. The native customer portal field-template mechanism is safe for fixed Select fields like Service Area, but Location Link fields should remain hidden until customer-scoped lookup/filtering is implemented and proven.
+```
