@@ -657,6 +657,166 @@ It should not be treated as a final production user-import source until:
 - role profiles are confirmed
 - Boschendal access model is confirmed
 
+### Production user/contact onboarding model
+
+Production onboarding should separate four different concepts:
+
+```text
+Internal login users:
+Telectro staff who use Desk/workspaces/reports.
+
+Partner login users:
+Partner users who access Partner-safe workspaces/pages.
+
+Customer login users:
+Customer Website Users who use the native Helpdesk customer portal.
+
+Contacts only:
+People recorded for organisation/contact context but not expected to log in.
+```
+
+Do not create every person as a login user by default.
+
+A production spreadsheet should identify each person as one of:
+
+```text
+Internal login user
+Partner login user
+Customer login user
+Contact only
+Notification recipient only
+```
+
+Recommended onboarding columns:
+
+```text
+Name
+Email address
+Organisation / customer / partner
+Person type
+Login required
+User type
+Role Profile
+Individual roles, if no Role Profile applies
+Customer / HD Customer
+Contact record required
+Contact -> HD Customer link required
+Partner organisation, if applicable
+Service areas / coverage
+Campus/customer coverage
+Should receive email
+Welcome/password reset email allowed
+Notes
+```
+
+#### Internal Telectro users
+
+Internal users should normally be System Users with the correct Telectro role profile.
+
+Expected profiles include:
+
+```text
+TELECTRO-POC Profile – Technician
+TELECTRO-POC Profile – Coordinator-Technician
+TELECTRO-POC Profile – Supervisor
+```
+
+Internal onboarding checks:
+
+```text
+- user can log in
+- expected role profile applies
+- expected workspace landing works
+- user does not have unnecessary administrator access
+- user appears correctly in assignment/routing/team coverage where applicable
+```
+
+#### Partner users
+
+Partner users should be created only when Partner-side login is required.
+
+Partner users should receive Partner-specific roles/profiles only and must remain contained to Partner-safe surfaces.
+
+Partner onboarding checks:
+
+```text
+- Partner user can log in
+- Partner workspace loads
+- Partner route guard blocks unsafe Desk routes
+- Partner user can access only Partner-safe ticket pages/reports
+- Partner user cannot access raw HD Ticket list/form/report surfaces
+```
+
+#### Customer users
+
+Customer Intake V1 uses the native Helpdesk customer portal.
+
+Customer users should be Website Users, not Desk/System Users.
+
+Expected Customer user setup:
+
+```text
+user_type = Website User
+role = Customer
+HD Ticket permissions = read/create/write allowed, delete denied
+```
+
+Customer organisation setup:
+
+```text
+User email -> Contact
+Contact -> Dynamic Link -> HD Customer
+```
+
+Customer onboarding checks:
+
+```text
+- customer user can log in
+- customer can open /helpdesk/my-tickets/new
+- customer can create a ticket
+- ticket owner/raised_by is the customer user
+- ticket contact resolves
+- ticket customer resolves through Contact -> HD Customer
+- customer can see their own tickets
+- customer cannot access /app, /app/report, /app/hd-ticket, or Telectro workspaces
+```
+
+#### Contacts only
+
+Some people should exist only as Contacts.
+
+This applies when a person may be referenced for customer/organisation context or email communication but should not log in.
+
+Contact-only records should not receive role profiles or Desk access.
+
+#### Email onboarding caution
+
+Do not bulk-send welcome emails or password reset emails until outgoing SMTP has been proven.
+
+Recommended production sequence:
+
+```text
+1. Create or verify a small controlled test batch.
+2. Prove outgoing SMTP with one controlled recipient.
+3. Prove login and workspace/portal containment.
+4. Only then widen onboarding to the confirmed production user list.
+```
+
+#### Minimum onboarding pass set
+
+Before first operational go-live, confirm:
+
+```text
+- each login user has an intended user type
+- each login user has the intended role/profile
+- customer users are Website Users
+- partner/customer users are contained
+- Contact -> HD Customer links exist for customer portal users
+- service-area/team coverage is configured for internal routing where required
+- no contact-only person has unnecessary login access
+- email sending has been proven before bulk invitations
+```
+
 ## First Production Deployment Command Flow
 
 This section describes the intended first production deployment flow.
