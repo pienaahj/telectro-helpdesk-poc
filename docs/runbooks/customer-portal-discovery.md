@@ -219,3 +219,83 @@ Conclusion:
 ```text
 Native Helpdesk customer portal can support organisation-aware customer intake once customer Contacts are linked to HD Customer records.
 ```
+
+## Customer portal field capture proof
+
+A follow-up proof confirmed that native Helpdesk customer portal fields can expose selected Telectro custom fields through `HD Ticket Template Field`.
+
+Initial discovery showed that the Default template existed but had no configured template fields:
+
+```text
+HD Ticket Template: Default
+Default HD Ticket Template Field row_count: 0
+get_visible_custom_fields() = []
+```
+
+The installed `HD Ticket Template Field` child table is intentionally small and only controls inclusion/visibility behaviour:
+
+```text
+fieldname
+url_method
+required
+hide_from_customer
+placeholder
+```
+
+The first safe field tested was `custom_service_area` because it is a simple `Select` field on `HD Ticket`, not a customer-facing Link field.
+
+The Default template was configured with:
+
+```text
+fieldname = custom_service_area
+required = 1
+hide_from_customer = 0
+placeholder = Select the affected service area
+```
+
+After the change, Helpdesk reported:
+
+```text
+get_visible_custom_fields() = ["custom_service_area"]
+```
+
+A new native customer portal ticket then captured the selected service area correctly:
+
+```text
+HD Ticket: 800
+owner = test@boschendal.co.za
+raised_by = test@boschendal.co.za
+contact = Customer
+customer = Boschendal
+subject = Testing Customer cerated ticket with Service Area visible
+status = Open
+priority = Medium
+ticket_type = Faults
+agent_group = Routing
+via_customer_portal = 1
+custom_request_source = Customer
+custom_service_area = Routing
+_assign = ["tech.alfa@local.test"]
+```
+
+This also proved that the existing Telectro routing logic consumed the customer-selected Service Area:
+
+```text
+custom_service_area = Routing
+agent_group = Routing
+_assign = ["tech.alfa@local.test"]
+```
+
+Important notes:
+
+```text
+- `custom_service_area` is a good first customer-visible field because it is a Select field with fixed options.
+- `custom_site_group` and `custom_site` should not be exposed yet without a separate Link-field containment proof.
+- Customer-facing Link fields to Location may require additional permissions, filtering, or a safer controlled lookup model.
+```
+
+Conclusion:
+
+```text
+Native Helpdesk customer portal can support customer-visible Telectro field capture through HD Ticket Template Field. Service Area is now proven as a safe first field and integrates with the existing routing flow.
+```
