@@ -312,3 +312,74 @@ Conclusion:
 ```text
 Customer-visible Location Link fields need a separate containment design. The native customer portal field-template mechanism is safe for fixed Select fields like Service Area, but Location Link fields should remain hidden until customer-scoped lookup/filtering is implemented and proven.
 ```
+
+## Current Customer Intake recommendation
+
+Based on the native Helpdesk customer portal discovery, the current recommendation is:
+
+```text
+Use the native Helpdesk customer portal as the Customer Web Intake foundation.
+Do not build a custom Customer Intake page yet.
+```
+
+The native portal has now proven the key foundations needed for the pilot:
+
+```text
+- Customer Website User containment works.
+- Customer-created tickets flow through the normal HD Ticket lifecycle.
+- Customer-created tickets trigger existing Telectro hooks/routing.
+- Organisation linkage works through Contact -> Dynamic Link -> HD Customer.
+- Service Area can be exposed through HD Ticket Template Field.
+- Customer-selected Service Area is saved on HD Ticket and consumed by existing routing.
+```
+
+The first safe customer-facing intake shape is therefore:
+
+```text
+Native Helpdesk customer portal
++ Customer Website User containment
++ Contact -> HD Customer organisation linkage
++ Service Area as a required customer-visible Select field
++ existing Telectro routing and assignment
+```
+
+Recommended V1 scope:
+
+```text
+- Use `/helpdesk/my-tickets/new` for customer ticket creation.
+- Keep Customer users as Website Users, not Desk/System Users.
+- Use Customer role with safe HD Ticket read/create/write and no delete.
+- Link customer Contacts to HD Customer records.
+- Expose `custom_service_area` through HD Ticket Template Field.
+- Keep `custom_request_source = Customer` handled by backend/hook logic.
+- Keep evidence/attachments for a later controlled customer-safe upload/list/download slice.
+```
+
+Do not expose these yet:
+
+```text
+custom_site_group = Campus
+custom_site = Fault Point
+```
+
+Reason:
+
+```text
+These are Location Link fields. The customer user currently has no Location read permission, and native Helpdesk does not add customer-specific Location filtering by itself. Directly exposing these fields could leak unrelated Location records unless a scoped lookup/filtering model is implemented first.
+```
+
+Known implementation/support items still open:
+
+```text
+- Decide whether production Redis should support Helpdesk article suggestions via RediSearch/Redis Stack, or whether article suggestions should be disabled/suppressed for the pilot.
+- Add or preserve a safe `telephony.api.is_call_integration_enabled` stub if the Helpdesk SPA expects it.
+- Design customer-safe evidence upload/list/download before exposing attachments to customer users.
+- Revisit the native customer portal Close action because it can be mistaken for closing the view.
+- Design customer-safe Location lookup/filtering before exposing Campus/Fault Point.
+```
+
+Current decision:
+
+```text
+Proceed with native Helpdesk customer portal as the Customer Web Intake base, with minimal Telectro-safe alignment. Avoid custom customer intake development unless a future blocker proves the native portal cannot meet pilot requirements.
+```
