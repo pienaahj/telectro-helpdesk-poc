@@ -383,3 +383,51 @@ Current decision:
 ```text
 Proceed with native Helpdesk customer portal as the Customer Web Intake base, with minimal Telectro-safe alignment. Avoid custom customer intake development unless a future blocker proves the native portal cannot meet pilot requirements.
 ```
+
+## Customer portal article suggestion / Redis search decision
+
+During native Helpdesk customer portal discovery, article suggestions were identified as an optional feature that can create a local dependency issue.
+
+The native customer ticket form may call:
+
+```text
+helpdesk.api.article.search
+```
+
+In the local pilot environment, this can fail if Redis does not support RediSearch/`FT.SEARCH`.
+
+Current pilot handling:
+
+```text
+helpdesk.api.article.search -> telephony.api.customer_article_search
+```
+
+The pilot method returns an empty list:
+
+```python
+@frappe.whitelist()
+def customer_article_search(query=None):
+    return []
+```
+
+Decision:
+
+```text
+Suppress customer article suggestions for the pilot.
+Do not require Redis Stack / RediSearch for first production deployment unless Telectro explicitly wants customer self-service knowledge base suggestions.
+```
+
+Reason:
+
+```text
+Customer Intake V1 is about reliable ticket creation, routing, containment, and evidence handling.
+Article suggestions are optional.
+Adding Redis Stack / RediSearch increases deployment complexity.
+Returning [] is safer than allowing the customer portal to fail with a Redis FT.SEARCH error.
+```
+
+Future option:
+
+```text
+If Telectro later wants customer knowledge-base suggestions, revisit Redis Stack / RediSearch support and Helpdesk article indexing as a separate production-readiness slice.
+```
