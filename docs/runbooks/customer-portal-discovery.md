@@ -431,3 +431,72 @@ Future option:
 ```text
 If Telectro later wants customer knowledge-base suggestions, revisit Redis Stack / RediSearch support and Helpdesk article indexing as a separate production-readiness slice.
 ```
+
+## Customer evidence / attachment discovery
+
+A follow-up discovery checked whether the native Helpdesk customer portal can upload evidence/attachments during customer ticket creation.
+
+Proof ticket:
+
+```text
+HD Ticket: 801
+Customer user: test@boschendal.co.za
+Subject: Testing Attachements on Customer site
+```
+
+The customer portal allowed files to be attached while creating the ticket. After refresh, the attachments were visible on the customer ticket view and also visible from the Telectro/internal side.
+
+Backend proof showed the files were created as private `File` records directly attached to the HD Ticket:
+
+```text
+file_count: 2
+
+File: 240c42e937
+file_name = Business_Icons0114a1.jpg
+file_url = /private/files/Business_Icons0114a1.jpg
+is_private = 1
+owner = test@boschendal.co.za
+attached_to_doctype = HD Ticket
+attached_to_name = 801
+
+File: 34fe3da540
+file_name = Ticket 797 completion advice.xlsx
+file_url = /private/files/Ticket 797 completion advice.xlsx
+is_private = 1
+owner = test@boschendal.co.za
+attached_to_doctype = HD Ticket
+attached_to_name = 801
+```
+
+The ticket timeline also received attachment comments for the uploaded files.
+
+Finding:
+
+```text
+Native customer portal attachment upload is viable for Customer Intake V1.
+The uploaded files are private and attached directly to HD Ticket.
+```
+
+Important notes:
+
+```text
+- A browser refresh may be needed before the uploaded files appear consistently across views.
+- Do not expose raw private file URLs in custom customer/partner pages.
+- Existing Telectro/internal evidence surfaces can consume the same HD Ticket File records.
+- Production readiness still needs file-type and file-size expectations confirmed.
+- If a custom Customer Evidence panel is built later, it should mirror the controlled Partner/internal evidence model.
+```
+
+Current V1 decision:
+
+```text
+Use native Helpdesk customer portal attachment upload for initial Customer Intake evidence, provided files remain private and are attached to HD Ticket.
+Keep custom controlled evidence endpoints as the pattern for any future custom customer/partner evidence UI.
+```
+
+Additional routing observation:
+
+```text
+The customer selected Service Area = PABX on ticket 801.
+Routing assigned the ticket to Charlie, which confirms the customer-selected Service Area continued to feed the existing Telectro routing logic correctly.
+```
