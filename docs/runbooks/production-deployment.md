@@ -1077,6 +1077,44 @@ Pass condition:
 Partner-side user can access the intended Partner-safe surfaces and is blocked from internal/raw Desk surfaces.
 ```
 
+### Customer Intake smoke test
+
+If Customer Intake is in scope for the first production deployment, test with one controlled customer Website User.
+
+Check:
+
+- customer user can log in as a Website User
+- customer can open `/helpdesk/my-tickets/new`
+- customer can create a ticket with Service Area selected
+- created ticket has `owner` and `raised_by` set to the customer user
+- created ticket resolves `contact`
+- created ticket resolves `customer` through Contact -> HD Customer linkage
+- created ticket has `custom_request_source = Customer`
+- created ticket stores the selected `custom_service_area`
+- existing Telectro routing consumes the selected Service Area
+- customer can upload one small attachment during ticket creation
+- uploaded file is private
+- uploaded file is attached directly to the HD Ticket
+- customer can view the created ticket in `/helpdesk/my-tickets`
+- customer cannot access `/app`, `/app/report`, `/app/hd-ticket`, or Telectro workspaces
+
+Pass condition:
+
+```text
+A controlled customer Website User can create a customer portal ticket with Service Area and attachment evidence, the ticket routes correctly, and the customer remains contained to customer-safe portal surfaces.
+```
+
+Deferred checks:
+
+Campus/Fault Point Location Link capture remains deferred until customer-safe Location lookup/filtering is designed and proven.
+Customer article suggestions remain suppressed unless Redis Stack / RediSearch is explicitly added later.
+
+Then update the **Minimum pass set for first technical deployment** only if Customer Intake is in scope. Add:
+
+```markdown
+If Customer Intake is in scope for first production use, the Customer Intake smoke test should also pass with a controlled customer Website User.
+```
+
 ### 6. Workspace landing behaviour
 
 Confirm landing behaviour for the expected user types.
