@@ -2322,23 +2322,37 @@ Certificate private keys must not be included in Git-based backups or documentat
 
 ### HTTPS smoke checks
 
-After deployment, confirm:
+After deployment, confirm the HTTPS path before sign-off.
+
+Browser checks:
 
 - production URL opens over HTTPS
 - browser shows no certificate warning
 - certificate hostname matches the production hostname
 - certificate is not expired
 - certificate chain is trusted
-- login page loads
-- app assets load without `/assets/...` errors
-- HTTP redirects to HTTPS, if configured
-- email-generated links use the HTTPS production hostname
+- login page loads over HTTPS
+- static assets load without `/assets/...` errors or mixed-content warnings
+- email-generated links use the HTTPS production hostname, if email is in scope
 
-Suggested browser check:
+Command-line checks:
+
+```bash
+curl -I http://support.telectro.co.za
+curl -Ik https://support.telectro.co.za
+```
+
+Expected result:
 
 ```text
-Open the production URL in a normal browser session and confirm the lock/security indicator is clean.
+HTTP redirects to HTTPS.
+HTTPS returns a response from Traefik/frontend.
+The certificate presented to the browser matches the production hostname.
 ```
+
+The exact hostname must be replaced with the confirmed `PRODUCTION_HOSTNAME`.
+
+If the HTTPS check fails, do not proceed to operational sign-off until the certificate, Traefik dynamic TLS config, DNS, and firewall path have been checked.
 
 Suggested command-line checks may be added later once the production hostname is known.
 
