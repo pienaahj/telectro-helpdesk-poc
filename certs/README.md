@@ -27,3 +27,15 @@ Rules:
 - file permissions must be restricted
 - certificate expiry and renewal owner must be documented
 
+In the production Compose skeleton this directory is mounted into the Traefik container as:
+
+```text
+/certs
+```
+
+The Traefik dynamic TLS file should reference container paths, for example:
+
+```text
+/certs/production.crt
+/certs/production.key
+```
