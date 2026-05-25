@@ -492,6 +492,7 @@ At the moment, the doc set has a good emerging split:
 - **Pilot Outstanding Issues Timeline** = timeline and status of known issues, including evidence and notification limitations.
 - **Production Deployment Runbook** = what needs to be tested locally vs on staging/prod, and recommended rollout phases.
 - **Service Coverage Model** = how service coverage is currently modeled in the system, how it interacts with assignment and routing, and known limitations.
+- **Customer Ticket Lifecycle** = current contract for customer ticket status lifecycle, customer portal visibility, and Telectro-side finalisation requirements.
 
 That is a healthy baseline for the pilot.
 
