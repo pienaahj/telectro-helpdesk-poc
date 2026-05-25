@@ -124,6 +124,131 @@ Take a first known-good backup.
 Treat this as technical deployment first, not operational go-live.
 ```
 
+### Deployment day operator checklist
+
+Use this as the practical sequence for the first controlled production deployment.
+
+This checklist does not replace the detailed sections below. It is a deployment-day control list so the operator, Telectro contact, and sign-off owner can track the deployment in one place.
+
+#### Before starting
+
+Confirm:
+
+```text
+- reviewed Git tag / release branch is selected
+- clean Ubuntu server / VM is available
+- SSH/VPN access works
+- production hostname is confirmed
+- DNS/firewall path is ready or scheduled
+- ports 80 and 443 are available
+- certificate files and private key are available by secure transfer
+- production .env/secrets file is prepared server-side
+- production backup location is known
+- Telectro deployment contact is available
+- smoke-test owner is available
+- rollback decision owner is available
+```
+
+Do not begin the deployment if these are unknown:
+
+```text
+- server access
+- production hostname
+- certificate handling
+- production secrets handling
+- backup location
+- rollback owner
+```
+
+#### Deploy
+
+Run the deployment using the production Compose shape:
+
+```bash
+docker compose \
+  --env-file /opt/telectro-helpdesk/.env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  up -d
+```
+
+Deployment checks:
+
+```text
+- production compose render reviewed without exposing secrets publicly
+- no local development ports such as 8080/9000 are published
+- only intended browser ports 80/443 are exposed
+- containers start successfully
+- database, Redis, backend, frontend, websocket, scheduler, and workers are running
+- required migrations/cache/build steps are completed where applicable
+- /api/method/ping or equivalent site health check succeeds
+```
+
+#### Smoke test
+
+Run the first technical smoke test before calling the deployment successful.
+
+Minimum checks:
+
+```text
+- HTTPS opens at the production hostname
+- browser shows no certificate warning
+- HTTP redirects to HTTPS
+- Administrator login works
+- at least one internal user login works
+- expected workspace landing works
+- controlled ticket creation works
+- key reports load
+- evidence/attachment handling works where in scope
+- outgoing SMTP test passes
+- controlled incoming IMAP ticket creation test passes
+- Partner/customer login paths work where in scope
+```
+
+Incoming email is now in day-one scope, but email-created tickets should only be relied on operationally after controlled IMAP smoke testing passes.
+
+#### Backup and rollback
+
+After the core smoke test passes:
+
+```text
+- take first known-good backup
+- record backup location
+- record backup timestamp
+- confirm backup includes database and site files/private files
+- confirm who can access the backup
+- confirm rollback path is understood
+- confirm restore owner is known
+```
+
+A backup that has not been restored should not be treated as fully proven. If restore is not tested before go-live, the restore test must be explicitly scheduled as a follow-up.
+
+#### Sign-off record
+
+Record:
+
+```text
+Deployment date:
+Release tag / branch:
+Production hostname:
+Deployment operator:
+Telectro contact:
+Smoke-test owner:
+Rollback decision owner:
+Checks passed:
+Checks failed:
+Deferred checks:
+Backup location:
+Known risks:
+Technical deployment accepted by:
+Operational go-live approved by:
+Notes:
+```
+
+Technical deployment sign-off is not the same as operational go-live.
+
+Operational go-live should happen only after Telectro accepts the smoke-test result, backup/rollback expectations are understood, and any deferred checks are explicitly accepted.
+
 ## 1. Access address
 
 Telectro has confirmed the expected production access address:
@@ -1842,7 +1967,7 @@ A smoke test can pass with explicitly deferred items, but only if those deferred
 
 Example deferred items:
 
-- incoming email intake
+- operational reliance on incoming email before controlled IMAP smoke testing passes
 - full real user onboarding
 - browser/mobile push notifications
 - advanced monitoring
