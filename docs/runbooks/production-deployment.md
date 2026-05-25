@@ -3380,25 +3380,52 @@ docker compose \
   up -d
 ```
 
-The current production Compose skeleton is not fully wired to this secrets model yet. The rendered production config still exposes local/test assumptions that must be removed or parameterised before real deployment, including:
+The production Compose skeleton now requires explicit production render values and should not inherit the local development `.env` file into the backend container.
 
-- hard-coded MariaDB/root passwords
-- hard-coded site creation/admin passwords
-- local frontend site-name assumptions
-- backend healthcheck targeting the local site name
-- moving frontend nginx edge image tag
+Current production render values include:
 
-The next production engineering step should be to replace those local/test assumptions with explicit production variables or Docker secrets, then validate the rendered production config again.
+```text
+ERPNEXT_NGINX_IMAGE
+PRODUCTION_HOSTNAME
+SITE_NAME
+MARIADB_ROOT_PASSWORD
+FRAPPE_ADMIN_PASSWORD
+DB_ROOT_USERNAME
+```
 
-Minimum production secrets pass set before first real deployment:
+`DB_ROOT_USERNAME` defaults to `root` if omitted.
 
-- real values are stored only on the production server
-- no real secrets are committed to Git
-- production compose command explicitly references the production env file
-- rendered production config no longer contains local/test passwords
-- certificate private key is present on the server but absent from Git
-- SMTP/mailbox secrets are only added when email is in scope
-- backup credentials/storage paths are documented outside the repo or stored in a protected server-local file
+Use dummy render-proof values when validating Compose structure locally. Do not use real production secrets for local render proof commands.
+
+```bash
+PRODUCTION_HOSTNAME=support.telectro.co.za \
+SITE_NAME=support.telectro.co.za \
+ERPNEXT_NGINX_IMAGE=frappe/erpnext-nginx:edge \
+FRAPPE_ADMIN_PASSWORD=render-proof-admin-password \
+MARIADB_ROOT_PASSWORD=render-proof-db-root-password \
+DB_ROOT_USERNAME=root \
+docker compose -f compose.yaml -f compose.production.yaml config > /tmp/telectro-production-compose.rendered.yaml
+```
+
+`docker compose config` expands environment variables into the rendered output. Rendered production config files must not be committed or shared when real production secrets are used.
+
+Minimum render checks:
+
+```bash
+grep -n 'published: "8080"\|published: "9000"' /tmp/telectro-production-compose.rendered.yaml || true
+
+grep -niE 'local\.test|dev@example\.com|senderpassword|Alfa#1tech|Bravo#1tech|Charlie#1tech|ADMIN_PASSWORD: admin|DB_ROOT_PASSWORD: admin|SITE_NAME: frontend|TRAEFIK_DOMAIN: frontend' /tmp/telectro-production-compose.rendered.yaml || true
+
+grep -n 'published: "80"\|published: "443"' /tmp/telectro-production-compose.rendered.yaml || true
+```
+
+Expected result:
+
+```text
+No published 8080/9000 ports.
+No local/test env leakage.
+Traefik publishes 80/443 only.
+```
 
 ## Production Update and Security Patch Policy
 
