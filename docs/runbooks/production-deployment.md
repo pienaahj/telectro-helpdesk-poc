@@ -711,7 +711,7 @@ Notes
 
 ### Telectro onboarding spreadsheet input review
 
-An updated Telectro spreadsheet was received for production user/contact and service-area planning.
+An updated `Service Area Skills Split.xlsx` spreadsheet was received for production user/contact and service-area planning.
 
 Spreadsheet tabs reviewed:
 
@@ -736,61 +736,81 @@ Service-area coverage:
 - Lanzerac
 ```
 
-Initial user-account interpretation:
+The spreadsheet should not be treated as a direct import file yet. It is the current planning/input source for production onboarding and service coverage, but production account creation and coverage setup should remain deliberate and controlled.
+
+Current user-account interpretation:
 
 ```text
 Internal Telectro login users:
-- Jacques Loubser
-- Pierre
-- Sean
-- Armandt
-- Kyle
-- Jayden
-- Dewaldt
-- Christo
-- Hendrik Pienaar
+- Jacques Loubser <jacques@telectro.co.za> — Technician
+- Pierre <pierre@telectro.co.za> — Technician / Supervisor
+- Sean <sean@telectro.co.za> — Technician / Supervisor
+- Armandt <armandt@telectro.co.za> — Technician / Supervisor
+- Kyle <kyle@telectro.co.za> — Technician
+- Jayden <jayden@telectro.co.za> — Technician
+- Dewald <dewald@telectro.co.za> — Technician
+- Christo <christo@telectro.co.za> — Supervisor
+- Hendrik Pienaar <Hendrik@telectro.co.za> — Admin
 
 Partner login user:
-- CN Services
+- CN Services <support@cnservices.co.za> — Partner
 
-Boschendal-side contacts / undecided access:
-- Zayros Gabriels
-- Jan Dorfling
-- Jasmine Batey
+Customer Website Users:
+- Zayros Gabriels <zayros.gabriels@boschendal.co.za> — Boschendal customer portal only
+- Jan Dorfling <jan.dorfling@boschendal.co.za> — Boschendal customer portal only
+- Jasmine Batey <jasmine.batey@boschendal.co.za> — Boschendal customer portal only
 ```
 
-Important note:
+Current decisions captured from spreadsheet review:
 
 ```text
-The spreadsheet should not be treated as a direct import file yet.
-It is a planning/input source that still needs access decisions, role/profile mapping, and data cleanup before production account creation.
+- Dewald email correction is resolved as dewald@telectro.co.za.
+- The coverage tabs may still use the person label "Dewaldt", but production user identity should use Dewald / dewald@telectro.co.za.
+- Boschendal IT staff should be Customer Website Users, not internal Telectro Desk users.
+- Boschendal IT staff should use the native Helpdesk customer portal only.
+- CN Services should be treated as a Partner login user, subject to Partner organisation and visibility setup.
+- Supervisor access includes Coordinator functions for the pilot.
+- Technician / Supervisor entries need deliberate profile mapping before account creation.
 ```
 
-Open cleanup items:
+Service Area labels in the current spreadsheet are aligned with app values:
 
 ```text
-- Confirm Dewald vs Dewaldt naming and email address.
-- Confirm whether Boschendal IT staff should be Customer Website Users, contacts only, notification recipients, or another customer-side access type.
-- Confirm exact role profile mapping for "Technician / Supervisor" users.
-- Confirm exact role profile mapping for "Coordinator / Supervisor" users.
-- Confirm whether CN Services needs Partner-only access and which Partner organisation/ticket visibility rules apply.
-- Align spreadsheet Service Area labels with app values:
-  - Internet Connectivity vs Internet Connection
-  - Quotes & Surveys vs Quotes & Site Surveys
+Routing
+PABX
+SIM
+Internet Connection
+Faults
+Quotes & Site Surveys
+CCTV
+Other
 ```
 
 Service-area coverage interpretation:
 
 ```text
 The Boschendal, Telectro default, and Lanzerac tabs provide coverage signals by person and service area.
-These should inform routing, team visibility, and My Team Load style reports, but should not be imported blindly until user accounts and final service-area labels are confirmed.
+These should inform routing, team visibility, and My Team Load style reports.
+Access/profile setup and service-area coverage are separate concerns.
+Do not infer permissions from coverage rows.
+Do not bulk-import coverage until final production users and routing expectations are confirmed.
+```
+
+Remaining cleanup items:
+
+```text
+- Confirm exact role profile mapping for "Technician / Supervisor" users.
+- Confirm whether any user needs Coordinator-Technician rather than Supervisor.
+- Confirm Partner organisation / visibility setup for CN Services.
+- Confirm whether Boschendal customer users need notification rules beyond normal customer portal access.
+- Confirm whether coverage rows should become formal production records in V1 or remain manual routing guidance initially.
 ```
 
 Current decision:
 
 ```text
 Use the spreadsheet as the current production onboarding and service-coverage input source.
-Do not bulk-create users or coverage records from it until the open cleanup items are confirmed.
+Do not bulk-create users or coverage records from it until the remaining cleanup items are confirmed.
 ```
 
 #### Internal Telectro users
