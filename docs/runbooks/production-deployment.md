@@ -3151,6 +3151,29 @@ Use native Helpdesk customer portal for customer web intake.
 Do not build a custom Customer Intake page for V1 unless a future blocker proves the native portal cannot meet pilot requirements.
 ```
 
+Customer lifecycle and closure expectation:
+
+```text
+Customer Ticket Lifecycle V1 is documented in:
+docs/runbooks/customer-ticket-lifecycle-v1.md
+```
+
+Production Customer Intake should not introduce a formal Customer sign-off or Partner-style acceptance/rework train.
+
+Telectro has confirmed that Customer tickets are closed by Telectro after direct Customer consultation confirms acceptance of the work.
+
+The Customer portal requirement is therefore lifecycle visibility, not Customer approval.
+
+Production implication:
+
+```text
+- Customer can create and view their tickets through the native Helpdesk customer portal.
+- Customer should be able to see clear status and resolution outcome.
+- Telectro remains responsible for resolving/closing the ticket internally.
+- Telectro-side finalisation should capture a deliberate customer-visible resolution/work-done note.
+- Internal comments, routing/debug notes, assignment details, and Partner workflow states should not be exposed to the Customer.
+```
+
 Minimum production setup expectations:
 
 ```text
