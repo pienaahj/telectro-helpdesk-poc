@@ -102,7 +102,7 @@ The following should not block the first controlled technical deployment unless 
 - Fully automated GitHub deployment pipeline
 - Docker Swarm or multi-server clustering
 - High-availability setup
-- Incoming helpdesk email automation
+- Fully automated/advanced email handling beyond controlled outgoing SMTP and required day-one incoming IMAP ticket creation
 - WhatsApp/media intake automation
 - Browser/mobile push notifications
 - Advanced monitoring dashboards
@@ -126,110 +126,205 @@ Treat this as technical deployment first, not operational go-live.
 
 ## 1. Access address
 
-What address should users type into their browser to access the system?
+Telectro has confirmed the expected production access address:
 
-Examples:
+```text
+https://erp.telectro.co.za
+```
 
-- <https://support.telectro.co.za>
-- <https://erp.telectro.co.za>
-- <https://helpdesk.telectro.co.za>
+Confirmed:
 
-Required answer:
+```text
+Server owner: Telectro
+Domain owner: Telectro
+Domain/DNS updates: Robbie
+Testing sign-off: Pierre
+Go-live approval: Pierre
+```
 
-- Preferred web address
-- Whether Telectro controls this domain
-- Who can update the domain settings
+Still required before deployment:
+
+```text
+- Confirm DNS points erp.telectro.co.za to the production server.
+- Confirm whether erp.telectro.co.za is reachable only inside VPN or from a wider network.
+- Confirm the HTTPS certificate explicitly covers erp.telectro.co.za.
+```
 
 Why this matters:
 
 The web address is the name users will bookmark and use daily.
 
-The HTTPS certificate must match this address, and the domain must point to the production server before public HTTPS access can work correctly.
+The HTTPS certificate must match this address, and the domain must point to the production server before browser HTTPS access can work correctly.
 
 ## 2. Server
 
-Where will the production system run?
+Telectro has confirmed the intended hosting location and access model.
 
-Required answer:
+Confirmed:
 
-- Server provider or hosting location
-- Ubuntu version if known
-- Public IP address
-- SSH access method
-- Who has admin access
-- Whether Docker is allowed
-- Whether outbound internet access is allowed
+```text
+Server provider / hosting location: Telectro Head Office
+SSH access method: VPN
+Server admin access: Armandt / Robbie
+Docker allowed: Yes
+Outbound internet access allowed: Yes
+```
+
+Still required before deployment:
+
+```text
+- Ubuntu version
+- Public IP address, if applicable
+- Static/internal IP address
+- Final deployment path on the server
+```
+
+Recommended server baseline:
+
+```text
+Ubuntu Server 24.04 LTS preferred
+Ubuntu Server 22.04 LTS acceptable if this is Telectro's current standard
+4 vCPU minimum
+8 GB RAM minimum, 16 GB preferred
+100–200 GB disk minimum, depending on attachment/evidence/backups/log volume
+```
 
 ## 3. Firewall / public access
 
-Who controls which ports are open to the internet?
+Telectro has confirmed the firewall ownership and port direction.
 
-Required answer:
-
-- Who manages firewall rules
-- Whether ports 80 and 443 can be opened
-- Whether SSH should be limited to specific IP addresses
-
-Why this matters:
-
-A production system exposed to the internet should only expose the minimum required ports.
-
-Expected public access:
+Confirmed:
 
 ```text
-80   HTTP, mainly for certificate setup/renewal and redirecting users to HTTPS
+Firewall rules managed by: Armandt / Robbie
+Ports 80 and 443 can be opened: Yes
+SSH scope: local addresses inside the VPN
+```
+
+Expected browser access:
+
+```text
+80   HTTP, mainly for redirect/certificate validation/renewal
 443  HTTPS, normal browser access
 ```
 
 Administrative access:
 
 ```text
-22   SSH, preferably restricted to trusted IP addresses where possible
+22   SSH, restricted to VPN/local internal access
 ```
 
-Other application/database ports should not normally be exposed directly to the internet.
+Other application/database ports should not normally be exposed directly to the internet or wider network.
+
+Do not expose these directly:
+
+```text
+MariaDB
+Redis
+Frappe backend
+websocket service
+scheduler
+worker containers
+internal helper containers
+```
+
+Still required before deployment:
+
+```text
+- Confirm whether browser users access the site only via VPN or from a wider network.
+- Confirm firewall/NAT path for ports 80 and 443 to the production server.
+```
 
 ## 4. Certificate
 
-Telectro has confirmed that the certificate is available.
+Telectro has confirmed that a certificate is available.
 
-Required answer:
+Confirmed:
 
-- What domain name is the certificate for?
-- Is it a wildcard certificate, for example \*.telectro.co.za?
-- What files are available?
-- Who renews the certificate?
-- When does it expire?
+```text
+Certificate owner: Telectro
+Certificate available: Yes
+Wildcard certificate: No
+Renewal owner: Robbie
+Renewal method: Automatic renewal
+Expiry: Automatic renewal
+```
+
+Current certificate answer says the certificate domain is:
+
+```text
+telectro
+```
+
+This still needs to be clarified as an exact certificate hostname.
+
+Still required before deployment:
+
+```text
+- Confirm the exact hostname covered by the certificate.
+- Confirm specifically whether the certificate covers erp.telectro.co.za.
+- Confirm what certificate files are available.
+- Confirm whether a chain/intermediate/fullchain file is supplied.
+- Confirm secure transfer method for the certificate private key.
+- Confirm where the certificate files should live on the production server.
+- Confirm whether Traefik needs reload/restart after certificate renewal.
+```
 
 Why this matters:
 
 The certificate enables HTTPS.
 
-A certificate usually consists of a public certificate file, a private key file, and sometimes a chain/intermediate certificate file.
+A certificate usually consists of a public certificate file, a private key file, and sometimes a chain/intermediate/fullchain file.
 
-The private key is sensitive and must not be committed to Git, pasted into documentation, or shared casually.
-
-The certificate also needs a renewal plan. An expired certificate will cause browser warnings and may block users from accessing the system.
+The private key is sensitive and must not be committed to Git, pasted into documentation, emailed casually, or shared through unsecured channels.
 
 ## 5. Email
 
-Which real email address should the system use for outgoing mail and testing?
+Telectro has confirmed that production email is required and provided the initial mailbox details.
 
-Required answer:
-
-- SMTP server address
-- SMTP port
-- username
-- whether password/app-password is available
-- sender email address
-- whether the account can receive replies
-- whether inbound ticket creation from email is required now or later
-
-For pilot production, we may choose:
+Confirmed:
 
 ```text
-Phase 1: outgoing email only
-Phase 2: incoming helpdesk mailbox after production is stable
+Email owner: Telectro
+Mailbox / username: tickets@telectro.co.za
+Sender email address: tickets@telectro.co.za
+Incoming server: mail.telectro.co.za
+Outgoing server: mail.telectro.co.za
+Incoming protocol: IMAP
+Incoming SSL port: 993
+Outgoing SMTP port: 587
+Password/app-password available: Yes
+Mailbox can receive replies: Yes
+Inbound ticket creation from email required: Now
+```
+
+Still required before deployment:
+
+```text
+- Secure handover method for mailbox password/app-password.
+- Confirm SMTP authentication method.
+- Confirm whether SMTP uses STARTTLS on port 587.
+- Confirm whether IMAP uses SSL/TLS on port 993.
+- Confirm whether tickets@telectro.co.za is dedicated to Helpdesk only.
+- Confirm who monitors failed outgoing mail.
+- Confirm who monitors failed incoming mail processing.
+- Confirm spam/noise handling expectation.
+```
+
+Deployment implication:
+
+```text
+Incoming email is now in day-one scope.
+Outgoing email should still be proven first.
+Incoming IMAP ticket creation should be enabled only after HTTPS, site URL, SMTP sending, and a controlled mailbox test are working.
+```
+
+For pilot production, the email rollout should still be staged, but incoming email is now part of day-one scope:
+
+```text
+Phase 1: prove outgoing email first
+Phase 2: prove controlled incoming helpdesk mailbox processing
+Phase 3: allow operational reliance on email-created tickets after smoke testing passes
 ```
 
 Why this matters:
@@ -2877,15 +2972,15 @@ Minimum pass set:
 - generated links use HTTPS production hostname
 - no bulk onboarding email sent before proof
 
-#### If outgoing email is not yet in scope
+#### If email is not yet fully operational at deployment time
 
-Minimum pass set:
+Minimum fallback pass set:
 
-- email marked as deferred
-- users are not told to rely on password reset/welcome emails
-- onboarding uses a controlled manual process
-- incoming mailbox processing remains disabled
-- Telectro understands email is not yet part of the technical deployment pass
+- outgoing SMTP status is documented
+- incoming IMAP status is documented
+- users are not told to rely on email-created tickets until controlled tests pass
+- onboarding uses a controlled manual process where needed
+- Telectro understands any email limitations before operational go-live
 
 ### More Open decisions
 
