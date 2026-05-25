@@ -1042,13 +1042,25 @@ The certificate must match the chosen production hostname.
 
 Start the production Docker Compose stack using the production compose files.
 
-The exact compose command depends on the final production compose structure.
+The production command must explicitly select the production merge and the server-local production env file.
 
-Expected intent:
+Expected command shape:
 
-```text
-docker compose -f compose.yaml -f compose.production.yaml up -d
+```bash
+docker compose \
+  --env-file /opt/telectro-helpdesk/.env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  up -d
 ```
+
+Production must not use the plain local command:
+
+```bash
+docker compose up -d
+```
+
+The plain command is for local development only, where Docker Compose automatically loads `compose.override.yaml`.
 
 The production stack should use:
 
