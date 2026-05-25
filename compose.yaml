@@ -13,8 +13,6 @@ services:
       - logs:/home/frappe/frappe-bench/logs
       - env:/home/frappe/frappe-bench/env
       - ./import:/import:ro
-    env_file:
-      - .env
     environment:
       DB_HOST: db
       DB_PORT: "3306"
