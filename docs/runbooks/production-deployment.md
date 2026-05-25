@@ -1758,7 +1758,7 @@ A controlled outgoing email is delivered successfully to a real inbox.
 
 ### 14. Incoming email smoke test
 
-Only run this if incoming helpdesk mailbox processing is explicitly in scope.
+Run this because incoming helpdesk mailbox processing is now in day-one scope, but only rely on it operationally after the controlled IMAP smoke test passes.
 
 Check:
 
@@ -2173,17 +2173,18 @@ For the first technical production deployment, the minimum acceptable backup sta
 
 ### Open decisions
 
-The following still need to be confirmed:
+The following still need to be confirmed with Telectro:
 
-- backup storage location
+- production backup storage location
 - backup retention period
 - whether backups are copied off-server
 - whether server snapshots are available
 - who owns backup monitoring
-- who performs restore if needed
-- expected restore time
-- whether certificate material is backed up or reissued
-- where production secrets are stored
+- who performs restore during an incident
+- expected restore time, if any
+- whether the first restore test is completed before go-live or explicitly scheduled as a follow-up
+- whether certificate material is backed up or reissued during restore
+- where production secrets are stored and how they are recovered during restore
 
 ## Production HTTPS and Certificate Model
 
@@ -2733,16 +2734,19 @@ Incoming email may introduce:
 - mailbox polling errors
 - confusion between human replies and new tickets
 
-Incoming helpdesk mailbox processing should only be enabled when explicitly in scope.
+Incoming helpdesk mailbox processing is now in day-one scope for production, based on Telectro feedback.
 
 Recommended first production stance:
 
 ```text
 Phase 1:
-Outgoing email only.
+Prove outgoing SMTP first.
 
 Phase 2:
-Incoming helpdesk mailbox after production site, HTTPS, backup, restore, and user access are stable.
+Prove controlled incoming IMAP ticket creation.
+
+Phase 3:
+Rely on email-created tickets operationally only after HTTPS, backups, restore expectations, user access, outgoing SMTP, and controlled incoming IMAP smoke tests are proven.
 ```
 
 ### Recommended production email rollout
