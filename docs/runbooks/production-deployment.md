@@ -813,6 +813,101 @@ Use the spreadsheet as the current production onboarding and service-coverage in
 Do not bulk-create users or coverage records from it until the remaining cleanup items are confirmed.
 ```
 
+#### Production service-area coverage interpretation
+
+The `Service Area Skills Split.xlsx` workbook should guide production coverage and routing setup, but it should not be imported blindly.
+
+Coverage answers a different question from access:
+
+```text
+Access / Role Profile:
+What the user may open and do in the system.
+
+Service-area / customer / campus coverage:
+Which work the user is operationally suitable to receive, see, assist with, or be measured against.
+```
+
+For the pilot, keep these separate.
+
+The current spreadsheet has coverage tabs for:
+
+```text
+Boschendal
+Telectro default
+Lanzerac
+```
+
+These should be interpreted as coverage contexts:
+
+```text
+Boschendal:
+Customer/campus-specific coverage.
+
+Telectro default:
+Fallback/default Telectro coverage where no customer/campus-specific row applies.
+
+Lanzerac:
+Customer/campus-specific coverage.
+```
+
+Current Service Area labels are aligned with app values:
+
+```text
+Routing
+PABX
+SIM
+Internet Connection
+Faults
+Quotes & Site Surveys
+CCTV
+Other
+```
+
+Recommended production interpretation:
+
+```text
+1. Use Role Profiles to control access.
+2. Use coverage rows to guide routing/team visibility.
+3. Prefer customer/campus-specific coverage when it exists.
+4. Fall back to Telectro default coverage when no customer/campus-specific coverage exists.
+5. Do not make someone a Supervisor or Coordinator because they cover a Service Area.
+6. Do not route work to a user solely because they have access to a workspace.
+```
+
+Possible V1 usage:
+
+```text
+Initial assignment/routing:
+Use coverage to identify likely assignees by customer/campus and Service Area.
+
+My Team / Team Load visibility:
+Use coverage to decide which work appears in team-level operational views.
+
+Assist / backup visibility:
+Use coverage to identify who can assist when a primary technician is unavailable.
+
+Governance:
+Supervisor/Coordinator access should control override/reassignment ability, not coverage alone.
+```
+
+Open implementation decisions:
+
+```text
+- Whether coverage becomes a formal DocType/table in V1.
+- Whether coverage starts as manual routing guidance only.
+- Whether coverage should affect automatic assignment immediately.
+- Whether Boschendal and Lanzerac coverage should override Telectro default coverage.
+- How to represent primary vs backup coverage if the spreadsheet implies both.
+- How to handle users with Supervisor access who are also technically taskable.
+```
+
+Current decision:
+
+```text
+Use the spreadsheet as coverage guidance for production setup.
+Do not bulk-import coverage rows until the production data model and routing behaviour are confirmed.
+```
+
 #### Internal Telectro users
 
 Internal users should normally be System Users with the correct Telectro role profile.
