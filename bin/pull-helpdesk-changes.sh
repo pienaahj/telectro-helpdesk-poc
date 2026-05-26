@@ -50,6 +50,10 @@ cp_helpdesk_py_from_container "overrides/email_account.py" "overrides/email_acco
 # --- Helpdesk desk frontend files changed for Customer portal lifecycle hardening ---
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomer.vue" "src/pages/ticket/TicketCustomer.vue"
 
+# --- Helpdesk desk frontend files changed for Service Coverage Model ---
+cp_helpdesk_desk_from_container "src/components/layouts/layoutSettings.ts" "src/components/layouts/layoutSettings.ts"
+cp_helpdesk_desk_from_container "src/components/SearchArticles.vue" "src/components/SearchArticles.vue"
+
 echo
 echo "✅ Pulled helpdesk changes from container."
 echo
