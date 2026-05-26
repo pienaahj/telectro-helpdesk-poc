@@ -634,6 +634,7 @@ cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 
 # --- customer lifecycle ---
 cp_from_container "customer_ticket_lifecycle_guard.py" "customer_ticket_lifecycle_guard.py"
+cp_from_container "customer_ticket_resolution.py" "customer_ticket_resolution.py"
 
 # --- core telephony pilot logic ---
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
@@ -700,6 +701,9 @@ cp_from_container "public/js/telectro_handoff_action.js" "public/js/telectro_han
 
 # --- partner route guard ---
 cp_from_container "public/js/partner_route_guard.js" "public/js/partner_route_guard.js"
+
+# -- customer resolution action ---
+cp_from_container "public/js/customer_resolution_action.js" "public/js/customer_resolution_action.js"
 
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
