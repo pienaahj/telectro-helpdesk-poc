@@ -40,6 +40,23 @@ function add_customer_resolution_action(frm) {
           description:
             "This update will be visible to the Customer. Do not use internal notes here.",
         },
+        {
+          fieldname: "completion_file",
+          fieldtype: "Link",
+          label: "Completion evidence file",
+          options: "File",
+          reqd: 0,
+          description:
+            "Optional. Select a file already attached to this ticket if the Customer needs a completion sheet, report, signed job card, or proof for their own records.",
+          get_query() {
+            return {
+              filters: {
+                attached_to_doctype: "HD Ticket",
+                attached_to_name: frm.doc.name,
+              },
+            };
+          },
+        },
       ],
       primary_action_label: "Send update and resolve",
       primary_action(values) {
@@ -60,6 +77,7 @@ function add_customer_resolution_action(frm) {
           args: {
             ticket_name: frm.doc.name,
             resolution_note: resolutionNote,
+            completion_file: values.completion_file || "",
           },
           freeze: true,
           freeze_message: "Resolving Customer ticket…",
