@@ -6,7 +6,9 @@ This document captures the intended Customer ticket lifecycle for the Telectro E
 
 The Customer Intake discovery proved that the native Helpdesk customer portal can be used as the Customer Web Intake foundation. Customers can create tickets, select Service Area, upload private attachment evidence, and remain contained to customer-safe portal surfaces.
 
-The remaining gap is not ticket intake. The remaining gap is customer-facing lifecycle visibility after the ticket has been submitted.
+The original gap was not ticket intake. The original gap was customer-facing lifecycle visibility after the ticket had been submitted.
+
+That gap is now sufficiently proven for V1 deployment: Customers can view ticket status, add follow-up updates, see customer-visible Telectro Communications, and see Resolved tickets in the portal. Remaining work is mainly operational polish and Telectro-side workflow convenience, not a blocker to the V1 Customer Intake model.
 
 ## Confirmed Telectro decision
 
@@ -22,6 +24,57 @@ Telectro closes or resolves the ticket internally.
 ```
 
 The Customer should not need to press an approve/reject/sign-off button in the portal.
+
+## Current implementation proof
+
+As of 2026-05-26, Customer Ticket Lifecycle V1 has been proven through the native Helpdesk customer portal.
+
+Confirmed behaviour:
+
+```text
+Customer can create a ticket through the native Helpdesk customer portal.
+Customer can select Service Area during ticket creation.
+Service Area is saved on the HD Ticket and consumed by routing.
+Customer can upload private attachment evidence during ticket creation.
+Customer can view their own tickets through the Customer portal.
+Customer can add follow-up updates through the Customer ticket detail page.
+Customer follow-up updates are stored as Communication records.
+Internal Comments are not Customer-visible.
+Customer portal users cannot close Customer tickets directly.
+The native Customer portal Close action is hidden for V1.
+A backend guard blocks Customer / Website users from setting Customer tickets to Closed.
+Internal / Telectro users can still resolve or close Customer tickets.
+Resolved Customer tickets remain visible in the Customer ticket list.
+Resolved status and fulfilled response / resolution indicators are visible to the Customer.
+Customer Knowledge Base and article suggestion affordances are suppressed for V1.
+```
+
+Proof tickets from the deployability slice:
+
+```text
+802 - Customer lifecycle proof:
+      Customer creation, private evidence, Customer follow-up, Telectro customer-visible Communication,
+      Customer close prevention, internal finalisation, Resolved detail/list visibility.
+
+803 - Customer portal V1 polish proof:
+      Customer portal still worked after hiding Knowledge Base/article suggestion affordances;
+      Service Area routing still worked.
+
+804 - Customer update affordance proof:
+      Customer ticket detail showed a clear Add update action;
+      Customer-side ticket view and sidebar remained usable.
+```
+
+Current V1 position:
+
+```text
+Customer Intake V1 is deployable as a native Helpdesk customer portal flow with Telectro-specific guardrails and light UI polish.
+
+Customer ticket completion is Telectro-controlled.
+Customer-facing progress and outcome updates must be sent as Communication / Email Reply, not internal Comment.
+Resolved is the preferred Customer-facing completion state for V1.
+Closed remains an internal/administrative state and is not Customer-controlled.
+```
 
 ## Important distinction from Partner workflow
 
@@ -65,8 +118,8 @@ Recommended V1 lifecycle:
 4. Telectro consults directly with the Customer where needed.
 5. Telectro confirms acceptance through direct Customer communication.
 6. Telectro records a customer-facing resolution/work-done summary.
-7. Telectro resolves or closes the ticket.
-8. Customer portal shows the resolution outcome and current/closed status.
+7. Telectro resolves the ticket for V1.
+8. Customer portal shows the resolution outcome and Resolved status.
 ```
 
 ## Customer portal should show
@@ -118,16 +171,27 @@ Optional evidence or attachment reference
 
 The customer-visible closure note should be deliberate and clean. It should not rely on arbitrary internal timeline comments.
 
-## Follow-up after closure
+## Follow-up after resolution
 
 V1 does not require formal Customer sign-off.
 
-If the Customer still has a concern after closure, the preferred V1 options are:
+The proven Customer follow-up path is:
 
 ```text
-Customer replies through the existing communication path, if email/reply handling is active.
-Customer adds a follow-up comment, if the native portal supports this safely.
-Telectro opens or links a follow-up ticket, if the issue is new or materially different.
+Customer opens their ticket in the native Customer portal.
+Customer uses the Add update action on the ticket detail page.
+Customer submits extra information, photos, or feedback.
+The update is stored as a Communication and remains visible in the ticket activity.
+```
+
+For V1, Customer follow-up is intended for active or resolved ticket communication. The Customer should not close the ticket directly from the portal.
+
+If the Customer still has a concern after Telectro has resolved the issue, the preferred V1 options are:
+
+```text
+Customer adds a follow-up update through the portal, where the ticket remains available.
+Customer replies through email, once incoming email handling is active and proven.
+Telectro reopens, follows up, or links a new ticket if the issue is new or materially different.
 ```
 
 Avoid adding a complex Customer rework/acceptance state machine unless Telectro explicitly requests it later.
@@ -161,15 +225,16 @@ Recommended implementation sequence:
 6. Ensure resolved/closed Customer tickets show a clear outcome in the portal.
 ```
 
-## Open decisions
+## Open decisions and backlog
 
 ```text
-- Whether to extend the native Helpdesk customer ticket detail page or build a controlled customer-safe detail page.
-- Where to store the customer-visible resolution/work-done summary.
-- Whether Customer follow-up after closure should reopen the same ticket, add a comment, or create/link a follow-up ticket.
-- Whether Telectro-shared evidence needs a formal visibility flag.
-- Whether Customer closed/resolved tickets need a separate archive/list view.
-- Whether email replies should be the preferred Customer follow-up channel once incoming email is enabled.
+- Add a clearer Telectro-side Customer Resolution action so operators do not rely on hidden status fields.
+- Decide where to store a structured customer-visible resolution/work-done summary if Communication alone is not enough.
+- Decide whether Customer follow-up after Resolved should reopen the same ticket, remain as Communication, or create/link a follow-up ticket.
+- Decide whether Telectro-shared evidence needs a formal visibility flag.
+- Decide whether Customer resolved tickets need a separate archive/list view later.
+- Decide whether email replies should become the preferred Customer follow-up channel once incoming email is enabled.
+- Keep customer Location / Campus Link fields deferred until safe customer-scoped lookup/filtering is implemented and proven.
 ```
 
 ## Current decision
@@ -180,4 +245,3 @@ Do not copy the Partner acceptance/rework state machine to Customer tickets.
 Do provide clearer customer-visible progress and resolution outcome.
 Telectro remains responsible for closing Customer tickets after direct Customer consultation confirms acceptance.
 ```
-
