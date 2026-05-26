@@ -8,12 +8,13 @@ trap 'echo "❌ pull-helpdesk-changes failed on line $LINENO" >&2' ERR
 
 docker compose ps backend >/dev/null
 
-mkdir -p apps/helpdesk/helpdesk/overrides
+HELPDESK_PY_SRC_BASE="backend:/home/frappe/frappe-bench/apps/helpdesk/helpdesk"
+HELPDESK_PY_DST_BASE="apps/helpdesk/helpdesk"
 
-SRC_BASE="backend:/home/frappe/frappe-bench/apps/helpdesk/helpdesk"
-DST_BASE="apps/helpdesk/helpdesk"
+HELPDESK_DESK_SRC_BASE="backend:/home/frappe/frappe-bench/apps/helpdesk/desk"
+HELPDESK_DESK_DST_BASE="apps/helpdesk/desk"
 
-cp_from_container() {
+cp_helpdesk_py_from_container() {
   local src="$1"
   local dst="$2"
 
@@ -22,12 +23,32 @@ cp_from_container() {
     exit 1
   fi
 
-  echo "→ ${dst}"
-  docker compose cp "${SRC_BASE}/${src}" "${DST_BASE}/${dst}"
+  mkdir -p "$(dirname "${HELPDESK_PY_DST_BASE}/${dst}")"
+
+  echo "→ ${HELPDESK_PY_DST_BASE}/${dst}"
+  docker compose cp "${HELPDESK_PY_SRC_BASE}/${src}" "${HELPDESK_PY_DST_BASE}/${dst}"
 }
 
-# --- overrides we changed ---
-cp_from_container "overrides/email_account.py" "overrides/email_account.py"
+cp_helpdesk_desk_from_container() {
+  local src="$1"
+  local dst="$2"
+
+  if ! docker compose exec -T backend bash -lc "test -e '/home/frappe/frappe-bench/apps/helpdesk/desk/${src}'"; then
+    echo "❌ Missing in container: desk/${src}" >&2
+    exit 1
+  fi
+
+  mkdir -p "$(dirname "${HELPDESK_DESK_DST_BASE}/${dst}")"
+
+  echo "→ ${HELPDESK_DESK_DST_BASE}/${dst}"
+  docker compose cp "${HELPDESK_DESK_SRC_BASE}/${src}" "${HELPDESK_DESK_DST_BASE}/${dst}"
+}
+
+# --- Helpdesk Python/app files we changed previously ---
+cp_helpdesk_py_from_container "overrides/email_account.py" "overrides/email_account.py"
+
+# --- Helpdesk desk frontend files changed for Customer portal lifecycle hardening ---
+cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomer.vue" "src/pages/ticket/TicketCustomer.vue"
 
 echo
 echo "✅ Pulled helpdesk changes from container."

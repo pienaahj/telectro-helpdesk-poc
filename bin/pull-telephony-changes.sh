@@ -632,6 +632,9 @@ cp_from_container "ops_kpis.py" "ops_kpis.py"
 cp_from_container "overrides/assign_to.py" "overrides/assign_to.py"
 cp_from_container "overrides/query_report.py" "overrides/query_report.py"
 
+# --- customer lifecycle ---
+cp_from_container "customer_ticket_lifecycle_guard.py" "customer_ticket_lifecycle_guard.py"
+
 # --- core telephony pilot logic ---
 cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
 cp_from_container "telectro_claim.py" "telectro_claim.py"

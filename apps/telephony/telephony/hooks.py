@@ -1,5 +1,6 @@
 import frappe
 
+
 app_name = "telephony"
 app_title = "Telephony"
 app_publisher = "Frappe Technologies Pvt. Ltd."
@@ -207,6 +208,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_ticket_routing.seed_ticket_routing",
     "telephony.telectro_site_guard.validate_site_fields",
     "telephony.telectro_ticket_edit_guard.validate_ticket_edit_rights",
+    "telephony.customer_ticket_lifecycle_guard.prevent_customer_portal_ticket_closure",
     "telephony.telectro_assign_sync.dedupe_assign_field",
     "telephony.partner_create.enforce_partner_create_v1",
     "telephony.partner_create.apply_partner_work_state",
