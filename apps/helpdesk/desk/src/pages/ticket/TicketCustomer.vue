@@ -29,6 +29,28 @@
         <TicketCustomerTemplateFields v-if="isMobileView" />
 
         <TicketConversation class="grow" />
+        <div v-if="showEditor" class="border-t bg-surface-white px-5 pt-4">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div class="text-base font-medium text-ink-gray-8">
+                {{ __("Add an update") }}
+              </div>
+              <div class="text-sm text-ink-gray-6">
+                {{
+                  __(
+                    "Send extra information, photos, or feedback to the Telectro team.",
+                  )
+                }}
+              </div>
+            </div>
+            <Button
+              :label="__('Add update')"
+              theme="gray"
+              variant="solid"
+              @click="openCustomerUpdateEditor"
+            />
+          </div>
+        </div>
         <div
           class="w-full p-5"
           @keydown.ctrl.enter.capture.stop="sendEmail"
@@ -172,6 +194,13 @@ function sendEmail() {
     return;
   }
   send.submit();
+}
+
+function openCustomerUpdateEditor() {
+  isExpanded.value = true;
+  setTimeout(() => {
+    editor.value?.editor?.commands?.focus?.();
+  }, 0);
 }
 
 function updateTicket(fieldname: string, value: string) {
