@@ -54,6 +54,9 @@ cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomer.vue" "src/pages
 cp_helpdesk_desk_from_container "src/components/layouts/layoutSettings.ts" "src/components/layouts/layoutSettings.ts"
 cp_helpdesk_desk_from_container "src/components/SearchArticles.vue" "src/components/SearchArticles.vue"
 
+# --- Helpdesk desk frontend files changed for Customer location logic ---
+cp_helpdesk_desk_from_container "src/pages/ticket/TicketNew.vue" "src/pages/ticket/TicketNew.vue"
+
 echo
 echo "✅ Pulled helpdesk changes from container."
 echo
