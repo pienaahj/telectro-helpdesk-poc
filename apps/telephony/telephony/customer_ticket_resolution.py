@@ -89,6 +89,56 @@ def resolve_customer_ticket(
     }
 
 
+@frappe.whitelist()
+def add_customer_update(ticket_name: str, update_note: str):
+    """Add a Customer-visible update without resolving the Customer ticket."""
+
+    ticket_name = (ticket_name or "").strip()
+    update_note = (update_note or "").strip()
+
+    if not ticket_name:
+        frappe.throw(_("Ticket is required"))
+
+    if not update_note:
+        frappe.throw(_("Customer-visible update is required"))
+
+    _require_internal_resolution_access()
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    if not _is_customer_ticket(doc):
+        frappe.throw(_("This action is only available for Customer tickets"))
+
+    current_status = (doc.get("status") or "").strip()
+    if current_status in {"Closed", "Archived"}:
+        frappe.throw(_("This ticket is closed or archived"))
+
+    comm_count_before = _count_ticket_communications(doc.name)
+    comment_count_before = _count_ticket_comments(doc.name)
+
+    comm = _create_customer_visible_update_communication(doc, update_note)
+
+    audit_comment = _add_internal_customer_update_audit_comment(
+        doc.name,
+        update_note,
+        comm.name,
+    )
+
+    frappe.db.commit()
+
+    return {
+        "name": doc.name,
+        "status": frappe.db.get_value("HD Ticket", doc.name, "status"),
+        "communication": comm.name,
+        "communications_before": comm_count_before,
+        "communications_after": _count_ticket_communications(doc.name),
+        "comment": audit_comment.name if audit_comment else None,
+        "comments_before": comment_count_before,
+        "comments_after": _count_ticket_comments(doc.name),
+        "message": _("Customer update added"),
+    }
+    
+    
 def _attach_completion_file_to_customer_communication(
     communication_name: str,
     file_doc,
@@ -169,6 +219,57 @@ def _is_customer_ticket(doc) -> bool:
 
     return False
 
+def _create_customer_visible_update_communication(doc, update_note: str):
+    recipient = (doc.get("raised_by") or "").strip()
+    if not recipient:
+        frappe.throw(_("Customer email / raised by is missing on this ticket"))
+
+    subject = f"Re: {doc.get('subject') or doc.name} (#{doc.name})"
+    content = (
+        '<div class="ql-editor read-mode">'
+        f"<p>{escape_html(update_note)}</p>"
+        "</div>"
+    )
+
+    comm = frappe.get_doc(
+        {
+            "doctype": "Communication",
+            "communication_type": "Communication",
+            "communication_medium": "Email",
+            "sent_or_received": "Sent",
+            "email_status": "Open",
+            "sender": frappe.session.user,
+            "recipients": recipient,
+            "subject": subject,
+            "content": content,
+            "status": "Linked",
+            "reference_doctype": "HD Ticket",
+            "reference_name": doc.name,
+            "communication_date": now_datetime(),
+        }
+    )
+    comm.insert(ignore_permissions=True)
+    return comm
+
+
+def _add_internal_customer_update_audit_comment(
+    ticket_name: str,
+    update_note: str,
+    communication_name: str | None = None,
+):
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+
+    message = _(
+        "Customer Ticket Update | Sent by {0} | Customer-visible update: {1}"
+    ).format(frappe.session.user, update_note)
+
+    if communication_name:
+        message = _("{0} | Communication: {1}").format(
+            message,
+            communication_name,
+        )
+
+    return doc.add_comment("Comment", message)
 
 def _create_customer_visible_resolution_communication(doc, resolution_note: str):
     recipient = (doc.get("raised_by") or "").strip()
