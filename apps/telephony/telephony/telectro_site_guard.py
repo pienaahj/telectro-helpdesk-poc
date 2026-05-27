@@ -43,19 +43,71 @@ def _is_email_intake(doc) -> bool:
 
 def _apply_customer_default_campus(doc) -> None:
     """
-    If custom_customer is set and custom_site_group is blank,
-    auto-fill campus from Customer.custom_default_campus.
+    If custom_site_group is blank, auto-fill Campus from the best available
+    Customer / HD Customer context.
+
+    Internal Desk flow historically used:
+        HD Ticket.custom_customer -> Customer.custom_default_campus
+
+    Native Customer portal flow uses:
+        HD Ticket.customer -> HD Customer
+
+    For Customer portal V1, if the HD Customer name matches a group Location
+    under Pilot Sites, use that Location as the Campus.
     """
     if not _is_blank(doc.get("custom_site_group")):
         return
 
-    cust = _norm(doc.get("custom_customer"))
-    if not cust:
-        return
-
-    default_campus = frappe.db.get_value("Customer", cust, "custom_default_campus")
+    default_campus = _get_default_campus_for_ticket(doc)
     if default_campus:
         doc.custom_site_group = default_campus
+
+
+def _get_default_campus_for_ticket(doc) -> str | None:
+    # Existing internal Desk path.
+    cust = _norm(doc.get("custom_customer"))
+    if cust:
+        default_campus = frappe.db.get_value("Customer", cust, "custom_default_campus")
+        if default_campus:
+            return default_campus
+
+    # Native Helpdesk Customer portal path.
+    hd_customer = _norm(doc.get("customer"))
+    if hd_customer:
+        # If an ERPNext Customer with the same name exists, allow its configured
+        # default campus to win.
+        if frappe.db.exists("Customer", hd_customer):
+            default_campus = frappe.db.get_value(
+                "Customer",
+                hd_customer,
+                "custom_default_campus",
+            )
+            if default_campus:
+                return default_campus
+
+        # Pilot-safe fallback: HD Customer name matches the top-level campus
+        # Location under Pilot Sites.
+        if _is_pilot_campus_location(hd_customer):
+            return hd_customer
+
+    return None
+
+
+def _is_pilot_campus_location(location_name: str) -> bool:
+    if not location_name:
+        return False
+
+    row = frappe.db.get_value(
+        "Location",
+        location_name,
+        ["is_group", "parent_location"],
+        as_dict=True,
+    )
+
+    if not row:
+        return False
+
+    return bool(row.is_group) and row.parent_location == "Pilot Sites"
         
 def _require_campus(doc) -> None:
     if _is_email_intake(doc):
