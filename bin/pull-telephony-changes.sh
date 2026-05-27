@@ -675,6 +675,7 @@ cp_from_container "scripts/proof_report_my_hd_tickets.py" "scripts/proof_report_
 cp_from_container "scripts/proof_mail_health.py" "scripts/proof_mail_health.py"
 cp_from_container "scripts/proof_pull_pilot_inboxes.py" "scripts/proof_pull_pilot_inboxes.py"
 cp_from_container "scripts/proof_runtime_state.py" "scripts/proof_runtime_state.py"
+cp_from_container "scripts/merge_duplicate_kmz_locations.py" "scripts/merge_duplicate_kmz_locations.py"
 
 
 # --- jobs (explicit: avoid docker cp directory nesting) ---
