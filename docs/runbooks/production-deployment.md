@@ -1668,6 +1668,23 @@ Pass condition:
 Partner-side user can access the intended Partner-safe surfaces and is blocked from internal/raw Desk surfaces.
 ```
 
+### Customer-side login model
+
+Customer-side production users should be created as separate named Website Users, not shared accounts.
+
+Each Customer-side login should have:
+
+- a Frappe `User` with `user_type = Website User`;
+- the Customer portal role, currently `Customer`;
+- a matching `Contact`;
+- a `Dynamic Link` from that Contact to the relevant `HD Customer`.
+
+Multiple Customer users linked to the same `HD Customer` may see and update that Customer organisation’s portal tickets.
+
+This is intentional. Customer-side staff may need to cover for one another, while Telectro still needs per-person audit identity on ticket creation, evidence uploads, and Customer updates.
+
+Customer users must not receive Desk/Internal access or internal Telectro roles.
+
 ### Customer Intake smoke test
 
 If Customer Intake is in scope for the first production deployment, test with one controlled customer Website User.

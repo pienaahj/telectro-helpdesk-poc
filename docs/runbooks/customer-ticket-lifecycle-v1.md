@@ -245,3 +245,54 @@ Do not copy the Partner acceptance/rework state machine to Customer tickets.
 Do provide clearer customer-visible progress and resolution outcome.
 Telectro remains responsible for closing Customer tickets after direct Customer consultation confirms acceptance.
 ```
+
+## Customer organisation-level visibility
+
+Customer Intake V1 supports multiple named Customer Website Users linked to the same Customer organisation.
+
+The intended model is:
+
+```text
+Customer Website User
+→ Contact
+→ Dynamic Link
+→ HD Customer
+→ HD Ticket.customer
+```
+
+Customer users are contained by Customer organisation, not only by individual ticket ownership. This means multiple customer-side contacts for the same organisation can see and participate in that organisation’s tickets while preserving individual audit identity.
+
+For example, two Boschendal users can both access Boschendal portal tickets:
+
+- `test@boschendal.co.za`
+- `customer2@boschendal.co.za`
+
+Both users resolve to `HD Customer = Boschendal`.
+
+Permission-aware proof showed:
+
+- both users could see the same Boschendal ticket set;
+- `customer2@boschendal.co.za` saw zero non-Boschendal tickets;
+- `customer2@boschendal.co.za` created ticket 809;
+- ticket 809 was linked to `customer = Boschendal`;
+- ticket 809 had `owner`, `raised_by`, and `contact` tied to `customer2@boschendal.co.za`;
+- `customer2@boschendal.co.za` uploaded private evidence file `Customer portal test file.xlsx`;
+- `test@boschendal.co.za` could view ticket 809 and add a Customer update;
+- both Customer updates were recorded as separate Communications with the correct sender identity;
+- both Customer users and Telectro could see the ticket/update path.
+
+This avoids shared logins while allowing customer-side staff to cover one another’s tickets.
+
+## Follow-on: Customer Location/Campus scoped filtering
+
+The Customer organisation resolver introduced for Customer ticket visibility is also the foundation for Customer Location/Campus filtering.
+
+Before exposing Customer-side Location/Campus fields, the next slice must prove that lookup/search results are scoped by the current Customer user’s linked `HD Customer`.
+
+Required proof:
+
+- Boschendal Customer users can see/select only Boschendal locations;
+- a Boschendal Customer user cannot search/select another Customer’s locations;
+- filtering is enforced server-side, not only by browser UI filters;
+- unrestricted Link-field exposure is avoided.
+
