@@ -10,6 +10,7 @@ The goal is to keep pilot scope clear:
 - avoid mixing unrelated workflow changes
 - keep technical debt visible
 - separate urgent pilot issues from later polish
+- preserve proven Customer / Partner containment decisions before adding new fields or workflow surfaces
 
 ---
 
@@ -20,15 +21,30 @@ The pilot now has working foundations for:
 - Partner-safe ticket request and ticket detail flows
 - Partner acceptance and rework flow
 - Partner work completion and review flow
-- Ticket Evidence V1 upload/list/download/camera capture
+- Partner-safe ticket evidence upload/list/download
+- Internal Ticket Evidence V1 upload/list/download/camera capture
+- Customer Intake V1 through the native Helpdesk customer portal
+- Customer Website User containment
+- Customer organisation-level ticket visibility
+- Customer Service Area capture and routing
+- Customer private evidence upload against HD Tickets
+- Customer-visible follow-up updates through Communications
+- Telectro-side `Resolve Customer Ticket` action
+- Customer-visible resolution updates
+- optional Customer-facing completion evidence attached to the resolution Communication
+- controlled Customer completion-evidence download endpoint
+- Customer portal Knowledge Base/article suggestion suppression for V1
+- Customer portal Close action suppression / backend closure guard
 - Notification V1 in-app alerts for selected action-required workflow states
 - Partner-safe notification routing
 - Explicit creator take-ownership option for internal manual tickets
 - Current-work and team-load visibility through reports/workspaces
 
-Reports and workspaces remain the primary operational source of truth.
+Reports and workspaces remain the primary internal operational source of truth.
 
 Notifications are supporting nudges only.
+
+Customer portal visibility is intentionally scoped by Customer organisation, not just by individual ticket ownership. This allows multiple named Customer Website Users from the same Customer organisation to see and update that organisation’s portal tickets while preserving per-user audit identity.
 
 ---
 
@@ -38,35 +54,134 @@ Notifications are supporting nudges only.
 
 These items should be prioritised before further broad workflow expansion.
 
-#### 1. Stabilise workspace landing behaviour
+---
 
-Status: outstanding
+### 1. Customer Location/Campus scoped-filtering discovery
+
+Status: next priority / discovery required
+
+Reason:
+
+- Customer Intake V1 is now strong enough for ticket creation, evidence, updates, resolution visibility, and Customer-facing completion evidence.
+- Customer organisation-level ticket visibility is proven.
+- The next likely Customer-side improvement is Location/Campus capture.
+- Unsafe Link-field exposure could leak other customers’ locations, campuses, or sites.
+
+Current proof foundation:
+
+```text
+Customer Website User
+→ Contact / Contact Email
+→ Dynamic Link
+→ HD Customer
+→ HD Ticket.customer
+```
+
+Proven example:
+
+- `test@boschendal.co.za` resolves to `HD Customer = Boschendal`.
+- `customer2@boschendal.co.za` resolves to `HD Customer = Boschendal`.
+- Both users can see the same Boschendal portal ticket set.
+- `customer2@boschendal.co.za` sees zero non-Boschendal tickets.
+- `customer2@boschendal.co.za` created ticket 809 and uploaded private evidence.
+- `test@boschendal.co.za` could view ticket 809 and add a Customer update.
+- Ticket 809 retained separate audit identity for each Customer user through owner/raised_by/contact and Communication sender.
+
+Target outcome:
+
+- Customer users can only search/select locations belonging to their linked Customer organisation.
+- Boschendal Customer users can see/select only Boschendal locations.
+- Boschendal Customer users cannot search/select another Customer’s locations.
+- Filtering is enforced server-side, not only through browser-side filters.
+- Customer-facing Location/Campus fields are exposed only after containment proof.
+
+Suggested next slice:
+
+1. Identify current Location/Campus/Site doctypes and fields.
+2. Identify how Customer or HD Customer links to location/campus data.
+3. Prove the safe server-side lookup/filter path.
+4. Prove negative containment before exposing any Customer portal field.
+5. Only then decide whether V1 exposes:
+   - Campus only
+   - Location only
+   - Campus + Location
+   - or keeps Location/Campus deferred
+
+---
+
+### 2. Production Customer onboarding model
+
+Status: needs documentation / production setup detail
+
+Reason:
+
+- Production Customer users should not share login accounts.
+- Multiple Customer-side staff may need to cover one another’s tickets.
+- Telectro still needs per-person audit identity.
+
+Target production model:
+
+```text
+Named Customer Website User
+→ matching Contact
+→ Dynamic Link to HD Customer
+→ Customer portal access
+```
+
+Target outcome:
+
+- Each Customer-side person gets a separate Website User.
+- Each Customer-side person has the `Customer` role only.
+- Each Customer-side person links to the correct `HD Customer`.
+- Multiple users linked to the same `HD Customer` can see/update that Customer organisation’s tickets.
+- Cross-customer visibility remains blocked.
+- Desk/Internal roles are not granted to Customer users.
+
+Suggested next slice:
+
+- Update production deployment/user onboarding documentation.
+- Add required Customer onboarding fields to the production setup checklist.
+- Preserve the rule that Customer Website Users are organisation-contained but individually audited.
+
+---
+
+### 3. Stabilise workspace landing behaviour
+
+Status: mostly stabilised / re-test after workspace or route changes
 
 Problem:
 
 - Internal and Partner landing behaviour can become inconsistent after route-guard or workspace changes.
 - Partner route containment must remain strict.
 - Internal users should land on the correct Tech / Coordinator / Ops workspace based on role.
+- Stale browser routes from a previous login must not trap a different role on an inaccessible workspace.
+
+Current outcome:
+
+- Stale workspace route handling on login has been fixed.
+- Partner users should land on `TELECTRO-POC Partner`.
+- Tech users should land on `TELECTRO-POC Tech`.
+- Coordinator users should land on `TELECTRO-POC Coordinator`.
+- Supervisor/Ops users should land on `TELECTRO-POC Ops`.
+- Internal maintenance users can still manually inspect workspaces after boot where appropriate.
 
 Target outcome:
 
-- Partner users land on `TELECTRO-POC Partner`.
-- Tech users land on `TELECTRO-POC Tech`.
-- Coordinator users land on `TELECTRO-POC Coordinator`.
-- Supervisor/Ops users land on `TELECTRO-POC Ops`.
 - No Partner user should land on raw HD Ticket list/report/workspace surfaces.
+- Customer Website Users should remain contained to the customer portal and not Desk workspaces.
+- Landing behaviour should be re-tested after any route guard, workspace, or login redirect change.
 
 Suggested next slice:
 
-- Re-test current landing behaviour by role.
+- Re-test current landing behaviour by role only when route/workspace code changes.
 - Capture actual route outcomes.
 - Fix only proven broken redirects.
 
 ---
 
-#### 2. Continue assignment/timeline noise cleanup discovery
+### 4. Continue assignment/timeline noise cleanup discovery
 
-Status: discovery started
+Status: discovery started / lower priority than Customer Location/Campus
 
 Findings so far:
 
@@ -78,7 +193,7 @@ Findings so far:
   - native `Assignment Completed` comments
   - TELECTRO explicit `Info` comments from assignment normalisation
   - historical repair/setup actions
-- `TELECTRO_RULE_DEBUG` comments are not currently active in inspected tickets.
+- `TELECTRO_RULE_DEBUG` comments should remain disabled unless explicitly needed for debugging.
 
 Target outcome:
 
@@ -95,9 +210,9 @@ Suggested next slice:
 
 ---
 
-#### 3. Verify My Team Load operating fit
+### 5. Verify My Team Load operating fit
 
-Status: implemented
+Status: implemented / needs user-fit validation
 
 Reason:
 
@@ -128,14 +243,48 @@ Suggested next slice:
 
 ## Near-term pilot backlog
 
-### 4. Customer Site evidence upload model
+### 6. Customer completion evidence documentation
 
-Status: outstanding
+Status: implemented / docs should stay aligned
+
+Reason:
+
+- Telectro can now resolve a Customer ticket with a Customer-visible resolution update.
+- Telectro can optionally attach deliberate Customer-facing completion evidence.
+- This model is intentionally separate from arbitrary internal evidence exposure.
+
+Current outcome:
+
+- Completion evidence starts from an existing private HD Ticket File.
+- Backend creates a separate private File link attached to the Customer-visible Communication.
+- Customer portal download uses a controlled endpoint.
+- Raw `/private/files/...` links are not exposed as the access model.
+
+Target outcome:
+
+- Keep docs clear that Customer-facing completion evidence is selective.
+- Do not imply all ticket evidence is Customer-visible.
+- Use this as the preferred V1 answer when Customers need proof of work/completion.
+
+Suggested next slice:
+
+- Ensure `customer-ticket-lifecycle-v1.md` and production runbook both describe:
+  - internal evidence
+  - Customer-uploaded evidence
+  - Customer-facing completion evidence
+  - controlled download expectations
+
+---
+
+### 7. Customer Site evidence upload model
+
+Status: outstanding / may be superseded by Location/Campus work
 
 Reason:
 
 - Ticket Evidence V1 currently supports evidence against HD Tickets.
-- The next practical model is evidence against customer/site context where useful.
+- Customer Intake V1 supports Customer evidence attached to tickets.
+- The next practical model may be evidence against Customer Site / Location context where useful.
 
 Target outcome:
 
@@ -144,23 +293,25 @@ Target outcome:
   - Customer Site / Location
   - both via ticket context
 - Avoid turning ticket evidence into a full document-management system.
+- Avoid exposing site/location evidence before Customer Location/Campus containment is proven.
 
 Suggested order:
 
-1. Define data model.
-2. Define internal upload/list/download path.
-3. Define Partner-safe exposure, if needed.
-4. Add audit/context comments only where useful.
+1. Complete Customer Location/Campus scoped-filtering discovery.
+2. Define data model.
+3. Define internal upload/list/download path.
+4. Define Customer/Partner-safe exposure only if needed.
+5. Add audit/context comments only where useful.
 
 ---
 
-### 5. Evidence metadata / category / context
+### 8. Evidence metadata / category / context
 
 Status: outstanding
 
 Reason:
 
-- Current evidence upload works, but files are mostly just attached files plus comments.
+- Current evidence upload works, but files are mostly attached files plus comments.
 - Telectro may later need better context around why a file was uploaded.
 
 Possible fields:
@@ -170,22 +321,25 @@ Possible fields:
 - evidence note
 - workflow step
 - visible to Partner flag
+- visible to Customer flag
+- related Customer completion evidence flag
 - related site/fault asset
 
 Suggested approach:
 
 - Keep V1 evidence simple.
 - Add metadata only when a real workflow need is proven.
+- Do not mix metadata expansion into Location/Campus containment work.
 
 ---
 
-### 6. Download audit logging
+### 9. Download audit logging
 
 Status: optional / later
 
 Reason:
 
-- Controlled download endpoints exist.
+- Controlled download endpoints exist for Partner and Customer completion evidence.
 - Audit logging could help prove who accessed private evidence.
 
 Target outcome:
@@ -195,7 +349,7 @@ Target outcome:
 
 ---
 
-### 7. Optional evidence deletion/removal policy
+### 10. Optional evidence deletion/removal policy
 
 Status: optional / later
 
@@ -214,14 +368,16 @@ Target outcome:
 
 ## Partner containment backlog
 
-### 8. Partner report access tightening for multi-user Partner accounts
+### 11. Partner report access tightening for multi-user Partner accounts
 
 Status: future hardening
 
 Reason:
 
-- Current Partner access is suitable for pilot-style Partner users.
-- If multiple Partner users/accounts are used under the same Partner organisation, visibility rules may need refinement.
+- Current Partner access is owner-only for generic HD Ticket access.
+- Customer organisation-level visibility has now been deliberately implemented for Customer users.
+- Partner organisation-level visibility should not be assumed from the Customer model.
+- If multiple Partner users/accounts are used under the same Partner organisation, visibility rules may need separate refinement.
 
 Target outcome:
 
@@ -229,11 +385,16 @@ Target outcome:
   - only tickets they own
   - all tickets for their Partner organisation
   - only tickets assigned to their Partner queue
-- Implement explicit model rather than relying on owner alone.
+- Implement explicit Partner organisation model rather than relying on owner alone.
+
+Suggested approach:
+
+- Keep current Partner containment unchanged for now.
+- Revisit only when Telectro confirms multi-user Partner organisation requirements.
 
 ---
 
-### 9. Partner-safe history visibility
+### 12. Partner-safe history visibility
 
 Status: optional
 
@@ -251,7 +412,7 @@ Target outcome:
 
 ## Notification backlog
 
-### 10. Recipient fallback rules
+### 13. Recipient fallback rules
 
 Status: future hardening
 
@@ -263,6 +424,7 @@ Potential future cases:
 - ticket owner is not an internal user
 - Partner assignee is missing
 - Coordinator/Ops should receive fallback alerts
+- Customer-visible resolution/update notification expectations are clarified
 
 Suggested approach:
 
@@ -271,26 +433,28 @@ Suggested approach:
 
 ---
 
-### 11. Email / mobile / browser push
+### 14. Email / mobile / browser push
 
-Status: explicitly out of scope for V1
+Status: mostly out of scope for V1, except production incoming/outgoing email where explicitly required
 
 Current position:
 
 - Notification V1 is in-app `Notification Log` only.
-- Email Queue is not part of V1.
+- Email notifications are not the main action-required mechanism.
 - Mobile/browser push is not promised.
+- Production incoming email handling is separately in scope only where Telectro requires day-one email-to-ticket behaviour.
 
 Suggested approach:
 
-- Only add email for high-value events if Telectro explicitly needs it.
+- Only add outbound email notifications for high-value events if Telectro explicitly needs them.
 - Avoid notification noise.
+- Keep incoming mailbox processing proof separate from Notification V1.
 
 ---
 
 ## Later polish / technical debt
 
-### 12. Duplicate helper cleanup in `partner_create.py`
+### 15. Duplicate helper cleanup in `partner_create.py`
 
 Status: later cleanup
 
@@ -307,7 +471,7 @@ Suggested approach:
 
 ---
 
-### 13. Workspace fixture noise management
+### 16. Workspace fixture noise management
 
 Status: ongoing
 
@@ -325,13 +489,38 @@ Suggested approach:
 
 ---
 
+### 17. Customer portal UX polish
+
+Status: later polish
+
+Known items:
+
+- Native Customer portal follow-up/update affordance may not be obvious enough.
+- Customer portal lifecycle visibility may need clearer wording for status/resolution.
+- Empty or unsupported Helpdesk features should remain hidden for V1.
+- Location/Campus fields should not be exposed until scoped filtering is proven.
+
+Suggested approach:
+
+- Keep V1 simple.
+- Fix only UX issues that affect operational understanding or demo clarity.
+- Avoid custom Customer portal rewrite unless the native portal becomes a blocker.
+
+---
+
 ## Working principles
 
 - One slice at a time.
 - Verify existing code before augmenting.
 - Prefer in-container edits with VSCode Dev Containers.
 - Use bench console for proof.
+- Use `frappe.get_list()` or browser/API behaviour for permission-aware containment proof.
+- Do not use `frappe.get_all()` as containment proof because it bypasses normal list permissions.
 - Pull changed files back to host before Git diff/commit.
 - Avoid changing assignment semantics unless the exact before/after behaviour is proven.
 - Keep Partner containment stricter than internal convenience.
-- Reports/workspaces are the source of truth; notifications are nudges.
+- Keep Customer organisation containment explicit and server-enforced.
+- Do not expose unrestricted Link fields to Customer users.
+- Reports/workspaces are the internal source of truth; notifications are nudges.
+- Customer portal is the Customer-facing source of truth for intake, updates, resolution visibility, and Customer-facing completion evidence.
+
