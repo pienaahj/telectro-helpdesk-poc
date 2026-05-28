@@ -141,6 +141,19 @@
                 {{ selectedFaultPointCampus }}
               </div>
             </div>
+
+            <div>
+              <div class="text-xs font-medium uppercase text-gray-500">
+                {{ __("Map") }}
+              </div>
+              <div class="text-gray-900">
+                {{
+                  selectedFaultPointHasCoordinates
+                    ? __("Location available")
+                    : __("Not available")
+                }}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -378,6 +391,13 @@ const selectedFaultPointCampus = computed(() => {
   }
 
   return parent || "";
+});
+
+const selectedFaultPointHasCoordinates = computed(() => {
+  const lat = Number(selectedFaultPoint.value?.latitude || 0);
+  const lon = Number(selectedFaultPoint.value?.longitude || 0);
+
+  return lat !== 0 && lon !== 0;
 });
 
 function clearFaultPointSelection() {
