@@ -64,6 +64,97 @@ Current proven behaviour:
 - Customer evidence/attachments can be stored as private files attached to the HD Ticket.
 - Customer-visible updates can be sent through deliberate Telectro-side actions.
 
+## Current implemented Customer location context
+
+As of the 2026-05-29 Customer portal asset-identification train, the Customer portal now supports a stronger end-to-end location/context flow.
+
+### Customer new-ticket flow
+
+The Customer new-ticket page now supports:
+
+```text
+Service Area selection
+Equipment / Circuit / SIM / Tag reference capture
+Customer-scoped Fault Point search
+Selected Fault Point summary card
+Coordinate availability indicator
+External "View on map" link for the selected point
+Improved no-results recovery guidance
+```
+
+The Fault Point picker remains Customer-scoped and server-controlled. It does not expose an unrestricted raw Frappe Link field to Customer users.
+
+The selected Fault Point summary card confirms the Customer's selected operational context before submission:
+
+```text
+Selected Fault Point
+Fault Point
+Category
+Campus
+Map availability / View on map
+```
+
+When a selected Fault Point has coordinates, the Customer can open the selected point externally in OpenStreetMap. This is deliberately implemented as an external map link for V1 rather than an embedded Customer map.
+
+### Customer ticket detail flow
+
+After submission, the Customer ticket detail view now shows the submitted location context on both desktop and mobile.
+
+The Customer-visible location context includes:
+
+```text
+Fault Point
+Category
+Equipment Ref
+View on map
+```
+
+The detail view resolves the saved `custom_site` Location ID into the friendly `Location.location_name` through a Customer-safe backend endpoint.
+
+This avoids showing raw internal Location IDs such as:
+
+```text
+kmz8ddf58f32e1ddb2988ba7b71
+```
+
+and instead shows Customer-meaningful labels such as:
+
+```text
+Buildings: Bakery
+```
+
+The generic Customer detail field lists now suppress duplicate location-context fields once those values are represented in the dedicated Location details panel.
+
+### Current guardrails
+
+The implemented model preserves the following guardrails:
+
+```text
+Customer lookup remains backend-scoped.
+Raw Location Link fields are not exposed to Customer users.
+Fault-like non-email tickets still require a structured Fault Point.
+The map feature uses only the selected point coordinates.
+No embedded map dependency has been added.
+No unrestricted Customer browsing of Location data has been introduced.
+```
+
+### Proven example
+
+Proof ticket `817` demonstrated the current flow:
+
+```text
+Customer: Boschendal
+Customer user: customer2@boschendal.co.za
+Fault Category: Buildings
+Fault Point: Buildings: Bakery
+Equipment Ref: COORDINATE-PROOF-20260529
+Location: kmz8ddf58f32e1ddb2988ba7b71
+Latitude: -33.885257694
+Longitude: 18.96524681
+```
+
+The Customer new-ticket page, desktop ticket detail sidebar, and mobile ticket detail view all display the Customer-safe location context.
+
 ## Asset identification model
 
 The portal should make a clear distinction between the following concepts.
@@ -273,6 +364,8 @@ Ticket history by point
 
 ## Near-term implementation slices
 
+The slices below started as the near-term plan. Several have now been completed or partially completed during the 2026-05-29 Customer portal asset-identification train. Future edits should either mark these as completed or move the remaining work into a backlog section.
+
 ### Slice 1: Re-prove current Fault Point picker
 
 Purpose:
@@ -471,4 +564,3 @@ What the Customer has already communicated
 ```
 
 The better this context is at ticket creation time, the less operational clarification Telectro technicians need before acting.
-
