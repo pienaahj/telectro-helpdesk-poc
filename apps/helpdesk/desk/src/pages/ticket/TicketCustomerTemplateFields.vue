@@ -120,6 +120,14 @@ import { ITicket } from "./symbols";
 
 const ticket = inject(ITicket);
 
+const locationContextFieldnames = [
+  "custom_site_group",
+  "custom_fault_category",
+  "custom_site",
+  "custom_fault_asset",
+  "custom_equipment_ref",
+];
+
 const customerLocationContext = ref({});
 
 const customerLocationMapUrl = computed(() => {
@@ -210,7 +218,9 @@ const customFields = computed(() => {
   const _custom_fields = ticket.data.template.fields
     .filter((field: Field) => !field.hide_from_customer)
     .filter(
-      (f: Field) => ["subject", "team", "priority"].indexOf(f.fieldname) === -1,
+      (f: Field) =>
+        ["subject", "team", "priority"].indexOf(f.fieldname) === -1 &&
+        locationContextFieldnames.indexOf(f.fieldname) === -1,
     );
   return _custom_fields;
 });
