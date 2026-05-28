@@ -62,7 +62,9 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
             name,
             location_name,
             parent_location,
-            custom_kmz_geometry_type
+            custom_kmz_geometry_type,
+            latitude,
+            longitude
         FROM `tabLocation`
         WHERE lft >= %(lft)s
           AND rgt <= %(rgt)s
