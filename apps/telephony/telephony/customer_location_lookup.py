@@ -11,6 +11,70 @@ CATEGORY_BUCKETS = {
     "Residents": "Residents",
 }
 
+@frappe.whitelist()
+def get_customer_ticket_location_context(ticket_name=None):
+    """Return Customer-safe location context for a Customer portal ticket."""
+    ticket_name = str(ticket_name or "").strip()
+    if not ticket_name:
+        return {}
+
+    ticket = frappe.db.get_value(
+        "HD Ticket",
+        ticket_name,
+        [
+            "name",
+            "customer",
+            "raised_by",
+            "custom_site_group",
+            "custom_fault_category",
+            "custom_site",
+            "custom_fault_asset",
+            "custom_service_area",
+            "custom_equipment_ref",
+            "via_customer_portal",
+        ],
+        as_dict=True,
+    )
+
+    if not ticket:
+        return {}
+
+    user = frappe.session.user
+    allowed_customers = _get_hd_customers_for_user(user)
+
+    if ticket.raised_by != user and ticket.customer not in allowed_customers:
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+    location = None
+    if ticket.custom_site:
+        location = frappe.db.get_value(
+            "Location",
+            ticket.custom_site,
+            [
+                "name",
+                "location_name",
+                "parent_location",
+                "latitude",
+                "longitude",
+                "custom_kmz_geometry_type",
+            ],
+            as_dict=True,
+        )
+
+    return {
+        "ticket": ticket.name,
+        "customer": ticket.customer,
+        "campus": ticket.custom_site_group,
+        "category": ticket.custom_fault_category,
+        "service_area": ticket.custom_service_area,
+        "equipment_ref": ticket.custom_equipment_ref,
+        "fault_point": location.location_name if location else "",
+        "fault_point_id": location.name if location else ticket.custom_site,
+        "parent_location": location.parent_location if location else "",
+        "latitude": location.latitude if location else None,
+        "longitude": location.longitude if location else None,
+        "geometry_type": location.custom_kmz_geometry_type if location else "",
+    }
 
 @frappe.whitelist()
 def get_customer_allowed_campus():
