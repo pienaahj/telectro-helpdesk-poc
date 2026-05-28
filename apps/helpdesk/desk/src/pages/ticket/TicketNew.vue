@@ -90,18 +90,58 @@
           </div>
         </div>
 
-        <div v-if="selectedFaultPoint" class="rounded bg-gray-50 p-3 text-sm">
-          <span class="font-medium text-gray-700">{{ __("Selected") }}:</span>
-          <span class="text-gray-900">
-            {{ selectedFaultPoint.location_name }}
-          </span>
-          <Button
-            :label="__('Clear')"
-            theme="gray"
-            variant="subtle"
-            class="ml-2"
-            @click="clearFaultPointSelection"
-          />
+        <div
+          v-if="selectedFaultPoint"
+          class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
+        >
+          <div class="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ __("Selected Fault Point") }}
+              </div>
+              <div class="text-xs text-gray-500">
+                {{
+                  __("This location will be sent to Telectro with your ticket.")
+                }}
+              </div>
+            </div>
+
+            <Button
+              :label="__('Clear')"
+              theme="gray"
+              variant="subtle"
+              @click="clearFaultPointSelection"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div>
+              <div class="text-xs font-medium uppercase text-gray-500">
+                {{ __("Fault Point") }}
+              </div>
+              <div class="text-gray-900">
+                {{ selectedFaultPoint.location_name }}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-medium uppercase text-gray-500">
+                {{ __("Category") }}
+              </div>
+              <div class="text-gray-900">
+                {{ faultPointCategory }}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-medium uppercase text-gray-500">
+                {{ __("Campus") }}
+              </div>
+              <div class="text-gray-900">
+                {{ selectedFaultPointCampus }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="faultPointResults.length" class="space-y-2">
@@ -122,7 +162,9 @@
         </div>
 
         <div
-          v-else-if="faultPointSearched && !faultPointLoading"
+          v-else-if="
+            faultPointSearched && !faultPointLoading && !selectedFaultPoint
+          "
           class="text-sm text-gray-500"
         >
           {{ __("No matching fault points found.") }}
@@ -327,6 +369,17 @@ function handleOnFieldChange(e: any, fieldname: string, fieldtype: string) {
   }
 }
 
+const selectedFaultPointCampus = computed(() => {
+  const parent = selectedFaultPoint.value?.parent_location || "";
+  const category = faultPointCategory.value || "";
+
+  if (parent && category && parent.endsWith(` - ${category}`)) {
+    return parent.slice(0, -` - ${category}`.length);
+  }
+
+  return parent || "";
+});
+
 function clearFaultPointSelection() {
   selectedFaultPoint.value = null;
   faultPointResults.value = [];
@@ -336,6 +389,7 @@ function clearFaultPointSelection() {
 function selectFaultPoint(row: any) {
   selectedFaultPoint.value = row;
   faultPointResults.value = [];
+  faultPointSearched.value = false;
 }
 
 async function searchFaultPoints() {
