@@ -147,11 +147,18 @@
                 {{ __("Map") }}
               </div>
               <div class="text-gray-900">
-                {{
-                  selectedFaultPointHasCoordinates
-                    ? __("Location available")
-                    : __("Not available")
-                }}
+                <a
+                  v-if="selectedFaultPointHasCoordinates"
+                  :href="selectedFaultPointMapUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:underline"
+                >
+                  {{ __("View on map") }}
+                </a>
+                <span v-else>
+                  {{ __("Not available") }}
+                </span>
               </div>
             </div>
           </div>
@@ -398,6 +405,22 @@ const selectedFaultPointHasCoordinates = computed(() => {
   const lon = Number(selectedFaultPoint.value?.longitude || 0);
 
   return lat !== 0 && lon !== 0;
+});
+
+const selectedFaultPointMapUrl = computed(() => {
+  if (!selectedFaultPointHasCoordinates.value) {
+    return "";
+  }
+
+  const lat = Number(selectedFaultPoint.value?.latitude || 0);
+  const lon = Number(selectedFaultPoint.value?.longitude || 0);
+  const zoom = 19;
+
+  return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(
+    lat,
+  )}&mlon=${encodeURIComponent(lon)}#map=${zoom}/${encodeURIComponent(
+    lat,
+  )}/${encodeURIComponent(lon)}`;
 });
 
 function clearFaultPointSelection() {
