@@ -36,6 +36,13 @@ fixtures = [
     },
 
     {
+        "dt": "HD Ticket Template",
+        "filters": [
+            ["name", "in", ["Default"]],
+        ],
+    },
+
+    {
         "dt": "Custom Field",
         "filters": [
             ["dt", "=", "HD Ticket"],
