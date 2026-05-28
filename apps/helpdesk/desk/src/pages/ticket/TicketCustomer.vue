@@ -33,18 +33,18 @@
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
               <div class="text-base font-medium text-ink-gray-8">
-                {{ __("Add an update") }}
+                {{ __("Add more information") }}
               </div>
               <div class="text-sm text-ink-gray-6">
                 {{
                   __(
-                    "Send extra information, photos, or feedback to the Telectro team.",
+                    "Send photos, equipment labels, access notes, or extra location details to the Telectro team.",
                   )
                 }}
               </div>
             </div>
             <Button
-              :label="__('Add update')"
+              :label="__('Add information')"
               theme="gray"
               variant="solid"
               @click="openCustomerUpdateEditor"
@@ -62,7 +62,9 @@
             v-model:attachments="attachments"
             v-model:content="editorContent"
             v-model:expand="isExpanded"
-            :placeholder="__('Type a message')"
+            :placeholder="
+              __('Add photos, labels, access notes, or extra location details')
+            "
             autofocus
             @clear="() => (isExpanded = false)"
             :uploadFunction="
