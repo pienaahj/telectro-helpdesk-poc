@@ -162,6 +162,14 @@ const emit = defineEmits(["open"]);
 
 const ticket = inject(ITicket);
 
+const locationContextFieldnames = [
+  "custom_site_group",
+  "custom_fault_category",
+  "custom_site",
+  "custom_fault_asset",
+  "custom_equipment_ref",
+];
+
 const customerLocationContext = ref({});
 
 const customerLocationMapUrl = computed(() => {
@@ -318,7 +326,8 @@ const ticketAdditionalInfo = computed(() => {
     .filter(
       (field: Field) =>
         !field.hide_from_customer &&
-        ["subject", "team", "priority"].indexOf(field.fieldname) === -1,
+        ["subject", "team", "priority"].indexOf(field.fieldname) === -1 &&
+        locationContextFieldnames.indexOf(field.fieldname) === -1,
     )
     .map((field: Field) => ({
       label: field.label,
