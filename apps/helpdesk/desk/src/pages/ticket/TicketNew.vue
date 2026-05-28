@@ -185,9 +185,18 @@
           v-else-if="
             faultPointSearched && !faultPointLoading && !selectedFaultPoint
           "
-          class="text-sm text-gray-500"
+          class="rounded border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800"
         >
-          {{ __("No matching fault points found.") }}
+          <div class="font-medium">
+            {{ __("No matching fault points found.") }}
+          </div>
+          <div class="mt-1">
+            {{
+              __(
+                "Try a shorter search term, choose the nearest known location, or select the closest point you recognise and describe the exact place in the details below.",
+              )
+            }}
+          </div>
         </div>
       </div>
       <!-- existing fields -->
