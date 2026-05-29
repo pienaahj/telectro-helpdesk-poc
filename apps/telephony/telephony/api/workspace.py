@@ -171,6 +171,121 @@ def _get_context_customer_name(customer):
 def _get_context_location_name(location):
     return _get_context_display_value("Location", location, ["location_name"])
 
+@frappe.whitelist()
+def internal_ticket_location_context(ticket_name):
+    ticket_name = (ticket_name or "").strip()
+
+    if not ticket_name:
+        return {"ok": 0, "reason": "Ticket is required."}
+
+    if not frappe.db.exists("HD Ticket", ticket_name):
+        return {"ok": 0, "reason": f"Ticket {ticket_name} was not found."}
+
+    ticket = frappe.get_doc("HD Ticket", ticket_name)
+    _require_internal_ticket_location_context_access(ticket)
+
+    campus = _get_location_context(ticket.get("custom_site_group"))
+    fault_point = _get_location_context(ticket.get("custom_site"))
+    fault_asset = _get_location_context(ticket.get("custom_fault_asset"))
+
+    primary_location = fault_point or fault_asset
+
+    return {
+        "ok": 1,
+        "ticket": ticket.name,
+        "subject": ticket.subject or "",
+        "customer": _get_context_customer_name(ticket.get("custom_customer") or ticket.get("customer")),
+        "campus": campus,
+        "category": ticket.get("custom_fault_category") or "",
+        "fault_point": fault_point,
+        "fault_asset": fault_asset,
+        "equipment_ref": ticket.get("custom_equipment_ref") or "",
+        "service_area": ticket.get("custom_service_area") or "",
+        "primary_location": primary_location,
+        "has_location_context": bool(campus or fault_point or fault_asset or ticket.get("custom_equipment_ref")),
+    }
+
+
+def _require_internal_ticket_location_context_access(ticket):
+    user = frappe.session.user
+
+    if user == "Administrator":
+        return
+
+    roles = set(frappe.get_roles(user) or [])
+    if roles & {
+        "System Manager",
+        "Pilot Admin",
+        "TELECTRO-POC Role - Supervisor Governance",
+        "TELECTRO-POC Role - Coordinator Ops",
+        "TELECTRO-POC Role - Tech",
+    }:
+        return
+
+    assigned_users = set(_parse_assigned_users(ticket.get("_assign")))
+    if user in assigned_users:
+        return
+
+    frappe.throw(
+        _("You are not allowed to view internal ticket location context."),
+        frappe.PermissionError,
+    )
+
+
+def _get_location_context(location_name):
+    location_name = (location_name or "").strip()
+
+    if not location_name:
+        return None
+
+    if not frappe.db.exists("Location", location_name):
+        return {
+            "id": location_name,
+            "label": location_name,
+            "route": "",
+            "latitude": None,
+            "longitude": None,
+            "geometry_type": "",
+            "parent_location": "",
+            "map_url": "",
+        }
+
+    location = frappe.db.get_value(
+        "Location",
+        location_name,
+        [
+            "name",
+            "location_name",
+            "parent_location",
+            "latitude",
+            "longitude",
+            "custom_kmz_geometry_type",
+        ],
+        as_dict=True,
+    )
+
+    latitude = location.latitude
+    longitude = location.longitude
+    map_url = ""
+
+    if latitude is not None and longitude is not None:
+        map_url = (
+            f"https://www.openstreetmap.org/"
+            f"?mlat={latitude}&mlon={longitude}"
+            f"#map=19/{latitude}/{longitude}"
+        )
+
+    return {
+        "id": location.name,
+        "label": location.location_name or location.name,
+        "route": f"/app/location/{location.name}",
+        "latitude": latitude,
+        "longitude": longitude,
+        "geometry_type": location.custom_kmz_geometry_type or "",
+        "parent_location": location.parent_location or "",
+        "map_url": map_url,
+    }
+    
 def _get_ticket_for_context_share(ticket_name):
     if not ticket_name:
         frappe.throw(_("A ticket is required."), frappe.ValidationError)

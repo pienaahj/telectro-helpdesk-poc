@@ -6,6 +6,7 @@ frappe.ui.form.on("HD Ticket", {
       hide_split_and_merge_section(frm);
       add_controlled_handoff_action(frm);
       add_share_ticket_context_action(frm);
+      render_internal_fault_location_context(frm);
     }, 300);
   },
 
@@ -399,4 +400,234 @@ function hide_split_and_merge_section(frm) {
       .closest(".form-section")
       .hide();
   }, 100);
+}
+
+async function render_internal_fault_location_context(frm) {
+  if (!should_show_internal_fault_location_context(frm)) {
+    remove_internal_fault_location_context(frm);
+    return;
+  }
+
+  try {
+    const wrapper = get_or_create_internal_fault_location_wrapper(frm);
+
+    wrapper.html(`
+      <div class="text-muted small">
+        Loading fault location context...
+      </div>
+    `);
+
+    const r = await frappe.call({
+      method: "telephony.api.workspace.internal_ticket_location_context",
+      args: {
+        ticket_name: frm.doc.name,
+      },
+    });
+
+    const ctx = r.message || {};
+
+    if (!ctx.ok || !ctx.has_location_context) {
+      remove_internal_fault_location_context(frm);
+      return;
+    }
+
+    wrapper.html(build_internal_fault_location_html(ctx));
+  } catch (e) {
+    console.error(
+      "[telectro_handoff_action] failed to load fault location context",
+      e,
+    );
+
+    frappe.show_alert({
+      message: "Fault location context could not be loaded.",
+      indicator: "orange",
+    });
+  }
+}
+
+function should_show_internal_fault_location_context(frm) {
+  const d = frm.doc || {};
+
+  if (!d.name || frm.is_new()) {
+    return false;
+  }
+
+  if (d.doctype !== "HD Ticket") {
+    return false;
+  }
+
+  return !!(
+    d.custom_site_group ||
+    d.custom_site ||
+    d.custom_fault_asset ||
+    d.custom_equipment_ref
+  );
+}
+
+function get_or_create_internal_fault_location_wrapper(frm) {
+  const wrapperId = "telectro-internal-fault-location-context";
+  const formWrapper = $(frm.wrapper || document);
+
+  let wrapper = formWrapper.find(`#${wrapperId}`);
+
+  if (wrapper.length) {
+    return wrapper;
+  }
+
+  const html = `
+    <div class="form-dashboard-section telectro-fault-location-section">
+      <div class="section-head">
+        ${__("Fault Location")}
+      </div>
+      <div class="section-body">
+        <div id="${wrapperId}" class="telectro-internal-fault-location-context"></div>
+      </div>
+    </div>
+  `;
+
+  const dashboardArea = formWrapper.find(".form-dashboard").first();
+
+  if (dashboardArea.length) {
+    dashboardArea.append(html);
+  } else {
+    const layoutArea = formWrapper.find(".form-layout").first();
+
+    if (layoutArea.length) {
+      layoutArea.prepend(html);
+    } else {
+      formWrapper.prepend(html);
+    }
+  }
+
+  return formWrapper.find(`#${wrapperId}`);
+}
+
+function remove_internal_fault_location_context(frm) {
+  const wrapperId = "telectro-internal-fault-location-context";
+  const formWrapper = $(frm.wrapper || document);
+  const wrapper = formWrapper.find(`#${wrapperId}`);
+
+  if (!wrapper.length) {
+    return;
+  }
+
+  const section = wrapper.closest(".telectro-fault-location-section");
+
+  if (section.length) {
+    section.remove();
+  } else {
+    wrapper.remove();
+  }
+}
+
+function build_internal_fault_location_html(ctx) {
+  const primary = ctx.primary_location || ctx.fault_point || ctx.fault_asset;
+  const campus = ctx.campus || {};
+  const faultPoint = ctx.fault_point || {};
+  const faultAsset = ctx.fault_asset || {};
+  const showFaultAsset = faultAsset.id && faultAsset.id !== faultPoint.id;
+
+  const rows = [
+    build_context_row("Campus", campus.label, campus.route),
+    build_context_row("Category", ctx.category),
+    build_context_row("Fault Point", faultPoint.label, faultPoint.route),
+  ];
+
+  if (showFaultAsset) {
+    rows.push(
+      build_context_row("Fault Asset", faultAsset.label, faultAsset.route),
+    );
+  }
+
+  rows.push(
+    build_context_row(
+      "Equipment / Circuit / SIM / Tag",
+      ctx.equipment_ref || "",
+    ),
+  );
+
+  const actions = build_internal_fault_location_actions(primary);
+
+  return `
+    <div class="telectro-fault-location-card" style="
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--card-bg);
+    ">
+      <div style="
+        display: grid;
+        grid-template-columns: minmax(130px, 180px) 1fr;
+        gap: 6px 12px;
+        align-items: start;
+      ">
+        ${rows.join("")}
+      </div>
+
+      ${actions}
+    </div>
+  `;
+}
+
+function build_context_row(label, value, route) {
+  const safeLabel = frappe.utils.escape_html(label || "");
+  const safeValue = frappe.utils.escape_html(value || "-");
+
+  let renderedValue = safeValue;
+
+  if (route && value) {
+    const safeRoute = frappe.utils.escape_html(route);
+    renderedValue = `<a href="${safeRoute}">${safeValue}</a>`;
+  }
+
+  return `
+    <div class="text-muted small">${safeLabel}</div>
+    <div class="small">${renderedValue}</div>
+  `;
+}
+
+function build_internal_fault_location_actions(location) {
+  if (!location || !location.id) {
+    return `
+      <div class="text-muted small" style="margin-top: 10px;">
+        No linked Location record is available.
+      </div>
+    `;
+  }
+
+  const buttons = [];
+
+  if (location.route) {
+    buttons.push(`
+      <a class="btn btn-xs btn-default" href="${frappe.utils.escape_html(location.route)}">
+        Open Location
+      </a>
+    `);
+  }
+
+  if (location.map_url) {
+    buttons.push(`
+      <a class="btn btn-xs btn-default"
+         href="${frappe.utils.escape_html(location.map_url)}"
+         target="_blank"
+         rel="noopener noreferrer">
+        View on map
+      </a>
+    `);
+  }
+
+  if (!buttons.length) {
+    return `
+      <div class="text-muted small" style="margin-top: 10px;">
+        Map unavailable — no coordinates captured for this Location.
+      </div>
+    `;
+  }
+
+  return `
+    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+      ${buttons.join("")}
+    </div>
+  `;
 }
