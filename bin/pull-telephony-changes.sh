@@ -709,6 +709,9 @@ cp_from_container "public/js/partner_route_guard.js" "public/js/partner_route_gu
 # -- customer resolution action ---
 cp_from_container "public/js/customer_resolution_action.js" "public/js/customer_resolution_action.js"
 
+# --- Telectro map zoom helper ---
+cp_from_container "public/js/telectro_location_map_zoom.js" "public/js/telectro_location_map_zoom.js"
+
 # --- app config (fixtures, includes, doc_events, overrides) ---
 cp_from_container "hooks.py" "hooks.py"
 
