@@ -1,9 +1,8 @@
 import json
 import frappe
 from frappe.utils import now_datetime
+from telephony.telectro_notifications import notify_ticket_action_required
 
-def _notify_controlled_handoff_receiver(ticket: str, to_user: str, from_user: str | None, reason: str, changed_by: str):
-    ...
 
 def _notify_controlled_handoff_receiver(
     ticket: str,
@@ -15,11 +14,10 @@ def _notify_controlled_handoff_receiver(
     """
     Notify the receiving user after a Controlled Handoff.
 
-    This is intentionally scoped to the receiver only.
-
-    Native assignment notifications are not produced by the TELECTRO
-    controlled handoff path because assignment is normalised directly.
-    This helper creates one explicit action-required Notification Log.
+    V1 behaviour:
+      - create an in-app Notification Log
+      - send a mobile-friendly email alert
+      - never allow email failure to break the handoff workflow
     """
     ticket = (ticket or "").strip()
     to_user = (to_user or "").strip()
@@ -30,42 +28,21 @@ def _notify_controlled_handoff_receiver(
     if not ticket or not to_user:
         return None
 
-    doc = frappe.get_doc("HD Ticket", ticket)
-
-    subject = frappe.utils.escape_html(doc.get("subject") or ticket)
-    from_label = frappe.utils.escape_html(from_user or "Pool")
-    to_label = frappe.utils.escape_html(to_user)
-    changed_by_label = frappe.utils.escape_html(
-        frappe.db.get_value("User", changed_by, "full_name") or changed_by
-    )
-    reason_label = frappe.utils.escape_html(reason)
-
-    notification_subject = (
-        f"<strong>{changed_by_label}</strong> handed off "
-        f"<strong>HD Ticket</strong> "
-        f'<b class="subject-title">{subject}</b> to you'
+    note = (
+        f"From: {from_user or 'Pool'}\n"
+        f"To: {to_user}\n"
+        f"Reason: {reason}"
     )
 
-    email_content = (
-        f"<p>You have received a controlled handoff for "
-        f"<strong>HD Ticket {frappe.utils.escape_html(ticket)}</strong>.</p>"
-        f"<p><strong>From:</strong> {from_label}<br>"
-        f"<strong>To:</strong> {to_label}<br>"
-        f"<strong>Reason:</strong> {reason_label}</p>"
+    return notify_ticket_action_required(
+        ticket_name=ticket,
+        for_user=to_user,
+        actor_user=changed_by,
+        action_text="handed off",
+        email_intro="You have received a controlled handoff for",
+        note=note,
+        note_label="Handoff",
     )
-
-    notification = frappe.get_doc({
-        "doctype": "Notification Log",
-        "subject": notification_subject,
-        "for_user": to_user,
-        "type": "Alert",
-        "document_type": "HD Ticket",
-        "document_name": ticket,
-        "email_content": email_content,
-    })
-    notification.insert(ignore_permissions=True)
-
-    return notification.name
     
 def _insert_handoff_audit_log(
     *,

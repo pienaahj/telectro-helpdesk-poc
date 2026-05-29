@@ -645,6 +645,7 @@ cp_from_container "telectro_assign_sync.py" "telectro_assign_sync.py"
 cp_from_container "telectro_ticket_routing.py" "telectro_ticket_routing.py"
 cp_from_container "telectro_ticket_edit_guard.py" "telectro_ticket_edit_guard.py"
 cp_from_container "telectro_reassign_on_update.py" "telectro_reassign_on_update.py"
+cp_from_container "telectro_notifications.py" "telectro_notifications.py"
 
 # --- location logic ---
 cp_from_container "customer_location_lookup.py" "customer_location_lookup.py"
