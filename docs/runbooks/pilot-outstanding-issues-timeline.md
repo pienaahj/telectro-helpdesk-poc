@@ -524,3 +524,60 @@ Suggested approach:
 - Reports/workspaces are the internal source of truth; notifications are nudges.
 - Customer portal is the Customer-facing source of truth for intake, updates, resolution visibility, and Customer-facing completion evidence.
 
+## Production deployment planning estimate
+
+Once all outstanding production information is available, the production server is ready, and the backup Samba mount points are provided, allow approximately **one week** for deployment, smoke testing, issue correction, and sign-off.
+
+This is a planning estimate, not an estimate for container startup only.
+
+The actual technical Docker deployment may take less time, but the one-week window allows for:
+
+```text
+- validating VPN/server access and Docker/runtime readiness
+- confirming the production hostname, DNS, firewall, and HTTPS certificate path
+- configuring production environment values and secrets
+- confirming certificate files, private key handling, and renewal responsibility
+- configuring SMTP/IMAP for tickets@telectro.co.za
+- configuring backup storage and verifying backup output to the Samba mount
+- running smoke tests for login, Customer portal, ticket creation, internal visibility,
+  incoming email ticket creation, outbound email, and backup checks
+- fixing small environment-specific issues discovered during deployment
+- allowing Telectro and Boschendal to test, review, and sign off
+```
+
+This estimate assumes the required production information is complete and correct when the deployment window starts.
+
+Missing or incorrect server access, certificate, DNS/firewall, email, secrets, or backup details will extend the timeline.
+
+### Suggested one-week deployment shape
+
+```text
+Day 1:
+  server access, Docker/runtime, production secrets, certificate, DNS/firewall,
+  backup mount verification, and deployment
+
+Day 2:
+  HTTPS, app access, login, Customer portal, and internal ticket visibility smoke tests
+
+Day 3:
+  SMTP/IMAP, incoming email ticket creation, outbound email, and backup smoke tests
+
+Day 4:
+  Telectro/Boschendal UAT fixes, retesting, and operational checks
+
+Day 5:
+  sign-off, rollback/fallback confirmation, and go/no-go decision
+```
+
+The exact work may not require all five days, but one week is the safer planning estimate because it includes testing, correction, and sign-off rather than only container startup.
+
+### Important distinction
+
+```text
+Technical deployment sign-off is not the same as operational go-live.
+```
+
+Technical deployment means the system is installed, reachable, and passes core smoke tests.
+
+Operational go-live means Telectro has accepted the workflow, email behaviour, Customer portal behaviour, support ownership, backup/restore expectations, and fallback/rollback plan.
+
