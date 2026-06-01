@@ -4,12 +4,33 @@ from frappe import _
 from telephony.telectro_site_guard import _get_default_campus_for_ticket
 
 
-CATEGORY_BUCKETS = {
-    "Buildings": "Buildings",
-    "Network Nodes": "Network Nodes",
-    "Other": "Other",
-    "Residents": "Residents",
+CATEGORY_CONFIG = {
+    "Buildings": {
+        "bucket": "Buildings",
+        "geometry_types": ["Point"],
+    },
+    "Network Nodes": {
+        "bucket": "Network Nodes",
+        "geometry_types": ["Point"],
+    },
+    "Links": {
+        "bucket": "Links",
+        "geometry_types": ["LineString"],
+    },
+    "Areas": {
+        "bucket": "Areas",
+        "geometry_types": ["Polygon"],
+    },
+    "Other": {
+        "bucket": "Other",
+        "geometry_types": ["Point"],
+    },
+    "Residents": {
+        "bucket": "Residents",
+        "geometry_types": ["Point"],
+    },
 }
+
 CUSTOMER_FAULT_POINT_PAGE_LEN_MAX = 64
 
 @frappe.whitelist()
@@ -46,11 +67,13 @@ def get_customer_ticket_location_context(ticket_name=None):
     if ticket.raised_by != user and ticket.customer not in allowed_customers:
         frappe.throw(_("Not permitted"), frappe.PermissionError)
 
+    location_name = ticket.custom_site or ticket.custom_fault_asset
+
     location = None
-    if ticket.custom_site:
+    if location_name:
         location = frappe.db.get_value(
             "Location",
-            ticket.custom_site,
+            location_name,
             [
                 "name",
                 "location_name",
@@ -70,7 +93,7 @@ def get_customer_ticket_location_context(ticket_name=None):
         "service_area": ticket.custom_service_area,
         "equipment_ref": ticket.custom_equipment_ref,
         "fault_point": location.location_name if location else "",
-        "fault_point_id": location.name if location else ticket.custom_site,
+        "fault_point_id": location.name if location else location_name,
         "parent_location": location.parent_location if location else "",
         "latitude": location.latitude if location else None,
         "longitude": location.longitude if location else None,
@@ -98,9 +121,12 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
     category = (category or "Buildings").strip()
     page_len = min(int(page_len or 20), CUSTOMER_FAULT_POINT_PAGE_LEN_MAX)
 
-    bucket = CATEGORY_BUCKETS.get(category)
-    if not bucket:
+    category_config = CATEGORY_CONFIG.get(category)
+    if not category_config:
         return []
+
+    bucket = category_config["bucket"]
+    geometry_types = category_config["geometry_types"]
 
     bucket_root = f"{campus} - {bucket}"
 
@@ -119,6 +145,7 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
         "rgt": root.rgt,
         "txt": f"%{txt}%",
         "page_len": page_len,
+        "geometry_types": tuple(geometry_types),
     }
 
     return frappe.db.sql(
@@ -134,7 +161,7 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
         WHERE lft >= %(lft)s
           AND rgt <= %(rgt)s
           AND is_group = 0
-          AND custom_kmz_geometry_type = 'Point'
+          AND custom_kmz_geometry_type IN %(geometry_types)s
           AND (
               %(txt)s = '%%'
               OR name LIKE %(txt)s

@@ -99,11 +99,17 @@
           <div class="mb-3 flex items-start justify-between gap-3">
             <div>
               <div class="font-medium text-gray-900">
-                {{ __("Selected Fault Point") }}
+                {{ selectedFaultPointLabel }}
               </div>
               <div class="text-xs text-gray-500">
                 {{
-                  __("This location will be sent to Telectro with your ticket.")
+                  selectedFaultPointIsNonPoint
+                    ? __(
+                        "This link or area will be sent to Telectro with your ticket.",
+                      )
+                    : __(
+                        "This location will be sent to Telectro with your ticket.",
+                      )
                 }}
               </div>
             </div>
@@ -119,7 +125,11 @@
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div>
               <div class="text-xs font-medium uppercase text-gray-500">
-                {{ __("Fault Point") }}
+                {{
+                  selectedFaultPointIsNonPoint
+                    ? __("Fault Asset")
+                    : __("Fault Point")
+                }}
               </div>
               <div class="text-gray-900">
                 {{ selectedFaultPoint.location_name }}
@@ -159,7 +169,11 @@
                   {{ __("View on map") }}
                 </a>
                 <span v-else>
-                  {{ __("Not available") }}
+                  {{
+                    selectedFaultPointIsNonPoint
+                      ? __("Not available for this geometry")
+                      : __("Not available")
+                  }}
                 </span>
               </div>
             </div>
@@ -361,9 +375,12 @@ const templateFields = reactive({});
 const faultPointCategories = [
   "Buildings",
   "Network Nodes",
+  "Links",
+  "Areas",
   "Other",
   "Residents",
 ];
+
 const faultPointCategory = ref("Buildings");
 const faultPointSearch = ref("");
 const faultPointResults = ref([]);
@@ -428,6 +445,24 @@ function handleOnFieldChange(e: any, fieldname: string, fieldtype: string) {
     });
   }
 }
+
+const selectedFaultPointGeometryType = computed(() => {
+  return selectedFaultPoint.value?.custom_kmz_geometry_type || "";
+});
+
+const selectedFaultPointIsNonPoint = computed(() => {
+  return ["LineString", "Polygon"].includes(
+    selectedFaultPointGeometryType.value,
+  );
+});
+
+const selectedFaultPointLabel = computed(() => {
+  if (selectedFaultPointIsNonPoint.value) {
+    return __("Selected Fault Asset");
+  }
+
+  return __("Selected Fault Point");
+});
 
 const selectedFaultPointCampus = computed(() => {
   const parent = selectedFaultPoint.value?.parent_location || "";
@@ -522,6 +557,25 @@ watch(
   { immediate: true },
 );
 
+function selectedFaultPointFields() {
+  if (!isCustomerPortal.value || !selectedFaultPoint.value?.name) {
+    return {};
+  }
+
+  if (selectedFaultPointIsNonPoint.value) {
+    return {
+      custom_fault_asset: selectedFaultPoint.value.name,
+      custom_fault_category: faultPointCategory.value,
+    };
+  }
+
+  return {
+    custom_site: selectedFaultPoint.value.name,
+    custom_fault_asset: selectedFaultPoint.value.name,
+    custom_fault_category: faultPointCategory.value,
+  };
+}
+
 const ticket = createResource({
   url: "helpdesk.helpdesk.doctype.hd_ticket.api.new",
   debounce: 300,
@@ -531,13 +585,7 @@ const ticket = createResource({
       subject: subject.value,
       template: props.templateId,
       ...templateFields,
-      ...(isCustomerPortal.value && selectedFaultPoint.value?.name
-        ? {
-            custom_site: selectedFaultPoint.value.name,
-            custom_fault_asset: selectedFaultPoint.value.name,
-            custom_fault_category: faultPointCategory.value,
-          }
-        : {}),
+      ...selectedFaultPointFields(),
     },
     attachments: attachments.value,
   }),
