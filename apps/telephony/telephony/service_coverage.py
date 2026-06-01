@@ -169,7 +169,13 @@ def get_ticket_context(ticket_or_name) -> dict:
         ticket = frappe.db.get_value(
             "HD Ticket",
             ticket_or_name,
-            ["name", "custom_customer", "custom_site_group", "custom_service_area"],
+            [
+                "name",
+                "customer",
+                "custom_customer",
+                "custom_site_group",
+                "custom_service_area",
+            ],
             as_dict=True,
         )
     else:
@@ -185,7 +191,7 @@ def get_ticket_context(ticket_or_name) -> dict:
 
     return {
         "ticket": _clean(ticket.get("name")),
-        "customer": _clean(ticket.get("custom_customer")),
+        "customer": _clean(ticket.get("custom_customer") or ticket.get("customer")),
         "campus": _clean(ticket.get("custom_site_group")),
         "service_area": _clean(ticket.get("custom_service_area")),
     }

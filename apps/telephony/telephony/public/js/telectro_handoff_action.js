@@ -528,6 +528,7 @@ function build_internal_fault_location_html(ctx) {
   const showFaultAsset = faultAsset.id && faultAsset.id !== faultPoint.id;
 
   const rows = [
+    build_context_row("Customer", ctx.customer),
     build_context_row("Campus", campus.label, campus.route),
     build_context_row("Category", ctx.category),
     build_context_row("Fault Point", faultPoint.label, faultPoint.route),
