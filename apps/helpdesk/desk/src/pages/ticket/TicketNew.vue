@@ -46,7 +46,7 @@
           <span class="block text-sm text-gray-500">
             {{
               __(
-                "Optional. Search for the affected Boschendal location. Results are limited to your Customer organisation.",
+                "Optional. Choose the affected Boschendal location. You can browse the available options or search if you know the name. Results are limited to your Customer organisation.",
               )
             }}
           </span>
@@ -58,7 +58,7 @@
             <select
               v-model="faultPointCategory"
               class="form-control rounded border border-gray-300 px-3 py-2 text-sm"
-              @change="clearFaultPointSelection"
+              @change="handleFaultPointCategoryChange"
             >
               <option
                 v-for="category in faultPointCategories"
@@ -76,7 +76,9 @@
               <FormControl
                 v-model="faultPointSearch"
                 type="text"
-                :placeholder="__('Search fault point, e.g. Bakery')"
+                :placeholder="
+                  __('Search within the selected category, e.g. Bakery')
+                "
                 @keyup.enter="searchFaultPoints"
               />
               <Button
@@ -164,23 +166,45 @@
           </div>
         </div>
 
-        <div v-if="faultPointResults.length" class="space-y-2">
-          <button
-            v-for="row in faultPointResults"
-            :key="row.name"
-            type="button"
-            class="block w-full rounded border border-gray-200 px-3 py-2 text-left text-sm hover:bg-gray-50"
-            @click="selectFaultPoint(row)"
-          >
-            <span class="block font-medium text-gray-900">
-              {{ row.location_name }}
-            </span>
-            <span class="block text-xs text-gray-500">
-              {{ row.parent_location }}
-            </span>
-          </button>
+        <div
+          v-if="faultPointLoading && !selectedFaultPoint"
+          class="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"
+        >
+          {{ __("Loading available fault points...") }}
         </div>
 
+        <div v-if="faultPointResults.length" class="space-y-2">
+          <div class="text-xs text-gray-500">
+            {{
+              faultPointSearch
+                ? __(
+                    "Matching fault points. Select the closest affected location.",
+                  )
+                : __(
+                    "Available fault points. Scroll or search to find the closest affected location.",
+                  )
+            }}
+          </div>
+
+          <div
+            class="max-h-80 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+          >
+            <button
+              v-for="row in faultPointResults"
+              :key="row.name"
+              type="button"
+              class="block w-full rounded border border-gray-200 px-3 py-2 text-left text-sm hover:bg-gray-50"
+              @click="selectFaultPoint(row)"
+            >
+              <span class="block font-medium text-gray-900">
+                {{ row.location_name }}
+              </span>
+              <span class="block text-xs text-gray-500">
+                {{ row.parent_location }}
+              </span>
+            </button>
+          </div>
+        </div>
         <div
           v-else-if="
             faultPointSearched && !faultPointLoading && !selectedFaultPoint
@@ -301,7 +325,14 @@ import {
 import { __ } from "@/translation";
 import { useOnboarding } from "frappe-ui/frappe";
 import sanitizeHtml from "sanitize-html";
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SearchArticles from "../../components/SearchArticles.vue";
 const TicketTextEditor = defineAsyncComponent(
@@ -438,6 +469,21 @@ function clearFaultPointSelection() {
   faultPointSearched.value = false;
 }
 
+function clearFaultPointResults() {
+  faultPointResults.value = [];
+  faultPointSearched.value = false;
+}
+
+async function handleFaultPointCategoryChange() {
+  selectedFaultPoint.value = null;
+  faultPointSearch.value = "";
+  clearFaultPointResults();
+
+  if (isCustomerPortal.value) {
+    await searchFaultPoints();
+  }
+}
+
 function selectFaultPoint(row: any) {
   selectedFaultPoint.value = row;
   faultPointResults.value = [];
@@ -454,7 +500,7 @@ async function searchFaultPoints() {
       {
         txt: faultPointSearch.value,
         category: faultPointCategory.value,
-        page_len: 10,
+        page_len: 64,
       },
     );
 
@@ -463,6 +509,18 @@ async function searchFaultPoints() {
     faultPointLoading.value = false;
   }
 }
+
+watch(
+  isCustomerPortal,
+  async (isPortal) => {
+    if (!isPortal) {
+      return;
+    }
+
+    await searchFaultPoints();
+  },
+  { immediate: true },
+);
 
 const ticket = createResource({
   url: "helpdesk.helpdesk.doctype.hd_ticket.api.new",

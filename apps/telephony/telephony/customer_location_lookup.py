@@ -10,6 +10,7 @@ CATEGORY_BUCKETS = {
     "Other": "Other",
     "Residents": "Residents",
 }
+CUSTOMER_FAULT_POINT_PAGE_LEN_MAX = 64
 
 @frappe.whitelist()
 def get_customer_ticket_location_context(ticket_name=None):
@@ -95,7 +96,7 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
 
     txt = (txt or "").strip()
     category = (category or "Buildings").strip()
-    page_len = min(int(page_len or 20), 50)
+    page_len = min(int(page_len or 20), CUSTOMER_FAULT_POINT_PAGE_LEN_MAX)
 
     bucket = CATEGORY_BUCKETS.get(category)
     if not bucket:
