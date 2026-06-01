@@ -10,6 +10,7 @@ from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 ROUTING_FIELDS = {
     "ticket_type",
     "custom_request_type",
+    "customer",
     "custom_customer",
     "custom_site_group",
     "custom_site",
