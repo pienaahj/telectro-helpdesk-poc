@@ -356,6 +356,64 @@ Coverage rows returned `0` in the local proof.
 
 That is treated as missing coverage configuration/data, not a failure to resolve ticket context.
 
+## Boschendal Service Coverage Proof
+
+A local proof row was created to confirm that native Customer portal tickets can match TELECTRO Service Coverage without requiring `custom_customer`.
+
+Proof row:
+
+```text
+TELECTRO Service Coverage: TSC-2026-00003
+enabled = 1
+coverage_scope = Campus
+customer = blank
+campus = Boschendal
+service_area = Faults
+user = hendrik@local.test
+coverage_role = Primary
+priority = 10
+notes = Local proof row for Customer portal Boschendal Faults coverage.
+```
+
+Ticket `820` resolved coverage context as:
+
+```text
+ticket = 820
+customer = Boschendal
+campus = Boschendal
+service_area = Faults
+```
+
+`get_matching_coverage_rows_for_ticket("820")` returned:
+
+```text
+coverage rows count = 1
+matched row = TSC-2026-00003
+coverage_scope = Campus
+campus = Boschendal
+service_area = Faults
+user = hendrik@local.test
+coverage_role = Primary
+_match_rank = 2
+```
+
+This proves that Customer portal tickets can participate in coverage matching through Campus + Service Area scope.
+
+The result intentionally does not use Customer/Campus scope yet because `TELECTRO Service Coverage.customer` links to ERPNext `Customer`, while native Customer portal tickets currently provide Helpdesk `HD Customer` through `HD Ticket.customer`.
+
+Current V1 interpretation:
+
+```text
+Customer portal organisation:
+  HD Ticket.customer = Boschendal
+
+Coverage match:
+  Campus = Boschendal
+  Service Area = Faults
+```
+
+Until explicit HD Customer -> ERPNext Customer mapping is decided, Boschendal-specific Customer portal coverage can be represented with Campus + Service Area rows.
+
 ## Important Architecture Principle
 
 Do not use fake Service Areas to represent customer responsibility.
@@ -481,4 +539,3 @@ different coverage by branch/service area
 - Links/Areas populate `custom_fault_asset` only and leave `custom_site` blank.
 - Service Area must remain a work taxonomy, not a customer ownership shortcut.
 - Responsibility and routing should be handled by explicit coverage/routing policy.
-
