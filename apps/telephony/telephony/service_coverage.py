@@ -209,6 +209,123 @@ def get_matching_coverage_rows_for_ticket(ticket_or_name) -> list[dict]:
         service_area=context["service_area"],
     )
 
+def _parse_assign_users(assign_val) -> list[str]:
+    if not assign_val:
+        return []
+
+    if isinstance(assign_val, list):
+        return [str(x).strip() for x in assign_val if str(x).strip()]
+
+    if not isinstance(assign_val, str):
+        return []
+
+    assign_val = assign_val.strip()
+    if not assign_val:
+        return []
+
+    try:
+        import json
+
+        parsed = json.loads(assign_val)
+        if isinstance(parsed, list):
+            return [str(x).strip() for x in parsed if str(x).strip()]
+    except Exception:
+        return []
+
+    return []
+
+
+def _current_assignee_for_ticket(ticket_or_name) -> str:
+    ticket_name = ticket_or_name if isinstance(ticket_or_name, str) else ticket_or_name.get("name")
+    ticket_name = _clean(ticket_name)
+
+    if not ticket_name:
+        return ""
+
+    assign_val = frappe.db.get_value("HD Ticket", ticket_name, "_assign") or ""
+    users = _parse_assign_users(assign_val)
+
+    return users[0] if users else ""
+
+def resolve_ticket_coverage_owner(ticket_or_name) -> dict:
+    """
+    Read-only owner discovery helper for ticket coverage.
+
+    This does not:
+    - mutate the ticket
+    - create ToDos
+    - write _assign
+    - make routing decisions
+
+    Policy:
+    - matching coverage rows are already ordered by match rank, priority,
+      coverage role, user, and row name
+    - the first row is the recommended owner candidate
+    - if the current assignee is already present in the matching coverage rows,
+      keep that user as the effective owner candidate
+    """
+    context = get_ticket_context(ticket_or_name)
+    rows = get_matching_coverage_rows_for_ticket(ticket_or_name)
+    current_assignee = _current_assignee_for_ticket(ticket_or_name)
+
+    if not rows:
+        return {
+            "ok": 0,
+            "ticket": context["ticket"],
+            "context": context,
+            "coverage_rows": [],
+            "recommended_user": "",
+            "recommended_role": "",
+            "recommended_row": "",
+            "match_rank": None,
+            "current_assignee": current_assignee,
+            "current_assignee_is_covered": False,
+            "effective_owner_candidate": "",
+            "effective_owner_reason": "No matching enabled coverage rows.",
+            "reason": "No matching enabled coverage rows.",
+        }
+
+    recommended = rows[0]
+    recommended_user = _clean(recommended.get("user"))
+
+    covered_users = {
+        _clean(row.get("user"))
+        for row in rows
+        if _clean(row.get("user"))
+    }
+
+    current_assignee_is_covered = bool(
+        current_assignee and current_assignee in covered_users
+    )
+
+    effective_owner_candidate = (
+        current_assignee if current_assignee_is_covered else recommended_user
+    )
+
+    effective_owner_reason = (
+        "Current assignee is already covered by matching coverage rows."
+        if current_assignee_is_covered
+        else "Recommended first matching coverage row by match rank, priority, role, user, and row name."
+    )
+
+    return {
+        "ok": 1,
+        "ticket": context["ticket"],
+        "context": context,
+        "coverage_rows": rows,
+        "recommended_user": recommended_user,
+        "recommended_role": _clean(recommended.get("coverage_role")),
+        "recommended_row": _clean(recommended.get("name")),
+        "match_rank": recommended.get("_match_rank"),
+        "current_assignee": current_assignee,
+        "current_assignee_is_covered": current_assignee_is_covered,
+        "effective_owner_candidate": effective_owner_candidate,
+        "effective_owner_reason": effective_owner_reason,
+        "reason": (
+            f"Matched {recommended.get('coverage_scope') or 'coverage'} "
+            f"coverage for service area {context['service_area'] or '-'}."
+        ),
+    }
 
 def user_has_ticket_coverage(user: str, ticket_or_name) -> bool:
     """
