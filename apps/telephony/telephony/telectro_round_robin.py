@@ -6,6 +6,8 @@ POOLS = {
     "Routing": ["tech.alfa@local.test", "tech.bravo@local.test"],
     "PABX": ["tech.charlie@local.test"],
     "SIM": ["tech.bravo@local.test"],
+    "Internet Connection": ["tech.alfa@local.test", "tech.bravo@local.test"],
+    "CCTV": ["tech.bravo@local.test"],
 }
 
 POOL_USER = "helpdesk@local.test"
