@@ -40,6 +40,63 @@
   ]
  },
  {
+  "assignment_rule": "SIM - Support Rotation",
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-02 20:24:01.640953",
+  "name": "SIM",
+  "team_name": "SIM",
+  "users": [
+   {
+    "parent": "SIM",
+    "parentfield": "users",
+    "parenttype": "HD Team",
+    "user": "tech.bravo@local.test"
+   }
+  ]
+ },
+ {
+  "assignment_rule": "CCTV - Support Rotation",
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-02 20:24:01.761785",
+  "name": "CCTV",
+  "team_name": "CCTV",
+  "users": [
+   {
+    "parent": "CCTV",
+    "parentfield": "users",
+    "parenttype": "HD Team",
+    "user": "tech.bravo@local.test"
+   }
+  ]
+ },
+ {
+  "assignment_rule": "Internet Connection - Support Rotation",
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-02 20:24:01.773545",
+  "name": "Internet Connection",
+  "team_name": "Internet Connection",
+  "users": [
+   {
+    "parent": "Internet Connection",
+    "parentfield": "users",
+    "parenttype": "HD Team",
+    "user": "tech.alfa@local.test"
+   },
+   {
+    "parent": "Internet Connection",
+    "parentfield": "users",
+    "parenttype": "HD Team",
+    "user": "tech.bravo@local.test"
+   }
+  ]
+ },
+ {
   "assignment_rule": "Helpdesk Team - Support Rotation-8",
   "docstatus": 0,
   "doctype": "HD Team",

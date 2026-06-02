@@ -152,7 +152,18 @@ fixtures = [
     {
         "dt": "HD Team",
         "filters": [
-            ["name", "in", ["PABX", "Routing", "Helpdesk Team"]],
+            [
+                "name",
+                "in",
+                [
+                    "PABX",
+                    "Routing",
+                    "SIM",
+                    "CCTV",
+                    "Internet Connection",
+                    "Helpdesk Team",
+                ],
+            ],
         ],
     },
 ]

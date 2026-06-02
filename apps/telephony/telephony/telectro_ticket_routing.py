@@ -16,15 +16,12 @@ AREA_TO_TEAM = {
     "Routing": "Routing",
     "PABX": "PABX",
     "SIM": "SIM",
-
-    # Current pilot behaviour:
-    # These are valid Service Areas, but they do not yet have dedicated RR teams.
-    # They fall back to Helpdesk Team unless/until explicit teams/pools are created.
-    #
-    # "Internet Connection": "Internet Connection",
-    # "Faults": "Faults",
-    # "Quotes & Site Surveys": "Quotes & Site Surveys",
-    # "CCTV": "CCTV",
+    "Internet Connection": "Internet Connection",
+    "CCTV": "CCTV",
+    "Faults": "Helpdesk Team",
+    "Quotes & Site Surveys": "Helpdesk Team",
+    "Other": "Helpdesk Team",
+    "Fiber": "Internet Connection",
 }
 
 DEFAULT_AREA = "Other"
