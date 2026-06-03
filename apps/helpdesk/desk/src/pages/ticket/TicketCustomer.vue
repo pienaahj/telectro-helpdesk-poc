@@ -28,7 +28,32 @@
         <!-- show for only mobile -->
         <TicketCustomerTemplateFields v-if="isMobileView" />
 
+        <div
+          v-if="latestCustomerVisibleUpdate"
+          class="mx-6 mt-4 rounded border border-gray-200 bg-gray-50 p-4 md:mx-10"
+        >
+          <div class="mb-1 text-sm font-medium text-gray-900">
+            {{ __("Latest update") }}
+          </div>
+
+          <div class="mb-2 text-sm text-gray-600">
+            {{
+              latestCustomerVisibleUpdate.user?.name ||
+              latestCustomerVisibleUpdate.sender ||
+              __("Update")
+            }}
+            ·
+            {{ dayjs(latestCustomerVisibleUpdate.creation).fromNow() }}
+          </div>
+
+          <div
+            class="max-h-24 overflow-hidden text-base text-gray-800"
+            v-html="latestCustomerVisibleUpdate.content"
+          />
+        </div>
+
         <TicketConversation class="grow" />
+
         <div v-if="showEditor" class="border-t bg-surface-white px-5 pt-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -92,6 +117,7 @@
 </template>
 
 <script setup lang="ts">
+import { dayjs } from "@/dayjs";
 import { LayoutHeader } from "@/components";
 import TicketCustomerSidebar from "@/components/ticket/TicketCustomerSidebar.vue";
 import { setupCustomizations } from "@/composables/formCustomisation";
@@ -284,6 +310,18 @@ const breadcrumbs = computed(() => {
 const allowCustomerTicketClose = computed(() => false);
 
 const showEditor = computed(() => ticket.data.status !== "Closed");
+
+const latestCustomerVisibleUpdate = computed(() => {
+  const communications = [...(ticket.data?.communications || [])].sort(
+    (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime(),
+  );
+
+  if (communications.length <= 1) {
+    return null;
+  }
+
+  return communications[communications.length - 1];
+});
 
 // this handles whether the ticket was raised and then was closed without any reply from the agent.
 const { isFeedbackMandatory } = useConfigStore();
