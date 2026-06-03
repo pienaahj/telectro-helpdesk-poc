@@ -59,6 +59,9 @@ cp_helpdesk_desk_from_container "src/pages/ticket/TicketNew.vue" "src/pages/tick
 cp_helpdesk_desk_from_container "src/components/ticket/TicketCustomerSidebar.vue" "src/components/ticket/TicketCustomerSidebar.vue"
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomerTemplateFields.vue" "src/pages/ticket/TicketCustomerTemplateFields.vue"
 
+# --- Helpdesk desk frontend files changed for customer ticket list views ---
+cp_helpdesk_desk_from_container "src/composables/useView.ts" "src/composables/useView.ts"
+
 echo
 echo "✅ Pulled helpdesk changes from container."
 echo
