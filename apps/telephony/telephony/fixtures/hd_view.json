@@ -1,0 +1,24 @@
+[
+ {
+  "columns": "[{\"key\": \"name\", \"label\": \"Ticket ID\", \"type\": \"Data\", \"width\": \"8rem\"}, {\"key\": \"subject\", \"label\": \"Subject\", \"type\": \"Data\", \"width\": \"18rem\"}, {\"key\": \"status\", \"label\": \"Status\", \"type\": \"Select\", \"width\": \"10rem\"}, {\"key\": \"custom_service_area\", \"label\": \"Service Area\", \"type\": \"Select\", \"width\": \"12rem\"}, {\"key\": \"custom_equipment_ref\", \"label\": \"Equipment Ref\", \"type\": \"Data\", \"width\": \"14rem\"}, {\"key\": \"modified\", \"label\": \"Last Updated\", \"type\": \"Datetime\", \"width\": \"12rem\"}]",
+  "docstatus": 0,
+  "doctype": "HD View",
+  "dt": "HD Ticket",
+  "filters": "{}",
+  "group_by_field": null,
+  "icon": null,
+  "is_customer_portal": 1,
+  "is_default": 1,
+  "label": "Customer Tickets",
+  "load_default_columns": 0,
+  "modified": "2026-06-03 17:29:29.417957",
+  "name": "VIEW-HD Ticket-002",
+  "order_by": "modified desc",
+  "pinned": 0,
+  "public": 0,
+  "route_name": "TicketsCustomer",
+  "rows": "[\"name\", \"subject\", \"status\", \"custom_service_area\", \"custom_equipment_ref\", \"modified\"]",
+  "type": "list",
+  "user": ""
+ }
+]

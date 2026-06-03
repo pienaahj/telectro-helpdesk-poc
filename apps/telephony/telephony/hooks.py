@@ -166,6 +166,15 @@ fixtures = [
             ],
         ],
     },
+    
+    {
+        "dt": "HD View",
+        "filters": [
+            ["name", "in", [
+                "VIEW-HD Ticket-002",
+            ]],
+        ],
+    },
 ]
 
 # ------------------
