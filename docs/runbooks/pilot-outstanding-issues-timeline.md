@@ -825,3 +825,43 @@ Technical deployment sign-off is not the same as operational go-live.
 Technical deployment means the system is installed, reachable, and passes core smoke tests.
 
 Operational go-live means Telectro has accepted the workflow, email behaviour, Customer portal behaviour, support ownership, backup/restore expectations, and fallback/rollback plan.
+
+### Customer portal smoke checkpoint — 2026-06-04
+
+Customer portal ticket `836` was used to prove the current Customer-visible update and resolution behaviour.
+
+Proven:
+
+```text
+Customer portal detail page opens correctly.
+Latest update card shows the newest Customer-visible Telectro update.
+Activity timeline shows Customer-created updates and Telectro-created Customer-visible updates.
+Customer-uploaded attachments remain visible in the Activity timeline.
+Location details are visible for the selected Fault Point / Fault Asset.
+Resolved status is visible after Telectro resolution.
+Customer-facing completion evidence attached during Resolve Customer Ticket is visible and downloadable.
+```
+
+Known limitation discovered during smoke testing:
+
+```text
+Telectro-side Add Customer Update currently sends the Customer-visible text update,
+but does not attach a Telectro-uploaded photo/file to that update.
+```
+
+This is not treated as a regression in the current Customer train because the V1 model already supports deliberate Customer-facing completion evidence through the Resolve Customer Ticket flow.
+
+Follow-up slice:
+
+```text
+Add optional Customer-visible attachment support to Add Customer Update.
+```
+
+This follow-up should preserve the current evidence boundary:
+
+```text
+Internal ticket evidence must remain internal by default.
+Only deliberately selected Customer-visible update/completion evidence should be exposed to the Customer portal.
+Customer-visible attachment downloads should use a controlled endpoint rather than raw private file URLs.
+```
+
