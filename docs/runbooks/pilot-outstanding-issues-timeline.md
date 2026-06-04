@@ -592,7 +592,7 @@ Incoming email settings received:
 Server: mail.telectro.co.za
 Port: 993
 Encryption: SSL/TLS
-Username: tickets@telectro.co.za assumed, pending Telectro confirmation
+tickets@telectro.co.za confirmed after Telectro clarified the supplied typo
 Password: received locally, not stored in repository
 ```
 
@@ -602,7 +602,7 @@ Outgoing email settings received:
 Server: mail.telectro.co.za
 Port: 587
 Encryption: STARTTLS
-Username: tickets@telectro.co.za assumed, pending Telectro confirmation
+tickets@telectro.co.za confirmed after Telectro clarified the supplied typo
 Password: received locally, not stored in repository
 ```
 
@@ -610,9 +610,8 @@ Important follow-up:
 
 ```text
 The expected mailbox is tickets@telectro.co.za.
-One supplied value appeared to contain a spelling mismatch.
-A confirmation request has been sent to Telectro, with follow-up due on 2026-06-05.
-Until confirmed, production configuration should treat tickets@telectro.co.za as the assumed mailbox but not final sign-off proof.
+Telectro confirmed that the previously supplied spelling mismatch was a typo.
+Production configuration should use tickets@telectro.co.za for SMTP/IMAP smoke testing.
 ```
 
 Production email implementation still requires:
@@ -746,7 +745,7 @@ Updated production-readiness status:
 
 ```text
 Samba credentials have been received locally.
-Email credentials have been received locally, with tickets@telectro.co.za assumed pending confirmation.
+Email credentials have been received locally, with tickets@telectro.co.za confirmed.
 Certificate transfer model is known at architecture level.
 CLM client contract is still missing.
 Production server-side secure secret placement remains pending until server access is available.
