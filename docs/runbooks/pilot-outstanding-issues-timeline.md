@@ -549,7 +549,84 @@ This estimate assumes the required production information is complete and correc
 
 Missing or incorrect server access, certificate, DNS/firewall, email, secrets, or backup details will extend the timeline.
 
-### Production certificate delivery update — 2026-06-04
+### Production readiness checkpoint — 2026-06-04
+
+Current production-readiness status has improved, but the deployment remains blocked on server-side access/proof and the missing CLM client contract.
+
+#### Received / improved
+
+- Customer portal ticket list visibility was hardened.
+  - Customer portal `/helpdesk/my-tickets` now shows Customer-safe fallback columns.
+  - No broad `HD View` or `Location` permissions were granted.
+- Samba share details and credentials have been received locally.
+- Email-system and email-account credentials have been received locally.
+- Certificate delivery architecture has been clarified at a high level.
+  - Certificate issuance and renewal are handled by Telectro’s CLM server.
+  - Production certificate material is expected to be pulled from the CLM server through secure API access using a certificate-set-specific API key.
+
+#### Samba / backup details received
+
+The following Samba backup share details were received:
+
+```text
+SMB share: \\192.168.0.30\erp
+Username: erp
+Password: received locally, not stored in repository
+```
+
+Production backup implementation still requires:
+
+- production server access;
+- secure placement of Samba credentials on the server;
+- mount path decision;
+- backup-output proof to the Samba share;
+- backup monitoring expectation;
+- restore-test timing;
+- restore ownership during incidents.
+
+#### Email details received
+
+Incoming email settings received:
+
+```text
+Server: mail.telectro.co.za
+Port: 993
+Encryption: SSL/TLS
+Username: tickets@telectro.co.za assumed, pending Telectro confirmation
+Password: received locally, not stored in repository
+```
+
+Outgoing email settings received:
+
+```text
+Server: mail.telectro.co.za
+Port: 587
+Encryption: STARTTLS
+Username: tickets@telectro.co.za assumed, pending Telectro confirmation
+Password: received locally, not stored in repository
+```
+
+Important follow-up:
+
+```text
+The expected mailbox is tickets@telectro.co.za.
+One supplied value appeared to contain a spelling mismatch.
+A confirmation request has been sent to Telectro, with follow-up due on 2026-06-05.
+Until confirmed, production configuration should treat tickets@telectro.co.za as the assumed mailbox but not final sign-off proof.
+```
+
+Production email implementation still requires:
+
+- secure placement of email credentials on the production server;
+- confirmation of exact SMTP username;
+- confirmation whether incoming IMAP uses the same username;
+- SMTP smoke test;
+- IMAP smoke test;
+- incoming email-to-ticket proof;
+- outbound email proof;
+- operational monitoring expectation for failed email pulls/sends.
+
+#### Certificate / CLM status
 
 Telectro confirmed that production certificate issuance and renewal are handled by a CLM server.
 
@@ -605,7 +682,76 @@ Telectro/Robbie owns CLM issuance and renewal.
 ERPNext production deployment owns the production-side pull/install script once the CLM client contract is supplied.
 ```
 
-This means the certificate transfer item is no longer fully unknown, but it remains blocked for implementation until the CLM API contract is supplied.
+#### Secrets handling position
+
+Credentials received locally must not be committed to the repository or copied into normal project notes.
+
+Once the production server is available, credentials should be placed in a root-owned secrets location on the server, for example:
+
+```text
+/root/telectro-secrets/
+  production.env
+  samba-backup.env
+  email.env
+  clm-cert-pull.env
+```
+
+Recommended permissions:
+
+```bash
+chmod 700 /root/telectro-secrets
+chmod 600 /root/telectro-secrets/*.env
+chown -R root:root /root/telectro-secrets
+```
+
+Production secrets expected in this area include:
+
+- SMTP username/password or app password;
+- IMAP username/password or app password;
+- Samba username/password;
+- CLM API key;
+- database passwords;
+- ERPNext admin/bootstrap secrets.
+
+#### Still blocked before production deployment
+
+The following remain deployment blockers:
+
+- production server access;
+- VPN/SSH proof;
+- server-side secure secret placement;
+- CLM endpoint/client contract;
+- certificate pull implementation;
+- HTTPS proof with production hostname;
+- Samba mount proof;
+- backup output proof;
+- SMTP/IMAP smoke proof;
+- incoming email ticket creation proof;
+- outbound email proof;
+- final Telectro/Boschendal UAT and sign-off.
+
+#### Work that can continue while blocked
+
+While waiting for the CLM client contract and production server access, continue with:
+
+- Customer portal final smoke pass;
+- Telectro feedback visibility checks;
+- production secret placement plan;
+- backup/Samba mount checklist;
+- email smoke-test checklist;
+- HTTPS/Traefik certificate pull script skeleton;
+- deployment runbook tightening.
+
+Updated production-readiness status:
+
+```text
+Samba credentials have been received locally.
+Email credentials have been received locally, with tickets@telectro.co.za assumed pending confirmation.
+Certificate transfer model is known at architecture level.
+CLM client contract is still missing.
+Production server-side secure secret placement remains pending until server access is available.
+Deployment remains blocked on infrastructure integration proof, not current application code.
+```
 
 ### Production secrets handover update — 2026-06-04
 
