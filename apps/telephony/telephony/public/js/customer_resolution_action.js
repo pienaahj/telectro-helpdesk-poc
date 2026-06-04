@@ -47,6 +47,23 @@ function add_customer_update_action(frm) {
             description:
               "This update will be visible to the Customer. Do not use internal notes here.",
           },
+          {
+            fieldname: "update_file",
+            fieldtype: "Link",
+            label: "Customer-visible update attachment",
+            options: "File",
+            reqd: 0,
+            description:
+              "Optional. Select a file already attached to this ticket if this Customer update needs a visible photo, sheet, or supporting document.",
+            get_query() {
+              return {
+                filters: {
+                  attached_to_doctype: "HD Ticket",
+                  attached_to_name: frm.doc.name,
+                },
+              };
+            },
+          },
         ],
         primary_action_label: "Send update",
         primary_action(values) {
@@ -66,6 +83,7 @@ function add_customer_update_action(frm) {
             args: {
               ticket_name: frm.doc.name,
               update_note: updateNote,
+              update_file: values.update_file || "",
             },
             freeze: true,
             freeze_message: "Sending Customer update…",
