@@ -549,6 +549,106 @@ This estimate assumes the required production information is complete and correc
 
 Missing or incorrect server access, certificate, DNS/firewall, email, secrets, or backup details will extend the timeline.
 
+### Production certificate delivery update — 2026-06-04
+
+Telectro confirmed that production certificate issuance and renewal are handled by a CLM server.
+
+The production certificate model is now understood at architecture level:
+
+```text
+CLM server
+→ handles certificate request, validation, issuance, and renewal
+→ exposes current certificate material through secure API access
+→ production server/client pulls certificate material with an API key
+→ local deployment installs the pulled files for Traefik
+```
+
+Available certificate package formats are expected to include:
+
+- public certificate + private key PEM;
+- public certificate + private key + full chain PEM;
+- public certificate + private key + full chain PFX.
+
+Preferred deployment format for Traefik remains:
+
+```text
+fullchain PEM + private key PEM
+```
+
+The following CLM client contract details are still required before production certificate automation can be implemented safely:
+
+- exact CLM endpoint URL;
+- HTTP method;
+- required headers;
+- API key header/name format;
+- working example `curl` command with dummy/redacted values;
+- exact response format:
+  - separate PEM files,
+  - ZIP/tar archive,
+  - JSON payload,
+  - PFX,
+  - or another format;
+- expected output file names;
+- whether the private key PEM is encrypted;
+- whether PFX requires a password if PFX is used;
+- whether the endpoint requires VPN access or IP allowlisting;
+- whether the CLM endpoint uses public TLS or an internal/private CA;
+- recommended pull frequency;
+- renewal timing expectations;
+- failure handling and monitoring expectations;
+- ownership split between Telectro/Robbie CLM renewal and ERPNext production pull/install.
+
+Current assumption:
+
+```text
+Telectro/Robbie owns CLM issuance and renewal.
+ERPNext production deployment owns the production-side pull/install script once the CLM client contract is supplied.
+```
+
+This means the certificate transfer item is no longer fully unknown, but it remains blocked for implementation until the CLM API contract is supplied.
+
+### Production secrets handover update — 2026-06-04
+
+Samba share credentials and email-system/email-account credentials have been received and saved locally.
+
+These credentials must not be committed to the repository or copied into normal project notes.
+
+Once the production server is available, credentials should be placed in a root-owned secrets location on the server, for example:
+
+```text
+/root/telectro-secrets/
+  production.env
+  samba-backup.env
+  email.env
+  clm-cert-pull.env
+```
+
+Recommended permissions:
+
+```bash
+chmod 700 /root/telectro-secrets
+chmod 600 /root/telectro-secrets/*.env
+chown -R root:root /root/telectro-secrets
+```
+
+Production secrets expected in this area include:
+
+- SMTP username/password or app password;
+- IMAP username/password or app password;
+- Samba username/password;
+- CLM API key;
+- database passwords;
+- ERPNext admin/bootstrap secrets.
+
+Updated production-readiness status:
+
+```text
+Samba and email credentials have been received locally.
+Certificate transfer model is known at architecture level.
+CLM client contract is still missing.
+Production server-side secure secret placement remains pending until server access is available.
+```
+
 ### Suggested one-week deployment shape
 
 ```text
@@ -580,4 +680,3 @@ Technical deployment sign-off is not the same as operational go-live.
 Technical deployment means the system is installed, reachable, and passes core smoke tests.
 
 Operational go-live means Telectro has accepted the workflow, email behaviour, Customer portal behaviour, support ownership, backup/restore expectations, and fallback/rollback plan.
-
