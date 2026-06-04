@@ -90,11 +90,16 @@ def resolve_customer_ticket(
 
 
 @frappe.whitelist()
-def add_customer_update(ticket_name: str, update_note: str):
+def add_customer_update(
+    ticket_name: str,
+    update_note: str,
+    update_file: str | None = None,
+):
     """Add a Customer-visible update without resolving the Customer ticket."""
 
     ticket_name = (ticket_name or "").strip()
     update_note = (update_note or "").strip()
+    update_file = (update_file or "").strip()
 
     if not ticket_name:
         frappe.throw(_("Ticket is required"))
@@ -113,15 +118,27 @@ def add_customer_update(ticket_name: str, update_note: str):
     if current_status in {"Closed", "Archived"}:
         frappe.throw(_("This ticket is closed or archived"))
 
+    update_file_doc = None
+    if update_file:
+        update_file_doc = _get_customer_visible_ticket_file(doc.name, update_file)
+
     comm_count_before = _count_ticket_communications(doc.name)
     comment_count_before = _count_ticket_comments(doc.name)
 
     comm = _create_customer_visible_update_communication(doc, update_note)
 
+    update_file_link = None
+    if update_file_doc:
+        update_file_link = _attach_file_to_customer_communication(
+            communication_name=comm.name,
+            file_doc=update_file_doc,
+        )
+
     audit_comment = _add_internal_customer_update_audit_comment(
         doc.name,
         update_note,
         comm.name,
+        update_file_link.name if update_file_link else None,
     )
 
     frappe.db.commit()
@@ -136,10 +153,11 @@ def add_customer_update(ticket_name: str, update_note: str):
         "comments_before": comment_count_before,
         "comments_after": _count_ticket_comments(doc.name),
         "message": _("Customer update added"),
+        "update_file": update_file_link.name if update_file_link else None,
     }
     
     
-def _attach_completion_file_to_customer_communication(
+def _attach_file_to_customer_communication(
     communication_name: str,
     file_doc,
 ):
@@ -159,24 +177,34 @@ def _attach_completion_file_to_customer_communication(
     return linked_file
 
 
-def _get_completion_file(ticket_name: str, completion_file: str):
-    completion_file = (completion_file or "").strip()
-    if not completion_file:
-        frappe.throw(_("Completion evidence file is required"))
+def _attach_completion_file_to_customer_communication(
+    communication_name: str,
+    file_doc,
+):
+    return _attach_file_to_customer_communication(
+        communication_name=communication_name,
+        file_doc=file_doc,
+    )
+
+
+def _get_customer_visible_ticket_file(ticket_name: str, file_ref: str):
+    file_ref = (file_ref or "").strip()
+    if not file_ref:
+        frappe.throw(_("Customer-visible attachment file is required"))
 
     file_name = None
 
-    if frappe.db.exists("File", completion_file):
-        file_name = completion_file
+    if frappe.db.exists("File", file_ref):
+        file_name = file_ref
 
     if not file_name:
-        file_name = frappe.db.get_value("File", {"file_url": completion_file}, "name")
+        file_name = frappe.db.get_value("File", {"file_url": file_ref}, "name")
 
     if not file_name:
         file_name = frappe.db.get_value(
             "File",
             {
-                "file_name": completion_file,
+                "file_name": file_ref,
                 "attached_to_doctype": "HD Ticket",
                 "attached_to_name": ticket_name,
             },
@@ -184,7 +212,7 @@ def _get_completion_file(ticket_name: str, completion_file: str):
         )
 
     if not file_name:
-        frappe.throw(_("Completion evidence file was not found"))
+        frappe.throw(_("Customer-visible attachment file was not found"))
 
     file_doc = frappe.get_doc("File", file_name)
 
@@ -192,12 +220,16 @@ def _get_completion_file(ticket_name: str, completion_file: str):
     attached_to_name = file_doc.get("attached_to_name")
 
     if attached_to_doctype and attached_to_doctype != "HD Ticket":
-        frappe.throw(_("Completion evidence must be attached to this ticket first"))
+        frappe.throw(_("Customer-visible attachment must be attached to this ticket first"))
 
     if attached_to_doctype == "HD Ticket" and str(attached_to_name) != str(ticket_name):
-        frappe.throw(_("Completion evidence must belong to the same ticket"))
+        frappe.throw(_("Customer-visible attachment must belong to the same ticket"))
 
     return file_doc
+
+
+def _get_completion_file(ticket_name: str, completion_file: str):
+    return _get_customer_visible_ticket_file(ticket_name, completion_file)
 
 
 
@@ -256,6 +288,7 @@ def _add_internal_customer_update_audit_comment(
     ticket_name: str,
     update_note: str,
     communication_name: str | None = None,
+    update_file_name: str | None = None,
 ):
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
@@ -267,6 +300,12 @@ def _add_internal_customer_update_audit_comment(
         message = _("{0} | Communication: {1}").format(
             message,
             communication_name,
+        )
+
+    if update_file_name:
+        message = _("{0} | Customer-visible attachment shared: {1}").format(
+            message,
+            update_file_name,
         )
 
     return doc.add_comment("Comment", message)
