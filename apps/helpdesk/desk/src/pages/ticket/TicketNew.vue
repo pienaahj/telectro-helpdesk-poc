@@ -634,7 +634,9 @@ function sanitize(html: string) {
 const breadcrumbs = computed(() => {
   const items = [
     {
-      label: __("Tickets"),
+      label: isCustomerPortal.value
+        ? __("Log a Support Request")
+        : __("New Ticket"),
       route: {
         name: isCustomerPortal.value ? "TicketsCustomer" : "TicketsAgent",
       },
@@ -650,7 +652,9 @@ const breadcrumbs = computed(() => {
 });
 
 usePageMeta(() => ({
-  title: __("New Ticket"),
+  title: isCustomerPortal.value
+    ? __("Log a Support Request")
+    : __("New Ticket"),
 }));
 
 onMounted(() => {
