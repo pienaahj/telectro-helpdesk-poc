@@ -27,23 +27,30 @@ export function useView(dt: string = null) {
   const auth = useAuthStore();
   const router = useRouter();
   function callGetViews() {
-    if (
-      (views.filters?.dt === dt && views.data?.length > 0) ||
-      views.list?.promise
-      // views.isCustomerPortal === isCustomerPortal.value
-    ) {
+    const currentPortalMode = isCustomerPortal.value;
+
+    const hasViewsForCurrentContext =
+      views.filters?.dt === dt &&
+      views.data?.length > 0 &&
+      views.isCustomerPortal === currentPortalMode;
+
+    if (hasViewsForCurrentContext || views.list?.promise) {
       return;
     }
+
     const filters = {
-      is_customer_portal: isCustomerPortal.value,
+      is_customer_portal: currentPortalMode,
     };
+
     if (dt) {
       filters["dt"] = dt;
     }
-    if (isCustomerPortal.value) {
+
+    if (currentPortalMode) {
       filters["user"] = ["in", [auth.userId, "", null]];
     }
-    views.isCustomerPortal = isCustomerPortal.value;
+
+    views.isCustomerPortal = currentPortalMode;
     views.update({ filters });
     views.fetch();
   }
@@ -103,21 +110,31 @@ export function useView(dt: string = null) {
   );
 
   const defaultView = computed(() => {
-    const userDefault = views.data?.find(
-      (v: View) => v.is_default && v.user === auth.userId && v.dt === dt,
-    );
+    if (isCustomerPortal.value) {
+      const customerUserDefault = views.data?.find(
+        (v: View) =>
+          v.is_default &&
+          v.user === auth.userId &&
+          v.is_customer_portal &&
+          v.dt === dt,
+      );
 
-    if (userDefault) {
-      return userDefault;
-    }
+      if (customerUserDefault) {
+        return customerUserDefault;
+      }
 
-    if (!isCustomerPortal.value) {
-      return;
+      return views.data?.find(
+        (v: View) =>
+          v.is_default && !v.user && v.is_customer_portal && v.dt === dt,
+      );
     }
 
     return views.data?.find(
       (v: View) =>
-        v.is_default && !v.user && v.is_customer_portal && v.dt === dt,
+        v.is_default &&
+        v.user === auth.userId &&
+        !v.is_customer_portal &&
+        v.dt === dt,
     );
   });
 
