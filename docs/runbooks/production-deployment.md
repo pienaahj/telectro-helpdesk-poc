@@ -273,6 +273,7 @@ Still required before deployment:
 - Confirm DNS points erp.telectro.co.za to the production server.
 - Confirm whether erp.telectro.co.za is reachable only inside VPN or from a wider network.
 - Confirm the HTTPS certificate explicitly covers erp.telectro.co.za.
+- Confirm the exact CLM client contract if certificate delivery or renewal is handled through CLM.
 ```
 
 Why this matters:
@@ -331,6 +332,7 @@ Expected browser access:
 ```text
 80   HTTP, mainly for redirect/certificate validation/renewal
 443  HTTPS, normal browser access
+
 ```
 
 Administrative access:
@@ -624,6 +626,8 @@ Prove:
 - certificate matches the chosen domain
 - browser access is clean
 - HTTP redirects to HTTPS if required
+- certificate source is known: manually supplied files or CLM retrieval
+- CLM retrieval proof is complete if CLM is used
 
 ### Phase 4: Email proof
 
@@ -2708,6 +2712,72 @@ Deployment responsibility:
 - confirm renewal works
 
 This may be considered later, but should not be assumed unless Telectro confirms this is preferred.
+
+### CLM certificate delivery
+
+Telectro has indicated that certificate delivery or renewal may involve CLM.
+
+This is not yet implementation-ready.
+
+Before production deployment, Telectro / Robbie must provide the exact CLM client contract.
+
+Required CLM details:
+
+```text
+- CLM base URL / endpoint
+- HTTP method
+- authentication method
+- API key / token / client credential format
+- required headers
+- request body, if any
+- example curl command using placeholder values
+- expected success response format
+- expected failure response format
+- certificate file naming
+- private key delivery method
+- chain / intermediate / fullchain delivery method
+- renewal timing / validity period
+- whether renewal overwrites the same files or creates new files
+- whether Traefik must be reloaded/restarted after renewal
+- owner responsible for CLM failures
+- escalation contact during certificate expiry or renewal failure
+```
+
+Do not implement automated CLM retrieval until these details are confirmed.
+
+The first production deployment may still use manually supplied certificate files if that is the safer and clearer deployment path.
+
+The private key remains sensitive regardless of whether it is supplied manually or retrieved through CLM.
+
+The private key must not be:
+
+```text
+- committed to Git
+- pasted into documentation
+- shown in screenshots
+- printed in deployment logs
+- copied into PR descriptions
+- stored in rendered Docker Compose output
+```
+
+Minimum CLM proof before operational sign-off:
+
+```text
+- CLM authentication succeeds from the production server or approved staging host
+- certificate public file is retrieved
+- private key is retrieved or securely placed
+- chain/fullchain file is retrieved or confirmed unnecessary
+- file ownership and permissions are restricted
+- reverse proxy can load the certificate
+- browser shows HTTPS without certificate warning
+- certificate hostname matches the production hostname
+- renewal path is understood
+- renewal owner is confirmed
+```
+
+If CLM is used only for renewal and not first installation, this must be documented explicitly.
+
+If manual certificate placement is used for first deployment, CLM automation can remain a follow-up task after production is stable.
 
 ### Certificate handling during backup and restore
 
