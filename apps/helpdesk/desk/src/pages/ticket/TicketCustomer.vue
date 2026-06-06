@@ -22,6 +22,33 @@
         </Button>
       </template>
     </LayoutHeader>
+    <div
+      class="mx-6 mt-4 rounded-xl border border-stone-200 bg-[#f8f5ef] px-5 py-4 shadow-sm md:mx-10"
+    >
+      <div
+        class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+      >
+        <div class="flex items-center gap-4">
+          <img
+            :src="boschendalLogoUrl"
+            alt="Boschendal"
+            class="h-10 w-auto shrink-0"
+          />
+          <div>
+            <div class="text-sm uppercase tracking-[0.18em] text-stone-500">
+              {{ __("Boschendal Service Desk") }}
+            </div>
+            <div class="text-lg font-semibold text-stone-950">
+              {{ __("Support request") }} #{{ ticket.data.name }}
+            </div>
+          </div>
+        </div>
+
+        <div class="text-sm text-stone-600">
+          {{ __("Managed by Telectro") }}
+        </div>
+      </div>
+    </div>
     <div class="flex overflow-hidden h-full w-full">
       <!-- Main Ticket Comm -->
       <section class="flex flex-col flex-1 w-full md:max-w-[calc(100%-382px)]">
@@ -30,7 +57,7 @@
 
         <div
           v-if="latestCustomerVisibleUpdate"
-          class="mx-6 mt-4 rounded border border-gray-200 bg-gray-50 p-4 md:mx-10"
+          class="mx-6 mt-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
             {{ __("Latest update") }}
@@ -192,6 +219,8 @@ const isExpanded = ref(false);
 const { isMobileView } = useScreenSize();
 const { $dialog } = globalStore();
 
+const boschendalLogoUrl = "/assets/telephony/images/boschendal-logo.svg";
+
 const send = createResource({
   url: "run_doc_method",
   debounce: 300,
@@ -299,7 +328,9 @@ const setValue = createResource({
 });
 
 const breadcrumbs = computed(() => {
-  let items = [{ label: __("Tickets"), route: { name: "TicketsCustomer" } }];
+  let items = [
+    { label: __("Support Requests"), route: { name: "TicketsCustomer" } },
+  ];
   items.push({
     label: ticket.data?.subject,
     route: { name: "TicketCustomer" },

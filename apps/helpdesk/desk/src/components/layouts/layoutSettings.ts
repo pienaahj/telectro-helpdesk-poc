@@ -41,7 +41,7 @@ export const agentPortalSidebarOptions = [
 
 export const customerPortalSidebarOptions = [
   {
-    label: __("Tickets"),
+    label: __("Support Requests"),
     icon: LucideTicket,
     to: "TicketsCustomer",
   },
