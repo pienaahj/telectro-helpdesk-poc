@@ -549,6 +549,44 @@ These should be tested before operational go-live.
 
 ## Recommended rollout phases
 
+## Production secret placement checklist
+
+Production secrets must be placed on the production server only.
+
+Do not commit, paste, or document actual values for:
+
+- mailbox password/app-password
+- Samba username/password
+- certificate private key
+- CLM API key/token/client secret
+- database root password
+- ERPNext administrator password
+- rendered `docker compose config` output when real secrets are loaded
+
+Before deployment, confirm that the following are present on the production server without printing their contents:
+
+- production environment file
+- Docker secret files
+- SMTP/IMAP credential material
+- Samba credential material
+- certificate public file
+- certificate private key
+- certificate chain/fullchain file, if supplied
+- CLM credential/config material, if CLM retrieval is used
+- backup destination or mounted backup path
+
+Suggested safe checks:
+
+```bash
+ls -la /opt/telectro-helpdesk
+find /opt/telectro-helpdesk -maxdepth 3 -type f | sort
+test -f /opt/telectro-helpdesk/.env.production
+test -d /opt/telectro-helpdesk/secrets
+test -d /opt/telectro-helpdesk/certs
+```
+
+Do not use `cat`, `grep`, screenshots, or copied terminal output on secret files when recording deployment evidence.
+
 ### Phase 1: Production requirements confirmed
 
 Confirm:
@@ -597,8 +635,21 @@ Check:
 - test email is delivered to a real inbox
 - sender address is acceptable
 - messages are not blocked or rejected
+- generated email links use the production HTTPS hostname
 
-Incoming helpdesk mailbox processing should only be enabled after outgoing email is stable.
+Then prove controlled incoming IMAP ticket creation.
+
+Check:
+
+- system can authenticate to IMAP
+- mailbox connection works on port 993
+- a controlled test email creates exactly one expected Helpdesk ticket
+- the created ticket has the expected subject, sender/contact, description, and request source
+- ticket notifications do not loop or spam
+- unrelated/noisy mailbox messages are understood before operational reliance
+- failed incoming mail processing has an identified monitor/owner
+
+Incoming email is day-one scope, but operational reliance on email-created tickets should begin only after the controlled IMAP smoke test passes.
 
 ### Phase 5: User smoke testing
 
@@ -629,7 +680,7 @@ The first production deployment should not try to solve everything at once.
 The following can come later:
 
 - fully automated GitHub deployment pipeline
-- incoming helpdesk mailbox automation
+- advanced incoming email handling beyond controlled day-one IMAP ticket creation
 - advanced notification tuning
 - browser/mobile push notifications
 - multi-server clustering
