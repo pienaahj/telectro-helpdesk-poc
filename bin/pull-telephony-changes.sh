@@ -179,6 +179,10 @@ cp_dir_from_container() {
 
 # Standard DocType files
 mirror_dir_from_container "ftelephony/doctype" "ftelephony/doctype"
+# --------------------------------------------------------------------
+cp_from_container \
+  "ftelephony/doctype/telectro_service_coverage/__init__.py" \
+  "ftelephony/doctype/telectro_service_coverage/__init__.py"
 
 cp_from_container \
   "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.py" \
@@ -188,10 +192,7 @@ cp_from_container \
   "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json" \
   "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json"
   
-cp_from_container \
-  "ftelephony/doctype/telectro_service_coverage/__init__.py" \
-  "ftelephony/doctype/telectro_service_coverage/__init__.py"
-
+# --------------------------------------------------------------------
 # Standard report files
 mirror_dir_from_container "ftelephony/report" "ftelephony/report"
 
@@ -199,6 +200,10 @@ mirror_dir_from_container "ftelephony/report" "ftelephony/report"
 # Report files are also pulled explicitly because mirror_dir_from_container
 # alone did not reliably propagate in-place updates for already-existing host files.
 # Keep these explicit pulls unless/update propagation is re-proved.
+cp_from_container \
+  "ftelephony/report/active_tickets_by_technician/__init__.py" \
+  "ftelephony/report/active_tickets_by_technician/__init__.py"
+
 cp_from_container \
   "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py" \
   "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py"
@@ -212,6 +217,10 @@ cp_from_container \
   "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js"
 # --------------------------------------------------------------------
 cp_from_container \
+  "ftelephony/report/aging_and_at_risk_tickets/__init__.py" \
+  "ftelephony/report/aging_and_at_risk_tickets/__init__.py"
+
+cp_from_container \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py" \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py"
 
@@ -222,6 +231,22 @@ cp_from_container \
 cp_from_container \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js" \
   "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js"
+# --------------------------------------------------------------------
+cp_optional_from_container \
+  "ftelephony/report/customer_ticket_oversight/__init__.py" \
+  "ftelephony/report/customer_ticket_oversight/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.js" \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.js"
+
+cp_from_container \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.json" \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.json"
+
+cp_from_container \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py" \
+  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
   "ftelephony/report/coordinator_uplift_history/__init__.py" \
@@ -571,6 +596,7 @@ cp_from_container \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
   "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
 # --------------------------------------------------------------------
+
 cp_optional_from_container \
   "ftelephony/report/unclaimed_over_1_day/__init__.py" \
   "ftelephony/report/unclaimed_over_1_day/__init__.py"
