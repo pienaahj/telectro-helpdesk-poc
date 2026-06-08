@@ -141,6 +141,93 @@ def share_ticket_context(ticket_name, collaborator, note):
         "notification": notification_name,
     }
 
+@frappe.whitelist()
+def internal_ticket_customer_request_context(ticket_name):
+    ticket_name = (ticket_name or "").strip()
+
+    if not ticket_name:
+        return {"ok": 0, "reason": "Ticket is required."}
+
+    if not frappe.db.exists("HD Ticket", ticket_name):
+        return {"ok": 0, "reason": f"Ticket {ticket_name} was not found."}
+
+    ticket = frappe.get_doc("HD Ticket", ticket_name)
+    _require_internal_ticket_location_context_access(ticket)
+
+    if not _is_customer_originated_ticket(ticket):
+        return {
+            "ok": 1,
+            "ticket": ticket.name,
+            "has_customer_request": False,
+            "reason": "Ticket is not Customer-originated.",
+        }
+
+    request = _get_initial_customer_request_communication(ticket.name)
+
+    if not request:
+        return {
+            "ok": 1,
+            "ticket": ticket.name,
+            "has_customer_request": False,
+            "reason": "No Customer request communication found.",
+        }
+
+    communication_date = request.get("communication_date")
+
+    return {
+        "ok": 1,
+        "ticket": ticket.name,
+        "has_customer_request": True,
+        "sender": request.get("sender") or "",
+        "sender_full_name": request.get("sender_full_name") or request.get("sender") or "",
+        "sent_or_received": request.get("sent_or_received") or "",
+        "communication_medium": request.get("communication_medium") or "",
+        "communication_date": communication_date,
+        "communication_date_label": pretty_date(communication_date) if communication_date else "",
+        "subject": request.get("subject") or ticket.subject or "",
+        "content": request.get("content") or "",
+        "content_text": strip_html(request.get("content") or "").strip(),
+    }
+
+
+def _is_customer_originated_ticket(ticket):
+    if cint(ticket.get("via_customer_portal")):
+        return True
+
+    if (ticket.get("custom_request_source") or "").strip() == "Customer":
+        return True
+
+    if (ticket.get("customer") or "").strip() and (ticket.get("raised_by") or "").strip():
+        return True
+
+    return False
+
+
+def _get_initial_customer_request_communication(ticket_name):
+    rows = frappe.get_all(
+        "Communication",
+        filters={
+            "reference_doctype": "HD Ticket",
+            "reference_name": ticket_name,
+            "sent_or_received": "Received",
+        },
+        fields=[
+            "name",
+            "sender",
+            "sender_full_name",
+            "sent_or_received",
+            "communication_medium",
+            "communication_date",
+            "creation",
+            "subject",
+            "content",
+        ],
+        order_by="communication_date asc, creation asc",
+        limit_page_length=1,
+    )
+
+    return rows[0] if rows else None
+
 def _get_context_display_value(doctype, name, display_fields):
     name = (name or "").strip()
 
