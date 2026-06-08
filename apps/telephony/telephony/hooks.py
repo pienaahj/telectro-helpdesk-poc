@@ -138,6 +138,7 @@ fixtures = [
                 "My Team Load",
                 "New Partner Tickets",
                 "My Team Tickets",
+                "Customer Ticket Oversight",
             ]],
         ],
     },

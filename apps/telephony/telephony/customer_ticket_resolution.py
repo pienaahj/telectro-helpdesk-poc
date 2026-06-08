@@ -48,6 +48,19 @@ def resolve_customer_ticket(
     if completion_file:
         completion_file_doc = _get_completion_file(doc.name, completion_file)
 
+    # Save native HD Ticket resolution fields before creating any Customer-visible
+    # resolution communication. This keeps the native Helpdesk/SLA lifecycle
+    # truthful and avoids sending a resolved message if ticket resolution fails.
+    doc.reload()
+
+    current_status = (doc.get("status") or "").strip()
+    if current_status in {"Resolved", "Closed"}:
+        frappe.throw(_("This ticket is already resolved or closed"))
+
+    doc.status = "Resolved"
+    doc.resolution_details = resolution_note
+    doc.save(ignore_permissions=True)
+
     comm = _create_customer_visible_resolution_communication(doc, resolution_note)
 
     completion_file_link = None
@@ -56,14 +69,6 @@ def resolve_customer_ticket(
             communication_name=comm.name,
             file_doc=completion_file_doc,
         )
-    
-    frappe.db.set_value(
-        "HD Ticket",
-        doc.name,
-        "status",
-        "Resolved",
-        update_modified=True,
-    )
 
     audit_comment = _add_internal_resolution_audit_comment(
         doc.name,
