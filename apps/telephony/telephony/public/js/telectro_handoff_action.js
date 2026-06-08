@@ -239,9 +239,9 @@ function add_share_ticket_context_action(frm) {
   });
 }
 
-function open_share_ticket_context_dialog(frm) {
-  const currentOwner =
-    get_current_accountable_owner(frm) || "Pool / Unassigned";
+async function open_share_ticket_context_dialog(frm) {
+  const assignmentState = await get_current_assignment_state(frm.doc.name);
+  const currentOwner = assignmentState.current_owner || "Pool / Unassigned";
 
   const dialog = new frappe.ui.Dialog({
     title: "Share Ticket Context",
