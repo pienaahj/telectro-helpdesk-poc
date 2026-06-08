@@ -6,6 +6,7 @@ frappe.ui.form.on("HD Ticket", {
       hide_split_and_merge_section(frm);
       add_controlled_handoff_action(frm);
       add_share_ticket_context_action(frm);
+      render_internal_customer_request_context(frm);
       render_internal_fault_location_context(frm);
     }, 300);
   },
@@ -442,6 +443,152 @@ async function render_internal_fault_location_context(frm) {
       message: "Fault location context could not be loaded.",
       indicator: "orange",
     });
+  }
+}
+
+async function render_internal_customer_request_context(frm) {
+  const wrapperId = "telectro-internal-customer-request-context";
+
+  $(`#${wrapperId}`).remove();
+
+  if (!frm.doc || !frm.doc.name || frm.doc.__islocal) {
+    return;
+  }
+
+  try {
+    const response = await frappe.call({
+      method:
+        "telephony.api.workspace.internal_ticket_customer_request_context",
+      args: {
+        ticket_name: frm.doc.name,
+      },
+    });
+
+    const data = response.message || {};
+
+    if (!data.ok || !data.has_customer_request) {
+      return;
+    }
+
+    const sender = frappe.utils.escape_html(
+      data.sender_full_name || data.sender || "Customer",
+    );
+    const medium = frappe.utils.escape_html(data.communication_medium || "");
+    const subject = frappe.utils.escape_html(
+      data.subject || frm.doc.subject || "",
+    );
+    const dateLabel = frappe.utils.escape_html(
+      data.communication_date_label || "",
+    );
+
+    const content =
+      data.content ||
+      `<p>${frappe.utils.escape_html(data.content_text || "")}</p>`;
+
+    const html = `
+      <div
+        id="${wrapperId}"
+        class="telectro-internal-context-card"
+        style="
+          margin: 12px 0;
+          padding: 14px 16px;
+          border: 1px solid var(--border-color);
+          border-radius: 10px;
+          background: var(--card-bg);
+        "
+      >
+        <div
+          class="telectro-internal-context-card__header"
+          style="
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+          "
+        >
+          <div style="min-width: 0;">
+            <div
+              class="telectro-internal-context-card__eyebrow"
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                margin-bottom: 4px;
+              "
+            >
+              Customer Request
+            </div>
+
+            <div
+              class="telectro-internal-context-card__title"
+              style="
+                font-weight: 600;
+                color: var(--text-color);
+                overflow-wrap: anywhere;
+              "
+            >
+              ${subject}
+            </div>
+          </div>
+
+          <div
+            class="telectro-internal-context-card__meta"
+            style="
+              flex: 0 0 auto;
+              color: var(--text-muted);
+              font-size: 12px;
+              white-space: nowrap;
+            "
+          >
+            ${dateLabel}
+          </div>
+        </div>
+
+        <div
+          class="telectro-internal-context-card__subtle"
+          style="
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 13px;
+          "
+        >
+          ${sender}${medium ? ` · ${medium}` : ""}
+        </div>
+
+        <div
+          class="telectro-internal-context-card__body"
+          style="margin-top: 10px;"
+        >
+          <div
+            class="telectro-internal-context-card__communication"
+            style="
+              max-height: 180px;
+              overflow-y: auto;
+              padding: 10px 12px;
+              border: 1px solid var(--border-color);
+              border-radius: 8px;
+              background: var(--fg-color);
+              overflow-wrap: anywhere;
+            "
+          >
+            ${content}
+          </div>
+        </div>
+      </div>
+    `;
+
+    const dashboard = frm.$wrapper.find(".form-dashboard").first();
+    const target = dashboard.length
+      ? dashboard
+      : frm.$wrapper.find(".form-layout").first();
+
+    if (target.length) {
+      target.after(html);
+    }
+  } catch (error) {
+    console.warn("Could not render internal customer request context", error);
   }
 }
 
