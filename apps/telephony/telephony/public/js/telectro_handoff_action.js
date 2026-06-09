@@ -470,112 +470,32 @@ async function render_internal_customer_request_context(frm) {
       return;
     }
 
-    const sender = frappe.utils.escape_html(
-      data.sender_full_name || data.sender || "Customer",
-    );
-    const medium = frappe.utils.escape_html(data.communication_medium || "");
-    const subject = frappe.utils.escape_html(
-      data.subject || frm.doc.subject || "",
-    );
-    const dateLabel = frappe.utils.escape_html(
-      data.communication_date_label || "",
-    );
+    const requestCard = build_internal_customer_communication_card({
+      eyebrow: "Customer Request",
+      communication: {
+        sender: data.sender,
+        sender_full_name: data.sender_full_name,
+        communication_medium: data.communication_medium,
+        communication_date_label: data.communication_date_label,
+        subject: data.subject || frm.doc.subject || "",
+        content: data.content,
+        content_text: data.content_text,
+      },
+    });
 
-    const content =
-      data.content ||
-      `<p>${frappe.utils.escape_html(data.content_text || "")}</p>`;
+    let latestUpdateCard = "";
+
+    if (data.has_latest_customer_update && data.latest_customer_update) {
+      latestUpdateCard = build_internal_customer_communication_card({
+        eyebrow: "Latest Customer Update",
+        communication: data.latest_customer_update,
+      });
+    }
 
     const html = `
-      <div
-        id="${wrapperId}"
-        class="telectro-internal-context-card"
-        style="
-          margin: 12px 0;
-          padding: 14px 16px;
-          border: 1px solid var(--border-color);
-          border-radius: 10px;
-          background: var(--card-bg);
-        "
-      >
-        <div
-          class="telectro-internal-context-card__header"
-          style="
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            align-items: flex-start;
-          "
-        >
-          <div style="min-width: 0;">
-            <div
-              class="telectro-internal-context-card__eyebrow"
-              style="
-                font-size: 12px;
-                font-weight: 600;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.04em;
-                margin-bottom: 4px;
-              "
-            >
-              Customer Request
-            </div>
-
-            <div
-              class="telectro-internal-context-card__title"
-              style="
-                font-weight: 600;
-                color: var(--text-color);
-                overflow-wrap: anywhere;
-              "
-            >
-              ${subject}
-            </div>
-          </div>
-
-          <div
-            class="telectro-internal-context-card__meta"
-            style="
-              flex: 0 0 auto;
-              color: var(--text-muted);
-              font-size: 12px;
-              white-space: nowrap;
-            "
-          >
-            ${dateLabel}
-          </div>
-        </div>
-
-        <div
-          class="telectro-internal-context-card__subtle"
-          style="
-            margin-top: 6px;
-            color: var(--text-muted);
-            font-size: 13px;
-          "
-        >
-          ${sender}${medium ? ` · ${medium}` : ""}
-        </div>
-
-        <div
-          class="telectro-internal-context-card__body"
-          style="margin-top: 10px;"
-        >
-          <div
-            class="telectro-internal-context-card__communication"
-            style="
-              max-height: 180px;
-              overflow-y: auto;
-              padding: 10px 12px;
-              border: 1px solid var(--border-color);
-              border-radius: 8px;
-              background: var(--fg-color);
-              overflow-wrap: anywhere;
-            "
-          >
-            ${content}
-          </div>
-        </div>
+      <div id="${wrapperId}" class="telectro-internal-customer-context">
+        ${requestCard}
+        ${latestUpdateCard}
       </div>
     `;
 
@@ -590,6 +510,120 @@ async function render_internal_customer_request_context(frm) {
   } catch (error) {
     console.warn("Could not render internal customer request context", error);
   }
+}
+
+function build_internal_customer_communication_card({
+  eyebrow,
+  communication,
+}) {
+  const data = communication || {};
+
+  const safeEyebrow = frappe.utils.escape_html(eyebrow || "");
+  const sender = frappe.utils.escape_html(
+    data.sender_full_name || data.sender || "Customer",
+  );
+  const medium = frappe.utils.escape_html(data.communication_medium || "");
+  const subject = frappe.utils.escape_html(data.subject || "");
+  const dateLabel = frappe.utils.escape_html(
+    data.communication_date_label || "",
+  );
+
+  const content =
+    data.content ||
+    `<p>${frappe.utils.escape_html(data.content_text || "")}</p>`;
+
+  return `
+    <div
+      class="telectro-internal-context-card"
+      style="
+        margin: 12px 0;
+        padding: 14px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--card-bg);
+      "
+    >
+      <div
+        class="telectro-internal-context-card__header"
+        style="
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+        "
+      >
+        <div style="min-width: 0;">
+          <div
+            class="telectro-internal-context-card__eyebrow"
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              margin-bottom: 4px;
+            "
+          >
+            ${safeEyebrow}
+          </div>
+
+          <div
+            class="telectro-internal-context-card__title"
+            style="
+              font-weight: 600;
+              color: var(--text-color);
+              overflow-wrap: anywhere;
+            "
+          >
+            ${subject}
+          </div>
+        </div>
+
+        <div
+          class="telectro-internal-context-card__meta"
+          style="
+            flex: 0 0 auto;
+            color: var(--text-muted);
+            font-size: 12px;
+            white-space: nowrap;
+          "
+        >
+          ${dateLabel}
+        </div>
+      </div>
+
+      <div
+        class="telectro-internal-context-card__subtle"
+        style="
+          margin-top: 6px;
+          color: var(--text-muted);
+          font-size: 13px;
+        "
+      >
+        ${sender}${medium ? ` · ${medium}` : ""}
+      </div>
+
+      <div
+        class="telectro-internal-context-card__body"
+        style="margin-top: 10px;"
+      >
+        <div
+          class="telectro-internal-context-card__communication"
+          style="
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--fg-color);
+            overflow-wrap: anywhere;
+          "
+        >
+          ${content}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function should_show_internal_fault_location_context(frm) {

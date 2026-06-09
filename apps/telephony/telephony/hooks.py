@@ -259,7 +259,7 @@ for p in [
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
     "/assets/telephony/js/partner_route_guard.js?v=2026-05-15-1",
-    "/assets/telephony/js/telectro_handoff_action.js?v=2026-06-08-4",
+    "/assets/telephony/js/telectro_handoff_action.js?v=2026-06-09-1",
      "/assets/telephony/js/customer_resolution_action.js?v=2026-06-04-1",
     "/assets/telephony/js/telectro_location_map_zoom.js?v=2026-05-29-1",
 ]:
