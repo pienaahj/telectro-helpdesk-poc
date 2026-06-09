@@ -249,6 +249,22 @@ cp_from_container \
   "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/customer_resolution_oversight/__init__.py" \
+  "ftelephony/report/customer_resolution_oversight/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.js" \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.js"
+
+cp_from_container \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.json" \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.json"
+
+cp_from_container \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.py" \
+  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/coordinator_uplift_history/__init__.py" \
   "ftelephony/report/coordinator_uplift_history/__init__.py"
 
