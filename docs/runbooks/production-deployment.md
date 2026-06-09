@@ -6,6 +6,102 @@ This runbook captures the requirements, deployment model, backup/rollback expect
 
 The first production deployment should be treated as a controlled technical deployment, not an instant go-live.
 
+## 2026-06-09 production shape update
+
+This runbook was originally written around an application-owned production edge, where the ERPNext stack would expose Traefik on ports `80` and `443` and handle HTTPS/certificate wiring inside the application deployment.
+
+Telectro’s latest production feedback changes that boundary.
+
+The current expected production shape is:
+
+```text
+Customer / Telectro user
+  ↓
+public DNS / hostname
+  ↓
+Telectro firewall / reverse proxy
+  ↓
+Telectro-managed HTTPS termination
+  ↓
+internal application web service
+  ↓
+ERPNext / Frappe / Helpdesk containers
+  ↓
+MariaDB / Redis / workers / scheduler
+```
+
+### Current production responsibility boundary
+
+Telectro / infrastructure owner provides:
+
+- production VM;
+- final host operating system decision;
+- VPN / SSH access path;
+- firewall access;
+- existing external reverse proxy / firewall path;
+- public HTTPS termination;
+- certificate delivery, renewal, CLM handling, and monitoring;
+- public DNS / hostname routing;
+- backup Samba mount details and credentials;
+- production mailbox credentials and network access.
+
+Application team provides:
+
+- Docker Compose application stack;
+- ERPNext / Helpdesk / Telephony application configuration;
+- production environment file template and required variables;
+- internal application web service exposed to Telectro’s reverse proxy;
+- application smoke-test checklist;
+- email smoke-test procedure;
+- backup execution and restore proof procedure once storage is available.
+
+### Reverse proxy decision
+
+Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
+
+Telectro already has an existing reverse proxy / firewall layer and will present the application externally.
+
+The production application stack should therefore expose its standard internal web service to Telectro’s reverse proxy.
+
+The public HTTPS certificate, private key, CLM retrieval, certificate renewal, reverse proxy reload, and certificate monitoring are owned by Telectro / Robbie.
+
+The application deployment should not implement app-side CLM certificate pull/install automation unless this infrastructure decision changes.
+
+### Host operating system decision
+
+Application-team preferred and proven path:
+
+```text
+Ubuntu LTS host
+Docker Engine
+Docker Compose
+Production deployment runbook and proof commands aligned to Ubuntu
+```
+
+Telectro has indicated a preference for AlmaLinux.
+
+AlmaLinux is technically possible as a Docker host, but it is not the application team’s currently proven path. If AlmaLinux is supplied, Telectro owns the host OS layer and must provide a Docker-ready VM with Docker Engine, Docker Compose, firewall/SELinux policy, storage mounts, VPN/SSH access, and reverse proxy access already prepared.
+
+Once host readiness is proven, the application team can deploy and smoke-test the Docker Compose application stack on top of it.
+
+### Deployment readiness position
+
+From an application/product perspective, there is no currently known feature gap blocking controlled production deployment proof.
+
+Remaining deployment blockers are infrastructure and operational proof items:
+
+- final VM available;
+- OS confirmed;
+- Docker readiness confirmed;
+- VPN / SSH access confirmed;
+- reverse proxy internal target confirmed;
+- public hostname confirmed;
+- SMTP / IMAP access confirmed;
+- backup mount confirmed;
+- production secrets placed;
+- backup and restore proof completed;
+- deployment smoke test completed.
+
 ## Production Readiness Questions
 
 The questions below are intended to be answerable by non-DevOps stakeholders.
@@ -44,7 +140,7 @@ The following areas have working pilot implementation and local proof:
 - My Team Load report
 - My Team Tickets report based on Service Coverage
 - Partner Current Work and Partner workflow reports
-- Production Docker Compose skeleton direction with Traefik entry through ports 80/443
+- Production Docker Compose skeleton direction with local/production separation proof; final reverse proxy boundary now depends on Telectro’s external reverse proxy target
 - Production smoke-test checklist
 - Backup/restore expectations
 - HTTPS/certificate handling guidance
@@ -77,13 +173,15 @@ The following inputs are still required from Telectro before production deployme
 
 - Final production hostname
 - DNS owner/contact and DNS change timing
-- Clean Ubuntu VM/server access
-- Public IP address
+- Production VM/server access
+- Final OS decision: Ubuntu LTS or AlmaLinux
+- If AlmaLinux: confirmation that Telectro owns Docker, firewall, SELinux, OS support, and host readiness
+- Internal/static IP address
+- Public access path through Telectro reverse proxy/firewall
 - SSH/admin access method
-- Firewall owner/contact
-- Confirmation that ports 80 and 443 may be opened
-- Certificate hostname, file set, expiry date, and renewal owner
-- Approved method for transferring certificate files/private key
+- Firewall/reverse proxy owner/contact
+- Internal application target host/port required by Telectro reverse proxy
+- Confirmation that Telectro owns public HTTPS termination, certificate handling, CLM/renewal, and reverse proxy reload/monitoring
 - SMTP details, if outgoing email is required for first deployment
 - Decision on whether incoming mailbox processing is in scope for first deployment
 - Confirmed production user/contact list
@@ -115,10 +213,13 @@ The following should not block the first controlled technical deployment unless 
 The current recommended stance is:
 
 ```text
-Deploy manually from a reviewed Git tag to a clean Ubuntu server.
-Use the production Docker Compose merge.
-Expose only ports 80/443 publicly, plus restricted SSH where required.
-Configure HTTPS using the supplied Telectro certificate.
+Deploy manually from a reviewed Git tag to a Docker-ready production VM.
+Ubuntu LTS remains the application-team preferred/proven path.
+If AlmaLinux is supplied, Telectro owns OS/Docker/firewall/SELinux readiness.
+Use the production Docker Compose merge adjusted for the final reverse proxy boundary.
+Expose only the agreed internal application web service to Telectro’s reverse proxy.
+Do not expose database, Redis, worker, scheduler, or internal helper services publicly.
+Telectro owns public HTTPS termination, certificate/CLM handling, renewal, and reverse proxy monitoring.
 Run migrations and smoke tests.
 Take a first known-good backup.
 Treat this as technical deployment first, not operational go-live.
@@ -135,13 +236,15 @@ This checklist does not replace the detailed sections below. It is a deployment-
 Confirm:
 
 ```text
+- production VM is available
+- final OS decision is confirmed
+- if AlmaLinux, Telectro has confirmed Docker-ready host ownership
+- Telectro reverse proxy target path is confirmed
+- public HTTPS termination is owned and ready on Telectro side
 - reviewed Git tag / release branch is selected
-- clean Ubuntu server / VM is available
 - SSH/VPN access works
 - production hostname is confirmed
 - DNS/firewall path is ready or scheduled
-- ports 80 and 443 are available
-- certificate files and private key are available by secure transfer
 - production .env/secrets file is prepared server-side
 - production backup location is known
 - Telectro deployment contact is available
@@ -154,7 +257,7 @@ Do not begin the deployment if these are unknown:
 ```text
 - server access
 - production hostname
-- certificate handling
+- reverse proxy / HTTPS ownership and target path
 - production secrets handling
 - backup location
 - rollback owner
@@ -299,13 +402,16 @@ Outbound internet access allowed: Yes
 Still required before deployment:
 
 ```text
-- Ubuntu version
-- Public IP address, if applicable
-- Static/internal IP address
+- Final operating system decision: Ubuntu LTS or AlmaLinux
+- If AlmaLinux: confirmation that Telectro owns OS/Docker/firewall/SELinux readiness
+- Internal/static IP address
+- Public access path through Telectro reverse proxy/firewall
 - Final deployment path on the server
+- Docker Engine availability
+- Docker Compose availability
 ```
 
-Recommended server baseline:
+Application-team preferred server baseline:
 
 ```text
 Ubuntu Server 24.04 LTS preferred
@@ -364,6 +470,12 @@ Still required before deployment:
 
 ## 4. Certificate
 
+Production certificate handling is now expected to be Telectro-owned at the reverse proxy layer.
+
+The application stack should not assume that it directly receives, stores, loads, renews, or reloads the public HTTPS certificate unless Telectro changes the reverse proxy decision.
+
+The application team still needs to smoke-test that the public HTTPS path reaches the application correctly and that generated application links use the production HTTPS hostname.
+
 Telectro has confirmed that a certificate is available.
 
 Confirmed:
@@ -390,11 +502,11 @@ Still required before deployment:
 ```text
 - Confirm the exact hostname covered by the certificate.
 - Confirm specifically whether the certificate covers erp.telectro.co.za.
-- Confirm what certificate files are available.
-- Confirm whether a chain/intermediate/fullchain file is supplied.
-- Confirm secure transfer method for the certificate private key.
-- Confirm where the certificate files should live on the production server.
-- Confirm whether Traefik needs reload/restart after certificate renewal.
+- Confirm Telectro reverse proxy presents a certificate covering erp.telectro.co.za.
+- Confirm Telectro owns certificate private key storage.
+- Confirm Telectro owns CLM/renewal.
+- Confirm Telectro owns reverse proxy reload/restart after renewal.
+- Confirm the application team is not expected to store certificate private keys in the application deployment.
 ```
 
 Why this matters:
@@ -626,8 +738,8 @@ Prove:
 - certificate matches the chosen domain
 - browser access is clean
 - HTTP redirects to HTTPS if required
-- certificate source is known: manually supplied files or CLM retrieval
-- CLM retrieval proof is complete if CLM is used
+- Telectro reverse proxy presents HTTPS for the production hostname
+- certificate ownership, renewal, and monitoring owner are confirmed
 
 ### Phase 4: Email proof
 
@@ -1831,6 +1943,9 @@ Check:
 - assignment/ownership is visible
 - comments can be added
 - relevant reports include or exclude the ticket correctly
+- Customer Request card renders for Customer-originated tickets
+- Latest Customer Update card renders when a newer distinct customer update exists
+- Resolve Customer Ticket updates native Helpdesk resolution lifecycle fields
 
 Pass condition:
 
@@ -2385,6 +2500,8 @@ The following still need to be confirmed with Telectro:
 
 ## Production HTTPS and Certificate Model
 
+> Current production note: Telectro is expected to own HTTPS termination at its reverse proxy layer. The details below remain useful background, but application-side certificate placement, Traefik TLS configuration, and CLM automation should not be implemented by the application deployment unless Telectro changes the production boundary.
+
 HTTPS is required for production browser access.
 
 The certificate confirms to the browser that the production web address is trusted and that traffic between the user and the site is encrypted.
@@ -2613,11 +2730,9 @@ The reverse proxy is responsible for:
 - forwarding traffic to the correct internal service
 - preserving required headers for Frappe/ERPNext
 
-Possible reverse proxy choices include:
+In the current expected production shape, the reverse proxy choice belongs to Telectro.
 
-- Traefik
-- Nginx
-- Caddy
+The application deployment should treat the reverse proxy as an external infrastructure layer unless Telectro changes that decision.
 
 The project should use the simplest reverse proxy model that fits the chosen production Docker Compose structure.
 
@@ -2738,7 +2853,7 @@ Required CLM details:
 - chain / intermediate / fullchain delivery method
 - renewal timing / validity period
 - whether renewal overwrites the same files or creates new files
-- whether Traefik must be reloaded/restarted after renewal
+- whether the Telectro reverse proxy must be reloaded/restarted after renewal
 - owner responsible for CLM failures
 - escalation contact during certificate expiry or renewal failure
 ```
@@ -2820,13 +2935,13 @@ Expected result:
 
 ```text
 HTTP redirects to HTTPS.
-HTTPS returns a response from Traefik/frontend.
+HTTPS returns a response through Telectro’s reverse proxy to the application.
 The certificate presented to the browser matches the production hostname.
 ```
 
 The exact hostname must be replaced with the confirmed `PRODUCTION_HOSTNAME`.
 
-If the HTTPS check fails, do not proceed to operational sign-off until the certificate, Traefik dynamic TLS config, DNS, and firewall path have been checked.
+If the HTTPS check fails, do not proceed to operational sign-off until the certificate, Telectro reverse proxy configuration, DNS, firewall path, and internal application target have been checked.
 
 Suggested command-line checks may be added later once the production hostname is known.
 
@@ -3542,11 +3657,13 @@ Which service will handle HTTPS traffic?
 
 Inputs needed:
 
-- preferred reverse proxy approach, if Telectro has one
-- whether Traefik, Nginx, or another proxy is preferred
-- whether Telectro already has an existing public reverse proxy
-- whether the ERPNext stack should manage HTTPS itself
-- whether HTTP should redirect to HTTPS
+- confirmation that Telectro’s existing reverse proxy is the production edge
+- internal application host/port that the reverse proxy should target
+- whether WebSocket traffic is supported by the reverse proxy path
+- upload size limit
+- timeout settings
+- whether `X-Forwarded-For`, `X-Forwarded-Proto`, and host headers are preserved
+- owner/contact for reverse proxy changes during deployment
 
 Why this matters:
 
@@ -3841,32 +3958,43 @@ Before operational go-live, the following should be proven:
 
 ### Current Compose Skeleton Status
 
-The current production Compose skeleton is implementation-adjacent but not yet production-ready.
+The current production Compose skeleton was originally prepared for an application-owned Traefik production edge.
 
-The production merge currently proves that:
+That model has now changed based on Telectro feedback.
 
-- local development ports `8080` and `9000` are not exposed
-- local helper services such as the test mail server and `bench-runner` are not active in the normal production merge
-- browser traffic is intended to enter through Traefik on ports `80` and `443`
-- Traefik routes browser traffic to the frontend/nginx service
-- production site-name usage is parameterised through `SITE_NAME` for:
-  - frontend site header
-  - backend healthcheck site header
-  - create-site default site name
-- production DB root password values are parameterised through `MARIADB_ROOT_PASSWORD` in the production override
-- the production frontend/nginx image is supplied through `ERPNEXT_NGINX_IMAGE` so production does not silently inherit the moving local `edge` tag
+Current intended production boundary:
 
-Remaining production risks still visible or not fully resolved:
+```text
+Telectro reverse proxy / firewall / HTTPS
+  ↓
+internal application web service
+  ↓
+ERPNext/Frappe/Helpdesk application stack
+```
 
-- production secrets model is documented but not fully converted to Docker secrets
-- the final production frontend/nginx image tag still needs to be selected and tested
-- production image/app installation strategy is not final
-- real hostname, certificate layout, SMTP details, backup location, and user inputs are still pending from Telectro
-- production DB root password values are parameterised through `MARIADB_ROOT_PASSWORD` in the production override
-- production no longer silently inherits the local `frappe/erpnext-nginx:edge` image tag
-- the final production frontend/nginx image tag still needs to be selected and tested
+The existing production Compose skeleton remains useful as a production separation proof because it already helped establish that:
 
-Production site-name usage is now parameterised through `SITE_NAME` for the frontend site header, backend healthcheck site header, and create-site default site name.
+- local development ports `8080` and `9000` should not leak into production;
+- local helper services such as the test mail server and `bench-runner` should not be active in the normal production merge;
+- production site-name usage should be parameterised through `SITE_NAME`;
+- production DB root password values should be parameterised through `MARIADB_ROOT_PASSWORD`;
+- the production frontend/nginx image should be supplied explicitly through `ERPNEXT_NGINX_IMAGE`.
+
+However, the production Compose shape still needs a final adjustment once Telectro confirms the VM, OS, and reverse proxy target requirements.
+
+Open Compose/deployment items:
+
+- remove or bypass app-owned Traefik if Telectro reverse proxy remains the confirmed production edge;
+- expose only the agreed internal application web service to Telectro’s reverse proxy;
+- do not publish local development ports `8080` or `9000`;
+- do not expose database, Redis, worker, scheduler, or internal helper services;
+- select and test the final production frontend/nginx image tag;
+- confirm whether production builds happen on the server, from a tagged image, or through a later pipeline;
+- confirm production secrets placement on the server;
+- confirm production backup mount path;
+- confirm production email credentials and network access.
+
+Use dummy render-proof values when validating Compose structure locally. Do not use real production secrets for local render proof commands.
 
 ## Production Secrets Skeleton
 
@@ -3876,7 +4004,7 @@ Example/template files are safe to commit when they contain placeholder values o
 
 - `.env.production.example`
 - certificate layout examples
-- Traefik dynamic TLS examples
+- reverse proxy notes/examples, if still relevant
 - documentation describing required values
 
 Real production files must stay server-local and outside Git, for example:
@@ -3950,7 +4078,7 @@ Expected result:
 ```text
 No published 8080/9000 ports.
 No local/test env leakage.
-Traefik publishes 80/443 only.
+No unintended public service ports are published.
 ```
 
 ## Production Update and Security Patch Policy
@@ -4034,6 +4162,7 @@ If an update cannot be applied before go-live, record:
 - available target versions
 - reason for deferral
 - risk owner
+- planned update window
 - planned update window
 - rollback plan
 
