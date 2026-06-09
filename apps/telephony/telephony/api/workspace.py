@@ -172,21 +172,22 @@ def internal_ticket_customer_request_context(ticket_name):
             "reason": "No Customer request communication found.",
         }
 
-    communication_date = request.get("communication_date")
+    latest_update = _get_latest_customer_update_communication(ticket.name)
+
+    latest_customer_update = None
+    if _is_distinct_latest_customer_update(request, latest_update):
+        latest_customer_update = _serialize_customer_communication(latest_update)
+
+    request_data = _serialize_customer_communication(request)
+    request_data["subject"] = request_data.get("subject") or ticket.subject or ""
 
     return {
         "ok": 1,
         "ticket": ticket.name,
         "has_customer_request": True,
-        "sender": request.get("sender") or "",
-        "sender_full_name": request.get("sender_full_name") or request.get("sender") or "",
-        "sent_or_received": request.get("sent_or_received") or "",
-        "communication_medium": request.get("communication_medium") or "",
-        "communication_date": communication_date,
-        "communication_date_label": pretty_date(communication_date) if communication_date else "",
-        "subject": request.get("subject") or ticket.subject or "",
-        "content": request.get("content") or "",
-        "content_text": strip_html(request.get("content") or "").strip(),
+        **request_data,
+        "has_latest_customer_update": bool(latest_customer_update),
+        "latest_customer_update": latest_customer_update,
     }
 
 
@@ -227,6 +228,69 @@ def _get_initial_customer_request_communication(ticket_name):
     )
 
     return rows[0] if rows else None
+
+
+def _get_latest_customer_update_communication(ticket_name):
+    rows = frappe.get_all(
+        "Communication",
+        filters={
+            "reference_doctype": "HD Ticket",
+            "reference_name": ticket_name,
+            "sent_or_received": "Received",
+        },
+        fields=[
+            "name",
+            "sender",
+            "sender_full_name",
+            "sent_or_received",
+            "communication_medium",
+            "communication_date",
+            "creation",
+            "subject",
+            "content",
+        ],
+        order_by="communication_date desc, creation desc",
+        limit_page_length=1,
+    )
+
+    return rows[0] if rows else None
+
+
+def _normalise_communication_text(content):
+    return " ".join(strip_html(content or "").split())
+
+
+def _is_distinct_latest_customer_update(initial_request, latest_update):
+    if not initial_request or not latest_update:
+        return False
+
+    if latest_update.get("name") == initial_request.get("name"):
+        return False
+
+    initial_text = _normalise_communication_text(initial_request.get("content"))
+    latest_text = _normalise_communication_text(latest_update.get("content"))
+
+    if not latest_text:
+        return False
+
+    return latest_text != initial_text
+
+
+def _serialize_customer_communication(row):
+    communication_date = row.get("communication_date")
+
+    return {
+        "name": row.get("name") or "",
+        "sender": row.get("sender") or "",
+        "sender_full_name": row.get("sender_full_name") or row.get("sender") or "",
+        "sent_or_received": row.get("sent_or_received") or "",
+        "communication_medium": row.get("communication_medium") or "",
+        "communication_date": communication_date,
+        "communication_date_label": pretty_date(communication_date) if communication_date else "",
+        "subject": row.get("subject") or "",
+        "content": row.get("content") or "",
+        "content_text": strip_html(row.get("content") or "").strip(),
+    }
 
 def _get_context_display_value(doctype, name, display_fields):
     name = (name or "").strip()
