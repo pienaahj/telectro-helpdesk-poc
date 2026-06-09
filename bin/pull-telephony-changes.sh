@@ -249,6 +249,22 @@ cp_from_container \
   "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py"
 # --------------------------------------------------------------------
 cp_optional_from_container \
+  "ftelephony/report/customer_sla_breach_oversight/__init__.py" \
+  "ftelephony/report/customer_sla_breach_oversight/__init__.py"
+
+cp_from_container \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.js" \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.js"
+
+cp_from_container \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.json" \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.json"
+
+cp_from_container \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.py" \
+  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.py"
+# --------------------------------------------------------------------
+cp_optional_from_container \
   "ftelephony/report/customer_resolution_oversight/__init__.py" \
   "ftelephony/report/customer_resolution_oversight/__init__.py"
 

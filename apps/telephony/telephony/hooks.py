@@ -140,6 +140,7 @@ fixtures = [
                 "My Team Tickets",
                 "Customer Ticket Oversight",
                 "Customer Resolution Oversight",
+                "Customer SLA Breach Oversight",
             ]],
         ],
     },
