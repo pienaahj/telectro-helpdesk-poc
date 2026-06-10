@@ -55,6 +55,44 @@ Application team provides:
 - email smoke-test procedure;
 - backup execution and restore proof procedure once storage is available.
 
+### Production Compose preflight
+
+Before deploying on the production VM, render the production Compose merge with the server-local production environment file:
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  config > /tmp/telectro-production-compose.rendered.yaml
+```
+
+Inspect the rendered output before starting containers.
+
+Expected production edge shape:
+
+- no `traefik` service;
+- no public `80:80` host publish from the application stack;
+- no public `443:443` host publish from the application stack;
+- no application-side public HTTPS certificate mount;
+- `frontend` publishes only the agreed internal HTTP target;
+- default internal target is `127.0.0.1:8080 -> frontend:8080`;
+- `mail` and `bench-runner` are not part of the normal production service set.
+
+Suggested safe checks:
+
+```bash
+grep -n "traefik\|80:80\|443:443\|certs\|published" \
+  /tmp/telectro-production-compose.rendered.yaml | head -80
+
+grep -n -C 6 'published: "8080"' \
+  /tmp/telectro-production-compose.rendered.yaml
+```
+
+If Telectro's reverse proxy runs on the same VM, `host_ip` should normally remain `127.0.0.1`.
+
+If Telectro's reverse proxy runs on another host, `APP_INTERNAL_HTTP_BIND` may need to be changed deliberately, but only after Telectro confirms firewall scope and the reverse proxy source path.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
