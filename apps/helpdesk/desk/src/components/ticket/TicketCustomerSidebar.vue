@@ -124,7 +124,7 @@
           :href="customerLocationMapUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-blue-600 hover:underline"
+          class="font-semibold text-[#0f3d2e] underline underline-offset-4 hover:text-[#0a2b20]"
         >
           {{ __("View on map") }}
         </a>

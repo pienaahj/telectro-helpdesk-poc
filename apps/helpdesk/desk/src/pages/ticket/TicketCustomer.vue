@@ -1,5 +1,5 @@
 <template>
-  <div v-if="ticket.data" class="flex flex-col">
+  <div v-if="ticket.data" class="flex flex-col bg-[#fbf8f2] md:bg-white">
     <LayoutHeader>
       <template #left-header>
         <div
@@ -47,7 +47,7 @@
       </template>
     </LayoutHeader>
     <div
-      class="mx-6 mt-4 rounded-xl border border-stone-200 bg-[#f8f5ef] px-5 py-4 shadow-sm md:mx-10"
+      class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#f6f0e7] px-5 py-4 shadow-sm md:mx-10"
     >
       <div
         class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
@@ -83,7 +83,7 @@
 
         <div
           v-if="isMobileView && originalCustomerRequest"
-          class="mx-6 mt-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm md:mx-10"
+          class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
             {{ __("Request details") }}
@@ -110,7 +110,7 @@
             latestCustomerVisibleUpdate &&
             latestCustomerVisibleUpdate.name !== originalCustomerRequest?.name
           "
-          class="mx-6 mt-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm md:mx-10"
+          class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
             {{ __("Latest update") }}
@@ -134,7 +134,10 @@
 
         <TicketConversation class="grow" />
 
-        <div v-if="showEditor" class="border-t bg-surface-white px-5 pt-4">
+        <div
+          v-if="showEditor"
+          class="border-t border-[#e5ded2] bg-[#fbf8f2] px-5 pt-4 md:bg-surface-white"
+        >
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
               <div class="text-base font-medium text-ink-gray-8">

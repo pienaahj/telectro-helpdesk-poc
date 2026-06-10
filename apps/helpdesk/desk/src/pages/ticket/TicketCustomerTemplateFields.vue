@@ -1,5 +1,5 @@
 <template>
-  <div class="border-b px-5 py-3">
+  <div class="border-b border-[#e5ded2] bg-[#fbf8f2] px-5 py-4 md:bg-white">
     <!-- Telectro Customer Location Context -->
     <div
       v-if="
@@ -7,15 +7,15 @@
         (customerLocationContext.fault_point ||
           customerLocationContext.equipment_ref)
       "
-      class="mb-4 rounded border border-gray-200 bg-gray-50 p-3 text-sm"
+      class="mb-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 text-sm shadow-sm"
     >
-      <div class="mb-3 font-medium text-gray-900">
+      <div class="mb-3 text-base font-semibold text-stone-950">
         {{ __("Location details") }}
       </div>
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <span class="block text-xs font-medium uppercase text-gray-500">
+          <span class="block text-xs font-medium uppercase text-stone-500">
             {{ __("Fault Point") }}
           </span>
           <span class="block break-words text-base font-medium text-gray-900">
@@ -24,7 +24,7 @@
         </div>
 
         <div>
-          <span class="block text-xs font-medium uppercase text-gray-500">
+          <span class="block text-xs font-medium uppercase text-stone-500">
             {{ __("Category") }}
           </span>
           <span class="block break-words text-base font-medium text-gray-900">
@@ -33,7 +33,7 @@
         </div>
 
         <div>
-          <span class="block text-xs font-medium uppercase text-gray-500">
+          <span class="block text-xs font-medium uppercase text-stone-500">
             {{ __("Equipment Ref") }}
           </span>
           <span
@@ -45,14 +45,14 @@
         </div>
 
         <div v-if="customerLocationMapUrl">
-          <span class="block text-xs font-medium uppercase text-gray-500">
+          <span class="block text-xs font-medium uppercase text-stone-500">
             {{ __("Map") }}
           </span>
           <a
             :href="customerLocationMapUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-base font-medium text-blue-600 hover:underline"
+            class="text-base font-semibold text-[#0f3d2e] underline underline-offset-4 hover:text-[#0a2b20]"
           >
             {{ __("View on map") }}
           </a>
@@ -60,16 +60,18 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-4 md:grid-cols-1">
+    <div
+      class="grid grid-cols-3 gap-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 shadow-sm md:grid-cols-1"
+    >
       <div class="space-y-1.5">
-        <span class="block text-sm text-gray-700"> Status </span>
+        <span class="block text-sm text-stone-950"> Status </span>
         <span class="block break-words text-base font-medium text-gray-900">
           {{ ticket.data.status }}
         </span>
       </div>
 
       <div class="space-y-1.5">
-        <span class="block text-sm text-gray-700"> Priority </span>
+        <span class="block text-sm text-stone-950"> Priority </span>
         <span class="block break-words text-base font-medium text-gray-900">
           {{ ticket.data.priority }}
         </span>
@@ -77,7 +79,7 @@
 
       <div v-for="data in slaData" :key="data.label" class="space-y-1.5">
         <Tooltip :text="dayjs(data.value).long()">
-          <span class="block text-sm text-gray-700">{{ data.title }}</span>
+          <span class="block text-sm text-stone-950">{{ data.title }}</span>
         </Tooltip>
         <span class="block break-words text-base font-medium text-gray-900">
           <Badge
@@ -97,7 +99,7 @@
         :key="field.fieldname"
         class="space-y-1.5"
       >
-        <span class="block text-sm text-gray-700">
+        <span class="block text-sm text-stone-950">
           {{ field.label }}
         </span>
         <span
