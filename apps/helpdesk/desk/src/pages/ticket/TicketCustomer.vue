@@ -2,7 +2,31 @@
   <div v-if="ticket.data" class="flex flex-col">
     <LayoutHeader>
       <template #left-header>
-        <Breadcrumbs :items="breadcrumbs" />
+        <div
+          v-if="isMobileView"
+          class="flex w-full min-w-0 items-center gap-1 text-lg font-medium"
+        >
+          <RouterLink
+            :to="{ name: 'TicketsCustomer' }"
+            class="min-w-0 truncate text-ink-gray-6"
+          >
+            {{ __("Support Requests") }}
+          </RouterLink>
+
+          <span class="shrink-0 text-ink-gray-5">/</span>
+
+          <RouterLink
+            :to="{ name: 'TicketCustomer' }"
+            class="shrink-0 text-ink-gray-9"
+            aria-current="page"
+          >
+            #{{ ticket.data.name }}
+          </RouterLink>
+        </div>
+
+        <div v-else class="min-w-0 max-w-full overflow-hidden">
+          <Breadcrumbs :items="breadcrumbs" />
+        </div>
       </template>
       <template #right-header>
         <CustomActions
@@ -49,14 +73,43 @@
         </div>
       </div>
     </div>
-    <div class="flex overflow-hidden h-full w-full">
+    <div class="flex min-h-0 w-full flex-1 overflow-visible md:overflow-hidden">
       <!-- Main Ticket Comm -->
-      <section class="flex flex-col flex-1 w-full md:max-w-[calc(100%-382px)]">
+      <section
+        class="flex min-h-0 w-full flex-1 flex-col pb-8 md:max-w-[calc(100%-382px)]"
+      >
         <!-- show for only mobile -->
         <TicketCustomerTemplateFields v-if="isMobileView" />
 
         <div
-          v-if="latestCustomerVisibleUpdate"
+          v-if="isMobileView && originalCustomerRequest"
+          class="mx-6 mt-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm md:mx-10"
+        >
+          <div class="mb-1 text-sm font-medium text-gray-900">
+            {{ __("Request details") }}
+          </div>
+
+          <div class="mb-2 text-sm text-gray-600">
+            {{
+              originalCustomerRequest.user?.name ||
+              originalCustomerRequest.sender ||
+              __("Customer request")
+            }}
+            ·
+            {{ dayjs(originalCustomerRequest.creation).fromNow() }}
+          </div>
+
+          <div
+            class="text-base text-gray-800"
+            v-html="originalCustomerRequest.content"
+          />
+        </div>
+
+        <div
+          v-if="
+            latestCustomerVisibleUpdate &&
+            latestCustomerVisibleUpdate.name !== originalCustomerRequest?.name
+          "
           class="mx-6 mt-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
@@ -104,7 +157,7 @@
           </div>
         </div>
         <div
-          class="w-full p-5"
+          class="w-full px-5 pb-8 pt-5 md:pb-5"
           @keydown.ctrl.enter.capture.stop="sendEmail"
           @keydown.meta.enter.capture.stop="sendEmail"
         >
@@ -328,13 +381,15 @@ const setValue = createResource({
 });
 
 const breadcrumbs = computed(() => {
-  let items = [
+  const items = [
     { label: __("Support Requests"), route: { name: "TicketsCustomer" } },
   ];
+
   items.push({
     label: ticket.data?.subject,
     route: { name: "TicketCustomer" },
   });
+
   return items;
 });
 
@@ -342,16 +397,24 @@ const allowCustomerTicketClose = computed(() => false);
 
 const showEditor = computed(() => ticket.data.status !== "Closed");
 
-const latestCustomerVisibleUpdate = computed(() => {
-  const communications = [...(ticket.data?.communications || [])].sort(
+const customerVisibleCommunications = computed(() => {
+  return [...(ticket.data?.communications || [])].sort(
     (a, b) => new Date(a.creation).getTime() - new Date(b.creation).getTime(),
   );
+});
 
-  if (communications.length <= 1) {
+const originalCustomerRequest = computed(() => {
+  return customerVisibleCommunications.value[0] || null;
+});
+
+const latestCustomerVisibleUpdate = computed(() => {
+  if (customerVisibleCommunications.value.length <= 1) {
     return null;
   }
 
-  return communications[communications.length - 1];
+  return customerVisibleCommunications.value[
+    customerVisibleCommunications.value.length - 1
+  ];
 });
 
 // this handles whether the ticket was raised and then was closed without any reply from the agent.
