@@ -635,21 +635,19 @@ The production certificate model is now understood at architecture level:
 CLM server
 → handles certificate request, validation, issuance, and renewal
 → exposes current certificate material through secure API access
-→ production server/client pulls certificate material with an API key
-→ local deployment installs the pulled files for Traefik
+→ Telectro reverse proxy / infrastructure layer retrieves or receives certificate material
+→ Telectro reverse proxy presents HTTPS publicly and forwards traffic to the internal application target
 ```
 
-Available certificate package formats are expected to include:
+The application deployment no longer installs public HTTPS certificate files for Traefik. Current expectation is that certificate private key storage, CLM retrieval/renewal, reverse proxy reload, and certificate monitoring are owned by Telectro / infrastructure.
+
+Available certificate package formats may still matter to Telectro's reverse proxy / CLM implementation and are expected to include:
 
 - public certificate + private key PEM;
 - public certificate + private key + full chain PEM;
 - public certificate + private key + full chain PFX.
 
-Preferred deployment format for Traefik remains:
-
-```text
-fullchain PEM + private key PEM
-```
+The following CLM client contract details are still required from Telectro if the application team is asked to validate or integrate with CLM later:
 
 The following CLM client contract details are still required before production certificate automation can be implemented safely:
 
@@ -738,7 +736,7 @@ While waiting for the CLM client contract and production server access, continue
 - production secret placement plan;
 - backup/Samba mount checklist;
 - email smoke-test checklist;
-- HTTPS/Traefik certificate pull script skeleton;
+- Telectro reverse proxy / HTTPS boundary checklist;
 - deployment runbook tightening.
 
 Updated production-readiness status:
@@ -864,4 +862,3 @@ Internal ticket evidence must remain internal by default.
 Only deliberately selected Customer-visible update/completion evidence should be exposed to the Customer portal.
 Customer-visible attachment downloads should use a controlled endpoint rather than raw private file URLs.
 ```
-

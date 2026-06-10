@@ -1,88 +1,54 @@
 # compose.production.yaml
 #
-# Production deployment skeleton.
+# Production deployment override.
 #
-# This file is not intended to be used blindly yet.
-# It documents the intended production shape:
+# Current production boundary:
 #
-# - Traefik handles public HTTP/HTTPS.
-# - Browser traffic enters through ports 80/443 only.
-# - Traefik routes ERPNext/Frappe browser traffic to the frontend nginx service.
+# - Telectro owns public DNS, firewall/reverse proxy, HTTPS termination,
+#   certificate private keys, CLM/renewal, reverse proxy reload, and monitoring.
+# - This application stack does not run Traefik as the public production edge.
+# - This application stack does not publish ports 80/443.
+# - This application stack exposes only the agreed internal HTTP target for
+#   Telectro's reverse proxy.
 # - Backend, database, Redis, workers, scheduler, and websocket remain internal.
-# - Certificate material is mounted from ./certs and must not be committed to Git.
 #
-# Expected command shape later:
+# Expected command shape:
 #
+# docker compose -f compose.yaml -f compose.production.yaml config
 # docker compose -f compose.yaml -f compose.production.yaml up -d
 #
-# IMPORTANT:
-# This production override currently prevents known local-only helper services
-# such as mail and bench-runner from running in the normal production merge by
-# assigning them to a local-only profile.
+# Internal reverse proxy target:
 #
-# This file is still not production-ready. The rendered production config still
-# needs production-safe handling for:
+# By default this binds the ERPNext/Frappe nginx frontend to localhost only:
+#
+#   127.0.0.1:8080 -> frontend:8080
+#
+# If Telectro's reverse proxy runs on another host and must reach this VM over
+# the network, set APP_INTERNAL_HTTP_BIND explicitly, for example:
+#
+#   APP_INTERNAL_HTTP_BIND=0.0.0.0
+#   APP_INTERNAL_HTTP_PORT=8080
+#
+# Do not expose this internal HTTP target publicly without Telectro firewall /
+# reverse proxy approval.
+#
+# This file is still not production-ready until real production values are
+# confirmed for:
 #
 # - database/admin passwords
 # - site creation secrets
-# - production site-name usage in create-site and healthchecks
+# - production site-name usage
 # - pinned production image tags
 # - final server-local secrets handling
-#
-# Do not use this blindly for a real deployment until those items are resolved
-# and validated against the real Telectro production inputs.
+# - Telectro reverse proxy internal target host/port
+# - backup mount and restore proof
+# - SMTP/IMAP smoke proof
 
 services:
-  traefik:
-    image: traefik:v3.0
-    restart: unless-stopped
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-
-      # Public entrypoints
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-
-      # HTTP -> HTTPS redirect
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-
-      # File provider for supplied certificate configuration.
-      # Exact config file will be added once certificate layout is confirmed.
-      - "--providers.file.directory=/etc/traefik/dynamic"
-      - "--providers.file.watch=true"
-
-      # Keep dashboard disabled for production by default.
-      # If enabled for diagnostics, protect it and do not expose it publicly.
-      - "--api.dashboard=false"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./certs:/certs:ro"
-      - "./traefik/dynamic:/etc/traefik/dynamic:ro"
-    networks:
-      - frappe_network
-
   frontend:
-    # In production, Traefik should route to frontend/nginx, not directly to backend.
-    # The direct host port 8080 from compose.yaml is local-only and should not be
-    # exposed in production once the compose structure is finalised.
-
     image: ${ERPNEXT_NGINX_IMAGE:?Set ERPNEXT_NGINX_IMAGE}
-    
-    labels:
-      - "traefik.enable=true"
-
-      - "traefik.http.routers.erpnext.rule=Host(`${PRODUCTION_HOSTNAME:?Set PRODUCTION_HOSTNAME}`)"
-      - "traefik.http.routers.erpnext.entrypoints=websecure"
-      - "traefik.http.routers.erpnext.tls=true"
-      - "traefik.http.routers.erpnext.service=erpnext-frontend"
-
-      - "traefik.http.services.erpnext-frontend.loadbalancer.server.port=8080"
-
+    ports:
+      - "${APP_INTERNAL_HTTP_BIND:-127.0.0.1}:${APP_INTERNAL_HTTP_PORT:-8080}:8080"
     environment:
       FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:?Set SITE_NAME}
       WEB_PORT: "8080"
@@ -108,6 +74,10 @@ services:
 
   # Production should not expose websocket directly to the host.
   # The frontend/nginx service should reach websocket internally through Docker networking.
+  websocket:
+    expose:
+      - "9000"
+
   # Local Docker mail server is not part of production.
   # Production email should use a real SMTP account configured in Frappe.
   mail:

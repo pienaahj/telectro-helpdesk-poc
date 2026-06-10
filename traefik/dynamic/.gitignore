@@ -1,2 +1,0 @@
-# Do not commit real Traefik dynamic production config unless it is sanitized.
-tls.yml
