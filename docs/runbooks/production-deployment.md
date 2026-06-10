@@ -84,6 +84,24 @@ AlmaLinux is technically possible as a Docker host, but it is not the applicatio
 
 Once host readiness is proven, the application team can deploy and smoke-test the Docker Compose application stack on top of it.
 
+### 2026-06-10 host OS decision update
+
+Telectro has confirmed that the production VM should use AlmaLinux in order to align with Telectro's company standard.
+
+The agreed position is:
+
+- AlmaLinux is the first production VM target.
+- Telectro expects to provide a working VM by the end of the week.
+- Telectro owns the AlmaLinux host readiness layer, including Docker Engine, Docker Compose, firewall/SELinux policy, storage mounts, VPN/SSH access, and reverse proxy reachability.
+- The application team will deploy and smoke-test the Docker Compose ERPNext / Helpdesk / Telephony stack on top of the supplied VM.
+- If ERPNext / Helpdesk installation or operation runs into AlmaLinux-specific blockers, the OS decision can be reconsidered and Ubuntu LTS can be used as the fallback/proven path.
+
+Application-team stance:
+
+- Ubuntu LTS remains the application team's currently proven local deployment path.
+- AlmaLinux is accepted for production because it is Telectro's company standard, provided that the VM is Docker-ready before application deployment starts.
+- Any AlmaLinux host-level blockers should be separated from application-stack blockers during deployment proof.
+
 ### Deployment readiness position
 
 From an application/product perspective, there is no currently known feature gap blocking controlled production deployment proof.
@@ -91,7 +109,7 @@ From an application/product perspective, there is no currently known feature gap
 Remaining deployment blockers are infrastructure and operational proof items:
 
 - final VM available;
-- OS confirmed;
+- AlmaLinux VM delivered and Docker-ready;
 - Docker readiness confirmed;
 - VPN / SSH access confirmed;
 - reverse proxy internal target confirmed;
@@ -174,7 +192,7 @@ The following inputs are still required from Telectro before production deployme
 - Final production hostname
 - DNS owner/contact and DNS change timing
 - Production VM/server access
-- Final OS decision: Ubuntu LTS or AlmaLinux
+- Final OS decision: AlmaLinux, with Ubuntu LTS retained as fallback if AlmaLinux blocks ERPNext / Helpdesk deployment
 - If AlmaLinux: confirmation that Telectro owns Docker, firewall, SELinux, OS support, and host readiness
 - Internal/static IP address
 - Public access path through Telectro reverse proxy/firewall
@@ -402,8 +420,9 @@ Outbound internet access allowed: Yes
 Still required before deployment:
 
 ```text
-- Final operating system decision: Ubuntu LTS or AlmaLinux
-- If AlmaLinux: confirmation that Telectro owns OS/Docker/firewall/SELinux readiness
+- Production operating system decision: AlmaLinux, to align with Telectro company standard
+- Fallback path: Ubuntu LTS can be reconsidered if AlmaLinux blocks ERPNext / Helpdesk deployment
+- AlmaLinux readiness: Telectro owns OS/Docker/firewall/SELinux readiness
 - Internal/static IP address
 - Public access path through Telectro reverse proxy/firewall
 - Final deployment path on the server
