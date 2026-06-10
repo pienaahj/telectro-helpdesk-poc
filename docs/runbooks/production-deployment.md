@@ -564,24 +564,263 @@ Deployment checks:
 
 Run the first technical smoke test before calling the deployment successful.
 
-Minimum checks:
+This smoke test is the ordered pass/fail proof for the first controlled production deployment.
 
-```text
-- HTTPS opens at the production hostname
-- browser shows no certificate warning
-- HTTP redirects to HTTPS
-- Administrator login works
-- at least one internal user login works
-- expected workspace landing works
-- controlled ticket creation works
-- key reports load
-- evidence/attachment handling works where in scope
-- outgoing SMTP test passes
-- controlled incoming IMAP ticket creation test passes
-- Partner/customer login paths work where in scope
+Do not treat production as operationally ready until each required smoke item is either passed or explicitly accepted as deferred by the deployment owner.
+
+##### 1. Container and service health
+
+Record:
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  ps
 ```
 
-Incoming email is now in day-one scope, but email-created tickets should only be relied on operationally after controlled IMAP smoke testing passes.
+Required result:
+
+```text
+Database healthy/running:
+Redis services running:
+Backend running:
+Frontend running:
+Scheduler running:
+Queue workers running:
+WebSocket service running:
+No restart loop:
+No critical startup errors in logs:
+```
+
+Suggested log check:
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  logs --tail=120 backend frontend websocket scheduler queue-short queue-long
+```
+
+##### 2. Internal application target
+
+Before public reverse proxy proof, test the internal application target from the VM.
+
+```bash
+curl -I http://127.0.0.1:8080
+```
+
+If the Frappe site requires the production host header, use:
+
+```bash
+curl -I \
+  -H "Host: <production-hostname>" \
+  http://127.0.0.1:8080
+```
+
+Required result:
+
+```text
+Internal HTTP target responds:
+No unexpected 502/503 from frontend:
+Static assets reachable through frontend:
+Site routing uses expected production hostname:
+```
+
+##### 3. Public HTTPS / reverse proxy
+
+Run after Telectro has pointed the public reverse proxy at the agreed internal application target.
+
+Required result:
+
+```text
+Public HTTPS URL opens:
+No browser certificate warning:
+Certificate matches production hostname:
+Login page loads:
+Static assets load:
+No mixed-content warnings:
+Reverse proxy forwards Host header correctly:
+Reverse proxy forwards X-Forwarded-* headers correctly:
+Upload limit is acceptable:
+Timeouts are acceptable:
+WebSocket forwarding works:
+```
+
+Record:
+
+```text
+Public URL:
+Certificate hostname:
+Reverse proxy owner:
+Reverse proxy target host:
+Reverse proxy target port:
+WebSocket proof result:
+Upload proof result:
+Timeout/header notes:
+```
+
+##### 4. Internal login and workspaces
+
+Required result:
+
+```text
+Administrator or deployment admin login works:
+Internal Telectro user login works:
+Ops Workspace opens:
+Tech Workspace opens:
+Customer/Partner restricted routes remain contained:
+No obvious permission errors on landing:
+```
+
+##### 5. Customer portal
+
+Use a Customer Website User linked to the intended Customer/Contact.
+
+Required result:
+
+```text
+Customer login works:
+Customer ticket list opens:
+Customer ticket list shows only allowed customer tickets:
+Customer ticket detail opens:
+Customer ticket detail mobile/desktop layout is usable:
+Original customer request is visible:
+Latest customer update is visible when applicable:
+Activity can be reached:
+New support request page opens:
+Customer can log a support request:
+Fault point/location selection works:
+No-location path works where allowed:
+Customer can add an update:
+Customer update attachment upload works:
+Private attachment download route works only for allowed user:
+Completion evidence download route works only for allowed user:
+```
+
+Record proof ticket IDs:
+
+```text
+Customer list proof ticket:
+Customer new ticket proof:
+Customer update proof:
+Customer attachment proof:
+Completion evidence proof:
+```
+
+##### 6. Internal workflow
+
+Required result:
+
+```text
+New Customer ticket appears internally:
+Fault Location context visible:
+Customer Request context visible:
+Latest Customer Update visible:
+Controlled Handoff action works:
+Share Ticket Context works:
+Current owner display is correct:
+Assignment / owner state is correct:
+Customer resolution action works:
+Resolved ticket remains visible to customer as expected:
+```
+
+Record:
+
+```text
+Internal proof ticket:
+Assigned owner:
+Handoff proof:
+Resolution proof:
+```
+
+##### 7. Supervisor / coordinator oversight
+
+Required result:
+
+```text
+Ops Workspace opens:
+Customer first-response oversight report opens:
+Resolution oversight/prevention report opens:
+Breached SLA cleanup/oversight report opens:
+My Current Work report opens:
+Reports do not expose inappropriate records:
+Reports do not error for expected roles:
+```
+
+Record:
+
+```text
+Supervisor user:
+Coordinator user:
+Report proof notes:
+```
+
+##### 8. Outbound email
+
+Required result:
+
+```text
+Outgoing email account configured:
+Outbound test email sends:
+Email Queue shows sent status:
+Recipient receives message:
+Sender/from address is expected:
+No authentication/rate/relay errors:
+```
+
+Record:
+
+```text
+SMTP account:
+Test recipient:
+Email Queue record:
+Result:
+```
+
+##### 9. Incoming email
+
+Incoming email is in day-one scope, but email-created tickets should only be relied on operationally after controlled IMAP smoke testing passes.
+
+Required result:
+
+```text
+Incoming account configured for tickets@telectro.co.za:
+Scheduler/mail polling running:
+Test email to tickets@telectro.co.za is received:
+HD Ticket is created:
+Subject/body are captured correctly:
+Requester/contact/customer mapping behaves as expected:
+Attachments are captured if in scope:
+Service area/routing behaviour matches expected mailbox rules:
+No duplicate tickets created:
+```
+
+Record:
+
+```text
+Inbound test sender:
+Inbound test subject:
+Created ticket:
+Routing/team result:
+Attachment result:
+```
+
+##### 10. Smoke outcome
+
+Record:
+
+```text
+Smoke completed by:
+Smoke completed at:
+Smoke accepted by Telectro:
+Known blockers:
+Accepted deferred smoke items:
+App-side follow-up:
+Telectro-side follow-up:
+```
 
 #### Backup and rollback
 
