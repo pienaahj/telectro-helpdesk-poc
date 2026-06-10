@@ -680,14 +680,12 @@ Do not commit, paste, or document actual values for:
 Before deployment, confirm that the following are present on the production server without printing their contents:
 
 - production environment file
-- Docker secret files
+- Docker secret files or server-local secret material
 - SMTP/IMAP credential material
 - Samba credential material
-- certificate public file
-- certificate private key
-- certificate chain/fullchain file, if supplied
-- CLM credential/config material, if CLM retrieval is used
 - backup destination or mounted backup path
+
+Certificate files, certificate private keys, CLM credentials, renewal handling, reverse proxy reload, and certificate monitoring are currently expected to live at Telectro's reverse proxy / infrastructure layer, not inside the application deployment.
 
 Suggested safe checks:
 
@@ -696,7 +694,6 @@ ls -la /opt/telectro-helpdesk
 find /opt/telectro-helpdesk -maxdepth 3 -type f | sort
 test -f /opt/telectro-helpdesk/.env.production
 test -d /opt/telectro-helpdesk/secrets
-test -d /opt/telectro-helpdesk/certs
 ```
 
 Do not use `cat`, `grep`, screenshots, or copied terminal output on secret files when recording deployment evidence.
@@ -2684,29 +2681,19 @@ If the chain is missing or incorrect, some browsers or devices may show trust er
 
 ### Certificate storage on the server
 
-The agreed certificate storage path must be documented before deployment.
+Under the current Telectro-owned reverse proxy boundary, the application deployment does not define or manage the public HTTPS certificate storage path.
 
-Example intent:
+Certificate storage, private key protection, CLM retrieval/renewal, reverse proxy reload, and certificate monitoring are owned by Telectro / infrastructure.
 
-```text
-/opt/telectro-erpnext/certs
-```
+Application deployment rules:
 
-or:
+- do not place public HTTPS certificate private keys in the application repo
+- do not mount public HTTPS certificate files into the application stack
+- do not implement app-side CLM retrieval unless the production boundary changes
+- confirm that Telectro's reverse proxy presents a certificate matching the production hostname
+- include Telectro's certificate ownership, renewal, and restore/reissue approach in deployment and restore notes
 
-```text
-/etc/telectro-erpnext/certs
-```
-
-The final path should depend on the chosen production compose and reverse proxy structure.
-
-Storage rules:
-
-- certificate files live on the production server
-- certificate private keys stay outside Git
-- file ownership and permissions must be restricted
-- the Docker/reverse proxy service must be able to read the required files
-- the path must be included in the deployment/restore notes
+If the production boundary changes later and the application stack is asked to terminate HTTPS itself, a new application-side certificate storage path and deployment procedure must be documented before implementation.
 
 ### Reverse proxy responsibility
 
