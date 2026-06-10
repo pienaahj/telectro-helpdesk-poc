@@ -140,6 +140,133 @@ Application-team stance:
 - AlmaLinux is accepted for production because it is Telectro's company standard, provided that the VM is Docker-ready before application deployment starts.
 - Any AlmaLinux host-level blockers should be separated from application-stack blockers during deployment proof.
 
+### AlmaLinux host preflight checklist
+
+Before application deployment starts, Telectro should prove that the supplied AlmaLinux VM is Docker-ready and reachable.
+
+This checklist is intended to prove the host layer only. It does not prove the ERPNext / Helpdesk application stack.
+
+Run these checks on the production VM and capture pass/fail results without exposing secrets.
+
+#### OS and access
+
+```bash
+cat /etc/os-release
+uname -a
+id
+pwd
+hostname
+date
+```
+
+Expected:
+
+- OS is AlmaLinux.
+- SSH/VPN access works for the agreed deployment user.
+- System time is correct or managed by NTP.
+- Deployment user and privilege model are confirmed.
+
+#### Docker and Compose
+
+```bash
+docker version
+docker compose version
+systemctl is-enabled docker
+systemctl is-active docker
+```
+
+Expected:
+
+- Docker Engine is installed.
+- Docker Compose plugin is installed.
+- Docker service is enabled and active.
+- Deployment user can run Docker commands, either directly or through the agreed sudo workflow.
+
+#### SELinux and firewall
+
+```bash
+getenforce
+firewall-cmd --state
+firewall-cmd --list-all
+```
+
+Expected:
+
+- SELinux mode is known and owned by Telectro.
+- Firewall service state is known and owned by Telectro.
+- Required access path from Telectro reverse proxy to the application internal HTTP target is allowed.
+- If SELinux or firewall blocks Docker networking or reverse proxy access, Telectro owns the host-level fix.
+
+#### Network and reverse proxy reachability
+
+```bash
+ip addr
+ip route
+ss -lntp
+curl -I https://registry-1.docker.io/v2/ || true
+```
+
+Expected:
+
+- Internal/static IP is confirmed.
+- Default route and DNS resolution are working.
+- Outbound internet access for pulling container images is available or an approved registry mirror is configured.
+- No unexpected service is already using the agreed application internal HTTP port.
+- Telectro confirms whether the reverse proxy runs on the same VM or another host.
+
+#### Storage and backup mount readiness
+
+```bash
+df -h
+lsblk
+mount | sort
+```
+
+Expected:
+
+- Application deployment path has sufficient disk space.
+- Docker data location is understood.
+- Backup/Samba mount path is confirmed if available before deployment.
+- Backup destination ownership and restore responsibility are confirmed.
+
+#### Application internal target decision
+
+Default production application target:
+
+```text
+127.0.0.1:8080 -> frontend:8080
+```
+
+This is appropriate when Telectro's reverse proxy runs on the same VM.
+
+If Telectro's reverse proxy runs on another host, Telectro must confirm:
+
+- source IP / network allowed to reach the VM;
+- firewall rule for the agreed internal application port;
+- whether `APP_INTERNAL_HTTP_BIND` must change from `127.0.0.1` to a VM interface address or `0.0.0.0`;
+- reverse proxy timeout, upload limit, forwarded headers, and WebSocket forwarding behaviour.
+
+Do not broaden the application bind address until Telectro confirms the network and firewall scope.
+
+#### Preflight outcome
+
+Record:
+
+```text
+AlmaLinux VM available:
+Deployment user confirmed:
+Docker Engine ready:
+Docker Compose ready:
+SELinux/firewall ownership confirmed:
+Internal/static IP confirmed:
+Reverse proxy location confirmed:
+Internal app target confirmed:
+Backup mount confirmed:
+Outstanding host blockers:
+```
+
+Application deployment should not start until the host blockers are either resolved or explicitly accepted by the deployment owner.
+
 ### Deployment readiness position
 
 From an application/product perspective, there is no currently known feature gap blocking controlled production deployment proof.
