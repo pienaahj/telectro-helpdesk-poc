@@ -396,6 +396,113 @@ This section records the current practical readiness position for the first prod
 
 It should be reviewed with Telectro before scheduling deployment.
 
+### Deployment call pass/fail checklist
+
+Use this checklist during the Telectro deployment-readiness call to separate application readiness from Telectro-owned infrastructure readiness.
+
+Record each item as:
+
+```text
+Pass:
+Fail:
+Pending:
+Owner:
+Notes:
+```
+
+#### Call details
+
+```text
+Call date:
+Attendees:
+Deployment owner:
+Telectro infrastructure owner:
+Application owner:
+Decision recorded by:
+```
+
+#### Infrastructure readiness
+
+```text
+Production VM available:
+Host OS/version confirmed:
+VPN/SSH access confirmed:
+Deployment user confirmed:
+Docker Engine ready:
+Docker Compose ready:
+SELinux mode known:
+Firewall ownership confirmed:
+Internal/static IP confirmed:
+Deployment path confirmed:
+Outstanding infrastructure blockers:
+```
+
+#### Reverse proxy / public access readiness
+
+```text
+Public hostname confirmed:
+Reverse proxy owner confirmed:
+Reverse proxy location confirmed:
+Internal application target confirmed:
+Reverse proxy can reach internal application target:
+Public HTTPS termination owner confirmed:
+Certificate/CLM ownership confirmed:
+Outstanding reverse proxy / HTTPS blockers:
+```
+
+#### Email readiness
+
+```text
+Production ticket mailbox confirmed:
+SMTP access confirmed:
+IMAP access confirmed:
+Mailbox credentials placed securely on VM:
+Email smoke-test owner confirmed:
+Outstanding email blockers:
+```
+
+#### Backup / restore readiness
+
+```text
+Backup SMB mount details confirmed:
+Backup credentials placed securely on VM:
+Backup mount path confirmed:
+Deployment user can write to backup mount:
+Backup retention owner confirmed:
+Restore owner confirmed:
+Restore proof expectation confirmed:
+Outstanding backup / restore blockers:
+```
+
+#### Application deployment readiness
+
+```text
+Application candidate branch/tag confirmed:
+Production environment file prepared:
+Production Compose render checked:
+No app-owned Traefik/public edge exposed:
+Internal frontend bind checked:
+Secrets placed outside git:
+Application deployment smoke-test owner confirmed:
+Outstanding application blockers:
+```
+
+#### Go / no-go outcome
+
+```text
+Proceed with controlled technical deployment:
+Proceed with restrictions:
+Do not proceed:
+Accepted risks:
+Required follow-up before go-live:
+Final decision owner:
+Decision timestamp:
+```
+
+A controlled technical deployment can proceed only when infrastructure blockers are resolved or explicitly accepted by the deployment owner.
+
+A production go-live decision remains separate from the first technical deployment proof.
+
 ### Ready / largely proven in pilot
 
 The following areas have working pilot implementation and local proof:
