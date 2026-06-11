@@ -93,11 +93,12 @@ The production wrapper exists to avoid accidentally applying local Compose overr
 
 These scripts are intended for production-readiness proof.
 
-| Script                       | Classification                                 | Notes                                                                             |
-| ---------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| `bin/prod-host-preflight.sh` | Production-safe read-only diagnostic           | Does not install packages, change firewall, change SELinux, or start containers.  |
-| `bin/prod-compose.sh`        | Production Compose wrapper                     | Standardizes `.env.production`, `compose.yaml`, and `compose.production.yaml`.    |
-| `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags. |
+| Script                       | Classification                                 | Notes                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bin/prod-host-preflight.sh` | Production-safe read-only diagnostic           | Does not install packages, change firewall, change SELinux, or start containers.                                                                            |
+| `bin/prod-compose.sh`        | Production Compose wrapper                     | Standardizes `.env.production`, `compose.yaml`, and `compose.production.yaml`.                                                                              |
+| `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags.                                                                           |
+| `bin/prod-bench.sh`          | Production bench wrapper                       | Runs bench inside the production backend container through `bin/prod-compose.sh`; does not use `.env.local`, `.env`, `pwd.yml`, or `compose.override.yaml`. |
 
 ## Local/development wrappers
 
@@ -153,6 +154,7 @@ Use these production-safe commands first:
 ./bin/prod-render-compose.sh
 ./bin/prod-compose.sh config
 ./bin/prod-compose.sh ps
+./bin/prod-bench.sh --site <site-name> list-apps
 ```
 
 For production start/stop/restart/migrate operations, do not reuse local scripts blindly.
