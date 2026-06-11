@@ -99,6 +99,7 @@ These scripts are intended for production-readiness proof.
 | `bin/prod-compose.sh`        | Production Compose wrapper                     | Standardizes `.env.production`, `compose.yaml`, and `compose.production.yaml`.                                                                              |
 | `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags.                                                                           |
 | `bin/prod-bench.sh`          | Production bench wrapper                       | Runs bench inside the production backend container through `bin/prod-compose.sh`; does not use `.env.local`, `.env`, `pwd.yml`, or `compose.override.yaml`. |
+| `bin/prod-migrate.sh`        | Production migration wrapper                   | Runs `bench --site <site> migrate` through `bin/prod-bench.sh`; requires explicit `SITE`.                                                                   |
 
 ## Local/development wrappers
 
@@ -155,6 +156,7 @@ Use these production-safe commands first:
 ./bin/prod-compose.sh config
 ./bin/prod-compose.sh ps
 ./bin/prod-bench.sh --site <site-name> list-apps
+SITE=<site-name> ./bin/prod-migrate.sh
 ```
 
 For production start/stop/restart/migrate operations, do not reuse local scripts blindly.
