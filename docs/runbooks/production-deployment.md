@@ -1477,6 +1477,26 @@ The local setup proved that ERPNext/Frappe assets must be visible consistently t
 
 The production compose structure must explicitly mount the same assets volume into the expected backend and frontend paths.
 
+Because the Compose file declares the shared assets volume as an external Docker volume, Compose will not create it automatically.
+
+Before the first production stack start, verify or create it explicitly:
+
+```bash
+docker volume ls | grep -E 'telectro-helpdesk-poc_assets|DRIVER|telectro'
+
+docker volume create telectro-helpdesk-poc_assets
+
+docker volume ls | grep -E 'telectro-helpdesk-poc_assets|DRIVER|telectro'
+```
+
+Expected proof:
+
+```text
+local     telectro-helpdesk-poc_assets
+```
+
+If this external volume is missing, production stack startup can fail before the frontend/backend asset path is usable.
+
 Expected pattern:
 
 ```yaml

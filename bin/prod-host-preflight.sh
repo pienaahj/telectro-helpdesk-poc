@@ -50,6 +50,9 @@ run_optional df -h
 run_optional lsblk
 run_optional mount
 
+section "Kernel / container runtime tuning"
+run_optional sysctl vm.overcommit_memory
+
 section "Network basics"
 run_optional ip addr
 run_optional ip route
@@ -72,6 +75,7 @@ cat <<'EOF'
 Review notes:
 - Any Docker failure is a host readiness blocker.
 - Any firewalld/SELinux restriction should be handled by Telectro/infrastructure owner.
+- Redis expects vm.overcommit_memory=1 for production-grade reliability.
 - This script does not prove the app deploys.
 - This script only proves basic host visibility.
 EOF
