@@ -439,6 +439,11 @@ FodyWeavers.xsd
 .env
 *.env
 
+# Production/local environment files must never be committed.
+.env.production
+.env.production.*
+!.env.production.example
+
 # OS / editor
 .DS_Store
 .vscode/
