@@ -1,5 +1,5 @@
 <template>
-  <div v-if="ticket.data" class="flex flex-col bg-[#fbf8f2] md:bg-white">
+  <div v-if="ticket.data" class="flex flex-col bg-[#fbf8f2]">
     <LayoutHeader>
       <template #left-header>
         <div
@@ -47,28 +47,37 @@
       </template>
     </LayoutHeader>
     <div
-      class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#f6f0e7] px-5 py-4 shadow-sm md:mx-10"
+      class="mx-6 mt-4 overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm md:mx-10"
     >
+      <div class="h-1 bg-[#c9b37a]" />
+
       <div
-        class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+        class="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between"
       >
         <div class="flex items-center gap-4">
-          <img
-            :src="boschendalLogoUrl"
-            alt="Boschendal"
-            class="h-10 w-auto shrink-0"
-          />
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#fffaf0] p-2 shadow-sm ring-1 ring-[#e5d8bc]"
+          >
+            <img
+              :src="boschendalLogoUrl"
+              alt="Boschendal"
+              class="max-h-10 w-auto"
+            />
+          </div>
+
           <div>
-            <div class="text-sm uppercase tracking-[0.18em] text-stone-500">
+            <div class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]">
               {{ __("Boschendal Service Desk") }}
             </div>
-            <div class="text-lg font-semibold text-stone-950">
+            <div class="text-xl font-semibold text-white">
               {{ __("Support request") }} #{{ ticket.data.name }}
             </div>
           </div>
         </div>
 
-        <div class="text-sm text-stone-600">
+        <div
+          class="w-fit rounded-full border border-[#f1e8d2]/50 px-3 py-1 text-sm text-[#fffaf0]"
+        >
           {{ __("Managed by Telectro") }}
         </div>
       </div>
@@ -151,12 +160,13 @@
                 }}
               </div>
             </div>
-            <Button
-              :label="__('Add information')"
-              theme="gray"
-              variant="solid"
+            <button
+              type="button"
+              class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a]"
               @click="openCustomerUpdateEditor"
-            />
+            >
+              {{ __("Add information") }}
+            </button>
           </div>
         </div>
         <div
