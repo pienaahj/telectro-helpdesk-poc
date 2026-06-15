@@ -15,6 +15,40 @@
     <div
       class="flex flex-col gap-5 py-6 h-full flex-1 self-center overflow-auto mx-auto w-full max-w-4xl px-5"
     >
+      <div
+        v-if="isCustomerPortal"
+        class="overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm"
+      >
+        <div class="h-1 bg-[#c9b37a]" />
+
+        <div class="flex items-center gap-4 px-5 py-4">
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#fffaf0] p-2 shadow-sm ring-1 ring-[#e5d8bc]"
+          >
+            <img
+              :src="boschendalLogoUrl"
+              alt="Boschendal"
+              class="max-h-10 w-auto"
+            />
+          </div>
+
+          <div>
+            <div class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]">
+              {{ __("Boschendal Service Desk") }}
+            </div>
+            <div class="text-xl font-semibold text-white">
+              {{ __("Log a Support Request") }}
+            </div>
+            <div class="mt-1 max-w-2xl text-sm text-[#fffaf0]">
+              {{
+                __(
+                  "Tell the Telectro team what needs attention and where it is located.",
+                )
+              }}
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- custom fields descriptions -->
       <div v-if="Boolean(template.data?.about)" class="">
         <div class="prose-f" v-html="sanitize(template.data.about)" />
@@ -81,13 +115,14 @@
                 "
                 @keyup.enter="searchFaultPoints"
               />
-              <Button
-                :label="__('Search')"
-                theme="gray"
-                variant="solid"
-                :loading="faultPointLoading"
+              <button
+                type="button"
+                class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a] disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="faultPointLoading"
                 @click="searchFaultPoints"
-              />
+              >
+                {{ faultPointLoading ? __("Searching...") : __("Search") }}
+              </button>
             </div>
           </div>
         </div>
@@ -371,6 +406,8 @@ const subject = ref("");
 const description = ref("");
 const attachments = ref([]);
 const templateFields = reactive({});
+
+const boschendalLogoUrl = "/assets/telephony/images/boschendal-logo.svg";
 
 const faultPointCategories = [
   "Buildings",
