@@ -31,7 +31,7 @@ def execute(filters=None):
 def get_columns():
     return [
         {
-            "label": "Customer",
+            "label": "Account",
             "fieldname": "customer",
             "fieldtype": "Data",
             "width": 180,

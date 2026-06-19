@@ -41,7 +41,7 @@ def get_columns():
             "width": 160,
         },
         {
-            "label": "Customer",
+            "label": "Account",
             "fieldname": "custom_customer",
             "fieldtype": "Data",
             "width": 180,

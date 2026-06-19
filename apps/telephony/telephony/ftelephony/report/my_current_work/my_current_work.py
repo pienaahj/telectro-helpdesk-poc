@@ -30,7 +30,7 @@ def get_columns():
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
         {"label": "Priority", "fieldname": "priority", "fieldtype": "Data", "width": 90},
         {"label": "Severity", "fieldname": "custom_severity", "fieldtype": "Data", "width": 90},
-        {"label": "Customer", "fieldname": "custom_customer", "fieldtype": "Link", "options": "Customer", "width": 150},
+        {"label": "Account", "fieldname": "custom_customer", "fieldtype": "Link", "options": "Customer", "width": 150},
         {"label": "Campus", "fieldname": "custom_site_group", "fieldtype": "Link", "options": "Location", "width": 150},
         {"label": "Service Area", "fieldname": "custom_service_area", "fieldtype": "Data", "width": 130},
         {"label": "Request Source", "fieldname": "custom_request_source", "fieldtype": "Data", "width": 130},
