@@ -52,7 +52,7 @@ def get_columns():
         {"label": "Status", "fieldname": "status", "fieldtype": "Data", "width": 100},
         {"label": "Priority", "fieldname": "priority", "fieldtype": "Data", "width": 90},
         {"label": "Severity", "fieldname": "custom_severity", "fieldtype": "Data", "width": 90},
-        {"label": "Customer", "fieldname": "custom_customer", "fieldtype": "Link", "options": "Customer", "width": 150},
+        {"label": "Account", "fieldname": "custom_customer", "fieldtype": "Link", "options": "Customer", "width": 150},
         {"label": "Campus", "fieldname": "custom_site_group", "fieldtype": "Link", "options": "Location", "width": 150},
         {"label": "Service Area", "fieldname": "custom_service_area", "fieldtype": "Data", "width": 140},
         {"label": "Owner / Bucket", "fieldname": "owner_label", "fieldtype": "Data", "width": 180},
@@ -217,7 +217,7 @@ def _coverage_match_label(coverage) -> str:
         return f"{coverage.get('customer') or '-'} / {coverage.get('campus') or '-'}"
 
     if scope == "Customer":
-        return f"Customer: {coverage.get('customer') or '-'}"
+        return f"Account: {coverage.get('customer') or '-'}"
 
     if scope == "Campus":
         return f"Campus: {coverage.get('campus') or '-'}"

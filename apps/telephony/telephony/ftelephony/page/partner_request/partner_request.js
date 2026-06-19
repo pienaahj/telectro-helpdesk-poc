@@ -218,7 +218,7 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
         fieldtype: "Link",
         options: "Customer",
         fieldname: "custom_customer",
-        label: "Customer",
+        label: "Account",
       },
       render_input: true,
     }),
@@ -287,7 +287,7 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
 
     controls.custom_site_group.df.read_only = shouldLock ? 1 : 0;
     controls.custom_site_group.df.description = shouldLock
-      ? "Auto-set from Customer"
+      ? "Auto-set from Account"
       : "";
 
     controls.custom_site_group.refresh();

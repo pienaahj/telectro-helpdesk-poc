@@ -29,7 +29,7 @@ frappe.query_reports["TELECTRO Repeat Faults by Location"] = {
     },
     {
       fieldname: "customer",
-      label: "Customer",
+      label: "Account",
       fieldtype: "Link",
       options: "Customer",
     },
