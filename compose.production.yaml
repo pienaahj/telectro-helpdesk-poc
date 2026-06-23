@@ -32,6 +32,27 @@
 # Do not expose this internal HTTP target publicly without Telectro firewall /
 # reverse proxy approval.
 #
+# Production durable-data bind-mount root:
+#
+# The production stack deliberately uses host bind mounts for durable data that
+# should be explicit on the ERP VM. This aligns with Telectro's infrastructure
+# preference because the production data paths are easier to inspect, easier to
+# back up deliberately, and easier to expand/move if disk capacity changes.
+#
+# Expected host layout:
+#
+#   ${PRODUCTION_DATA_ROOT}/mariadb      -> MariaDB data
+#   ${PRODUCTION_DATA_ROOT}/sites        -> Frappe sites, config, files
+#   ${PRODUCTION_DATA_ROOT}/logs         -> Frappe/bench logs
+#   ${PRODUCTION_DATA_ROOT}/assets       -> generated/public assets
+#   app/env strategy is handled separately so empty host bind mounts do not
+#   mask image-provided Frappe/ERPNext runtime contents.
+#   ${PRODUCTION_DATA_ROOT}/redis-queue  -> Redis queue persistence
+#
+# Recommended production value:
+#
+#   PRODUCTION_DATA_ROOT=/opt/telectro/erpnext/data
+#
 # This file is still not production-ready until real production values are
 # confirmed for:
 #
@@ -46,6 +67,11 @@
 
 services:
   frontend:
+
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/var/www/html/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/var/www/html/assets
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/assets
     image: ${ERPNEXT_NGINX_IMAGE:?Set ERPNEXT_NGINX_IMAGE}
     command:
       - nginx-entrypoint.sh
@@ -63,6 +89,12 @@ services:
 
 
   backend:
+
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/home/frappe/frappe-bench/sites/assets
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
+      - ./import:/import:ro
     environment:
       # Production should use SITE_NAME rather than hard-coded "frontend".
       TELECTRO_DEBUG: "0"
@@ -84,6 +116,10 @@ services:
   # Production should not expose websocket directly to the host.
   # The frontend/nginx service should reach websocket internally through Docker networking.
   websocket:
+
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
     expose:
       - "9000"
 
@@ -99,6 +135,10 @@ services:
       - local-only
 
   create-site:
+
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
     environment:
       DB_HOST: db
       DB_PORT: "3306"
@@ -131,6 +171,9 @@ services:
         bench new-site --mariadb-user-host-login-scope='%' --admin-password=$$FRAPPE_ADMIN_PASSWORD --db-root-username=$$DB_ROOT_USERNAME --db-root-password=$$MARIADB_ROOT_PASSWORD --install-app erpnext --set-default $$SITE_NAME;
 
   db:
+
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/mariadb:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD}
@@ -143,3 +186,30 @@ services:
         ]
       interval: 1s
       retries: 20
+
+  configurator:
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
+
+  queue-long:
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/home/frappe/frappe-bench/sites/assets
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
+
+  queue-short:
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/home/frappe/frappe-bench/sites/assets
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
+
+  scheduler:
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/sites:/home/frappe/frappe-bench/sites
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/assets:/home/frappe/frappe-bench/sites/assets
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/logs:/home/frappe/frappe-bench/logs
+
+  redis-queue:
+    volumes:
+      - ${PRODUCTION_DATA_ROOT:?Set PRODUCTION_DATA_ROOT}/redis-queue:/data
