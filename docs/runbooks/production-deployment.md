@@ -541,6 +541,108 @@ Implication:
 
 Do not assume this pattern is portable to arm64 without replacing the Helpdesk source stage with pinned upstream source refs or a multi-architecture Helpdesk source image.
 
+### 2026-06-25 Telectro runtime image Dockerfile proof
+
+A first proof Dockerfile was added at:
+
+```text
+docker/telectro-runtime.Dockerfile
+```
+
+The proof image was built locally as:
+
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  -f docker/telectro-runtime.Dockerfile \
+  -t telectro/erpnext-runtime:proof-20260625 \
+  --load \
+  .
+```
+
+The proof image uses:
+
+```text
+final base:
+- frappe/erpnext:v15.94.1
+
+source stage:
+- ghcr.io/frappe/helpdesk:v1.18.1
+
+repo overlays:
+- apps/helpdesk
+- apps/telephony
+```
+
+The Dockerfile copies complete Helpdesk and Telephony app directories from the Helpdesk source image into the ERPNext runtime base, then applies the Telectro overlay files from this repository.
+
+A build-time `sites/common_site_config.json` stub is created with:
+
+```json
+{ "socketio_port": 9000 }
+```
+
+This is required because the Helpdesk frontend build imports `socketio_port` from `sites/common_site_config.json`. This is only a build-time asset stub. In production, the real `sites/common_site_config.json` comes from the production sites bind mount/configurator flow.
+
+Proof result:
+
+```text
+- image builds successfully as linux/amd64
+- image contains frappe, erpnext, helpdesk, and telephony app directories
+- bench version sees frappe, erpnext, helpdesk, and telephony
+- Python imports pass for frappe, erpnext, helpdesk, and telephony
+- Telectro Helpdesk overlay file is present
+- Telectro Telephony overlay files are present
+- Node/npm are available at runtime
+- bench build succeeds during image build
+- asset manifests exist in image sites/assets
+```
+
+Runtime proof command:
+
+```bash
+docker run --rm --platform linux/amd64 telectro/erpnext-runtime:proof-20260625 bash -lc '
+  set -e
+  cd /home/frappe/frappe-bench
+
+  uname -m
+  ls -1 apps | sort
+
+  node --version
+  npm --version
+  bench version
+
+  ./env/bin/python -c "import frappe, erpnext, helpdesk, telephony; print(\"IMPORTS_OK\")"
+
+  test -f apps/helpdesk/desk/src/pages/ticket/TicketCustomer.vue
+  test -f apps/telephony/telephony/telectro_round_robin.py
+  test -f apps/telephony/telephony/hooks.py
+
+  test -f sites/assets/assets.json
+  test -f sites/assets/assets-rtl.json
+
+  echo "RUNTIME_IMAGE_PROOF_OK"
+'
+```
+
+Observed runtime note:
+
+```text
+- yarn is not on the default runtime PATH
+- this is acceptable for the first proof because bench build succeeds during image build
+- normal production runtime should not depend on running yarn
+```
+
+Open asset strategy caveat:
+
+```text
+The image contains built assets, but production currently bind-mounts the assets directory.
+Before using this image for production deployment, decide and prove whether production will:
+- seed/sync the host assets bind mount from the image;
+- rebuild assets into the production assets bind mount during controlled deployment; or
+- change the frontend/assets image strategy.
+```
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
