@@ -1,6 +1,6 @@
 services:
   backend:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -29,7 +29,7 @@ services:
       retries: 30
 
   configurator:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -58,7 +58,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
       - apps:/home/frappe/frappe-bench/apps
   create-site:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -137,7 +137,7 @@ services:
       - apps:/home/frappe/frappe-bench/apps:ro  # <-- ADD (read-only is fine)
 
   queue-long:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -159,7 +159,7 @@ services:
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
 
   queue-short:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -199,7 +199,7 @@ services:
         condition: on-failure
 
   scheduler:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -215,7 +215,7 @@ services:
       - logs:/home/frappe/frappe-bench/logs
       - env:/home/frappe/frappe-bench/env
   websocket:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
     deploy:
@@ -263,7 +263,7 @@ services:
       retries: 20
 
   bench-runner:
-    image: frappe/erpnext:v15.94.1
+    image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     platform: linux/amd64
     networks: [frappe_network]
     user: root
