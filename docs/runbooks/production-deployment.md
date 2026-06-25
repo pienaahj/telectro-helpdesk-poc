@@ -482,6 +482,65 @@ Do not treat a successful image pull as a complete production update. A producti
 - smoke tests pass
 - rollback point is known
 
+### 2026-06-25 runtime image source-stage proof
+
+Source image discovery confirmed that the ERPNext and Helpdesk images contain complementary app/runtime contents.
+
+`frappe/erpnext:v15.94.1` provides:
+
+```text
+- frappe app directory
+- erpnext app directory
+- Python imports pass for frappe and erpnext
+- helpdesk app is absent
+- telephony app is absent
+```
+
+`ghcr.io/frappe/helpdesk:v1.18.1` provides, when run explicitly as `linux/amd64`:
+
+```text
+- frappe app directory
+- helpdesk app directory
+- telephony app directory
+- Python imports pass for frappe, helpdesk, and telephony
+- erpnext app is absent
+```
+
+The Helpdesk image does not currently provide a usable `linux/arm64/v8` manifest for this tag. On Apple Silicon, a default pull/run fails with:
+
+```text
+no matching manifest for linux/arm64/v8 in the manifest list entries
+```
+
+It can be inspected on Apple Silicon with:
+
+```bash
+docker run --rm --platform linux/amd64 ghcr.io/frappe/helpdesk:v1.18.1 bash -lc 'cd /home/frappe/frappe-bench && ls -1 apps'
+```
+
+Telectro production VM architecture proof:
+
+```text
+uname -m                                      -> x86_64
+docker info Architecture                      -> x86_64
+docker version Server                         -> linux/amd64
+```
+
+Implication:
+
+```text
+- the Telectro production target is amd64;
+- the Helpdesk image remains a viable source-stage candidate for this production target;
+- the preferred first Dockerfile pattern is an amd64 multi-stage image:
+  - final base: frappe/erpnext:v15.94.1
+  - source stage: ghcr.io/frappe/helpdesk:v1.18.1
+  - copy Helpdesk and Telephony app directories from the source stage
+  - apply Telectro overlays from this repository
+  - run fatal install/import/build proof
+```
+
+Do not assume this pattern is portable to arm64 without replacing the Helpdesk source stage with pinned upstream source refs or a multi-architecture Helpdesk source image.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
