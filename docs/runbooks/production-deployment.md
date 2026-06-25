@@ -383,6 +383,105 @@ Expected:
 
 Do not set production `ERPNEXT_IMAGE` to a Telectro custom image until this proof passes.
 
+2026-06-25 production runtime image update model
+
+Production updates should be image-led, not live-builder-led.
+
+The preferred update model is:
+
+source refs change
+-> build a new immutable runtime image
+-> prove the image
+-> deploy the image tag
+-> run controlled site migration
+-> smoke test
+
+Production updates must not normally depend on ad-hoc live app assembly on the production VM, such as:
+
+bench get-app
+npm install
+yarn install
+bench build
+
+against moving upstream branches during production bring-up.
+
+Builder tooling such as Node, Yarn, npm, git, and source-fetching logic should belong in the controlled image build process, not in the normal production deployment path.
+
+Preferred production responsibility split:
+
+Build environment:
+
+- fetch pinned upstream Helpdesk source
+- fetch pinned upstream Telephony source
+- apply Telectro overlays
+- install Python packages
+- run frontend/build tooling
+- fail the build if bench build/import checks fail
+- publish immutable runtime image tag
+
+Production VM:
+
+- pull tested immutable runtime image
+- set ERPNEXT_IMAGE to that tag
+- recreate runtime containers
+- run install-app/migrate steps against the production site
+- smoke test
+
+A production app/runtime update is therefore two related but separate operations:
+
+Image update:
+
+- changes app code
+- changes Python runtime environment
+- changes built assets/runtime package
+- delivered by ERPNEXT_IMAGE
+
+Site/database update:
+
+- changes database schema
+- installs missing apps on the site
+- applies fixtures/custom fields/reports/workspaces
+- delivered by install-app and migrate
+
+The normal deployment sequence for a new Telectro runtime image should be:
+
+1. Take a production site/database backup.
+2. Pull or load the tested immutable Telectro runtime image.
+3. Set ERPNEXT_IMAGE to the tested image tag.
+4. Recreate runtime containers.
+5. Confirm the image contains/imports frappe, erpnext, helpdesk, and telephony.
+6. Install missing apps on the site, if this is the first Helpdesk/Telephony deployment.
+7. Run migrate.
+8. Clear cache/restart runtime services.
+9. Smoke test ERPNext, Helpdesk, Customer portal, and Telectro pilot flows.
+
+Rollback model:
+
+Image-only rollback:
+
+- set ERPNEXT_IMAGE back to the previous known-good immutable tag
+- recreate containers
+
+Database rollback:
+k:
+
+- set ERPNEXT_IMAGE back to the previous known-good immutable tag
+- recreate containers
+
+Database rollback:
+
+- if migrate or install-app changed schema/data and rollback is required,
+  restore the production site/database backup taken before the update
+
+Because database migrations can change durable production state, every production image rollout that includes app installation or migration must start with a backup.
+
+Do not treat a successful image pull as a complete production update. A production update is only complete after:
+
+- image proof passes
+- install-app/migrate path passes
+- smoke tests pass
+- rollback point is known
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
