@@ -785,6 +785,62 @@ If app install or migrate has changed database schema/data, image rollback alone
 Take a production backup before install-app/migrate and treat DB rollback as a separate deliberate action.
 ```
 
+### 2026-06-25 Telectro custom runtime VM proof checkpoint
+
+A production-shaped VM proof was completed using the custom Telectro runtime image path.
+
+Confirmed runtime shape:
+
+- `ERPNEXT_IMAGE=telectro/erpnext-runtime:vm-proof-20260625-fixture-safe`
+- `ERPNEXT_NGINX_IMAGE=frappe/erpnext:v15.94.1`
+- App bind: `192.168.0.11:8080`
+- Site: `erp.telectro.co.za`
+- Runtime apps available in image:
+  - `frappe 15.96.0`
+  - `erpnext 15.94.1`
+  - `helpdesk 1.18.1`
+  - `telephony 0.0.1`
+
+Important findings:
+
+- The production `sites` bind mount masks image-provided `sites/apps.txt`, so the production sites volume must list all bench-available apps:
+  - `frappe`
+  - `erpnext`
+  - `telephony`
+  - `helpdesk`
+- Production assets must be seeded from the selected runtime image before frontend/browser smoke.
+- The first runtime image imported Telectro `HD Team` fixture users ending in `@local.test`, which is unsafe for production-shaped installs.
+- The fixture-safe runtime image keeps the HD Team records but strips pilot-only `@local.test` HD Team user assignments during image build.
+- After restoring the clean pre-install backup and retrying install/migrate with the fixture-safe image, the site installed all four apps successfully.
+- Helpdesk default ticket statuses had to be repaired manually after the interrupted install path by running:
+  `bench --site erp.telectro.co.za execute helpdesk.setup.install.add_default_status`
+
+Final VM smoke proof:
+
+- Backend healthy.
+- Runtime services recreated on the fixture-safe image:
+  - backend
+  - websocket
+  - queue-long
+  - queue-short
+  - scheduler
+- Frontend running on `frappe/erpnext:v15.94.1`.
+- Frontend bind reachable on `192.168.0.11:8080`.
+- `GET /api/method/ping` with host `erp.telectro.co.za` returned `{"message":"pong"}`.
+- Final site app list:
+  - `frappe`
+  - `erpnext`
+  - `telephony`
+  - `helpdesk`
+- Final Helpdesk baseline counts:
+  - `HD Ticket Status`: 4
+  - `HD Ticket Type`: 3
+  - `HD Team`: 6
+
+Production caution:
+
+- A database root password was exposed in terminal output during the failed restore attempt. Rotate the DB root password before production sign-off.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
