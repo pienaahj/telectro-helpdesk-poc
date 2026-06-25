@@ -705,6 +705,86 @@ That is acceptable for the first production proof because current assets.json po
 A later hardening slice may add a deliberate prune/snapshot mode if required.
 ```
 
+### 2026-06-25 custom runtime deployment sequence
+
+For a production deployment using the Telectro runtime image, keep the runtime image, assets, app installation, migration, restart, and smoke proof as explicit steps.
+
+The expected sequence is:
+
+```text
+1. Confirm the tested immutable runtime image tag.
+2. Set ERPNEXT_IMAGE in the production env file to that runtime image.
+3. Keep ERPNEXT_NGINX_IMAGE set to the approved frontend/nginx image.
+4. Render production Compose and confirm the expected images and bind mounts.
+5. Pull/load the runtime image on the production host.
+6. Seed production assets from ERPNEXT_IMAGE.
+7. Start or restart core services.
+8. Install required apps into the production site if missing.
+9. Run migrate as a separate explicit step.
+10. Restart core services again.
+11. Run production smoke checks.
+```
+
+Example command sequence:
+
+```bash
+PROD_ENV_FILE=.env.production ./bin/prod-render-compose.sh
+
+PROD_ENV_FILE=.env.production ./bin/prod-compose.sh pull
+
+PROD_ENV_FILE=.env.production ./bin/prod-seed-assets.sh
+
+PROD_ENV_FILE=.env.production ./bin/prod-compose.sh up -d db redis-cache redis-queue backend websocket queue-long queue-short scheduler frontend
+
+PROD_ENV_FILE=.env.production \
+SITE=erp.telectro.co.za \
+CONFIRM_PROD_INSTALL_APPS=install-apps \
+./bin/prod-install-apps.sh
+
+PROD_ENV_FILE=.env.production \
+SITE=erp.telectro.co.za \
+./bin/prod-migrate.sh
+
+PROD_ENV_FILE=.env.production \
+CONFIRM_PROD_RESTART=restart-core \
+./bin/prod-restart-core.sh
+```
+
+App install policy:
+
+```text
+- create-site currently installs only erpnext on a new site
+- Helpdesk and Telephony are installed explicitly after the custom runtime image is selected
+- the install helper lists current apps, skips already installed apps, installs missing required apps, and lists apps again
+- migrate is deliberately not hidden inside the install helper
+```
+
+Default required apps:
+
+```text
+helpdesk
+telephony
+```
+
+Smoke proof after the sequence should confirm:
+
+```text
+- backend ping works with the production site header
+- frontend loads through the Telectro reverse proxy path
+- no obvious /assets/... 404s
+- bench list-apps shows frappe, erpnext, helpdesk, and telephony
+- Helpdesk desk route loads
+- Customer portal route loads
+- websocket path does not fail visibly in browser console
+```
+
+Rollback note:
+
+```text
+If app install or migrate has changed database schema/data, image rollback alone is not sufficient.
+Take a production backup before install-app/migrate and treat DB rollback as a separate deliberate action.
+```
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
