@@ -1,16 +1,51 @@
 services:
   backend:
     volumes:
+      - apps:/home/frappe/frappe-bench/apps
       - assets:/home/frappe/frappe-bench/sites/assets
+      - env:/home/frappe/frappe-bench/env
+
+  configurator:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
+
+  create-site:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
 
   frontend:
     ports:
       - "8080:8080"
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps:ro
+
+  queue-long:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
+      - env:/home/frappe/frappe-bench/env
+
+  queue-short:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
+      - env:/home/frappe/frappe-bench/env
+
+  scheduler:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
+      - env:/home/frappe/frappe-bench/env
 
   websocket:
     ports:
       - "9000:9000"
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
+
+  bench-runner:
+    volumes:
+      - apps:/home/frappe/frappe-bench/apps
 
 volumes:
   assets:
     name: telectro-helpdesk-poc_assets
+  apps:
+  env:

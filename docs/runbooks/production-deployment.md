@@ -187,6 +187,76 @@ Minimum proof required before the first production app-layer mutation:
 
 Do not proceed with production Helpdesk/Telephony installation while the app-layer strategy is implicit.
 
+### 2026-06-25 production app/env volume strategy update
+
+The app/env masking risk documented above is resolved in the Compose strategy by separating local development mounts from the production render.
+
+The production Compose render must use image-provided runtime contents for:
+
+```text
+/home/frappe/frappe-bench/apps
+/home/frappe/frappe-bench/env
+```
+
+The production render must not include Docker mount targets for:
+
+```text
+target: /home/frappe/frappe-bench/apps
+target: /home/frappe/frappe-bench/env
+```
+
+This allows a future complete Telectro runtime image to supply the full app/runtime layer without being masked by stale named volumes.
+
+Local development keeps the existing named-volume behaviour through `compose.override.yaml`:
+
+```text
+apps -> /home/frappe/frappe-bench/apps
+env  -> /home/frappe/frappe-bench/env
+```
+
+This keeps the local Docker development workflow intact while making production depend on the controlled runtime image for app and Python environment contents.
+
+Expected production ownership split after this update:
+
+```text
+Production runtime image:
+- /home/frappe/frappe-bench/apps
+- /home/frappe/frappe-bench/env
+
+Production durable bind mounts:
+- sites
+- assets
+- logs
+- MariaDB data
+- Redis queue data
+
+Local development override:
+- apps named volume
+- env named volume
+```
+
+Verification command:
+
+```bash
+PROD_ENV_FILE=.env.production.example \
+OUTPUT_FILE=/tmp/telectro-production-compose.volume-strategy.yaml \
+./bin/prod-render-compose.sh
+
+RENDERED=/tmp/telectro-production-compose.volume-strategy.yaml
+
+grep -nE 'target: /home/frappe/frappe-bench/(apps|env)' "$RENDERED" || true
+grep -nE '/home/frappe/frappe-bench/apps' "$RENDERED" || true
+sed -n '/^volumes:/,$p' "$RENDERED" | sed -n '1,120p'
+```
+
+Expected result:
+
+```text
+- no apps/env mount targets in the production render
+- no top-level apps/env volumes in the production render
+- the websocket command path /home/frappe/frappe-bench/apps/frappe/socketio.js may still appear and is expected
+```
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.

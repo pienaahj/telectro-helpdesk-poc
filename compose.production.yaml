@@ -45,8 +45,9 @@
 #   ${PRODUCTION_DATA_ROOT}/sites        -> Frappe sites, config, files
 #   ${PRODUCTION_DATA_ROOT}/logs         -> Frappe/bench logs
 #   ${PRODUCTION_DATA_ROOT}/assets       -> generated/public assets
-#   app/env strategy is handled separately so empty host bind mounts do not
-#   mask image-provided Frappe/ERPNext runtime contents.
+#   app/env are supplied by the production runtime image; production Compose
+#   must not mount named apps/env volumes over image-provided runtime contents.
+#   Local development restores apps/env named volumes through compose.override.yaml.
 #   ${PRODUCTION_DATA_ROOT}/redis-queue  -> Redis queue persistence
 #
 # Recommended production value:
