@@ -465,3 +465,7 @@ assets/
 ops/site-config/
 # local KMZ import mount
 import/
+
+# Local deployment/source provenance markers
+.source-branch
+.source-commit
