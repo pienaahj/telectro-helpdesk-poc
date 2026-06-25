@@ -643,6 +643,68 @@ Before using this image for production deployment, decide and prove whether prod
 - change the frontend/assets image strategy.
 ```
 
+### 2026-06-25 production assets seed strategy
+
+Production keeps a host bind mount for generated/public assets.
+
+The rendered production Compose mounts the same production assets directory into backend-side services and the frontend service:
+
+```text
+${PRODUCTION_DATA_ROOT}/assets -> /home/frappe/frappe-bench/sites/assets
+${PRODUCTION_DATA_ROOT}/assets -> /var/www/html/assets
+${PRODUCTION_DATA_ROOT}/assets -> /assets
+```
+
+This means image-built assets are hidden at runtime unless they are copied into the host assets bind mount.
+
+The selected first strategy is to seed/sync image-built assets into the production host assets directory before frontend/runtime smoke testing.
+
+Helper:
+
+```bash
+PROD_ENV_FILE=.env.production ./bin/prod-seed-assets.sh
+```
+
+For local proof with an amd64 proof image on Apple Silicon:
+
+```bash
+PROD_ENV_FILE=/tmp/telectro-env.assets-proof \
+DOCKER_PLATFORM=linux/amd64 \
+./bin/prod-seed-assets.sh
+```
+
+The helper:
+
+```text
+- reads ERPNEXT_IMAGE from the production env file
+- reads PRODUCTION_DATA_ROOT from the production env file
+- copies /home/frappe/frappe-bench/sites/assets from the selected runtime image
+- dereferences app asset symlinks so the host bind mount receives real files, not dangling symlinks
+- writes into ${PRODUCTION_DATA_ROOT}/assets
+- verifies assets.json and assets-rtl.json exist after seeding
+- verifies that the /assets/... files referenced by assets.json exist after seeding
+- does not delete existing files
+```
+
+Important implementation note:
+
+```text
+Frappe's sites/assets tree includes symlinks back into app asset directories.
+For production host bind mounts, the helper must dereference those symlinks.
+Copying the symlinks as symlinks is not sufficient because the frontend/nginx
+container reads the host assets directory, not the image's app filesystem.
+```
+
+This keeps production Compose unchanged while making image-built assets visible to both backend-side services and the frontend service through the existing bind mount.
+
+Open operational note:
+
+```text
+Because this helper overlays assets and does not prune old files, stale hashed assets may remain on disk.
+That is acceptable for the first production proof because current assets.json points to the active hashed files.
+A later hardening slice may add a deliberate prune/snapshot mode if required.
+```
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
