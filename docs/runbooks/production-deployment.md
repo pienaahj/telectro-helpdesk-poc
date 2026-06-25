@@ -93,6 +93,100 @@ If Telectro's reverse proxy runs on the same VM, `host_ip` should normally remai
 
 If Telectro's reverse proxy runs on another host, `APP_INTERNAL_HTTP_BIND` may need to be changed deliberately, but only after Telectro confirms firewall scope and the reverse proxy source path.
 
+### 2026-06-25 production app-layer checkpoint
+
+The 2026-06-25 rendered production Compose proof confirmed that the current production Compose merge is still a **base ERPNext runtime shape**, not yet the complete Telectro pilot app-layer shape.
+
+The current rendered production stack still uses `frappe/erpnext:v15.94.1` for the Frappe runtime services, including:
+
+```text
+backend
+configurator
+create-site
+queue-long
+queue-short
+scheduler
+websocket
+```
+
+The current production stack also still inherits the base Compose named app/runtime volumes:
+
+```text
+apps -> /home/frappe/frappe-bench/apps
+env  -> /home/frappe/frappe-bench/env
+```
+
+This matters because these mounts can mask app and Python environment contents that are present inside a custom container image.
+
+Therefore, a custom image alone is not sufficient unless the production Compose app/runtime volume strategy is also handled deliberately.
+
+Current production app-layer state:
+
+```text
+frappe/erpnext:v15.94.1
+- contains Frappe + ERPNext runtime baseline
+- does not contain the complete Telectro pilot app set
+
+ghcr.io/frappe/helpdesk:v1.18.1
+- contains Frappe + Helpdesk + upstream Frappe Telephony
+- does not contain ERPNext
+- does not contain the Telectro custom Telephony app
+```
+
+Required Telectro pilot production app set:
+
+```text
+frappe
+erpnext
+helpdesk v1.18.1
+Telectro custom telephony app
+built/public assets
+repeatable install-app/migrate/restart/smoke path
+```
+
+Before installing Helpdesk or Telectro Telephony on production, the deployment must choose one explicit app-layer strategy:
+
+```text
+Option A: complete controlled production image
+- build or supply one controlled image containing the full required app set;
+- update all Frappe runtime services to use that image consistently;
+- ensure production Compose does not mask image-provided apps/env with stale named volumes;
+- use durable bind mounts only for sites, files, logs, database, Redis, and generated/shared assets.
+
+Option B: controlled app/env volume population
+- keep the app/env volumes deliberately;
+- populate or rebuild them from a controlled source;
+- document the exact source, app versions, install order, migrate order, and smoke proof;
+- avoid ad-hoc live-container repair as the default deployment method.
+
+Option C: accepted one-time production install
+- use only if deliberately accepted as a once-off bootstrap path;
+- record backup/snapshot expectation before mutation;
+- document every install-app/migrate/build/restart command;
+- document how the result is made repeatable for future deployments.
+```
+
+The preferred direction is **Option A or Option B**, because the pilot production deployment should be repeatable and inspectable rather than a one-off repair session.
+
+Minimum proof required before the first production app-layer mutation:
+
+```text
+1. rendered Compose image proof
+2. rendered Compose app/env volume proof
+3. app directory proof
+4. Python import proof
+5. install-app order proof
+6. migrate proof
+7. asset/symlink proof
+8. controlled restart proof
+9. /api/method/ping proof
+10. Helpdesk route proof
+11. Customer portal route proof
+12. Telectro workspace/report/fixture proof
+```
+
+Do not proceed with production Helpdesk/Telephony installation while the app-layer strategy is implicit.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
