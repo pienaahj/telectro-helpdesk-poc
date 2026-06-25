@@ -257,6 +257,132 @@ Expected result:
 - the websocket command path /home/frappe/frappe-bench/apps/frappe/socketio.js may still appear and is expected
 ```
 
+### 2026-06-25 production runtime image source strategy
+
+The production Compose strategy now expects production app/runtime contents to come from the runtime image for:
+
+```text
+/home/frappe/frappe-bench/apps
+/home/frappe/frappe-bench/env
+```
+
+The current repository `apps/` directory must be treated as a Telectro overlay/customisation source, not as a complete installable app source tree.
+
+Current discovery showed:
+
+```text
+apps/helpdesk
+apps/telephony
+```
+
+but the tracked repository contents do not include complete app manifests such as:
+
+```text
+apps/helpdesk/pyproject.toml
+apps/helpdesk/package.json
+apps/telephony/pyproject.toml
+```
+
+Therefore the production runtime image must not be built by simply copying the repository `apps/helpdesk` and `apps/telephony` directories into an ERPNext image.
+
+Required production runtime image source model:
+
+```text
+Base runtime:
+- pinned, tested ERPNext/Frappe base image
+
+Complete upstream app sources:
+- pinned Helpdesk source/ref
+- pinned Telephony source/ref
+
+Telectro overlays from this repo:
+- apps/helpdesk overlay files
+- apps/telephony overlay files
+
+Build/install proof:
+- Python package install succeeds
+- app imports succeed
+- bench build succeeds and is fatal on failure
+- sites/apps.txt is generated from final image apps
+- final image contains frappe, erpnext, helpdesk, and telephony app directories
+```
+
+The production runtime image build must use pinned refs/tags/commits for upstream sources.
+
+Do not use moving branches such as:
+
+```text
+main
+develop
+edge
+latest
+```
+
+for production image builds.
+
+Do not promote the existing pilot helper script `bin/helpdesk-install.sh` directly into production image creation without refactoring because it is local/pilot-oriented, fetches dynamic app sources, and currently treats `bench build` as non-fatal.
+
+The preferred production image strategy is:
+
+```text
+1. Start from the tested ERPNext runtime image.
+2. Fetch or copy complete upstream Helpdesk source at a pinned ref.
+3. Fetch or copy complete upstream Telephony source at a pinned ref.
+4. Apply Telectro overlay files from this repository.
+5. Install Helpdesk and Telephony into the image Python environment.
+6. Run a fatal build/import verification.
+7. Tag the image with an immutable Telectro production tag.
+8. Set ERPNEXT_IMAGE to that immutable runtime image tag.
+```
+
+The frontend/nginx image remains a separate production decision through:
+
+```text
+ERPNEXT_NGINX_IMAGE
+```
+
+until the asset/nginx strategy is proven.
+
+Minimum proof before using a custom runtime image on the production VM:
+
+```bash
+docker run --rm <candidate-runtime-image> bash -lc '
+  set -e
+  cd /home/frappe/frappe-bench
+
+  echo "--- apps ---"
+  ls -1 apps
+
+  echo "--- apps.txt candidate ---"
+  ls -1 apps | sort
+
+  echo "--- python imports ---"
+  ./env/bin/python - <<PY
+import frappe
+import erpnext
+import helpdesk
+import telephony
+print("IMPORTS_OK")
+PY
+
+  echo "--- bench version/app visibility ---"
+  bench version
+'
+```
+
+Expected:
+
+```text
+- frappe app exists
+- erpnext app exists
+- helpdesk app exists
+- telephony app exists
+- Python imports pass
+- bench command runs
+```
+
+Do not set production `ERPNEXT_IMAGE` to a Telectro custom image until this proof passes.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
