@@ -36,6 +36,50 @@ COPY --from=helpdesk_source --chown=frappe:frappe /home/frappe/frappe-bench/apps
 COPY --chown=frappe:frappe apps/helpdesk/ ./apps/helpdesk/
 COPY --chown=frappe:frappe apps/telephony/ ./apps/telephony/
 
+# Production runtime safety:
+# Keep HD Team records, but remove pilot-only @local.test team members from
+# the production runtime image so install/migrate does not require local dev users.
+RUN python - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("/home/frappe/frappe-bench/apps/telephony/telephony/fixtures/hd_team.json")
+if not path.exists():
+    raise SystemExit(f"Missing expected fixture: {path}")
+
+data = json.loads(path.read_text())
+removed = []
+
+for row in data:
+    users = row.get("users")
+    if not isinstance(users, list):
+        continue
+
+    kept = []
+    for child in users:
+        user = str(child.get("user", ""))
+        if user.endswith("@local.test"):
+            removed.append(user)
+        else:
+            kept.append(child)
+
+    row["users"] = kept
+
+path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+
+remaining_local = []
+for row in data:
+    for child in row.get("users", []) or []:
+        user = str(child.get("user", ""))
+        if user.endswith("@local.test"):
+            remaining_local.append(user)
+
+if remaining_local:
+    raise SystemExit(f"Production fixture safety failed; remaining local users: {remaining_local}")
+
+print(f"production_fixture_safety: stripped {len(removed)} @local.test HD Team user assignments")
+PY
+
 RUN set -eux; \
     chown -R frappe:frappe ./apps/helpdesk ./apps/telephony
 
