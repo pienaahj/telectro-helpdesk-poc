@@ -7,11 +7,9 @@ services:
       restart_policy:
         condition: on-failure
     volumes:
-      - apps:/home/frappe/frappe-bench/apps
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - env:/home/frappe/frappe-bench/env
       - ./import:/import:ro
     environment:
       DB_HOST: db
@@ -56,7 +54,6 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-      - apps:/home/frappe/frappe-bench/apps
   create-site:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
@@ -67,7 +64,6 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-      - apps:/home/frappe/frappe-bench/apps
     entrypoint:
       - bash
       - -c
@@ -134,8 +130,6 @@ services:
       - sites:/var/www/html/sites
       - assets:/var/www/html/assets   # <— IMPORTANT (not /assets)
       - assets:/assets
-      - apps:/home/frappe/frappe-bench/apps:ro  # <-- ADD (read-only is fine)
-
   queue-long:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
@@ -149,11 +143,9 @@ services:
       - --queue
       - long,default,short
     volumes:
-      - apps:/home/frappe/frappe-bench/apps
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - env:/home/frappe/frappe-bench/env
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
@@ -171,11 +163,9 @@ services:
       - --queue
       - short,default
     volumes:
-      - apps:/home/frappe/frappe-bench/apps
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - env:/home/frappe/frappe-bench/env
     environment:
       FRAPPE_REDIS_CACHE: redis://redis-cache:6379
       FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
@@ -209,11 +199,9 @@ services:
       - bench
       - schedule
     volumes:
-      - apps:/home/frappe/frappe-bench/apps
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - env:/home/frappe/frappe-bench/env
   websocket:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
@@ -230,7 +218,6 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - logs:/home/frappe/frappe-bench/logs
-      - apps:/home/frappe/frappe-bench/apps
   mail:
     image: mailserver/docker-mailserver:14.0.0   # example pinned
     platform: linux/arm64
@@ -271,7 +258,6 @@ services:
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
       - logs:/home/frappe/frappe-bench/logs
-      - apps:/home/frappe/frappe-bench/apps
     entrypoint: bash
     command: -lc 'set -e; apt-get update; apt-get install -y curl gnupg ca-certificates; curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y nodejs; npm i -g yarn@1.22.22; chown -R frappe:frappe /home/frappe/frappe-bench; exec sleep infinity'
 
@@ -284,8 +270,6 @@ volumes:
   assets:
     external: true
     name: telectro-helpdesk-poc_assets
-  apps:
-  env:
   dms-maildata:
   dms-state:
   dms-logs:
