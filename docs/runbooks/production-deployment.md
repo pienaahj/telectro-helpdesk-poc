@@ -840,6 +840,89 @@ Final VM smoke proof:
 Production caution:
 
 - A database root password was exposed in terminal output during the failed restore attempt. Rotate the DB root password before production sign-off.
+- 2026-06-26 update: the exposed MariaDB root password was rotated on the production VM. Do not record the old or new value in Git, documentation, screenshots, chat, or handover notes.
+
+### 2026-06-26 production hardening checkpoint
+
+Production hardening was continued on the Telectro VM after the fixture-safe runtime proof.
+
+Deployment source-of-truth decision:
+
+- Use artifact-based deployment for the Telectro production VM.
+- The source of truth remains the clean Git/GitHub repository state, currently prepared from the Mac development repo.
+- `/opt/telectro/erpnext/app` on the VM is the deployed application/Compose artifact tree, not the source of truth and not a Git checkout.
+- Do not make source edits directly in `/opt/telectro/erpnext/app`.
+- Server-local production material remains outside Git, especially:
+  - `/opt/telectro/erpnext/app/.env.production`
+  - `/opt/telectro/erpnext/secrets/production-secrets.env`
+  - `/opt/telectro/erpnext/data`
+  - `/opt/telectro/erpnext/deploy-evidence`
+- Production-local secret helper scripts under `/opt/telectro/erpnext/secrets` are operational server tooling and must not be copied back into Git with real values.
+
+Manual artifact deployment proof:
+
+- A clean deployment artifact was built from commit `e3014e2ce5e42be920cfe919c517101f3f6e260b`.
+- Artifact manifest recorded:
+  - `source_branch=feat/2026-06-26-production-hardening-smoke`
+  - `source_commit=e3014e2ce5e42be920cfe919c517101f3f6e260b`
+  - `artifact_method=git archive HEAD + COPYFILE_DISABLE tar`
+- The clean artifact excluded AppleDouble `._*` files and production-only files.
+- The VM app tree was updated from the artifact with an `rsync` dry-run first, followed by apply.
+- The sync preserved server-local production files and backups.
+- `.source-branch` and `.source-commit` on `/opt/telectro/erpnext/app` were updated to the deployed commit.
+- The fixture-safe runtime Dockerfile patch was confirmed present after deployment.
+- Post-sync smoke confirmed:
+  - DB healthy.
+  - backend healthy.
+  - frontend bound on `192.168.0.11:8080`.
+  - `GET /api/method/ping` with host `erp.telectro.co.za` returned `{"message":"pong"}`.
+
+Manual artifact deployment guardrails:
+
+- Build artifacts only from a clean, committed source tree.
+- Include source markers such as `.source-branch`, `.source-commit`, and `.deploy-manifest.txt`.
+- Stage and inspect the artifact on the VM before applying it.
+- Run an `rsync --dry-run` first and inspect deletions.
+- Exclude production-local files and directories when syncing, including:
+  - `.env`
+  - `.env.production`
+  - `.env.production.*`
+  - `backups/`
+  - `import/`
+  - `tmp/`
+  - `ops/`
+  - `.DS_Store`
+  - `._*`
+- Do not apply an artifact if the dry-run shows production-only files being deleted or AppleDouble files being introduced.
+
+Future deployment direction:
+
+- Replace the manual artifact handoff with CI/CD once the deployment path is stable.
+- The target CI/CD shape is:
+  - GitHub/Git remains source of truth.
+  - CI builds and tags the Telectro runtime image.
+  - CI emits a deployment bundle with Compose files, scripts, source markers, and a manifest.
+  - The VM consumes the bundle and runtime image without becoming an editable source checkout.
+
+Secrets hardening proof:
+
+- The production-local secret writer at `/opt/telectro/erpnext/secrets/write-production-env.sh` was patched on the VM to preserve and write `ERPNEXT_IMAGE`.
+- The writer was syntax-checked and used to regenerate `.env.production` without dropping runtime image pins.
+- The MariaDB root password was rotated for:
+  - `root@localhost`
+  - `root@%`
+- `production-secrets.env` and `.env.production` were updated without printing the old or new password.
+- The DB container was recreated so its healthcheck environment used the rotated root password.
+- Post-rotation proof confirmed:
+  - old root access worked before rotation;
+  - SQL rotation completed;
+  - new root access worked after rotation;
+  - DB health returned `healthy`;
+  - internal app ping still returned `{"message":"pong"}`.
+- Active secret files and backups were checked as locked down:
+  - active `production-secrets.env`: `600`
+  - active `write-production-env.sh`: `700`
+  - rotation backups: `600`
 
 ### Reverse proxy decision
 
@@ -1397,7 +1480,7 @@ Run the deployment using the production Compose shape:
 
 ```bash
 docker compose \
-  --env-file /opt/telectro-helpdesk/.env.production \
+  --env-file /opt/telectro/erpnext/app/.env.production \
   -f compose.yaml \
   -f compose.production.yaml \
   up -d
@@ -2847,34 +2930,60 @@ Expected public ports:
 
 Administrative SSH access may also be required, preferably restricted where possible.
 
-### 3. Clone repository
+### 3. Prepare deployment artifact
 
-Clone the project repository on the production server using a controlled deployment path.
+Prepare a deployment artifact from a clean, reviewed Git state.
 
-Example deployment location:
+For the Telectro VM, the production server should consume a deployment artifact rather than act as the editable source checkout.
 
-```text
-/opt/telectro-erpnext
-```
-
-The exact path can be changed, but it should be documented and used consistently.
-
-The production server should deploy from Git, not from manually copied edited files.
-
-### 4. Checkout release tag
-
-Production should deploy from a Git tag, not from a moving branch.
-
-Expected flow:
+Current manual handoff shape:
 
 ```text
-git fetch --tags
-git checkout <release-tag>
+Git/GitHub source of truth
+→ clean local checkout
+→ deployment artifact with source markers
+→ secure copy to VM staging path
+→ dry-run rsync
+→ apply to /opt/telectro/erpnext/app
 ```
 
-The release tag should represent a known reviewed state.
+Required artifact metadata:
 
-Avoid deploying directly from a working branch unless this is explicitly agreed as an emergency/manual intervention.
+```text
+.source-branch
+.source-commit
+.deploy-manifest.txt
+```
+
+The VM path `/opt/telectro/erpnext/app` is the deployed application/Compose artifact tree. It should be treated as an operational deployment target, not as the place where source changes are made.
+
+### 4. Verify and apply deployment artifact
+
+Before applying an artifact on the production VM:
+
+- confirm the artifact came from the expected commit;
+- confirm there are no AppleDouble `._*` files;
+- confirm production-only files such as `.env.production` and backups are not inside the artifact;
+- stage the artifact into a temporary directory;
+- run `rsync --dry-run` first;
+- inspect the dry-run deletions;
+- only then apply the artifact to `/opt/telectro/erpnext/app`.
+
+The production apply must preserve server-local files and directories such as:
+
+```text
+.env.production
+.env.production.*
+backups/
+import/
+tmp/
+ops/
+/opt/telectro/erpnext/data
+/opt/telectro/erpnext/secrets
+/opt/telectro/erpnext/deploy-evidence
+```
+
+Future automation should move this manual handoff into CI/CD rather than changing the VM into a source checkout.
 
 ### 5. Configure production environment and secrets
 
@@ -5393,11 +5502,25 @@ Real production files must stay server-local and outside Git, for example:
 - backup storage credentials
 - SSH/private deployment credentials
 
-Suggested server-local production env path:
+Suggested server-local production env path for the current Telectro VM shape:
 
 ```bash
-/opt/telectro-helpdesk/.env.production
+/opt/telectro/erpnext/app/.env.production
 ```
+
+Current server-local secret source path:
+
+```bash
+/opt/telectro/erpnext/secrets/production-secrets.env
+```
+
+The production-local writer currently used on the VM is:
+
+```bash
+/opt/telectro/erpnext/secrets/write-production-env.sh
+```
+
+The writer must preserve `ERPNEXT_IMAGE` as well as `ERPNEXT_NGINX_IMAGE`; otherwise the active runtime image pin can be lost when regenerating `.env.production`.
 
 Suggested production command shape:
 
@@ -5414,6 +5537,7 @@ The production Compose skeleton now requires explicit production render values a
 Current production render values include:
 
 ```text
+ERPNEXT_IMAGE
 ERPNEXT_NGINX_IMAGE
 PRODUCTION_HOSTNAME
 SITE_NAME
