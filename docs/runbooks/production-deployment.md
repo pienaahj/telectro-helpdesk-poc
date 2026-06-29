@@ -924,6 +924,69 @@ Secrets hardening proof:
   - active `write-production-env.sh`: `700`
   - rotation backups: `600`
 
+2026-06-29 MariaDB root password rotation follow-up proof:
+
+- The previously exposed MariaDB root password was confirmed no longer active after rotation and full stack recreate.
+- The production secret sources were inventoried without printing secret values:
+  - `/opt/telectro/erpnext/secrets/production-secrets.env`
+  - `/opt/telectro/erpnext/app/.env.production`
+- Both files were confirmed locked down as `600` and owned by `erp:erp`.
+- The active production Compose helper path was confirmed through `bin/prod-compose.sh`; `compose.production.yaml` is not used as a standalone Compose file.
+- `MARIADB_ROOT_PASSWORD` was confirmed to match between:
+  - `/opt/telectro/erpnext/secrets/production-secrets.env`
+  - `/opt/telectro/erpnext/app/.env.production`
+- The expected mismatch window was observed before DB recreate:
+  - the DB SQL password had been rotated;
+  - the running DB container still had the old healthcheck environment;
+  - root auth from the container env failed until the stack was recreated.
+- A full production stack recreate was performed after updating `.env.production`.
+- Post-recreate proof confirmed:
+  - DB health returned `healthy`;
+  - root auth using the current container environment succeeded;
+  - backend health returned `healthy`;
+  - internal frontend ping with host `erp.telectro.co.za` returned `{"message":"pong"}`.
+- Runtime services recreated during the proof:
+  - backend
+  - websocket
+  - queue-long
+  - queue-short
+  - scheduler
+  - frontend
+- Redacted evidence was captured on the VM at:
+  - `/opt/telectro/erpnext/deploy-evidence/2026-06-29-mariadb-root-password-rotation.txt`
+- Expected evidence markers include:
+  - `MARIADB_ROOT_PASSWORD_ROTATED_AND_ENV_FILES_UPDATED`
+  - `MARIADB_ROOT_PASSWORD_MATCHES_BETWEEN_ENV_FILES`
+  - `DB_HEALTHY_AFTER_ROOT_PASSWORD_ROTATION`
+  - `CURRENT_CONTAINER_ENV_ROOT_AUTH_OK_AFTER_RECREATE`
+  - `BACKEND_HEALTHY_AFTER_ROOT_PASSWORD_ROTATION`
+  - `MARIADB_ROOT_ROTATION_FULL_STACK_SMOKE_OK`
+
+Reusable MariaDB root password rotation procedure:
+
+- Treat MariaDB root password rotation as a controlled production hardening task, not as a normal application deploy.
+- Never print the old or new password in terminal output, screenshots, documentation, chat, handover notes, or Git.
+- Rotate all relevant MariaDB root accounts, currently:
+  - `root@localhost`
+  - `root@%`
+- Update both production-local secret sources:
+  - `/opt/telectro/erpnext/secrets/production-secrets.env`
+  - `/opt/telectro/erpnext/app/.env.production`
+- Keep timestamped backups of production-local env files under the server-local secrets backup path.
+- Preserve production image pins when regenerating `.env.production`, especially:
+  - `ERPNEXT_IMAGE`
+  - `ERPNEXT_NGINX_IMAGE`
+- Expect a temporary mismatch window if the SQL password has changed but the running DB container still has the old `MARIADB_ROOT_PASSWORD` environment value.
+- After updating `.env.production`, recreate the production stack so DB healthchecks and dependent services receive the rotated value.
+- Use `bin/prod-compose.sh`, not raw standalone `compose.production.yaml`, for live production stack operations.
+- Minimum post-rotation proof:
+  - DB container is healthy;
+  - root auth succeeds using the current DB container environment;
+  - backend is healthy;
+  - internal application ping succeeds with the production Host header;
+  - evidence is captured in `/opt/telectro/erpnext/deploy-evidence`;
+  - evidence is redacted and contains proof markers only, not secret values.
+
 ### Reverse proxy decision
 
 Telectro has indicated that the application stack does not need to run Traefik as the public production edge.
