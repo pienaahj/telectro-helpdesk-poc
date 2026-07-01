@@ -380,6 +380,15 @@ Use for:
 - repo-backed current contracts
 - proof and workflow notes tied to live pilot behavior
 
+### Repo user guides (`docs/user-guides/`)
+
+Use for:
+
+- stable user-facing onboarding guides
+- role-based welcome guides
+- practical activity process guides
+- process notes that should be available from the repo but should not become technical runbooks
+
 ### Obsidian notes
 
 Use for:
@@ -478,6 +487,8 @@ This index should stay light and navigational, not become another duplicated ref
 At the moment, the doc set has a good emerging split:
 
 - **README** = repo entry point
+- **Pilot Welcome Guides** = role-based onboarding and orientation for Telectro internal users, Partner users, and Customer users.
+- **Activity Process Guides** = user-facing step-by-step activity workflows, starting with Customer-visible updates that include already-attached ticket evidence.
 - **Bench Verification Playbook** = proof method
 - **Email Reference** = command/reference note
 - **Mail Health Runbook** = mail-path health
