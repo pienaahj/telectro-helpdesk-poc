@@ -789,7 +789,432 @@ Recommended screenshots for the Obsidian/training version:
 - `docs/runbooks/supervisor-operating-model.md`
 - `docs/user-guides/pilot-welcome-guides.md`
 
-# 3. Activity Process Guide backlog
+# 3. Internal notes and Customer-visible updates
+
+## Purpose
+
+Use this process when Telectro needs to decide whether ticket information should stay internal or be visible to the Customer.
+
+This is one of the most important pilot boundaries.
+
+Internal notes and Customer-visible updates are not interchangeable.
+
+Use:
+
+- **Internal note** when the information should stay inside Telectro;
+- **Customer-visible update** when the Customer should see the message in the Customer portal;
+- **Customer-visible update with evidence** when the Customer should see both the message and a deliberately selected supporting file.
+
+The Customer portal should show useful progress and outcome information.
+
+It should not expose internal Telectro coordination, routing, assignment, debugging, or governance detail.
+
+## Audience
+
+Primary users:
+
+- Telectro Technician
+- Telectro Coordinator
+- Telectro Ops / Supervisor
+
+Secondary users:
+
+- any internal Telectro user who writes ticket updates;
+- anyone reviewing Customer-facing ticket quality.
+
+This process is not for Partner users or Customer users.
+
+## Core rule
+
+Before adding any note or update, decide who the information is for.
+
+Ask:
+
+1. Is this for Telectro only?
+2. Is this safe and useful for the Customer?
+3. Is this a progress or outcome update the Customer should see?
+4. Does this contain operational detail that should stay internal?
+5. Does this need evidence attached?
+6. Could this message confuse, alarm, or expose information to the Customer unnecessarily?
+
+If the answer is “Customer should not see this”, use an internal note.
+
+If the answer is “Customer should see this”, use a Customer-visible update.
+
+## Important distinction
+
+### Internal note
+
+Use an internal note for information that should stay inside Telectro.
+
+Internal notes are appropriate for:
+
+- technician coordination;
+- scheduling constraints;
+- internal investigation notes;
+- routing uncertainty;
+- assignment/handoff context;
+- supervisor/coordinator observations;
+- partner management discussion;
+- operational risk notes;
+- internal troubleshooting detail;
+- information that may be useful later but should not appear in the Customer portal.
+
+Internal notes should help Telectro run the ticket.
+
+They should not be relied on as Customer communication.
+
+### Customer-visible update
+
+Use a Customer-visible update when the Customer should see the progress or outcome.
+
+Customer-visible updates are appropriate for:
+
+- acknowledging progress;
+- asking the Customer for useful information;
+- explaining what Telectro found;
+- explaining what Telectro did;
+- giving a clear next step;
+- confirming that work is complete;
+- sharing a safe evidence reference;
+- providing resolution or closure wording.
+
+Customer-visible updates should be written in clear, plain language.
+
+They should be deliberate and clean.
+
+### Customer-visible update with evidence
+
+Use the separate evidence process when the Customer-visible update needs a file, photo, or document.
+
+That workflow is:
+
+1. attach the evidence to the HD Ticket first;
+2. confirm the evidence is correct and Customer-safe;
+3. open the Customer-visible update dialog;
+4. select the already-attached evidence;
+5. submit the update;
+6. verify the timeline and Customer-facing result.
+
+See:
+
+- `# 1. Add a Customer-visible update with photo/document evidence`
+
+## Process A — Add an internal note
+
+### Purpose
+
+Add an internal note when Telectro needs to record useful ticket information that should not be shown to the Customer.
+
+The goal is to preserve operational context without leaking internal discussion into the Customer portal.
+
+### When to use an internal note
+
+Use an internal note when:
+
+- the information is for Telectro only;
+- the note explains internal routing or triage;
+- the note supports handoff, release, or supervisor review;
+- the note records investigation detail;
+- the note explains why a ticket is blocked;
+- the note captures risk, uncertainty, or dependency;
+- the note contains operational wording that is not appropriate for the Customer;
+- the Customer does not need the detail to understand the ticket progress.
+
+### Before you add an internal note
+
+Confirm:
+
+- you are on the correct ticket;
+- the note is useful to Telectro;
+- the note does not need to be sent to the Customer;
+- the note is factual and professional;
+- the note gives enough context for the next Telectro user;
+- the note does not replace a Customer-visible update that the Customer actually needs.
+
+Internal does not mean careless.
+
+Internal notes should still be readable, factual, and useful.
+
+### Step-by-step process
+
+1. Open the relevant HD Ticket.
+2. Read the Customer Request and latest activity.
+3. Decide that the information should stay internal.
+4. Open the internal note/comment action.
+5. Write the note clearly.
+6. Include the reason, context, blocker, or next step.
+7. Submit the note.
+8. Confirm the note appears in the internal ticket timeline/activity.
+9. Confirm it was not sent as a Customer-visible update.
+10. Continue with the next ticket action if needed.
+
+### Good internal note examples
+
+Good internal notes are specific and useful.
+
+Examples:
+
+- “Customer says the fault only occurs after load shedding. Please check UPS/power path before replacing equipment.”
+- “Released back to pool because this appears to be an Internet Connection fault, not PABX.”
+- “Waiting for site access confirmation from reception before scheduling technician.”
+- “Partner feedback is incomplete; coordinator should request clearer completion evidence.”
+- “Supervisor note: first response is at risk if no Customer-visible update is sent today.”
+
+### Poor internal note examples
+
+Poor internal notes create confusion or are too vague.
+
+Examples:
+
+- “Check.”
+- “Still broken.”
+- “Customer angry.”
+- “Not mine.”
+- “See WhatsApp.”
+- “Discussed with Robbie.”
+
+If outside context matters, summarise the relevant point inside the ticket.
+
+### Verification
+
+After adding an internal note, confirm:
+
+- the note appears on the internal ticket activity/timeline;
+- the wording is clear enough for the next Telectro user;
+- no Customer-visible update was accidentally sent;
+- the ticket still has a clear next action;
+- urgent Customer-facing communication has not been forgotten.
+
+### Common mistakes
+
+#### Mistake: Using an internal note when the Customer needs an update
+
+Problem:
+
+- Telectro has recorded the information internally, but the Customer still sees no progress.
+
+Correct approach:
+
+- Use a Customer-visible update when the Customer needs to know progress, next steps, or outcome.
+
+#### Mistake: Writing vague internal notes
+
+Problem:
+
+- The next user has to rediscover the context.
+
+Correct approach:
+
+- Include the reason, finding, blocker, or next action.
+
+#### Mistake: Treating internal notes as private casual chat
+
+Problem:
+
+- Internal notes still form part of the ticket record and should remain professional.
+
+Correct approach:
+
+- Keep internal notes factual, concise, and useful.
+
+## Process B — Add a Customer-visible update without evidence
+
+### Purpose
+
+Add a Customer-visible update when Telectro needs to communicate ticket progress, clarification, or outcome to the Customer, and no supporting file needs to be sent.
+
+This is the normal Customer-facing progress update process.
+
+Use the evidence process only when a Customer-visible file/photo/document must be included.
+
+### When to use a Customer-visible update
+
+Use a Customer-visible update when:
+
+- the Customer needs to know that work has started;
+- the Customer needs a progress update;
+- Telectro needs more information from the Customer;
+- Telectro has identified the likely cause;
+- Telectro has completed a step;
+- Telectro needs to explain the next action;
+- the ticket is waiting on Customer input;
+- Telectro is resolving the ticket and needs a clear Customer-facing outcome note.
+
+### Before you send a Customer-visible update
+
+Confirm:
+
+- you are on the correct ticket;
+- the ticket is Customer-related;
+- the message is safe for the Customer;
+- the message is clear and useful;
+- the message does not include internal-only information;
+- the message does not blame another party unnecessarily;
+- the message does not expose passwords, supplier/internal detail, routing/debug notes, or internal governance discussion;
+- no evidence file is required for this update.
+
+If evidence is required, use the Customer-visible evidence update process instead.
+
+### Step-by-step process
+
+1. Open the relevant HD Ticket.
+2. Read the Customer Request and latest activity.
+3. Decide that the Customer should see this update.
+4. Confirm that no evidence file is required.
+5. Open the Customer-visible update action/dialog.
+6. Write the message in clear Customer-safe wording.
+7. Review the message before submitting.
+8. Submit/send the update.
+9. Confirm the update appears in the ticket timeline/activity as a Customer-visible communication.
+10. When needed, verify that the update appears in the Customer portal Latest update or activity area.
+
+### Good Customer-visible update examples
+
+Good Customer-visible updates are clear, calm, and useful.
+
+Examples:
+
+- “We have received the request and are checking the affected service point.”
+- “A technician has inspected the cabinet and found a loose patch lead. The connection has been reseated and we are monitoring the line.”
+- “We need the room number or nearest equipment label before we can dispatch the correct technician.”
+- “The SIM has been tested and the issue appears to be network coverage at the site. We are escalating this for further review.”
+- “The work has been completed and the service is currently testing correctly.”
+
+### Poor Customer-visible update examples
+
+Poor Customer-visible updates expose too much internal detail or are not useful.
+
+Examples:
+
+- “Assigned to Bravo because Alfa is busy.”
+- “Looks like routing messed this one up.”
+- “Partner did not do this properly.”
+- “Internal note: supervisor to check SLA.”
+- “Waiting on Robbie.”
+- “Fixed.”
+
+### Verification
+
+After sending a Customer-visible update, confirm:
+
+- the update appears in the ticket activity/timeline;
+- the wording is correct;
+- the update is Customer-safe;
+- the Customer portal shows the update when verification is required;
+- the Customer has a clear understanding of progress or next steps;
+- no internal-only note was accidentally sent.
+
+### Common mistakes
+
+#### Mistake: Sending internal coordination as a Customer-visible update
+
+Problem:
+
+- The Customer sees internal routing, assignment, or governance discussion.
+
+Correct approach:
+
+- Use internal notes for Telectro coordination.
+- Only send Customer-visible wording that is useful to the Customer.
+
+#### Mistake: Writing an update that is too vague
+
+Problem:
+
+- The Customer sees activity but still does not understand what is happening.
+
+Correct approach:
+
+- Include the practical progress, finding, question, or next step.
+
+#### Mistake: Forgetting to verify the Customer-facing result
+
+Problem:
+
+- Telectro assumes the Customer can see the update, but the portal or timeline may not show what was expected.
+
+Correct approach:
+
+- Verify the ticket timeline.
+- Verify the Customer portal when the update is important or part of a proof/training flow.
+
+## Decision guide
+
+Use this quick decision guide before writing.
+
+### Use an internal note when
+
+- the message is for Telectro only;
+- it explains routing, assignment, or handoff context;
+- it includes internal investigation details;
+- it mentions internal risk, SLA review, or governance;
+- it includes operational uncertainty that the Customer does not need;
+- it would confuse the Customer;
+- it would expose internal process detail.
+
+### Use a Customer-visible update when
+
+- the Customer needs a progress update;
+- the Customer needs to answer a question;
+- the Customer needs to know what was found;
+- the Customer needs to know what was done;
+- the Customer needs to know the next step;
+- the Customer needs a resolution/outcome summary;
+- the wording is safe, clean, and useful.
+
+### Use a Customer-visible update with evidence when
+
+- the Customer should see the message; and
+- the Customer should receive a specific supporting file, photo, or document.
+
+Do not attach evidence casually.
+
+Only deliberately selected Customer-visible evidence should be exposed to the Customer.
+
+## Do
+
+- Decide the audience before writing.
+- Use internal notes for Telectro-only context.
+- Use Customer-visible updates for Customer-facing progress and outcomes.
+- Keep Customer-visible wording clear and professional.
+- Include the next step when it helps the Customer.
+- Verify the timeline after submitting.
+- Verify the Customer portal when the update is important.
+- Use the separate evidence process when a Customer-visible file must be included.
+
+## Do not
+
+- Do not expose internal notes as Customer-visible updates.
+- Do not use internal notes as a substitute for Customer communication.
+- Do not include assignment, routing, debugging, governance, or supervisor detail in Customer-visible messages.
+- Do not blame technicians, partners, suppliers, or the Customer in Customer-visible wording.
+- Do not send unclear one-word updates.
+- Do not attach evidence unless it has been deliberately selected for Customer visibility.
+- Do not assume that every timeline entry is visible to the Customer.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Ticket detail showing Customer Request and activity.
+2. Internal note/comment action.
+3. Internal note being written.
+4. Internal ticket timeline after internal note submission.
+5. Customer-visible update action/dialog.
+6. Customer-visible update being written.
+7. Ticket timeline after Customer-visible update submission.
+8. Customer portal Latest update card.
+9. Customer portal activity/timeline showing the Customer-visible update.
+10. Example contrast between internal note and Customer-visible update, if safe to show in training data.
+
+## Related docs
+
+- `docs/runbooks/customer-ticket-lifecycle-v1.md`
+- `docs/runbooks/ticket-evidence-v1.md`
+- `docs/user-guides/pilot-welcome-guides.md`
+
+# 4. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -800,8 +1225,7 @@ Planned guides:
 - Claim a ticket
 - Release a ticket
 - Handoff / share ticket context
-- Add an internal note
-- Add a Customer-visible update without evidence
+- Extend internal note / Customer-visible update guide after production screenshots are captured
 - Extend Customer-visible evidence update guide after production screenshots are captured
 - Resolve a Customer ticket
 - Attach Customer-facing completion evidence
@@ -841,7 +1265,7 @@ Planned guides:
 
 ---
 
-# 4. Maintenance rule
+# 5. Maintenance rule
 
 Keep Activity Process Guides practical.
 
