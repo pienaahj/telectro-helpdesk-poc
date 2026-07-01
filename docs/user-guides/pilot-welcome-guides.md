@@ -21,12 +21,27 @@ Screenshots can be added below each relevant section in Obsidian.
 
 Use this document as a screenshot-enhanced onboarding guide for the pilot.
 
+This guide is for orientation:
+
+- where each role starts;
+- which workspace or portal they use;
+- what each role is responsible for;
+- what a normal workflow looks like;
+- which actions users should and should not use.
+
+Detailed step-by-step activity instructions live separately in:
+
+- `docs/user-guides/activity-process-guides.md`
+
+Use the Activity Process Guides for workflows that need more detail than belongs in a Welcome Guide, especially non-obvious processes such as attaching evidence to a ticket before selecting it in a Customer-visible update.
+
 Recommended screenshot style:
 
 - add one screenshot per important screen;
 - keep each screenshot close to the step it explains;
 - add a short caption below each screenshot;
-- avoid documenting internal technical setup unless the user needs it to do their work.
+- avoid documenting internal technical setup unless the user needs it to do their work;
+- avoid duplicating detailed activity screenshots that belong in the Activity Process Guides.
 
 Suggested screenshot caption format:
 
