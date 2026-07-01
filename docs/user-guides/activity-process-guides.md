@@ -349,7 +349,447 @@ The Welcome Guides should link to this process instead of carrying all these ste
 
 ---
 
-# 2. Activity Process Guide backlog
+# 2. Claim, release, and handoff ticket ownership
+
+## Purpose
+
+Use this process when Telectro needs to keep ticket ownership clear and auditable.
+
+In the pilot, assignment means accountable ownership.
+
+It does not mean general collaboration, casual visibility, or “everyone who might help”.
+
+The normal pilot ownership actions are:
+
+- **Claim** — take ownership from the true pool;
+- **Release** — return your own ticket to the true pool with a reason;
+- **Controlled Handoff** — supervisor/coordinator transfer of accountability to one new owner.
+
+Do not use generic direct Assign/Unassign as the normal reassignment path.
+
+The controlled actions exist to prevent duplicate ownership, stale assignments, and unclear responsibility.
+
+## Audience
+
+Primary users:
+
+- Telectro Technician
+- Telectro Coordinator
+- Telectro Ops / Supervisor
+
+Typical responsibility split:
+
+- technicians normally claim or release work that is theirs to act on;
+- coordinators and supervisors use Controlled Handoff when accountability must move deliberately;
+- ops/supervisors monitor whether work has a clear owner and next action.
+
+## When to use these processes
+
+Use controlled ownership actions when:
+
+- a ticket is unclaimed and someone must take responsibility;
+- a ticket was incorrectly assigned to you;
+- you cannot continue and the ticket must return to the pool;
+- a coordinator or supervisor needs to transfer accountability to a specific person;
+- a stale or blocked ticket needs a clear next owner;
+- the current owner is no longer the right person to drive the ticket.
+
+Do not use these actions to hide work, avoid responsibility, or create informal multi-owner states.
+
+## Important ownership concepts
+
+### Assigned to me
+
+A ticket assigned to you is your accountable work.
+
+You are expected to either:
+
+- work it;
+- update it;
+- resolve it when appropriate;
+- release it with a reason if it should not sit with you;
+- ask a coordinator/supervisor to hand it off if accountability must move to a specific person.
+
+### Shared with me
+
+A ticket shared with you gives you visibility or involvement.
+
+It does not necessarily make you the accountable owner.
+
+Shared tickets are useful when:
+
+- you are helping another technician;
+- you are being consulted;
+- you are preparing to take over work;
+- a coordinator/supervisor wants you to see the ticket context.
+
+If you must become the accountable owner, use the correct controlled ownership action rather than treating visibility as ownership.
+
+### True pool / unclaimed work
+
+A true pool ticket has no accountable individual owner.
+
+This is operationally useful only when the ticket is genuinely waiting to be claimed or routed.
+
+Unclaimed work should not be ignored.
+
+Coordinators and supervisors should monitor unclaimed work because it can become operational risk.
+
+### Controlled Handoff
+
+Controlled Handoff is the approved way for a coordinator or supervisor to move accountability to a specific new owner.
+
+Controlled Handoff should:
+
+- move the ticket to one accountable owner;
+- avoid adding a second assignee;
+- require a reason;
+- leave an audit trail;
+- make the next owner/action clear.
+
+## Process A — Claim a ticket
+
+### Purpose
+
+Claim a ticket when it is unclaimed or in the true pool and you are the correct person to take accountability for it.
+
+Claiming a ticket means:
+
+- you become the accountable owner;
+- it should appear in your assigned/current work;
+- you are responsible for the next action.
+
+### Before you claim
+
+Confirm:
+
+- the ticket is actually unclaimed or available to claim;
+- the ticket belongs to a service area or work type you can handle;
+- you understand the customer request;
+- you have checked the fault location or relevant ticket context;
+- you are prepared to take the next action.
+
+Do not claim a ticket simply to remove it from a queue if you cannot act on it.
+
+### Step-by-step process
+
+1. Open the relevant workspace or report.
+2. Find the unclaimed ticket or ticket available to claim.
+3. Open the ticket.
+4. Read the Customer Request or original ticket context.
+5. Review location, service area, severity, and any existing activity.
+6. Confirm that you are the right person to take ownership.
+7. Use the pilot-safe **Claim** action.
+8. Wait for the ticket to update.
+9. Confirm that the ticket now shows you as the accountable owner or appears in your assigned/current work.
+10. Add the next appropriate update, note, or work action.
+
+### Verification
+
+After claiming, confirm:
+
+- the ticket no longer appears as unclaimed;
+- the ticket appears in your current/assigned work;
+- the ticket has one clear accountable owner;
+- the timeline or assignment state reflects the ownership change where visible;
+- the next action is clear.
+
+### Common mistakes
+
+#### Mistake: Claiming work you cannot action
+
+Problem:
+
+- The ticket leaves the pool but still does not move forward.
+
+Correct approach:
+
+- Only claim when you can take the next meaningful action.
+- If you are unsure, ask a coordinator/supervisor before claiming.
+
+#### Mistake: Treating shared visibility as ownership
+
+Problem:
+
+- You may assume you own the ticket when you only have visibility.
+
+Correct approach:
+
+- Check whether the ticket is actually assigned to you.
+- Use Claim or Controlled Handoff if ownership must change.
+
+#### Mistake: Claiming a ticket that needs supervisor/coordinator routing
+
+Problem:
+
+- The wrong person may take ownership and delay the ticket.
+
+Correct approach:
+
+- Leave unclear ownership decisions to the coordinator/supervisor.
+- Use comments or escalation if the ticket needs routing clarification.
+
+## Process B — Release a ticket
+
+### Purpose
+
+Release a ticket when it is assigned to you but should not remain your accountable work.
+
+Releasing returns the ticket to the true pool with a reason.
+
+Use Release when the ticket should become available for correct routing or claiming again.
+
+### When to release
+
+Release may be appropriate when:
+
+- the ticket was incorrectly assigned to you;
+- the work belongs to another area or skill set;
+- you cannot continue and no specific next owner is known;
+- the ticket needs coordinator review before being reassigned;
+- the ticket should return to the pool rather than being handed to a named person.
+
+Do not release a ticket just to avoid work.
+
+If you know exactly who should own the ticket next, ask for or use Controlled Handoff instead, depending on your role.
+
+### Before you release
+
+Confirm:
+
+- the ticket is currently assigned to you;
+- you have read the customer request and ticket context;
+- you understand why you are releasing it;
+- your reason is clear enough for the next person;
+- the ticket is not being left without critical context.
+
+If useful, add an internal note before release so the next owner understands what happened.
+
+### Step-by-step process
+
+1. Open the ticket assigned to you.
+2. Confirm that it should not remain your accountable work.
+3. Check whether the correct next action is Release or Controlled Handoff.
+4. Use the pilot-safe **Release** action.
+5. Enter a clear reason.
+6. Submit the release.
+7. Wait for the ticket to update.
+8. Confirm that the ticket is no longer assigned to you.
+9. Confirm that the ticket is visible in the correct unclaimed/pool/coordinator view where applicable.
+
+### Good release reasons
+
+Good release reasons are specific and useful.
+
+Examples:
+
+- “Incorrectly assigned to PABX; appears to be Internet Connection fault.”
+- “Customer location is outside my current route; returning for coordinator scheduling.”
+- “Requires coordinator review before next assignment.”
+- “I cannot proceed because the fault point is unclear; returning for triage.”
+
+Poor release reasons:
+
+- “Not mine.”
+- “Busy.”
+- “Wrong.”
+- “Please check.”
+
+### Verification
+
+After releasing, confirm:
+
+- the ticket is no longer assigned to you;
+- it appears as unclaimed/pool work where expected;
+- the reason is visible enough for the next person;
+- the ticket has not gained a duplicate or stale owner;
+- any urgent context has been captured before release.
+
+### Common mistakes
+
+#### Mistake: Releasing when a specific next owner is known
+
+Problem:
+
+- The ticket goes back to the pool even though the correct next owner is already clear.
+
+Correct approach:
+
+- Use Controlled Handoff when accountability should move to a specific person.
+
+#### Mistake: Releasing without a useful reason
+
+Problem:
+
+- The coordinator or next owner has to rediscover the issue.
+
+Correct approach:
+
+- Write a short, specific reason that explains why the ticket is being returned.
+
+#### Mistake: Releasing urgent work without warning
+
+Problem:
+
+- The ticket may sit unclaimed while urgent work is delayed.
+
+Correct approach:
+
+- Add context and notify/escalate through the appropriate operational path when urgency matters.
+
+## Process C — Controlled Handoff
+
+### Purpose
+
+Use Controlled Handoff when a coordinator or supervisor must transfer ticket accountability to a specific new owner.
+
+Controlled Handoff is not casual sharing.
+
+It is the deliberate transfer of accountable ownership.
+
+### When to use Controlled Handoff
+
+Use Controlled Handoff when:
+
+- the current owner should no longer own the ticket;
+- a specific next owner is known;
+- a supervisor/coordinator is intervening in stale or blocked work;
+- work must move from one technician to another;
+- a ticket needs a clear accountable owner after review;
+- the pool is not the right destination because the next owner is already known.
+
+### Before handoff
+
+Confirm:
+
+- the ticket is the correct ticket;
+- the current ownership state is understood;
+- the new owner is the correct accountable person;
+- the reason for the handoff is clear;
+- important ticket context is already visible or added as an internal note;
+- the handoff will not create a duplicate or informal second owner.
+
+### Step-by-step process
+
+1. Open the ticket.
+2. Review the Customer Request and latest activity.
+3. Review current owner/assignment state.
+4. Decide who should become the next accountable owner.
+5. Open the **Controlled Handoff** action.
+6. Select the new owner.
+7. Enter a clear reason for the handoff.
+8. Submit the handoff.
+9. Wait for the ticket to update.
+10. Confirm that the ticket has one clear accountable owner.
+11. Confirm that the handoff reason appears in the ticket activity/audit trail where available.
+12. Confirm that the new owner can see the ticket in their current/assigned work.
+
+### Good handoff reasons
+
+Good handoff reasons explain why accountability moved.
+
+Examples:
+
+- “Moving to Bravo because this is now confirmed as SIM-related work.”
+- “Moving to Charlie for PABX follow-up after initial routing review.”
+- “Coordinator reassignment: Alfa unavailable for site visit today.”
+- “Supervisor intervention: stale ticket needs dedicated owner.”
+
+Poor handoff reasons:
+
+- “Please handle.”
+- “Changed.”
+- “As discussed.”
+- “Take over.”
+
+### Verification
+
+After Controlled Handoff, confirm:
+
+- the previous owner is no longer the accountable owner;
+- the new owner is the only accountable owner;
+- the ticket appears in the new owner’s current/assigned work;
+- the reason is recorded;
+- no generic multi-assignee state was created;
+- the timeline/audit trail shows the handoff where available.
+
+### Common mistakes
+
+#### Mistake: Using generic Assign/Unassign instead of Controlled Handoff
+
+Problem:
+
+- Generic assignment can create drift-prone or multi-assignee states that do not match the pilot model.
+
+Correct approach:
+
+- Use the pilot-safe Controlled Handoff action for accountability transfer.
+
+#### Mistake: Handing off without context
+
+Problem:
+
+- The new owner receives accountability but does not know what to do next.
+
+Correct approach:
+
+- Add a clear handoff reason.
+- Add an internal note first if the ticket needs more context.
+
+#### Mistake: Handing off to create visibility only
+
+Problem:
+
+- Handoff changes accountable ownership when simple visibility may have been enough.
+
+Correct approach:
+
+- Use sharing/context visibility when someone only needs to assist or observe.
+- Use Controlled Handoff only when accountability must move.
+
+## Do
+
+- Use Claim for true pool/unclaimed work you can own.
+- Use Release when your ticket should return to the pool with a reason.
+- Use Controlled Handoff when accountability must move to a specific new owner.
+- Write clear reasons for release and handoff actions.
+- Check the ticket after ownership changes.
+- Keep one clear accountable owner for owned tickets.
+- Add internal context before release/handoff when the next person needs it.
+
+## Do not
+
+- Do not use generic Assign/Unassign as the normal pilot ownership path.
+- Do not create informal multi-owner states.
+- Do not claim work you cannot action.
+- Do not release work without a useful reason.
+- Do not hand off a ticket just to give someone visibility.
+- Do not leave urgent released work without appropriate operational escalation.
+- Do not treat `Shared with me` as the same as `Assigned to me`.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `My Current Work` showing assigned and shared tickets.
+2. Unclaimed/pool ticket list or report.
+3. Ticket detail showing current owner/assignment context.
+4. Claim action.
+5. Ticket after Claim showing the new owner/current work state.
+6. Release action with reason field.
+7. Ticket after Release showing it is no longer assigned to the releasing user.
+8. Controlled Handoff action.
+9. Controlled Handoff new owner and reason fields.
+10. Ticket after handoff showing the new accountable owner.
+11. Handoff timeline/audit evidence where available.
+
+## Related docs
+
+- `docs/runbooks/ticket-assignment-contract.md`
+- `docs/runbooks/supervisor-operating-model.md`
+- `docs/user-guides/pilot-welcome-guides.md`
+
+# 3. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -401,7 +841,7 @@ Planned guides:
 
 ---
 
-# 3. Maintenance rule
+# 4. Maintenance rule
 
 Keep Activity Process Guides practical.
 
