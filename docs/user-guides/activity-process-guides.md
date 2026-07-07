@@ -8397,7 +8397,517 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/ticket-assignment-contract.md`
 * `docs/runbooks/sla-and-supervisor-risk-signals.md`
 
-# 19. Activity Process Guide backlog
+# 19. Review Partner acceptance queue
+
+## Purpose
+
+Use this process to review the queue of Partner-originated tickets where the Partner has accepted the request and Telectro must decide what happens next.
+
+This is a queue-level process.
+
+It explains how Coordinator/Ops/Supervisor users find and triage Partner acceptance items before opening each ticket and using the detailed `Review Partner acceptance` action.
+
+The detailed ticket action is covered in:
+
+* `# 12. Review Partner acceptance`
+
+This guide focuses on:
+
+* finding tickets waiting for Telectro acceptance review;
+* reading the queue safely;
+* prioritising the review list;
+* opening each ticket;
+* deciding whether the ticket needs review only, resolution, or closure.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician, when asked to help review or provide context
+
+Partner users do not use this internal queue.
+
+Customer portal users do not use this internal queue.
+
+## When to use this process
+
+Use this process when:
+
+* a Partner-originated ticket has been accepted by the Partner;
+* the `Partner Acceptance Review Queue` has rows;
+* `My Current Work` shows `Partner acceptance review needed`;
+* Telectro needs to review Partner acceptance before resolving or closing the ticket;
+* a Supervisor/Coordinator is checking Partner workflow health;
+* Partner-originated tickets appear stuck after Partner acceptance;
+* Telectro needs to confirm whether the Partner acceptance note is sufficient.
+
+Typical examples:
+
+* “The Partner Acceptance Review Queue has a ticket waiting.”
+* “The Partner has accepted this Partner-originated request.”
+* “Telectro must decide whether this Partner-originated ticket is ready to resolve.”
+* “This Partner acceptance needs review before closure.”
+* “The Partner acceptance note needs to be checked.”
+* “My Current Work shows Partner acceptance review needed.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the ticket was not Partner-originated;
+* the Partner Acceptance State is not `Accepted by Partner`;
+* the ticket is already `Resolved`, `Closed`, or `Archived`;
+* Partner work completion is waiting for review;
+* Partner acceptance still needs to be requested;
+* Partner acceptance rework is required;
+* the ticket is a Telectro-to-Partner work fulfilment ticket rather than a Partner-originated acceptance review case.
+
+Use:
+
+* `Review Partner acceptance` for the detailed ticket action;
+* `Review Partner completed work` for Telectro-to-Partner work completion review;
+* `Intervene on a stale or blocked ticket` when the issue is a general blocker rather than Partner acceptance review;
+* Partner rework/follow-up process when the Partner acceptance was rejected or needs correction.
+
+## Important concepts
+
+### Partner-originated ticket
+
+A Partner-originated ticket is a ticket created or submitted by a Partner, where Telectro must review the Partner’s acceptance before the ticket is finalised.
+
+This is different from a Telectro ticket assigned to a Partner for work fulfilment.
+
+### Partner Acceptance State
+
+The key state for this queue is:
+
+```text
+Accepted by Partner
+```
+
+This means the Partner has submitted an acceptance note.
+
+It does not mean Telectro has completed its review.
+
+### Partner Acceptance Review Queue
+
+`Partner Acceptance Review Queue` is the report used to find Partner-originated tickets that are waiting for Telectro review.
+
+The queue should show tickets where:
+
+* Request Source is `Partner`;
+* Partner Acceptance State is `Accepted by Partner`;
+* ticket status is not terminal.
+
+Terminal statuses are:
+
+```text
+Resolved
+Closed
+Archived
+```
+
+### Partner Acceptance Note
+
+The Partner Acceptance Note is the Partner’s submitted note explaining or confirming acceptance.
+
+The queue may show a shortened preview.
+
+Use `View full` where available to read the full note.
+
+### Review Partner Acceptance action
+
+`Review Partner Acceptance` is the ticket-level action used after you open the ticket.
+
+Current outcomes are:
+
+```text
+Review only
+Resolve ticket
+Close ticket
+```
+
+In the current implementation, `Review only` records review context but does not finalise the acceptance state as `Reviewed by Telectro`.
+
+`Resolve ticket` and `Close ticket` finalise the Partner acceptance review and mark the Partner Acceptance State as `Reviewed by Telectro`.
+
+## Before you start
+
+Before reviewing the queue, confirm:
+
+* you are logged in as a Telectro internal user with Coordinator/Ops/Supervisor access;
+* you are using the Partner acceptance review queue, not the Partner work completion queue;
+* you understand that `Accepted by Partner` still needs Telectro review;
+* you will open the HD Ticket before applying the review action;
+* you will not resolve or close without checking the Partner note and ticket context.
+
+## Step-by-step process
+
+### Step 1 — Open the Partner Acceptance Review Queue
+
+Open the relevant Coordinator or Ops/Supervisor workspace.
+
+Open:
+
+```text
+Partner Acceptance Review Queue
+```
+
+You may also find the same work through:
+
+```text
+My Current Work
+```
+
+Look for a bucket such as:
+
+```text
+Partner acceptance review needed
+```
+
+### Step 2 — Review the queue rows
+
+Review the queue columns.
+
+Typical useful columns include:
+
+* ID;
+* Subject;
+* Status;
+* Account;
+* Campus;
+* Request Type;
+* Partner Acceptance State;
+* Partner Accepted On;
+* Partner Acceptance Note;
+* Modified.
+
+The queue is intended to help Telectro identify which Partner-originated tickets are waiting for acceptance review.
+
+### Step 3 — Confirm the acceptance state
+
+Confirm the row shows:
+
+```text
+Partner Acceptance State = Accepted by Partner
+```
+
+Do not use this queue process for rows where the state is:
+
+```text
+Pending Partner Acceptance
+Rework Required
+Reviewed by Telectro
+```
+
+Those states belong to other Partner workflow steps.
+
+### Step 4 — Read the Partner Acceptance Note preview
+
+Read the Partner Acceptance Note preview in the queue.
+
+If the preview is shortened, use `View full` where available.
+
+Look for:
+
+* whether the Partner clearly accepted;
+* what the Partner says was accepted;
+* whether the note is vague or incomplete;
+* whether the note suggests rework or missing information;
+* whether the note supports resolving or closing the ticket.
+
+Do not decide only from the preview if the note may be truncated.
+
+### Step 5 — Prioritise the queue
+
+Review the most important Partner acceptance items first.
+
+Prioritise:
+
+* older accepted items;
+* high-impact Customer or Account issues;
+* tickets with unclear acceptance notes;
+* tickets with recent Customer or Telectro follow-up;
+* tickets that appear ready to resolve or close;
+* tickets blocking downstream work.
+
+The queue is not just a list to clear mechanically.
+
+Each row needs enough review to decide the correct outcome.
+
+### Step 6 — Open the HD Ticket
+
+Open the ticket from the queue.
+
+Do not perform final review from the report row alone.
+
+Check:
+
+* original Partner request;
+* Partner Acceptance State;
+* Partner Accepted On;
+* Partner Acceptance Note;
+* latest activity;
+* internal notes;
+* Customer / Account context where relevant;
+* status;
+* any linked location or fault information;
+* whether any Telectro action is still outstanding.
+
+### Step 7 — Decide the review outcome
+
+Choose the appropriate ticket-level outcome.
+
+#### Option A — Review only
+
+Use `Review only` when:
+
+* Telectro has looked at the acceptance;
+* more information or action is still needed;
+* the ticket should remain active;
+* the acceptance review should be noted but not finalised.
+
+Examples:
+
+* the Partner accepted, but Telectro still needs to confirm details;
+* the note is acceptable but the ticket cannot yet be resolved;
+* another Telectro action is required before terminal status.
+
+Remember: in the current implementation, `Review only` does not change the Partner Acceptance State to `Reviewed by Telectro`.
+
+#### Option B — Resolve ticket
+
+Use `Resolve ticket` when:
+
+* the Partner acceptance is sufficient;
+* the ticket outcome is complete;
+* the ticket should move to `Resolved`;
+* there is no further active work required.
+
+This outcome marks Partner Acceptance State as `Reviewed by Telectro`.
+
+#### Option C — Close ticket
+
+Use `Close ticket` when:
+
+* Telectro has completed review;
+* the ticket should be closed rather than resolved;
+* the Partner acceptance is accepted as complete;
+* no further active work is required.
+
+This outcome marks Partner Acceptance State as `Reviewed by Telectro`.
+
+### Step 8 — Use Review Partner Acceptance
+
+On the HD Ticket, use:
+
+```text
+Review Partner Acceptance
+```
+
+Select the correct outcome:
+
+```text
+Review only
+Resolve ticket
+Close ticket
+```
+
+Add a note when useful.
+
+Good review notes:
+
+```text
+Telectro reviewed the Partner acceptance note. Acceptance is clear, but ticket remains active pending final Account confirmation.
+```
+
+```text
+Partner acceptance reviewed and accepted. Ticket ready to resolve.
+```
+
+```text
+Partner acceptance reviewed. Closing because no further Telectro action is required.
+```
+
+Poor review notes:
+
+```text
+Done.
+```
+
+```text
+OK.
+```
+
+```text
+Reviewed.
+```
+
+### Step 9 — Confirm the result
+
+After submitting the review action, confirm:
+
+* the ticket saved successfully;
+* the review note appears in activity where expected;
+* if `Resolve ticket` was selected, status is `Resolved`;
+* if `Close ticket` was selected, status is `Closed`;
+* if a terminal outcome was selected, Partner Acceptance State is `Reviewed by Telectro`;
+* if `Review only` was selected, the ticket still has a clear next action;
+* the ticket no longer appears in the queue once terminal review is complete.
+
+### Step 10 — Refresh the queue
+
+Return to `Partner Acceptance Review Queue`.
+
+Refresh the report.
+
+Confirm:
+
+* terminally reviewed tickets are no longer listed;
+* remaining tickets still require Telectro review;
+* any `Review only` item still has a clear next action;
+* no old accepted Partner-originated ticket is sitting without attention.
+
+## Verification checklist
+
+The Partner acceptance queue review is complete when:
+
+* `Partner Acceptance Review Queue` was opened.
+* Queue rows were reviewed.
+* Partner Acceptance State was confirmed as `Accepted by Partner`.
+* Partner Acceptance Note preview was read.
+* Full Partner Acceptance Note was opened where needed.
+* Each important ticket was opened before action.
+* The ticket was confirmed as Partner-originated.
+* The correct review outcome was chosen.
+* `Review Partner Acceptance` was used on the HD Ticket.
+* Review note was added where useful.
+* Terminal outcomes moved the ticket to `Resolved` or `Closed`.
+* Terminal outcomes marked Partner Acceptance State as `Reviewed by Telectro`.
+* `Review only` items still had a clear next action.
+* The queue was refreshed after review.
+
+## Common mistakes
+
+### Mistake: Treating the queue as the review action
+
+Problem:
+
+* The queue only identifies tickets waiting for review.
+
+Correct approach:
+
+* Open the HD Ticket and use `Review Partner Acceptance`.
+
+### Mistake: Assuming Accepted by Partner means Telectro is finished
+
+Problem:
+
+* `Accepted by Partner` means the Partner submitted acceptance, not that Telectro completed review.
+
+Correct approach:
+
+* Telectro must still review the ticket.
+
+### Mistake: Reviewing from the preview only
+
+Problem:
+
+* The Partner Acceptance Note may be shortened in the queue.
+
+Correct approach:
+
+* Use `View full` or open the ticket before deciding.
+
+### Mistake: Using Partner acceptance review for Partner work completion
+
+Problem:
+
+* Partner acceptance and Partner completed work are different workflows.
+
+Correct approach:
+
+* Use `Review Partner completed work` for Partner work completion cases.
+
+### Mistake: Choosing Review only and assuming the ticket is finalised
+
+Problem:
+
+* In the current implementation, `Review only` does not mark Partner Acceptance State as `Reviewed by Telectro`.
+
+Correct approach:
+
+* Use `Resolve ticket` or `Close ticket` when the ticket is truly finalised.
+
+### Mistake: Closing without checking the ticket context
+
+Problem:
+
+* The Partner note may be acceptable, but the ticket may still need Telectro action.
+
+Correct approach:
+
+* Read the ticket activity and confirm no active next action remains.
+
+## Do
+
+* Review the Partner Acceptance Review Queue regularly.
+* Confirm the state is `Accepted by Partner`.
+* Read the Partner Acceptance Note.
+* Open the HD Ticket before taking action.
+* Use `Review Partner Acceptance` for the actual review.
+* Choose `Review only` when further work remains.
+* Choose `Resolve ticket` or `Close ticket` only when the ticket is ready.
+* Add a useful review note.
+* Refresh the queue after review.
+
+## Do not
+
+* Do not treat the queue itself as completion.
+* Do not assume `Accepted by Partner` means Telectro has reviewed it.
+* Do not resolve or close from the note preview alone.
+* Do not use this process for Partner work completion review.
+* Do not use `Review only` when the ticket should actually be finalised.
+* Do not leave old accepted Partner-originated tickets sitting in the queue without a next action.
+* Do not bypass the ticket-level `Review Partner Acceptance` action.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Coordinator/Ops workspace showing `Partner Acceptance Review Queue`.
+2. `Partner Acceptance Review Queue` report open.
+3. Queue row showing Partner Acceptance State `Accepted by Partner`.
+4. Queue row showing Partner Accepted On.
+5. Partner Acceptance Note preview.
+6. `View full` Partner Acceptance Note, if available.
+7. HD Ticket opened from the queue.
+8. HD Ticket showing Partner Acceptance State `Accepted by Partner`.
+9. `Review Partner Acceptance` button.
+10. `Review Partner Acceptance` dialog.
+11. Outcome options: `Review only`, `Resolve ticket`, `Close ticket`.
+12. Review note field.
+13. Ticket after `Review only`, showing clear next action.
+14. Ticket after `Resolve ticket` or `Close ticket`.
+15. Partner Acceptance State showing `Reviewed by Telectro` after terminal review.
+16. Refreshed queue after completed review.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
+* `docs/user-guides/activity-process-guides.md#12-review-partner-acceptance`
+* `docs/user-guides/activity-process-guides.md#13-review-partner-completed-work`
+* `docs/user-guides/activity-process-guides.md#14-review-current-work`
+* `docs/user-guides/activity-process-guides.md#18-intervene-on-a-stale-or-blocked-ticket`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/partner-workflow-v1.md`
+
+# 20. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -8416,7 +8926,6 @@ Planned guides:
 
 Planned guides:
 
-- Review Partner acceptance queue
 - Review Partner work completion queue
 
 ## Partner collaboration
@@ -8433,7 +8942,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 20. Maintenance rule
+# 21. Maintenance rule
 
 Keep Activity Process Guides practical.
 
