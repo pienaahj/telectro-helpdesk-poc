@@ -6787,7 +6787,517 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/ticket-assignment-contract.md`
 * `docs/runbooks/supervisor-operating-model.md`
 
-# 16. Activity Process Guide backlog
+# 16. Check aging and at-risk tickets
+
+## Purpose
+
+Use this process to review active owned tickets that may be aging, stale, or at risk of drifting without visible progress.
+
+`Aging and At-Risk Tickets` is a supervisor/coordinator attention list. It helps Telectro identify assigned tickets that may need intervention, follow-up, coaching, handoff, or a clearer next action.
+
+This guide focuses on aging and stale owned work.
+
+It does not replace:
+
+* `Review current work`;
+* `Check unclaimed tickets`;
+* `Check first-response risk`;
+* Customer SLA breach oversight;
+* normal ticket execution by technicians.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician, when asked to review their own aging work
+
+Partner users do not use this internal report.
+
+Customer portal users do not use this internal report.
+
+## When to use this process
+
+Use this process when:
+
+* starting a supervisor/coordinator review;
+* checking whether active owned tickets are drifting;
+* checking whether assigned work has not been updated recently;
+* reviewing tickets that may need intervention;
+* checking workload health after busy periods;
+* preparing for a team follow-up;
+* checking whether a ticket needs a Customer-visible progress update;
+* deciding whether ownership should stay as-is or move through Controlled Handoff.
+
+Typical examples:
+
+* “Which assigned tickets have not moved recently?”
+* “Which tickets are at risk because nothing visible has happened?”
+* “Which technician has aging work that needs a check-in?”
+* “Which ticket needs a clearer next action?”
+* “Should this ticket stay with the current owner?”
+* “Do we need to update the Customer before this becomes a service issue?”
+
+## When not to use this process
+
+Do not use this process when:
+
+* you are checking tickets that have no accountable owner;
+* you are checking your own normal daily working list;
+* you are checking Customer first-response risk;
+* you are checking formal Customer SLA breach reports;
+* you are reviewing Partner acceptance;
+* you are reviewing Partner completed work.
+
+Use:
+
+* `Check unclaimed tickets` for true pool / unclaimed work;
+* `Review current work` for personal assigned/shared/review work;
+* `Check first-response risk` for Customer first-response risk;
+* `Review Partner acceptance` for Partner acceptance review;
+* `Review Partner completed work` for Partner work completion review.
+
+## Important concepts
+
+### Aging ticket
+
+An aging ticket is an active ticket that has not been modified recently.
+
+In the current pilot report, aging is based on the ticket `modified` timestamp.
+
+This means the report is asking:
+
+```text
+How long has it been since this ticket last changed?
+```
+
+It is not a full SLA calculation.
+
+### Owned work
+
+The aging report focuses on owned work.
+
+A ticket appears because it has an open assignment `ToDo` linked to a technician or owner.
+
+This is different from unclaimed work.
+
+Unclaimed tickets should be reviewed through the unclaimed process.
+
+### Stale hours
+
+`Stale Hours` shows how many hours have passed since the ticket was last modified.
+
+Higher stale hours mean the ticket may need earlier supervisor attention.
+
+### Attention band
+
+`Attention Band` gives a practical intervention signal.
+
+Current pilot bands include:
+
+```text
+At Risk  = 24 hours or more since last modification
+Critical = 72 hours or more since last modification
+```
+
+The report is currently filtered to show tickets at 24 hours or more, so it is mainly an `At Risk` and `Critical` attention list.
+
+### At risk is not the same as SLA breach
+
+`At Risk` means the ticket may need attention because it has not moved recently.
+
+It does not automatically mean the Customer SLA has breached.
+
+Use Customer SLA / first-response reports for formal first-response or SLA timing checks.
+
+### Supervisor intervention
+
+Supervisor intervention does not always mean taking the ticket away.
+
+Intervention may mean:
+
+* asking the owner for an update;
+* asking for an internal note;
+* asking for a Customer-visible progress update;
+* confirming the ticket is waiting on something legitimate;
+* using Controlled Handoff if ownership is wrong or the owner is unavailable;
+* escalating a blocker.
+
+## Before you start
+
+Before checking aging and at-risk tickets, confirm:
+
+* you are logged in as the correct Telectro internal user;
+* you are using the Coordinator or Ops/Supervisor workspace;
+* you understand that this is an attention list, not a performance scoreboard;
+* you will open tickets before deciding what action to take;
+* you will not bypass controlled ownership flows.
+
+## Step-by-step process
+
+### Step 1 — Open the aging report
+
+Open the relevant Coordinator or Ops/Supervisor workspace.
+
+Open:
+
+```text
+Aging and At-Risk Tickets
+```
+
+The workspace shortcut may appear as:
+
+```text
+Aging / At-Risk Tickets
+```
+
+### Step 2 — Review the oldest or most stale tickets first
+
+Start at the top of the report.
+
+The report is intended to show the stalest items first.
+
+Review:
+
+* Ticket;
+* Subject;
+* Technician;
+* Status;
+* Stale Hours;
+* Attention Band;
+* Modified.
+
+### Step 3 — Separate Critical from At Risk
+
+Use the `Attention Band` column.
+
+#### Critical
+
+`Critical` means the ticket has not been modified for 72 hours or more.
+
+These tickets should normally be opened and reviewed first.
+
+#### At Risk
+
+`At Risk` means the ticket has not been modified for 24 hours or more.
+
+These tickets should be reviewed to confirm that they have a valid next action.
+
+### Step 4 — Open the ticket
+
+Open the HD Ticket before deciding what to do.
+
+Do not act from the report row alone.
+
+Check:
+
+* latest activity;
+* current owner;
+* current status;
+* Customer-visible updates;
+* internal notes;
+* assignment history if relevant;
+* whether the work is waiting on a Customer, Partner, supplier, site visit, equipment, or internal decision;
+* whether the next action is clear.
+
+### Step 5 — Decide why the ticket is aging
+
+Decide which case applies.
+
+#### Case A — Legitimately waiting
+
+The ticket is waiting for something real and documented.
+
+Examples:
+
+* waiting for Customer confirmation;
+* waiting for site access;
+* waiting for parts or supplier input;
+* waiting for Partner action;
+* waiting for a scheduled visit.
+
+Next action:
+
+* confirm the waiting reason is clearly documented;
+* add an internal note if it is not clear;
+* send a Customer-visible update if the Customer needs progress visibility;
+* leave ownership unchanged if the current owner remains correct.
+
+#### Case B — Work is active but not documented
+
+The owner may be working on the issue, but the ticket does not show enough recent context.
+
+Next action:
+
+* ask the owner to add an internal note or Customer-visible update;
+* check whether the Customer needs an update;
+* avoid changing ownership unless the owner cannot continue.
+
+#### Case C — Owner is wrong or unavailable
+
+The current owner is not the right person to continue, or is unavailable.
+
+Next action:
+
+* use Controlled Handoff if a specific new owner is known;
+* include a clear handoff reason;
+* confirm the ticket moves to the new accountable owner.
+
+Do not use generic Assign/Unassign.
+
+#### Case D — Ticket is blocked
+
+The ticket is stuck because of missing information, unclear decision, missing evidence, site access, Partner delay, supplier delay, or internal dependency.
+
+Next action:
+
+* add an internal note describing the blocker;
+* escalate to the coordinator/supervisor if needed;
+* hand off only if the accountable owner should change;
+* send Customer-visible progress where appropriate.
+
+#### Case E — Ticket should be resolved or closed
+
+The ticket appears to be complete, but still remains active.
+
+Next action:
+
+* confirm the work outcome;
+* check whether Customer-visible resolution wording is ready;
+* attach or select completion evidence if required;
+* use the normal resolution/closure process.
+
+### Step 6 — Decide the intervention action
+
+Choose the lightest effective intervention.
+
+#### Option A — No ownership change
+
+Use this when:
+
+* the current owner is still correct;
+* the next action is clear;
+* the ticket is waiting for a valid reason;
+* the ticket has adequate internal or Customer-visible context.
+
+Add a note if the context is not clear enough.
+
+#### Option B — Ask for update
+
+Use this when:
+
+* the owner is still correct;
+* work may be happening;
+* the ticket has not been updated recently;
+* the Customer or supervisor needs clearer visibility.
+
+Ask for either:
+
+* an internal note; or
+* a Customer-visible update, where appropriate.
+
+#### Option C — Controlled Handoff
+
+Use this when:
+
+* the current owner is wrong;
+* the current owner is unavailable;
+* a specific new accountable owner is known;
+* the ticket should not remain with the current owner.
+
+Record a clear reason.
+
+#### Option D — Escalate blocker
+
+Use this when:
+
+* the blocker cannot be resolved by the owner alone;
+* the Customer or service outcome is at risk;
+* a supervisor/coordinator decision is required;
+* the ticket is critical and still not moving.
+
+#### Option E — Resolve through the normal resolution process
+
+Use this when:
+
+* the work appears complete;
+* the Customer-facing outcome is known;
+* the ticket has enough evidence/context to resolve safely.
+
+Do not leave completed work aging in active status.
+
+### Step 7 — Add context where needed
+
+If you review or intervene, leave a clear trace.
+
+Use internal notes for Telectro-only context.
+
+Examples:
+
+```text
+Supervisor review: ticket is at risk because no update has been recorded in 28 hours. Alfa still owns the next action and will update after site visit.
+```
+
+```text
+Coordinator review: owner unavailable. Controlled Handoff to Bravo for site follow-up.
+```
+
+```text
+Supervisor note: ticket is waiting on Customer access confirmation. Customer-visible update sent.
+```
+
+```text
+Coordinator review: issue appears complete. Owner to prepare Customer-visible resolution update and evidence.
+```
+
+### Step 8 — Refresh the report
+
+After acting, refresh `Aging and At-Risk Tickets`.
+
+Confirm:
+
+* the ticket still appears only if it remains stale and active;
+* the owner changed if Controlled Handoff was used;
+* the ticket no longer appears if it was resolved or archived;
+* the latest activity now explains the next action;
+* critical tickets have a clear intervention path.
+
+## Verification checklist
+
+The aging and at-risk check is complete when:
+
+* `Aging and At-Risk Tickets` was opened.
+* Critical tickets were reviewed first.
+* At Risk tickets were reviewed for clear next action.
+* Each important ticket was opened before deciding action.
+* Current owner and latest activity were checked.
+* Waiting reasons were confirmed or documented.
+* Tickets needing updates were identified.
+* Tickets needing Customer-visible progress were identified.
+* Wrong-owner or unavailable-owner tickets were handled through Controlled Handoff.
+* Blocked tickets were escalated or documented.
+* Completed tickets were routed toward resolution/closure.
+* The report was refreshed after material actions.
+
+## Common mistakes
+
+### Mistake: Treating the report as a performance scoreboard
+
+Problem:
+
+* The report can be misused to blame technicians instead of identifying operational risk.
+
+Correct approach:
+
+* Use it as an attention and intervention tool.
+
+### Mistake: Assuming At Risk means SLA breach
+
+Problem:
+
+* At Risk is based on stale activity, not automatically a formal SLA breach.
+
+Correct approach:
+
+* Use SLA and Customer first-response reports for SLA timing checks.
+
+### Mistake: Changing ownership without context
+
+Problem:
+
+* The next owner may not understand why the ticket was moved.
+
+Correct approach:
+
+* Use Controlled Handoff with a clear reason.
+
+### Mistake: Ignoring a legitimate waiting reason
+
+Problem:
+
+* A ticket may be aging because it is waiting on Customer, Partner, supplier, or site access.
+
+Correct approach:
+
+* Confirm the waiting reason is documented and visible to the right audience.
+
+### Mistake: Leaving completed work active
+
+Problem:
+
+* Completed tickets continue to age and clutter active risk views.
+
+Correct approach:
+
+* Use the normal resolution/closure process when the outcome is confirmed.
+
+### Mistake: Keeping the Customer in the dark
+
+Problem:
+
+* A ticket may be internally understood but Customer-facing progress is unclear.
+
+Correct approach:
+
+* Send a Customer-visible update when the Customer needs progress visibility.
+
+## Do
+
+* Review Critical items first.
+* Open tickets before acting.
+* Treat aging as an intervention signal.
+* Check whether the current owner is still correct.
+* Look for clear next action.
+* Add internal notes when context is missing.
+* Send Customer-visible progress when appropriate.
+* Use Controlled Handoff when ownership must change.
+* Resolve completed work through the normal resolution process.
+* Refresh the report after interventions.
+
+## Do not
+
+* Do not treat aging as automatic technician fault.
+* Do not assume At Risk means SLA breach.
+* Do not bypass Controlled Handoff.
+* Do not leave stale tickets without a documented next action.
+* Do not confuse aging review with first-response risk review.
+* Do not leave completed tickets active just because nobody closed them.
+* Do not expose internal SLA/governance detail in Customer-visible updates.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Coordinator or Ops workspace showing `Aging / At-Risk Tickets`.
+2. `Aging and At-Risk Tickets` report open.
+3. Ticket row showing `Stale Hours`.
+4. Ticket row showing `Attention Band`.
+5. Example `At Risk` ticket.
+6. Example `Critical` ticket, if available.
+7. Ticket opened from the aging report.
+8. Latest activity/internal notes showing missing or present next action.
+9. Controlled Handoff action where ownership must change.
+10. Internal note recording supervisor/coordinator review.
+11. Customer-visible update where progress visibility is needed.
+12. Ticket resolved or updated after review.
+13. Refreshed aging report after intervention.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
+* `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
+* `docs/user-guides/activity-process-guides.md#4-resolve-a-customer-ticket`
+* `docs/user-guides/activity-process-guides.md#14-review-current-work`
+* `docs/user-guides/activity-process-guides.md#15-check-unclaimed-tickets`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/supervisor-operating-model.md`
+* `docs/runbooks/sla-and-supervisor-risk-signals.md`
+
+# 17. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -6806,7 +7316,6 @@ Planned guides:
 
 Planned guides:
 
-- Check aging and at-risk tickets
 - Check first-response risk
 - Review Partner acceptance queue
 - Review Partner work completion queue
@@ -6826,7 +7335,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 17. Maintenance rule
+# 18. Maintenance rule
 
 Keep Activity Process Guides practical.
 
