@@ -439,6 +439,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Review Partner completed work
 * [ ] Review current work
 * [ ] Check unclaimed tickets
+* [ ] Check aging and at-risk tickets
 
 ## Activity Process Guides still needed
 
@@ -450,7 +451,6 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Coordinator and Supervisor control
 
-* [ ] Check aging and at-risk tickets
 * [ ] Check first-response risk
 * [ ] Review Partner acceptance queue
 * [ ] Review Partner work completion queue
