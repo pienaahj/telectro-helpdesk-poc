@@ -5890,9 +5890,15 @@ Planned guides:
 
 ## Partner collaboration
 
-Planned guides:
+Terminal status note:
 
-- Archive Partner-side work after Telectro review
+Partner-side archive/history visibility is not currently a separate Activity Process Guide.
+
+In V1, Partner-related tickets that are `Resolved`, `Closed`, or `Archived` are treated as terminal/history items for reporting and Partner History visibility. The pilot does not yet define a separate operational difference between `Resolved`, `Closed`, and `Archived` for Partner-side work beyond their terminal/reporting behaviour.
+
+Closing a Partner-related ticket after review remains a Telectro staff decision and is covered by `Review Partner completed work`.
+
+Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be defined after the pilot if Telectro identifies a real operational or reporting need.
 
 ---
 
