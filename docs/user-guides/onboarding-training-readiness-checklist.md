@@ -301,7 +301,7 @@ The main risk is starting onboarding before the complete path has been proven:
 
 * Telectro reviews Partner completed work
 * Partner rework loop
-* Archive or close Partner-side work after Telectro review
+* Archive Partner-side work after Telectro review
 * Partner screenshot pack
 
 ### Required screenshots
@@ -438,6 +438,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Partner responds to an acceptance request
 * [ ] Partner submits work done
 * [ ] Review Partner acceptance
+* [ ] Review Partner completed work
 
 ## Activity Process Guides still needed
 
@@ -459,9 +460,7 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Partner collaboration
 
-* [ ] Review Partner completed work
-* [ ] Send rework back to Partner
-* [ ] Archive or close Partner-side work after Telectro review
+* [ ] Archive Partner-side work after Telectro review
 
 ---
 
