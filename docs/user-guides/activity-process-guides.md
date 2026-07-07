@@ -7297,7 +7297,485 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/supervisor-operating-model.md`
 * `docs/runbooks/sla-and-supervisor-risk-signals.md`
 
-# 17. Activity Process Guide backlog
+# 17. Check first-response risk
+
+## Purpose
+
+Use this process to identify Customer-originated tickets that still need a first Customer-visible response, and act before the first-response target is missed.
+
+First-response risk is Customer-facing risk.
+
+A ticket may be assigned, routed, or internally understood, but the Customer still needs a visible acknowledgement or progress response. This process helps Telectro protect that first visible response.
+
+This guide focuses on first-response prevention.
+
+It does not replace:
+
+* `Review current work`;
+* `Check unclaimed tickets`;
+* `Check aging and at-risk tickets`;
+* `Internal notes and Customer-visible updates`;
+* formal Customer SLA breach review;
+* normal ticket execution by technicians.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician, when asked to respond on a Customer ticket
+
+Partner users do not use this internal report.
+
+Customer portal users do not use this internal report.
+
+## When to use this process
+
+Use this process when:
+
+* starting a Coordinator or Supervisor check;
+* checking Customer tickets that still need first response;
+* checking first-response risk before a target is missed;
+* deciding whether a Customer-visible update must be sent;
+* reviewing tickets due within the next hour;
+* reviewing tickets due today;
+* checking whether already-missed first responses need recovery communication;
+* protecting Customer confidence during intake and triage.
+
+Typical examples:
+
+* “Which Customer tickets still need first response?”
+* “Which ticket is due in the next 15 minutes?”
+* “Which tickets need a Customer-visible acknowledgement today?”
+* “Has this Customer ticket received a first visible response yet?”
+* “Which first-response target has already been missed?”
+* “Do we need a Customer-visible update before more internal work happens?”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the ticket is not Customer-originated;
+* the ticket already has a first response;
+* you are reviewing general aging or stale work;
+* you are reviewing unclaimed pool work;
+* you are reviewing Partner acceptance or Partner work;
+* you are checking resolution SLA rather than first response;
+* you are writing an internal note only.
+
+Use:
+
+* `Check aging and at-risk tickets` for stale owned work;
+* `Check unclaimed tickets` for pool work;
+* `Review current work` for personal assigned/shared/review work;
+* `Internal notes and Customer-visible updates` to decide whether a note is internal or Customer-visible;
+* `Customer SLA Breach Oversight` for broader first-response and resolution breach follow-up.
+
+## Important concepts
+
+### First response
+
+A first response is the first meaningful Customer-visible response after the Customer has logged or raised the ticket.
+
+It is not the same as internal triage.
+
+It is not satisfied by a Telectro-only internal note.
+
+### Customer-visible response
+
+A Customer-visible response should be written so the Customer can understand what Telectro has received, what is happening next, or what information is needed.
+
+It should avoid internal assignment, routing, SLA, governance, or debugging detail.
+
+### `response_by`
+
+`response_by` is the system-derived first-response target datetime on the HD Ticket.
+
+The first-response risk reports use this field to decide whether the first response is still saveable or already missed.
+
+### `first_responded_on`
+
+`first_responded_on` indicates whether the ticket has already received a first response according to the Helpdesk/SLA lifecycle.
+
+The prevention report focuses on tickets where `first_responded_on` is still empty.
+
+### Prevention vs recovery
+
+There are two different states:
+
+```text
+Prevention = response_by is still in the future and first response can still be saved.
+Recovery   = response_by is already in the past and first response has been missed.
+```
+
+Use `Customer Ticket Oversight` for prevention.
+
+Use `First Response Missed` or `Customer SLA Breach Oversight` for already-missed first responses.
+
+### First-response risk bands
+
+The current Customer first-response prevention view uses practical risk bands such as:
+
+```text
+Due < 15m
+Due < 1h
+Due today
+OK
+```
+
+The most urgent saveable tickets should be reviewed first.
+
+## Before you start
+
+Before checking first-response risk, confirm:
+
+* you are logged in as a Telectro internal user with Coordinator/Ops/Supervisor oversight access;
+* you understand this is a Customer-facing response process;
+* you will send or prompt a Customer-visible response when needed;
+* you will not treat an internal note as Customer first response;
+* you will not expose internal SLA/governance detail to the Customer.
+
+## Step-by-step process
+
+### Step 1 — Open Customer Ticket Oversight
+
+Open the Coordinator or Ops/Supervisor workspace.
+
+Open:
+
+```text
+Customer Ticket Oversight
+```
+
+This is the primary prevention report for Customer first-response risk.
+
+It is intended to show Customer-originated tickets where:
+
+* the ticket is active;
+* the first response has not yet been recorded;
+* the first-response target exists;
+* the first-response target is still in the future.
+
+### Step 2 — Review the First Response Risk column
+
+Start with the `First Response Risk` column.
+
+Review the most urgent rows first.
+
+Typical values include:
+
+```text
+Due < 15m
+Due < 1h
+Due today
+OK
+```
+
+Prioritise:
+
+1. `Due < 15m`
+2. `Due < 1h`
+3. `Due today`
+4. `OK`
+
+### Step 3 — Check Time Left and First Response By
+
+Review:
+
+* `Time Left`;
+* `First Response By`;
+* Ticket;
+* Subject;
+* Status;
+* Account;
+* Campus;
+* Service Area;
+* Agent Group;
+* Assigned To;
+* Age;
+* Modified.
+
+This tells you how urgent the Customer-visible response is and who may already own the ticket.
+
+### Step 4 — Open the ticket
+
+Open the HD Ticket before acting.
+
+Do not rely only on the report row.
+
+Check:
+
+* Customer request;
+* latest activity;
+* whether a Customer-visible response already exists;
+* whether only internal notes exist;
+* who currently owns the ticket;
+* whether the issue is triaged enough for a meaningful Customer response;
+* whether more information is needed from the Customer.
+
+### Step 5 — Decide what the Customer needs now
+
+Choose the Customer-facing response type.
+
+#### Case A — Simple acknowledgement needed
+
+The ticket has been received, but no Customer-visible acknowledgement has been sent.
+
+Next action:
+
+* send a short Customer-visible update acknowledging receipt;
+* state that Telectro is reviewing or routing the request;
+* avoid internal details.
+
+Example:
+
+```text
+We have received your support request and are reviewing it. We will update you once the next action is confirmed.
+```
+
+#### Case B — Triage is already clear
+
+The ticket has enough information to tell the Customer what is happening next.
+
+Next action:
+
+* send a Customer-visible update with the next step;
+* keep wording plain and Customer-safe.
+
+Example:
+
+```text
+We have reviewed the request and are assigning it for follow-up. The team will check the affected service area and update you with the next outcome.
+```
+
+#### Case C — Customer information is missing
+
+The ticket cannot move safely without more Customer information.
+
+Next action:
+
+* send a Customer-visible request for the missing information;
+* ask a specific question;
+* avoid vague wording.
+
+Example:
+
+```text
+We have received the request. Please confirm which fault point or area is affected so that we can route this correctly.
+```
+
+#### Case D — Technician owns the ticket but no response is visible
+
+The ticket may be assigned, but the Customer still has no first visible response.
+
+Next action:
+
+* ask the owner to send a Customer-visible update immediately; or
+* send the Customer-visible update yourself if your role and process allow it;
+* add internal context only if needed.
+
+Do not assume assignment alone satisfies first response.
+
+#### Case E — The target is almost missed
+
+The ticket is `Due < 15m` or `Due < 1h`.
+
+Next action:
+
+* open immediately;
+* send or prompt a Customer-visible response;
+* keep the response safe and short if full triage is not complete;
+* record internal context after the Customer-visible response if needed.
+
+### Step 6 — Send the Customer-visible response
+
+Use the Customer-visible update process.
+
+A good first response should:
+
+* acknowledge the request;
+* be understandable to the Customer;
+* give a next step where possible;
+* ask for missing information if needed;
+* avoid internal assignment/routing/SLA language.
+
+Do not use an internal note as the first Customer response.
+
+### Step 7 — Verify the ticket dropped from prevention risk
+
+After sending or confirming the response, refresh `Customer Ticket Oversight`.
+
+Confirm:
+
+* the ticket no longer appears in the first-response prevention list; or
+* the ticket now shows that first response has been recorded; or
+* if it still appears, investigate whether the response was truly Customer-visible.
+
+If the ticket remains listed after a Customer-visible response, check the ticket timeline and Helpdesk response fields before assuming the process succeeded.
+
+### Step 8 — Check already-missed first responses
+
+After prevention work, review already-missed first responses if needed.
+
+Open:
+
+```text
+First Response Missed
+```
+
+or:
+
+```text
+Customer SLA Breach Oversight
+```
+
+Use these reports for tickets where the first-response target has already passed.
+
+For already-missed first responses:
+
+* open the ticket;
+* confirm whether a Customer-visible response is still missing;
+* send a recovery Customer-visible update if needed;
+* add an internal note acknowledging the missed target and next action;
+* escalate if the miss indicates a process or queue problem.
+
+Do not treat missed first response as “no action needed” just because prevention failed.
+
+## Verification checklist
+
+The first-response risk check is complete when:
+
+* `Customer Ticket Oversight` was opened.
+* `Due < 15m` items were reviewed first.
+* `Due < 1h` items were reviewed next.
+* `Due today` items were reviewed.
+* Each important ticket was opened before action.
+* The latest Customer-visible activity was checked.
+* Internal-only notes were not mistaken for Customer response.
+* Tickets needing immediate Customer-visible acknowledgement were identified.
+* Tickets needing missing Customer information were identified.
+* Customer-visible updates were sent or prompted where needed.
+* The report was refreshed after responses.
+* Remaining rows have a clear reason and next action.
+* Already-missed first responses were checked through the missed/breach view where needed.
+
+## Common mistakes
+
+### Mistake: Treating assignment as first response
+
+Problem:
+
+* The ticket may be assigned internally, but the Customer still has no visible acknowledgement.
+
+Correct approach:
+
+* Send a Customer-visible response.
+
+### Mistake: Using an internal note as Customer response
+
+Problem:
+
+* Internal notes are not visible to the Customer.
+
+Correct approach:
+
+* Use a Customer-visible update for first response.
+
+### Mistake: Waiting for perfect triage
+
+Problem:
+
+* The first-response target can be missed while the team waits for full technical clarity.
+
+Correct approach:
+
+* Send a safe acknowledgement or request for missing information.
+
+### Mistake: Exposing internal SLA or routing detail
+
+Problem:
+
+* The Customer sees internal process language that may confuse or undermine confidence.
+
+Correct approach:
+
+* Keep Customer-visible wording focused on receipt, next step, and needed information.
+
+### Mistake: Ignoring already-missed first responses
+
+Problem:
+
+* Once prevention fails, the Customer may still need a response.
+
+Correct approach:
+
+* Use `First Response Missed` or `Customer SLA Breach Oversight` for recovery follow-up.
+
+### Mistake: Assuming the report updated without checking
+
+Problem:
+
+* The report may still show the ticket if the response was not recorded as Customer-visible first response.
+
+Correct approach:
+
+* Refresh the report and verify the ticket/timeline.
+
+## Do
+
+* Check Customer first-response risk regularly.
+* Prioritise `Due < 15m`.
+* Open tickets before acting.
+* Send Customer-visible acknowledgements where needed.
+* Ask clear Customer questions when information is missing.
+* Keep first responses short, clear, and Customer-safe.
+* Use internal notes only for Telectro-only context.
+* Refresh the report after action.
+* Review already-missed first responses separately.
+
+## Do not
+
+* Do not wait for full technical diagnosis before acknowledging receipt.
+* Do not treat internal notes as Customer first response.
+* Do not expose internal SLA, routing, assignment, or governance detail.
+* Do not ignore `Due < 15m` rows.
+* Do not assume assigned tickets have been responded to.
+* Do not treat already-missed first responses as irrelevant.
+* Do not confuse first-response risk with general aging or resolution risk.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Ops or Coordinator workspace showing Customer SLA / oversight area.
+2. `Customer Ticket Oversight` report open.
+3. `First Response Risk` column.
+4. `Due < 15m` row, if available.
+5. `Due < 1h` row, if available.
+6. `First Response By` and `Time Left` columns.
+7. Ticket opened from Customer Ticket Oversight.
+8. Ticket activity showing no Customer-visible response yet.
+9. Customer-visible update dialog.
+10. Example safe first-response wording.
+11. Refreshed Customer Ticket Oversight after response.
+12. `First Response Missed` report.
+13. `Customer SLA Breach Oversight` row showing first-response breach, if available.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
+* `docs/user-guides/activity-process-guides.md#14-review-current-work`
+* `docs/user-guides/activity-process-guides.md#15-check-unclaimed-tickets`
+* `docs/user-guides/activity-process-guides.md#16-check-aging-and-at-risk-tickets`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/sla-and-supervisor-risk-signals.md`
+* `docs/runbooks/supervisor-operating-model.md`
+
+# 18. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -7316,7 +7794,6 @@ Planned guides:
 
 Planned guides:
 
-- Check first-response risk
 - Review Partner acceptance queue
 - Review Partner work completion queue
 - Intervene on a stale or blocked ticket
@@ -7335,7 +7812,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 18. Maintenance rule
+# 19. Maintenance rule
 
 Keep Activity Process Guides practical.
 
