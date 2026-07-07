@@ -5185,7 +5185,683 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/notification-v1-operating-model.md`
 * `docs/runbooks/service-coverage-model.md`
 
-# 13. Activity Process Guide backlog
+# 13. Review Partner completed work
+
+## Purpose
+
+Use this process when a Partner has submitted work done for Telectro-assigned Partner fulfilment work and Telectro must review the completed work.
+
+This process is the Telectro-side follow-up to `Partner submits work done`.
+
+It is used when:
+
+* Telectro assigned fulfilment work to a Partner;
+* the Partner completed the work;
+* the Partner submitted a Work Done Note;
+* the Partner Work State is `Work Completed by Partner`;
+* Telectro must review the Partner’s completed work and decide what happens next.
+
+This process is not for Partner acceptance.
+
+Partner work review confirms what Telectro does after a Partner completes work assigned by Telectro.
+
+Partner acceptance review is a separate process for Partner-originated tickets where the Partner accepts Telectro’s handling of the request.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician
+
+Partner users do not perform this process.
+
+Customer portal users do not perform this process.
+
+## When to use this process
+
+Use this process when:
+
+* a ticket is assigned to Partner fulfilment;
+* the Partner Work State is `Work Completed by Partner`;
+* `My Current Work` shows a bucket such as `Partner work review needed`;
+* the Partner Work Done Note must be reviewed;
+* uploaded Partner evidence must be checked;
+* Telectro must accept the work, request rework, resolve the ticket, or close the ticket.
+
+Typical examples:
+
+* “The Partner submitted work done.”
+* “The Partner uploaded completion evidence.”
+* “The Partner says the site work is complete.”
+* “The Partner Work State is Work Completed by Partner.”
+* “Telectro must decide whether to accept the Partner work.”
+* “The Partner completed rework and submitted work done again.”
+* “The Partner work can now be resolved or closed.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the Partner Work State is not `Work Completed by Partner` or `Reviewed by Telectro`;
+* the work is still assigned to the Partner;
+* the Partner has not submitted a Work Done Note;
+* the ticket was originally logged by a Partner and is waiting for Partner acceptance review;
+* the Partner submitted an acceptance note rather than work done;
+* the ticket is already `Resolved`, `Closed`, or `Archived`;
+* the Customer is trying to confirm a Customer-facing resolution.
+
+Use `Partner submits work done` when the Partner still needs to submit completed work.
+
+Use `Review Partner acceptance` when Telectro is reviewing Partner acceptance on a Partner-originated ticket.
+
+Use the Customer resolved outcome process for Customer-facing resolution review.
+
+## Important concepts
+
+### Telectro-assigned Partner work
+
+Telectro-assigned Partner work is a ticket where Telectro has asked a Partner to perform fulfilment work.
+
+In this train:
+
+```text
+Request Source is not Partner
+Fulfilment Party is Partner
+```
+
+The Partner completes the work, uploads evidence where required, and submits a Work Done Note.
+
+Telectro then reviews the completed work.
+
+### Partner Work State
+
+The Partner Work State shows where the Partner fulfilment train currently is.
+
+Common states include:
+
+```text
+Assigned to Partner
+Work Completed by Partner
+Rework Required
+Reviewed by Telectro
+```
+
+### Work Completed by Partner
+
+`Work Completed by Partner` means the Partner has submitted a Work Done Note.
+
+It does not mean Telectro has accepted the work yet.
+
+Telectro must still review the note, evidence, and ticket context.
+
+### Review Partner Work
+
+`Review Partner Work` is the Telectro-side action used to review completed Partner work.
+
+When the Partner Work State is `Work Completed by Partner`, the action provides these outcomes:
+
+```text
+Review only
+Accept work
+Request Rework
+Resolve ticket
+Close ticket
+```
+
+When the Partner Work State is already `Reviewed by Telectro`, the action provides only:
+
+```text
+Resolve ticket
+Close ticket
+```
+
+### Review only
+
+`Review only` records a Partner work review comment.
+
+It does not accept, rework, resolve, or close the ticket.
+
+In the current implementation, `Review only` does not change the Partner Work State.
+
+Use `Review only` when Telectro wants to record a review note but is not ready to accept, request rework, resolve, or close.
+
+### Accept work
+
+`Accept work` records that Telectro has accepted the Partner’s completed work.
+
+It sets the Partner Work State to:
+
+```text
+Reviewed by Telectro
+```
+
+It also removes the ticket from the active Partner work queue by clearing open assignment/ToDo work.
+
+Use this when the Partner’s work is acceptable, but Telectro does not yet want to resolve or close the ticket.
+
+### Request Rework
+
+`Request Rework` sends the work back to the Partner for correction or completion.
+
+A rework reason is required.
+
+It sets the Partner Work State to:
+
+```text
+Rework Required
+```
+
+It also clears the Partner Work Completed date.
+
+Use this when the Partner’s submitted work is incomplete, unclear, incorrect, or missing required evidence.
+
+### Resolve ticket
+
+`Resolve ticket` accepts the Partner work, sets the Partner Work State to `Reviewed by Telectro`, and changes the ticket status to:
+
+```text
+Resolved
+```
+
+Use this when the Partner work is acceptable and the ticket should move to resolved.
+
+### Close ticket
+
+`Close ticket` accepts the Partner work, sets the Partner Work State to `Reviewed by Telectro`, and changes the ticket status to:
+
+```text
+Closed
+```
+
+Use this when the Partner work is acceptable and the ticket should be closed immediately.
+
+## Before you start
+
+Before reviewing Partner completed work, confirm:
+
+* you are logged in as a Telectro Coordinator, Ops / Supervisor, or other authorised internal reviewer;
+* the ticket is Telectro-assigned Partner fulfilment work;
+* the fulfilment party is `Partner`;
+* the request source is not `Partner`;
+* the ticket is not `Resolved`, `Closed`, or `Archived`;
+* the Partner Work State is `Work Completed by Partner`;
+* the Partner Work Done Note is visible;
+* any required Partner evidence is visible and readable;
+* you understand whether the work should be accepted, sent back for rework, resolved, or closed.
+
+If the Partner Work Done Note or evidence is unclear, do not guess.
+
+Use `Request Rework` when the Partner must correct, clarify, or complete something.
+
+## Step-by-step process
+
+### Step 1 — Open the Partner work review queue
+
+Open the relevant Telectro workspace.
+
+Open `My Current Work` and find the `Partner work review needed` bucket, or open the relevant Partner workflow oversight report.
+
+The review list should show Telectro-assigned Partner fulfilment tickets where the Partner Work State is `Work Completed by Partner`.
+
+### Step 2 — Open the ticket
+
+Open the HD Ticket from the queue or report.
+
+Confirm that you are on the correct ticket.
+
+### Step 3 — Confirm the ticket context
+
+Before reviewing, confirm:
+
+* ticket ID;
+* subject;
+* status;
+* Account / Customer context;
+* campus or site context, where relevant;
+* request type;
+* request source;
+* fulfilment party;
+* Partner Work State;
+* Partner Work Completed date, if shown.
+
+The ticket should be Telectro-assigned Partner fulfilment work.
+
+It should not be a Partner-originated acceptance ticket.
+
+### Step 4 — Read the Partner Work Done Note
+
+Read the Partner Work Done Note.
+
+A useful Work Done Note should explain what the Partner completed.
+
+Look for:
+
+* what was done;
+* what was repaired, replaced, installed, tested, or checked;
+* whether the Partner mentions evidence;
+* whether the Partner mentions anything still outstanding;
+* whether the note matches the assigned work.
+
+If the note is vague, missing, or inconsistent, request rework.
+
+### Step 5 — Review Partner evidence
+
+Review any uploaded Partner evidence.
+
+Evidence may include:
+
+* photos;
+* job cards;
+* signed documents;
+* installation notes;
+* screenshots;
+* test results;
+* quotes;
+* worksheets;
+* site notes.
+
+Confirm that evidence is relevant, readable, and attached to the correct ticket.
+
+Do not accept work if required evidence is missing or obviously unrelated.
+
+### Step 6 — Review the ticket history
+
+Check the visible ticket history and relevant notes.
+
+Look for:
+
+* original request;
+* Telectro assignment or handoff context;
+* Partner Work Done Note;
+* uploaded evidence;
+* prior Partner rework notes, if any;
+* previous Partner work review notes, if any.
+
+Do not rely only on the report row if the ticket needs more context.
+
+### Step 7 — Select Review Partner Work
+
+On the HD Ticket, select `Review Partner Work`.
+
+If the action is not visible, check:
+
+* the ticket is not new;
+* the ticket is an HD Ticket;
+* the fulfilment party is `Partner`;
+* the request source is not `Partner`;
+* the Partner Work State is `Work Completed by Partner` or `Reviewed by Telectro`;
+* the status is not `Resolved`, `Closed`, or `Archived`;
+* your user has an internal review role.
+
+### Step 8 — Choose the review outcome
+
+Choose one of the available outcomes.
+
+#### Option A — Review only
+
+Choose `Review only` when:
+
+* Telectro wants to record that the Partner work was reviewed;
+* more internal action may still be needed;
+* the ticket should not yet be accepted, reworked, resolved, or closed;
+* the reviewer wants to leave a note without changing the Partner Work State.
+
+Good examples:
+
+```text
+Reviewed Partner work. Holding open until the coordinator confirms whether a follow-up customer update is required.
+```
+
+```text
+Reviewed. Evidence is present, but Telectro still needs to confirm whether billing follow-up is needed before accepting work.
+```
+
+Important: `Review only` does not finalise Partner Work State in the current implementation.
+
+#### Option B — Accept work
+
+Choose `Accept work` when:
+
+* the Partner’s work is complete;
+* the Work Done Note is clear;
+* required evidence is present;
+* no rework is needed;
+* Telectro does not yet want to resolve or close the ticket.
+
+Good examples:
+
+```text
+Partner work reviewed and accepted. Completion photo and work note are sufficient.
+```
+
+```text
+Accepted. Partner replaced the faulty device and uploaded the required evidence.
+```
+
+After this outcome, the Partner Work State becomes:
+
+```text
+Reviewed by Telectro
+```
+
+#### Option C — Request Rework
+
+Choose `Request Rework` when:
+
+* the work is incomplete;
+* the wrong work was done;
+* the evidence is missing;
+* the evidence is unreadable;
+* the note is unclear;
+* the work does not match the ticket request;
+* Telectro needs the Partner to correct or clarify something.
+
+A rework reason is required.
+
+Good examples:
+
+```text
+Please upload a clear completion photo showing the installed replacement device and label.
+```
+
+```text
+The submitted note does not confirm whether connectivity was tested. Please test from site and resubmit the work done note.
+```
+
+```text
+The work appears to have been completed at the wrong fault point. Please verify the location and correct if needed.
+```
+
+```text
+The signed job card is missing. Please upload the signed job card before resubmitting work done.
+```
+
+After this outcome, the Partner Work State becomes:
+
+```text
+Rework Required
+```
+
+The Partner must complete the rework and submit work done again.
+
+#### Option D — Resolve ticket
+
+Choose `Resolve ticket` when:
+
+* the Partner work is acceptable;
+* the ticket should move to `Resolved`;
+* no immediate closure is required;
+* Telectro wants to preserve a resolved state before final closure.
+
+Good examples:
+
+```text
+Partner work reviewed and accepted. Evidence confirms completion. Resolving ticket.
+```
+
+```text
+Partner completed the assigned work and uploaded sufficient proof. Resolving for final outcome tracking.
+```
+
+After this outcome:
+
+```text
+Partner Work State = Reviewed by Telectro
+Ticket Status = Resolved
+```
+
+#### Option E — Close ticket
+
+Choose `Close ticket` when:
+
+* the Partner work is acceptable;
+* no further review, waiting period, or resolution stage is required;
+* Telectro wants to close the ticket immediately.
+
+Good examples:
+
+```text
+Partner work reviewed and accepted. No further Telectro action required. Closing ticket.
+```
+
+```text
+Completion note and evidence are sufficient, and the issue is finalised. Closing ticket.
+```
+
+After this outcome:
+
+```text
+Partner Work State = Reviewed by Telectro
+Ticket Status = Closed
+```
+
+### Step 9 — Add a review note
+
+The note is optional for most outcomes, but it is strongly useful in practice.
+
+The note is required when requesting rework.
+
+A good review note should explain:
+
+* what was reviewed;
+* whether the Work Done Note was clear;
+* whether evidence was checked;
+* why the selected outcome was chosen;
+* what the Partner must correct, if requesting rework.
+
+Avoid vague notes such as:
+
+```text
+OK.
+```
+
+or:
+
+```text
+Checked.
+```
+
+### Step 10 — Apply the review
+
+Select `Apply`.
+
+The system records a Partner work review or rework comment.
+
+Depending on the selected outcome:
+
+* `Review only` records the review note and leaves the Partner Work State unchanged;
+* `Accept work` sets Partner Work State to `Reviewed by Telectro`;
+* `Request Rework` sets Partner Work State to `Rework Required` and clears the completed date;
+* `Resolve ticket` sets Partner Work State to `Reviewed by Telectro` and ticket status to `Resolved`;
+* `Close ticket` sets Partner Work State to `Reviewed by Telectro` and ticket status to `Closed`.
+
+For `Accept work`, `Resolve ticket`, and `Close ticket`, open assignment/ToDo work is cleared as part of finalisation.
+
+For `Request Rework`, the Partner is notified and must submit work done again after completing the rework.
+
+### Step 11 — Verify the result
+
+After applying the review, reload or review the ticket.
+
+Confirm:
+
+* the Partner work review or rework comment is visible;
+* the ticket status matches the selected outcome;
+* the Partner Work State matches the selected outcome;
+* the Partner Work Completed date is cleared if rework was requested;
+* the ticket no longer appears in Partner work review needed if the work was accepted, resolved, or closed;
+* assignment state is appropriate for the outcome.
+
+If `Review only` was selected, confirm that the ticket still has a clear next action.
+
+If `Request Rework` was selected, confirm that the ticket is now waiting on the Partner.
+
+## Verification checklist
+
+The process is complete when:
+
+* The reviewer opened the correct Telectro-assigned Partner fulfilment ticket.
+* The Partner Work State was `Work Completed by Partner`.
+* The Partner Work Done Note was reviewed.
+* Required evidence was checked.
+* Ticket history was checked where needed.
+* `Review Partner Work` was used.
+* The correct outcome was selected:
+
+  * `Review only`;
+  * `Accept work`;
+  * `Request Rework`;
+  * `Resolve ticket`; or
+  * `Close ticket`.
+* A useful review note was added.
+* Rework reason was provided if rework was requested.
+* The review was applied successfully.
+* The resulting status and Partner Work State were verified.
+* The ticket has a clear next action or has been finalised.
+
+## Common mistakes
+
+### Mistake: Reviewing the wrong Partner workflow
+
+Problem:
+
+* The reviewer may use Partner work review for Partner acceptance.
+
+Correct approach:
+
+* Use `Review Partner Work` only for Telectro-assigned Partner fulfilment work.
+* Use `Review Partner Acceptance` for Partner-originated tickets with Partner Acceptance State `Accepted by Partner`.
+
+### Mistake: Assuming Work Completed by Partner means Telectro is finished
+
+Problem:
+
+* `Work Completed by Partner` means the Partner submitted work done, not that Telectro has accepted the work.
+
+Correct approach:
+
+* Telectro must still review the Work Done Note, evidence, and ticket context.
+
+### Mistake: Accepting work without reviewing evidence
+
+Problem:
+
+* Telectro may accept incomplete or unproven work.
+
+Correct approach:
+
+* Check uploaded evidence where evidence is expected.
+* Request rework if evidence is missing or unclear.
+
+### Mistake: Using Review only when the work should be accepted or sent back
+
+Problem:
+
+* `Review only` records a comment but does not change the Partner Work State.
+
+Correct approach:
+
+* Use `Accept work` when the work is acceptable.
+* Use `Request Rework` when the Partner must correct or complete something.
+
+### Mistake: Requesting rework without a clear reason
+
+Problem:
+
+* The Partner may not know what to correct.
+
+Poor example:
+
+```text
+Not good enough.
+```
+
+Better example:
+
+```text
+Please upload a clear photo of the installed replacement device and confirm that connectivity was tested from site.
+```
+
+### Mistake: Resolving or closing too early
+
+Problem:
+
+* The ticket may be finalised before Telectro has completed internal follow-up.
+
+Correct approach:
+
+* Use `Accept work` when Partner work is accepted but the ticket should remain active.
+* Use `Resolve ticket` or `Close ticket` only when the ticket is ready for that status.
+
+### Mistake: Treating Partner work review as Customer sign-off
+
+Problem:
+
+* Customer-facing tickets do not use Partner work review as Customer approval.
+
+Correct approach:
+
+* Keep Partner work review separate from Customer resolved outcome review.
+
+## Do
+
+* Open the relevant Partner work review queue or `My Current Work` bucket.
+* Confirm the ticket is Telectro-assigned Partner fulfilment work.
+* Confirm Partner Work State is `Work Completed by Partner`.
+* Read the Partner Work Done Note.
+* Review uploaded evidence.
+* Review ticket history where needed.
+* Use `Review Partner Work`.
+* Choose the outcome deliberately.
+* Add a clear review note.
+* Provide a clear reason when requesting rework.
+* Verify the resulting status and Partner Work State.
+
+## Do not
+
+* Do not use this process for Partner acceptance review.
+* Do not accept Partner work without checking the note and evidence.
+* Do not use `Review only` when the work should be accepted or sent back.
+* Do not request rework without a clear reason.
+* Do not resolve or close unless that outcome is intended.
+* Do not treat Partner work review as Customer sign-off.
+* Do not expect Partner users to perform this Telectro review step.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Telectro workspace showing Partner work review access.
+2. `My Current Work` bucket showing `Partner work review needed`.
+3. Partner workflow oversight report showing completed Partner work.
+4. HD Ticket showing Partner Work State `Work Completed by Partner`.
+5. Partner Work Done Note visible on the ticket.
+6. Uploaded Partner evidence visible on the ticket.
+7. `Review Partner Work` button.
+8. `Review Partner Work` dialog.
+9. Outcome dropdown showing `Review only`, `Accept work`, `Request Rework`, `Resolve ticket`, and `Close ticket`.
+10. Example `Accept work` review note.
+11. Example `Request Rework` reason.
+12. Ticket after `Accept work`, showing Partner Work State `Reviewed by Telectro`.
+13. Ticket after `Request Rework`, showing Partner Work State `Rework Required`.
+14. Ticket after `Resolve ticket`, showing status `Resolved`.
+15. Ticket after `Close ticket`, showing status `Closed`.
+16. Review or rework comment in ticket activity/history.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#11-partner-submits-work-done`
+* `docs/user-guides/activity-process-guides.md#12-review-partner-acceptance`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/notification-v1-operating-model.md`
+* `docs/runbooks/service-coverage-model.md`
+
+# 14. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -5216,13 +5892,11 @@ Planned guides:
 
 Planned guides:
 
-- Review Partner completed work
-- Send rework back to Partner
-- Archive or close Partner-side work after Telectro review
+- Archive Partner-side work after Telectro review
 
 ---
 
-# 14. Maintenance rule
+# 15. Maintenance rule
 
 Keep Activity Process Guides practical.
 
