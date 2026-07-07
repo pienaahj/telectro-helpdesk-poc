@@ -1214,7 +1214,433 @@ Recommended screenshots for the Obsidian/training version:
 - `docs/runbooks/ticket-evidence-v1.md`
 - `docs/user-guides/pilot-welcome-guides.md`
 
-# 4. Activity Process Guide backlog
+# 4. Resolve a Customer ticket
+
+## Purpose
+
+Use this process when Telectro has completed the work on a Customer ticket and needs to record a clear Customer-visible resolution outcome.
+
+This is the normal Telectro-side completion action for Customer tickets in the pilot.
+
+Resolving a Customer ticket means:
+
+- Telectro has confirmed the work outcome through the normal direct Customer service process;
+- the ticket is updated to `Resolved`;
+- a Customer-visible resolution update is sent;
+- optional Customer-facing completion evidence can be shared;
+- the Customer portal shows the resolved outcome.
+
+This is not a formal Customer portal sign-off process.
+
+The Customer does not approve, reject, or close the ticket from the portal as part of the normal V1 workflow.
+
+## Audience
+
+Primary users:
+
+- Telectro Technician
+- Telectro Coordinator
+- Telectro Ops / Supervisor
+
+Typical responsibility split:
+
+- technicians normally resolve Customer tickets after the work outcome has been confirmed;
+- coordinators may help confirm that the correct Customer-visible wording and completion evidence are used;
+- supervisors may review resolved tickets for process quality, SLA risk, or training proof.
+
+This process is not for Partner users or Customer users.
+
+## When to use this process
+
+Use this process when:
+
+- the work on a Customer ticket is complete;
+- Telectro has confirmed the outcome through direct Customer interaction or the normal service process;
+- the Customer should see a clear resolution or work-done summary;
+- the ticket should move to `Resolved`;
+- any Customer-facing completion evidence has been selected deliberately.
+
+Typical examples:
+
+- a reported service fault has been corrected;
+- a technician has completed the site work;
+- a replacement or repair has been completed;
+- the Customer has been informed of the outcome;
+- Telectro has enough information to record the resolution clearly.
+
+## When not to use this process
+
+Do not resolve a Customer ticket when:
+
+- the work outcome has not been confirmed;
+- the ticket still needs technician action;
+- the ticket is waiting for Customer information;
+- the ticket is waiting for Partner or Supplier action;
+- the message should only be an internal note;
+- the Customer only needs a progress update, not a resolution;
+- the correct action is Partner review, Partner rework, or Customer follow-up.
+
+Use `Add Customer Update` instead when the Customer needs progress information but the ticket should remain active.
+
+Use an internal note when the information should stay inside Telectro.
+
+## Important distinction
+
+### Customer ticket resolution
+
+Customer ticket resolution is Telectro-controlled.
+
+The Customer portal shows useful progress and resolved outcome information, but it is not a formal approval/rework workflow.
+
+Telectro should confirm the work outcome through the normal direct Customer service process and then resolve the ticket internally.
+
+### Partner completion review
+
+Partner completion is different.
+
+Partner work may require Partner acceptance, Partner work submission, Telectro review, and possible rework.
+
+Do not copy the Partner acceptance/rework process onto Customer tickets.
+
+Customer tickets should have:
+
+- clear Customer-visible progress updates;
+- clear Customer-visible resolution wording;
+- safe Customer-facing completion evidence where needed;
+- a simple Customer follow-up route if the Customer still has a concern.
+
+## Before you start
+
+Confirm the following before resolving the ticket:
+
+- You are on the correct HD Ticket.
+- The ticket is a Customer ticket.
+- The work outcome has been confirmed.
+- The ticket should move to `Resolved`.
+- The Customer-visible resolution wording is ready.
+- The wording is safe for the Customer.
+- Any completion evidence has already been attached to the HD Ticket.
+- Any selected evidence is safe for Customer visibility.
+- No internal-only information will be exposed.
+- The ticket does not still require Partner, Supplier, Customer, or technician action.
+
+If completion evidence is required, attach it to the ticket before opening the `Resolve Customer Ticket` dialog.
+
+The resolution dialog lets you select an already-attached file.
+
+It is not the original evidence upload step.
+
+## Step-by-step process
+
+### Step 1 — Open the correct Customer ticket
+
+Open the relevant HD Ticket from the correct Telectro workspace or report.
+
+Useful starting points may include:
+
+- Technician workspace current work list;
+- Coordinator current work or review queue;
+- Ops / Supervisor oversight reports;
+- direct HD Ticket link.
+
+Before continuing, confirm that the ticket number, subject, Customer/account, and location context are the expected ones.
+
+### Step 2 — Review the Customer Request and latest activity
+
+Read the Customer Request, latest Customer-visible updates, internal notes, and relevant activity.
+
+Confirm:
+
+- what the Customer originally reported;
+- what work was done;
+- whether the Customer has provided follow-up information;
+- whether the latest internal context changes the resolution wording;
+- whether there are any unresolved blockers.
+
+Do not resolve the ticket from a report row alone.
+
+Open the ticket and review the context first.
+
+### Step 3 — Confirm the work outcome
+
+Confirm that the work is complete and accepted through the normal direct Customer service process.
+
+This may happen through:
+
+- direct discussion with the Customer;
+- technician confirmation after site work;
+- coordinator confirmation;
+- normal service call or operational process;
+- other approved Telectro communication.
+
+The Customer does not need to press an approve/reject/sign-off button in the portal.
+
+### Step 4 — Attach completion evidence first, if needed
+
+If the Customer should receive completion evidence, attach the file to the HD Ticket before resolving.
+
+Completion evidence may include:
+
+- photo of completed work;
+- signed job card;
+- completion sheet;
+- test result;
+- report;
+- safe supporting document.
+
+After upload, confirm:
+
+- the file is attached to the correct ticket;
+- the file opens/downloads correctly;
+- the content is safe for Customer visibility;
+- the filename is recognisable enough to select correctly.
+
+Skip this step if no Customer-facing completion evidence is required.
+
+### Step 5 — Open the Resolve Customer Ticket action
+
+Open the `Resolve Customer Ticket` action from the ticket.
+
+The action opens a dialog titled `Resolve Customer Ticket`.
+
+The dialog requires:
+
+- `Customer-visible resolution update`
+
+The dialog may also allow:
+
+- `Completion evidence file`
+
+The primary action is:
+
+- `Send update and resolve`
+
+### Step 6 — Write the Customer-visible resolution update
+
+Write a clear, Customer-safe resolution update.
+
+A good resolution update should:
+
+- say what was completed or corrected;
+- avoid internal routing or assignment detail;
+- avoid blame;
+- avoid unclear shorthand;
+- avoid internal-only troubleshooting notes;
+- mention any attached completion evidence if it helps the Customer.
+
+Good examples:
+
+- “The loose patch lead in the PABX cabinet has been reseated and the line is currently testing correctly.”
+- “The installation at reception has been completed. The attached photo shows the final installation position.”
+- “The SIM was tested and replaced. The affected device is now connecting correctly.”
+- “The connection has been restored after replacing the damaged cable at the cabinet.”
+
+Poor examples:
+
+- “Fixed.”
+- “Assigned to Bravo and done.”
+- “Partner caused the issue.”
+- “Internal note: SLA was at risk.”
+- “Customer says okay.”
+- “See WhatsApp.”
+
+If outside confirmation matters, summarise the relevant outcome in the ticket instead of relying on external context.
+
+### Step 7 — Select completion evidence, if required
+
+If completion evidence should be visible to the Customer, select the correct already-attached file in the `Completion evidence file` field.
+
+Only select evidence that should be Customer-facing.
+
+Do not select:
+
+- internal-only notes;
+- screenshots containing credentials;
+- supplier-only documents;
+- unrelated Customer documents;
+- private Telectro operational material;
+- rough working photos that should not be shared.
+
+If the file is not available in the selector, close the dialog and attach the file to the ticket first.
+
+### Step 8 — Send update and resolve
+
+Review the resolution note and selected evidence one final time.
+
+Then use `Send update and resolve`.
+
+Wait for the dialog to close or for the ticket to refresh.
+
+Do not assume the process has succeeded until the ticket state and timeline have been checked.
+
+### Step 9 — Verify the internal ticket result
+
+After submission, verify the ticket internally.
+
+Confirm:
+
+- the ticket status is now `Resolved`;
+- the resolution wording is recorded;
+- the Customer-visible resolution communication appears in the activity/timeline;
+- any completion evidence is linked to the resolution communication as expected;
+- an internal audit entry exists where visible;
+- no incorrect file was shared;
+- no internal-only wording was sent to the Customer.
+
+### Step 10 — Verify the Customer-facing result when required
+
+For training, proof, important tickets, or completion evidence, also verify the Customer portal result.
+
+Confirm that the Customer can see:
+
+- the ticket in resolved state;
+- the Customer-visible resolution update;
+- the attached completion evidence, if selected;
+- the evidence download/open behaviour, if applicable.
+
+This is especially important during pilot onboarding and screenshot collection.
+
+## Verification checklist
+
+The process is complete only when the relevant checks pass:
+
+- The correct Customer ticket was opened.
+- The work outcome was confirmed through the normal direct Customer service process.
+- The ticket was resolved using `Resolve Customer Ticket`.
+- The Customer-visible resolution update was clear and safe.
+- The ticket status changed to `Resolved`.
+- The ticket timeline/activity shows the Customer-visible resolution communication.
+- Completion evidence was selected only if deliberately intended for Customer visibility.
+- Selected completion evidence is visible/downloadable to the Customer when required.
+- Internal-only notes, routing detail, or private evidence were not exposed.
+- The Customer portal result was verified when required.
+
+## Common mistakes
+
+### Mistake: Resolving before the outcome is confirmed
+
+Problem:
+
+- The ticket may show as resolved even though the work is not actually complete.
+
+Correct approach:
+
+- Confirm the work outcome through the normal direct Customer service process first.
+- Use a Customer-visible progress update if the Customer needs information before resolution.
+
+### Mistake: Treating Customer resolution as formal portal sign-off
+
+Problem:
+
+- Users may wait for a Customer approval/reject action that is not part of the V1 Customer workflow.
+
+Correct approach:
+
+- Telectro confirms the outcome directly and resolves the ticket internally.
+- The Customer portal shows the result, but it is not the approval mechanism.
+
+### Mistake: Writing a vague resolution note
+
+Problem:
+
+- The Customer sees a resolved ticket but does not understand what was done.
+
+Correct approach:
+
+- Write a short, clear work-done or resolution summary.
+
+### Mistake: Including internal coordination detail
+
+Problem:
+
+- The Customer sees Telectro routing, assignment, SLA, Partner, or internal troubleshooting detail.
+
+Correct approach:
+
+- Keep Customer-visible resolution wording focused on the Customer-facing outcome.
+- Put internal detail in an internal note when needed.
+
+### Mistake: Selecting the wrong completion evidence
+
+Problem:
+
+- The Customer may receive the wrong file or private information.
+
+Correct approach:
+
+- Attach and verify the file before resolving.
+- Check filename and content before selecting it in the resolution dialog.
+
+### Mistake: Assuming completion evidence is uploaded inside the resolution dialog
+
+Problem:
+
+- The file may not be available to select.
+
+Correct approach:
+
+- Attach the file to the HD Ticket first.
+- Then select the already-attached file in the `Completion evidence file` field.
+
+### Mistake: Skipping Customer portal verification during training/proof
+
+Problem:
+
+- Telectro may believe the Customer can see the resolved outcome or evidence when the portal result has not been confirmed.
+
+Correct approach:
+
+- Verify the Customer portal for training, smoke proof, important tickets, and evidence-sharing flows.
+
+## Do
+
+- Confirm the work outcome before resolving.
+- Use `Resolve Customer Ticket` for Customer ticket completion.
+- Write a clear Customer-visible resolution update.
+- Attach completion evidence to the ticket before resolving, if evidence is needed.
+- Select only Customer-safe completion evidence.
+- Verify the ticket status after resolving.
+- Verify the Customer-visible communication after resolving.
+- Verify the Customer portal result when required.
+- Use internal notes for internal-only completion context.
+
+## Do not
+
+- Do not wait for formal Customer portal sign-off.
+- Do not copy Partner acceptance/rework workflow onto Customer tickets.
+- Do not resolve tickets that still need active work.
+- Do not use vague resolution wording such as “Fixed”.
+- Do not expose assignment, routing, SLA, governance, or internal debugging detail.
+- Do not select files that are not safe for Customer visibility.
+- Do not assume the resolution dialog uploads the evidence file.
+- Do not skip verification for completion evidence.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Customer ticket opened with ticket number and context visible.
+2. Customer Request card before resolution.
+3. Fault Location card before resolution.
+4. Completion evidence attached to the HD Ticket, if applicable.
+5. `Resolve Customer Ticket` action.
+6. `Resolve Customer Ticket` dialog.
+7. `Customer-visible resolution update` field.
+8. `Completion evidence file` selector.
+9. `Send update and resolve` primary action.
+10. Ticket after resolution showing `Resolved` status.
+11. Ticket activity/timeline showing the Customer-visible resolution communication.
+12. Customer portal showing resolved status.
+13. Customer portal showing the resolution update.
+14. Customer portal showing completion evidence/download, if applicable.
+
+## Related docs
+
+- `docs/runbooks/customer-ticket-lifecycle-v1.md`
+- `docs/runbooks/ticket-evidence-v1.md`
+- `docs/user-guides/pilot-welcome-guides.md`
+
+# 5. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -1227,7 +1653,6 @@ Planned guides:
 - Handoff / share ticket context
 - Extend internal note / Customer-visible update guide after production screenshots are captured
 - Extend Customer-visible evidence update guide after production screenshots are captured
-- Resolve a Customer ticket
 - Attach Customer-facing completion evidence
 
 ## Coordinator and Supervisor control
@@ -1265,7 +1690,7 @@ Planned guides:
 
 ---
 
-# 5. Maintenance rule
+# 6. Maintenance rule
 
 Keep Activity Process Guides practical.
 

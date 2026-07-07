@@ -116,10 +116,10 @@ The main risk is starting onboarding before the complete path has been proven:
   * Add a Customer-visible update with photo/document evidence
   * Claim, release, and handoff ticket ownership
   * Internal notes and Customer-visible updates
+  * Resolve a Customer ticket
 
 ### Still needed
 
-* Resolve a Customer ticket
 * Attach Customer-facing completion evidence
 * Customer-facing completion evidence vs internal evidence distinction
 * Technician screenshot pack
@@ -426,12 +426,12 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Add a Customer-visible update with photo/document evidence
 * [ ] Claim, release, and handoff ticket ownership
 * [ ] Internal notes and Customer-visible updates
+* [ ] Resolve a Customer ticket
 
 ## Activity Process Guides still needed
 
 ### Internal Telectro ticket execution
 
-* [ ] Resolve a Customer ticket
 * [ ] Attach Customer-facing completion evidence
 * [ ] Extend internal note / Customer-visible update guide after production screenshots are captured
 * [ ] Extend Customer-visible evidence update guide after production screenshots are captured
