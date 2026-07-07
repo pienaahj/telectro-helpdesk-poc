@@ -348,9 +348,12 @@ The main risk is starting onboarding before the complete path has been proven:
   * Customer Welcome Guide
   * Customer quick start
 
+* `docs/user-guides/activity-process-guides.md`
+
+  * Customer logs a support request
+
 ### Still needed
 
-* Customer logs a support request
 * Customer adds follow-up information
 * Customer views latest update
 * Customer downloads Customer-visible evidence
@@ -427,6 +430,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Claim, release, and handoff ticket ownership
 * [ ] Internal notes and Customer-visible updates
 * [ ] Resolve a Customer ticket
+* [ ] Customer logs a support request
 
 ## Activity Process Guides still needed
 
@@ -457,7 +461,6 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Customer portal
 
-* [ ] Customer logs a support request
 * [ ] Customer adds follow-up information
 * [ ] Customer views latest update
 * [ ] Customer downloads Customer-visible evidence

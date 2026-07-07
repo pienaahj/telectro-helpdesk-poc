@@ -1640,7 +1640,461 @@ Recommended screenshots for the Obsidian/training version:
 - `docs/runbooks/ticket-evidence-v1.md`
 - `docs/user-guides/pilot-welcome-guides.md`
 
-# 5. Activity Process Guide backlog
+# 5. Customer logs a support request
+
+## Purpose
+
+Use this process when a Customer user needs to log a new support request through the Customer portal.
+
+The Customer portal is the Customer-facing starting point for support requests.
+
+A good support request should help Telectro understand:
+
+- what needs attention;
+- where the issue is located;
+- which service, fault point, asset, equipment label, circuit, SIM, room, or area is affected;
+- what symptoms the Customer is seeing;
+- whether photos or evidence are available.
+
+The goal is not to make the Customer diagnose the fault.
+
+The goal is to give Telectro enough clear starting information to route, investigate, and act.
+
+## Audience
+
+Primary users:
+
+- Customer portal users
+
+Secondary users:
+
+- Telectro Technician
+- Telectro Coordinator
+- Telectro Ops / Supervisor
+
+Internal Telectro users may use this guide during training, onboarding, or Customer support.
+
+This process is not for Partner users.
+
+Partner users should use the Partner workflow instead.
+
+## When to use this process
+
+Use this process when:
+
+- the Customer needs to report a new support issue;
+- the issue is not already logged;
+- the Customer can describe what is wrong;
+- the Customer can identify the affected location, asset, equipment, or service well enough for Telectro to start;
+- the Customer wants to attach photos, labels, access notes, or other evidence at the start.
+
+Typical examples:
+
+- a phone, PABX, SIM, CCTV, link, or internet service is not working;
+- a specific site, room, cabinet, link, area, or device needs attention;
+- the Customer has a photo or label that will help Telectro identify the affected point;
+- the Customer needs Telectro to investigate a new issue.
+
+## When not to use this process
+
+Do not log a new support request when:
+
+- the same issue is already logged;
+- the Customer only needs to add more information to an existing ticket;
+- the Customer wants to reply to a Telectro update on an existing ticket;
+- the issue is only a follow-up to a ticket that is already open or recently resolved.
+
+Use `Add information` on the existing ticket instead of creating a duplicate request.
+
+A duplicate request should only be logged when there is a clear reason, such as a genuinely separate issue or a new fault after the previous one was completed.
+
+## Important concepts
+
+### Support Requests
+
+`Support Requests` is the Customer portal area where the Customer can see their logged requests.
+
+Use it to:
+
+- view existing requests;
+- open a request again;
+- check progress;
+- add more information;
+- log a new support request.
+
+### Log a Support Request
+
+`Log a Support Request` starts a new request.
+
+Use it only when a new issue needs to be reported.
+
+### Fault Point
+
+`Fault Point` helps Telectro understand where the issue is located.
+
+In the current Customer portal flow, Fault Point is optional.
+
+Customers should choose the closest recognised point, asset, link, or area when they can.
+
+If the exact point is not available or the Customer is unsure, the Customer should still submit the request and describe the location clearly in the details.
+
+### Category
+
+The Fault Point area includes a Category selector.
+
+The current category options include:
+
+- Buildings
+- Network Nodes
+- Links
+- Areas
+- Other
+- Residents
+
+The Category helps narrow the available fault point search results.
+
+### Search
+
+The Search field lets the Customer search within the selected category.
+
+Customers can search for a recognisable location name, such as a building, room, cabinet, reception area, link, area, or known label.
+
+### Selected Fault Point / Selected Fault Asset
+
+After the Customer selects a result, the portal shows a selected summary.
+
+Depending on the selected category and geometry, the summary may refer to:
+
+- `Selected Fault Point`
+- `Selected Fault Asset`
+
+This selected context is sent to Telectro with the ticket.
+
+### Subject
+
+The subject is the short title of the support request.
+
+It should be brief and specific.
+
+### Detailed explanation
+
+The detailed explanation is where the Customer describes the issue.
+
+It should include symptoms, location clues, equipment labels, access notes, and anything Telectro should know before investigating.
+
+### Attachments
+
+Customers can attach photos or evidence while creating the request.
+
+Useful attachments include:
+
+- photos of equipment labels;
+- screenshots;
+- fault lights;
+- site photos;
+- access notes;
+- signed documents;
+- supporting evidence.
+
+Do not attach passwords, unrelated Customer information, or private documents that are not needed for the support request.
+
+## Before you start
+
+Before logging a new support request, the Customer should check:
+
+- whether the same issue is already listed under `Support Requests`;
+- whether the existing ticket can be updated with `Add information`;
+- what is affected;
+- where the issue is located;
+- whether a photo, equipment label, access note, or other evidence would help;
+- whether the issue needs urgent wording in the description.
+
+If the issue already exists, open the existing ticket and use `Add information`.
+
+## Step-by-step process
+
+### Step 1 — Open Support Requests
+
+Log in as a Customer portal user.
+
+Open `Support Requests`.
+
+This shows the Customer’s support request list.
+
+Before creating a new request, check whether the same issue is already listed.
+
+### Step 2 — Start a new support request
+
+Select `Log a Support Request`.
+
+This opens the new support request page.
+
+The page may show Customer branding and a short instruction such as telling Telectro what needs attention and where it is located.
+
+### Step 3 — Choose a Fault Point category, if useful
+
+In the `Fault Point` area, review the selected Category.
+
+Choose the category that best matches the affected location or asset.
+
+Examples:
+
+- use `Buildings` for a room, building, office, reception, or similar fixed location;
+- use `Network Nodes` for cabinets, nodes, or technical network points;
+- use `Links` when the affected item is a link rather than a single point;
+- use `Areas` when the issue affects a broader mapped area;
+- use `Other` when the exact category is not clear.
+
+If unsure, choose the closest likely category and explain the uncertainty in the detailed explanation.
+
+### Step 4 — Search for the closest affected location
+
+Use the Search field to find the closest affected location, point, asset, link, or area.
+
+If results appear, select the closest recognised option.
+
+If no matching result appears:
+
+- try a shorter search term;
+- search for a nearby known location;
+- choose the closest point you recognise; or
+- leave the Fault Point blank and explain the exact location in the detailed explanation.
+
+Fault Point is helpful, but it should not prevent the Customer from submitting a valid request.
+
+### Step 5 — Confirm the selected Fault Point or Fault Asset
+
+If a result is selected, check the selected summary before submitting.
+
+Confirm:
+
+- the selected name looks correct;
+- the category looks correct;
+- the campus/location context looks correct;
+- the map link is useful if available.
+
+If the wrong point was selected, clear it and search again.
+
+### Step 6 — Add a short subject
+
+Enter a short, clear subject.
+
+Good examples:
+
+- “Reception phone not ringing”
+- “Internet down at Bakery office”
+- “CCTV camera offline at main gate”
+- “SIM device not connecting”
+- “Link unstable near cellar”
+
+Poor examples:
+
+- “Help”
+- “Broken”
+- “Problem”
+- “Urgent”
+- “Please fix”
+
+The subject should help Telectro identify the request quickly from a list.
+
+### Step 7 — Add a detailed explanation
+
+Enter a clear detailed explanation.
+
+Include useful details such as:
+
+- what is not working;
+- when the issue started;
+- whether it is constant or intermittent;
+- which users, rooms, devices, or areas are affected;
+- any equipment label, SIM number, circuit reference, extension, cabinet, or device name;
+- what has already been checked;
+- who Telectro can contact or where access can be arranged.
+
+Good example:
+
+```text
+The reception phone is not ringing for incoming calls. Outgoing calls still work. The issue started this morning after load shedding. The phone is at the main reception desk. The equipment label on the handset is PABX-REC-02.
+```
+
+Good example when the Fault Point is unknown:
+
+```text
+We could not find the exact fault point in the list. The issue is at the small office behind the tasting room. The nearest known location is the reception area. I have attached a photo of the room and the equipment label.
+```
+
+### Step 8 — Attach photos or evidence, if helpful
+
+Attach photos or evidence when it will help Telectro understand the request.
+
+Useful examples:
+
+- photo of the affected device;
+- photo of an equipment label;
+- screenshot of an error;
+- photo of warning lights;
+- access instruction or contact note;
+- document that supports the request.
+
+Before submitting, confirm the attachment is relevant and safe to share.
+
+### Step 9 — Submit the request
+
+Review the request before submitting.
+
+Confirm:
+
+- the subject is clear;
+- the detailed explanation contains enough information;
+- the selected Fault Point or Fault Asset is correct, if one was selected;
+- the attachments are correct, if any were added.
+
+Select `Submit`.
+
+### Step 10 — Verify the submitted ticket
+
+After submission, the portal should open the new ticket detail page.
+
+Confirm:
+
+- the ticket was created;
+- the ticket number is visible;
+- the subject and description are correct;
+- the selected Fault Point or Fault Asset context appears where expected;
+- any uploaded attachments are present;
+- the ticket appears in `Support Requests`.
+
+If the ticket does not open or something looks wrong, record what happened and contact Telectro through the agreed support channel.
+
+## Verification checklist
+
+The process is complete when:
+
+- The Customer checked that the issue was not already logged.
+- `Log a Support Request` was used for a new issue.
+- The subject is clear.
+- The detailed explanation is useful.
+- A Fault Point or Fault Asset was selected when one was known.
+- The request was still submitted when no exact Fault Point was available.
+- Photos or evidence were attached when helpful.
+- The request submitted successfully.
+- The new ticket opened after submission.
+- The ticket appears in `Support Requests`.
+
+## Common mistakes
+
+### Mistake: Logging a duplicate request
+
+Problem:
+
+- Telectro may receive two tickets for the same issue, which can split updates and confuse ownership.
+
+Correct approach:
+
+- Check `Support Requests` first.
+- Use `Add information` on the existing ticket when the issue is already logged.
+
+### Mistake: Waiting because the exact Fault Point is not listed
+
+Problem:
+
+- The Customer may delay reporting the issue.
+
+Correct approach:
+
+- Select the closest known point if possible.
+- If no useful point is available, leave Fault Point blank and describe the exact location in the detailed explanation.
+
+### Mistake: Choosing a random Fault Point
+
+Problem:
+
+- Telectro may be routed to the wrong location.
+
+Correct approach:
+
+- Choose the closest known point only when it is genuinely helpful.
+- If unsure, explain the uncertainty in the detailed explanation.
+
+### Mistake: Using a vague subject
+
+Problem:
+
+- Telectro cannot quickly understand the issue from the request list.
+
+Correct approach:
+
+- Use a short subject that names the affected service, place, or symptom.
+
+### Mistake: Leaving out access or equipment details
+
+Problem:
+
+- Telectro may need to ask for more information before acting.
+
+Correct approach:
+
+- Include room, cabinet, equipment label, access notes, contact person, or other practical details when available.
+
+### Mistake: Attaching unclear or unrelated photos
+
+Problem:
+
+- Attachments may not help Telectro understand the problem.
+
+Correct approach:
+
+- Attach clear, relevant photos or documents.
+- Add a short explanation in the description if the photo needs context.
+
+## Do
+
+- Check existing `Support Requests` first.
+- Use `Log a Support Request` for new issues.
+- Select the closest Fault Point or Fault Asset when known.
+- Submit the request even when no exact Fault Point is available.
+- Use a short, clear subject.
+- Give enough detail for Telectro to start.
+- Attach photos or evidence where helpful.
+- Use `Add information` on the existing ticket for follow-up details.
+
+## Do not
+
+- Do not log duplicate requests for the same issue unless there is a clear reason.
+- Do not choose a random Fault Point.
+- Do not delay reporting just because the exact point is not listed.
+- Do not use one-word subjects such as “Help” or “Broken”.
+- Do not attach passwords, unrelated documents, or private information that is not needed for the request.
+- Do not expect Customer portal sign-off or closure actions as part of the normal Customer workflow.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `Support Requests` list.
+2. `Log a Support Request` button.
+3. New support request page header.
+4. `Fault Point` area.
+5. Category selector.
+6. Search field.
+7. Fault Point search results.
+8. Selected Fault Point or Selected Fault Asset summary.
+9. Map link, if available.
+10. Subject field.
+11. Detailed explanation editor.
+12. Attachment upload in the editor.
+13. `Submit` button.
+14. New ticket detail page after submission.
+15. Ticket visible in `Support Requests`.
+16. `Add information` action on an existing ticket, as the alternative to duplicate creation.
+
+## Related docs
+
+- `docs/runbooks/customer-location-and-organisation-model.md`
+- `docs/runbooks/customer-ticket-lifecycle-v1.md`
+- `docs/user-guides/pilot-welcome-guides.md`
+
+# 6. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -1682,7 +2136,6 @@ Planned guides:
 
 Planned guides:
 
-- Customer logs a support request
 - Customer adds follow-up information
 - Customer views latest update
 - Customer downloads Customer-visible evidence
@@ -1690,7 +2143,7 @@ Planned guides:
 
 ---
 
-# 6. Maintenance rule
+# 7. Maintenance rule
 
 Keep Activity Process Guides practical.
 
