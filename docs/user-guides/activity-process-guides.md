@@ -3636,7 +3636,507 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/activity-process-guides.md#7-customer-views-latest-update`
 * `docs/user-guides/activity-process-guides.md#8-customer-downloads-customer-visible-evidence`
 
-# 10. Activity Process Guide backlog
+# 10. Partner responds to an acceptance request
+
+## Purpose
+
+Use this process when Telectro has asked a Partner to confirm whether Telectro’s handling of a Partner-originated ticket is acceptable, or whether rework is required.
+
+This process applies to the Partner acceptance train.
+
+It is used when:
+
+* the ticket was originally logged by a Partner;
+* Telectro is responsible for fulfilment;
+* Telectro has requested Partner acceptance;
+* the Partner must either submit an acceptance note or request rework.
+
+This process is not the same as submitting Partner work done.
+
+Partner acceptance confirms whether the Partner accepts Telectro’s handling of the Partner-originated request.
+
+Partner work done is a separate process for tickets where Telectro assigns fulfilment work to a Partner.
+
+## Audience
+
+Primary users:
+
+* Partner users
+
+Secondary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+* Telectro Technician
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Partner understand the acceptance request process.
+
+This process is not for Customer portal users.
+
+Customer tickets do not use the Partner acceptance/rework workflow.
+
+## When to use this process
+
+Use this process when:
+
+* a Partner-originated ticket is waiting for Partner acceptance;
+* the Partner sees `Submit Acceptance Note`;
+* the Partner sees `Request Rework`;
+* Telectro has asked the Partner to confirm acceptance;
+* the Partner agrees that the issue or request has been handled sufficiently;
+* the Partner believes Telectro still needs to correct, clarify, or complete something.
+
+Typical examples:
+
+* “Telectro has completed the request; please confirm acceptance.”
+* “The ticket is waiting for Partner acceptance.”
+* “The outcome is correct, and I need to accept it.”
+* “The outcome is not correct, and I need to request rework.”
+* “The completion is unclear, and I need Telectro to clarify.”
+* “The Partner Acceptance Requested note explains what Telectro wants me to review.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the ticket was not originally logged by a Partner;
+* the Partner is doing work assigned by Telectro;
+* the Partner needs to submit work done;
+* the ticket is already `Resolved`, `Closed`, or `Archived`;
+* no Partner acceptance request is pending;
+* the Partner wants to create a new ticket;
+* the Customer is trying to approve or reject Customer-facing work.
+
+Use `Partner submits work done` when the Partner is completing work assigned by Telectro.
+
+Use the Customer resolved outcome process for Customer-facing resolution review.
+
+## Important concepts
+
+### Partner-originated ticket
+
+A Partner-originated ticket is a ticket logged by a Partner where the request source is `Partner`.
+
+In this train, the Partner asks Telectro for help, and Telectro works the ticket.
+
+### Partner acceptance request
+
+A Partner acceptance request is Telectro’s request for the Partner to confirm whether Telectro’s handling of the Partner-originated ticket is acceptable.
+
+The ticket’s Partner Acceptance State becomes:
+
+```text
+Pending Partner Acceptance
+```
+
+The Partner ticket page then shows Partner-side response actions.
+
+### Submit Acceptance Note
+
+`Submit Acceptance Note` is the Partner action used when the Partner accepts Telectro’s handling of the ticket.
+
+The Partner must enter an acceptance note.
+
+After submission, the Partner Acceptance State becomes:
+
+```text
+Accepted by Partner
+```
+
+The ticket then waits for Telectro review.
+
+### Request Rework
+
+`Request Rework` is the Partner action used when the Partner believes Telectro still needs to correct, clarify, or complete something.
+
+The Partner must enter a reason.
+
+After submission, the Partner Acceptance State becomes:
+
+```text
+Rework Required
+```
+
+Telectro must then review the rework reason, correct or clarify the issue, and request Partner acceptance again when ready.
+
+### Acceptance is not completion work
+
+Submitting an acceptance note is not the same as submitting work done.
+
+Acceptance means:
+
+```text
+The Partner accepts Telectro’s handling of the Partner-originated request.
+```
+
+Work done means:
+
+```text
+The Partner has completed work assigned to the Partner by Telectro.
+```
+
+These are separate Partner workflow trains.
+
+## Before you start
+
+Before responding to a Partner acceptance request, the Partner should confirm:
+
+* they are logged in as the correct Partner user;
+* they have opened the correct Partner ticket;
+* the ticket is not `Resolved`, `Closed`, or `Archived`;
+* the ticket shows the correct subject and summary;
+* the ticket is a Partner-originated request;
+* the Partner Acceptance Requested note is visible, if one was provided;
+* the visible ticket information is enough to decide whether to accept or request rework.
+
+If the Partner cannot make a decision, they should request rework with a clear explanation or contact Telectro through the agreed support channel.
+
+## Step-by-step process
+
+### Step 1 — Open the Partner workspace
+
+Log in as a Partner user.
+
+Open the Partner workspace.
+
+The Partner workspace is the Partner-safe starting point.
+
+Do not use the internal Telectro workspace for this process.
+
+### Step 2 — Open the relevant Partner ticket list
+
+Open the Partner ticket list that contains the ticket waiting for acceptance.
+
+This may be a current/active Partner ticket list or a Partner acceptance-related list, depending on the workspace layout.
+
+Open the ticket from the list.
+
+### Step 3 — Confirm this is the correct ticket
+
+On the Partner ticket page, confirm:
+
+* the ticket ID;
+* the subject;
+* the summary;
+* the status;
+* the request source;
+* the fulfilment party;
+* the Customer / Account context, where visible;
+* the site, fault, or service context, where visible.
+
+Do not submit acceptance or request rework on the wrong ticket.
+
+### Step 4 — Read the Partner Acceptance Requested note
+
+If a `Partner Acceptance Requested` note is visible, read it carefully.
+
+The note may explain:
+
+* what Telectro is asking the Partner to review;
+* what was done;
+* what outcome Telectro believes is ready for acceptance;
+* whether any context, evidence, or limitation should be considered.
+
+If the note is unclear, use `Request Rework` and explain what needs clarification.
+
+### Step 5 — Review the ticket information
+
+Review the visible Partner-safe ticket information.
+
+This may include:
+
+* status;
+* priority;
+* request type;
+* due date;
+* ticket type;
+* request source;
+* fulfilment party;
+* Customer / Account;
+* campus or location;
+* fault category;
+* fault asset;
+* fault point;
+* service area;
+* severity;
+* subject;
+* summary;
+* attachments;
+* Partner notes;
+* Telectro review or rework notes.
+
+Only use information visible in the Partner-safe ticket view.
+
+### Step 6 — Decide whether to accept or request rework
+
+Choose `Submit Acceptance Note` when:
+
+* the request has been handled sufficiently;
+* the visible outcome matches what the Partner expected;
+* no further correction is needed from Telectro;
+* the Partner can clearly state acceptance.
+
+Choose `Request Rework` when:
+
+* the outcome is incomplete;
+* the issue is not fixed;
+* the work does not match the request;
+* the result is unclear;
+* important information is missing;
+* the Partner needs Telectro to correct or clarify something before acceptance.
+
+### Step 7A — Submit an acceptance note
+
+Select `Submit Acceptance Note`.
+
+The dialog asks for:
+
+* `Accepted On`;
+* `Acceptance Note`.
+
+Enter a clear acceptance note.
+
+Good examples:
+
+```text
+Accepted. Telectro has confirmed the routing change and the Partner request can be closed from our side.
+```
+
+```text
+Accepted. The requested account update is reflected correctly and no further action is required.
+```
+
+```text
+Accepted. The fault has been resolved and the site contact confirmed service is restored.
+```
+
+Then submit the dialog.
+
+After submission, the ticket moves to:
+
+```text
+Accepted by Partner
+```
+
+Telectro must then review the Partner acceptance.
+
+### Step 7B — Request rework
+
+Select `Request Rework`.
+
+The dialog asks for a reason.
+
+Enter a clear rework reason.
+
+Good examples:
+
+```text
+The issue is not resolved. The link is still unstable and dropped twice after Telectro’s update.
+```
+
+```text
+The requested change was made on the wrong extension. Please update extension 214, not 241.
+```
+
+```text
+The completion note does not explain what was changed. Please clarify before acceptance.
+```
+
+```text
+The attached document is missing the final signed page. Please upload the complete version.
+```
+
+Then submit the dialog.
+
+After submission, the ticket moves to:
+
+```text
+Rework Required
+```
+
+Telectro must then review the reason, perform the required follow-up, and request Partner acceptance again when ready.
+
+### Step 8 — Verify the result
+
+After submitting either action, reload or review the Partner ticket page.
+
+Confirm that:
+
+* the action no longer appears when it is no longer valid;
+* the Partner Acceptance Note or Rework Required note is visible where expected;
+* the Partner Acceptance State changed as expected;
+* the ticket remains in the correct Partner or Telectro review queue.
+
+If the page did not update, refresh the page and check again.
+
+### Step 9 — Wait for Telectro review or follow-up
+
+After the Partner submits an acceptance note, Telectro reviews the acceptance.
+
+Telectro may:
+
+* review only;
+* resolve the ticket;
+* close the ticket.
+
+After the Partner requests rework, Telectro reviews the reason.
+
+Telectro may:
+
+* perform more work;
+* clarify the outcome;
+* update the ticket;
+* request Partner acceptance again.
+
+The Partner should not try to resolve or close the ticket directly.
+
+## Verification checklist
+
+The process is complete when:
+
+* The Partner opened the correct Partner ticket.
+* The Partner confirmed the ticket context before acting.
+* The Partner read the Partner Acceptance Requested note, if present.
+* The Partner selected the correct action:
+
+  * `Submit Acceptance Note`; or
+  * `Request Rework`.
+* The Partner entered a clear note or reason.
+* The Partner submitted the action.
+* The Partner Acceptance State changed as expected.
+* The Partner note or rework reason is visible on the ticket.
+* Telectro has a clear next action.
+
+## Common mistakes
+
+### Mistake: Treating Partner acceptance as Partner work completion
+
+Problem:
+
+* The Partner may use acceptance when they should submit work done.
+
+Correct approach:
+
+* Use Partner acceptance for Partner-originated tickets where Telectro handled the request.
+* Use `Submit Work Done` for Telectro-assigned Partner fulfilment work.
+
+### Mistake: Submitting a vague acceptance note
+
+Problem:
+
+* Telectro cannot tell what was accepted or why the Partner is satisfied.
+
+Poor example:
+
+```text
+Done.
+```
+
+Better example:
+
+```text
+Accepted. The requested routing change has been checked and is working as expected.
+```
+
+### Mistake: Requesting rework without a clear reason
+
+Problem:
+
+* Telectro cannot know what needs to be corrected.
+
+Poor example:
+
+```text
+Still wrong.
+```
+
+Better example:
+
+```text
+The routing still sends after-hours calls to the old number. Please update it to the new duty number and confirm.
+```
+
+### Mistake: Acting on the wrong Partner ticket
+
+Problem:
+
+* Telectro may review the wrong acceptance or rework request.
+
+Correct approach:
+
+* Always confirm the ticket ID, subject, location, and summary before submitting.
+
+### Mistake: Expecting to resolve or close the ticket as Partner
+
+Problem:
+
+* Partner acceptance is not Partner closure authority.
+
+Correct approach:
+
+* Submit acceptance or request rework.
+* Telectro reviews and finalises the ticket.
+
+### Mistake: Using Partner acceptance for Customer sign-off
+
+Problem:
+
+* Customer tickets do not use the Partner acceptance/rework train.
+
+Correct approach:
+
+* Keep Partner acceptance separate from Customer resolved outcome review.
+
+## Do
+
+* Use the Partner workspace.
+* Open the correct Partner ticket.
+* Read the Partner Acceptance Requested note.
+* Review the visible ticket context.
+* Use `Submit Acceptance Note` only when the outcome is acceptable.
+* Use `Request Rework` when Telectro must correct or clarify something.
+* Write clear notes.
+* Check that the Partner Acceptance State changed after submission.
+* Wait for Telectro review or follow-up.
+
+## Do not
+
+* Do not use Partner acceptance for Customer sign-off.
+* Do not use Partner acceptance for Telectro-assigned Partner work completion.
+* Do not submit vague notes.
+* Do not request rework without explaining what must change.
+* Do not act on the wrong ticket.
+* Do not expect Partner users to resolve or close the ticket directly.
+* Do not assume acceptance is complete until Telectro has reviewed it.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Partner workspace.
+2. Partner ticket list showing a ticket awaiting acceptance.
+3. Partner ticket detail page.
+4. `Partner Acceptance Requested` note.
+5. `Submit Acceptance Note` button.
+6. `Submit Acceptance Note` dialog.
+7. Completed acceptance note visible on the Partner ticket.
+8. Partner Acceptance State showing `Accepted by Partner`.
+9. `Request Rework` button.
+10. `Request Rework` dialog.
+11. Rework reason visible on the Partner ticket.
+12. Partner Acceptance State showing `Rework Required`.
+13. Telectro-side `Review Partner Acceptance` action.
+14. Telectro-side `Request Partner Acceptance Again` action after rework.
+
+## Related docs
+
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/notification-v1-operating-model.md`
+* `docs/runbooks/service-coverage-model.md`
+* `docs/runbooks/customer-ticket-lifecycle-v1.md`
+* `docs/user-guides/activity-process-guides.md#9-customer-checks-resolved-ticket-outcome`
+
+# 11. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -3667,7 +4167,6 @@ Planned guides:
 
 Planned guides:
 
-- Request Partner acceptance
 - Review Partner acceptance
 - Partner submits work done
 - Review Partner completed work
@@ -3676,7 +4175,7 @@ Planned guides:
 
 ---
 
-# 11. Maintenance rule
+# 12. Maintenance rule
 
 Keep Activity Process Guides practical.
 
