@@ -2889,7 +2889,360 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
 * `docs/user-guides/activity-process-guides.md#6-customer-adds-follow-up-information`
 
-# 8. Activity Process Guide backlog
+# 8. Customer downloads Customer-visible evidence
+
+## Purpose
+
+Use this process when a Customer user needs to open or download evidence that Telectro has deliberately made Customer-visible on a support request.
+
+Customer-visible evidence may include completion proof, photos, documents, or supporting files that Telectro has intentionally shared with the Customer.
+
+This process is important because ticket evidence and Customer-visible evidence are not the same thing.
+
+Not every file attached to a ticket is visible to the Customer.
+
+The Customer should only expect to see evidence that is Customer-visible or that the Customer originally submitted through the Customer portal.
+
+## Audience
+
+Primary users:
+
+* Customer portal users
+
+Secondary users:
+
+* Telectro Technician
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Customer find evidence on an existing request.
+
+This process is not for Partner users.
+
+Partner users should use the Partner workflow instead.
+
+## When to use this process
+
+Use this process when:
+
+* Telectro has sent a Customer-visible update with evidence;
+* Telectro has resolved a Customer ticket and attached Customer-facing completion evidence;
+* the Customer needs to open a photo, PDF, document, or other file shared on the ticket;
+* the Customer needs to verify proof of work or completion;
+* the Customer wants to check an attachment they submitted earlier;
+* Telectro has told the Customer that evidence is available on the ticket.
+
+Typical examples:
+
+* “Please download the completion photo from the ticket.”
+* “The resolution update says the completion document is attached.”
+* “I want to check the photo I uploaded when I logged the request.”
+* “Telectro said the signed completion evidence is available.”
+* “I need to confirm which document was shared with the resolution update.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the Customer needs to upload a new file;
+* the Customer needs to add more information to the ticket;
+* the Customer expects to see all internal ticket files;
+* the Customer expects to see Partner-only files;
+* the Customer expects to see technician working files;
+* the Customer needs a file that was not deliberately shared with them;
+* the issue is new and unrelated to the existing ticket.
+
+Use `Add information` when the Customer needs to send more detail or attach a new file.
+
+Use `Log a Support Request` when the Customer needs to report a new issue.
+
+## Important concepts
+
+### Customer-visible evidence
+
+Customer-visible evidence is evidence that the Customer is allowed to see.
+
+It may be attached to a Customer-visible update or resolution communication.
+
+Customer-visible evidence should be deliberate, safe, and relevant.
+
+### Completion evidence
+
+Completion evidence is evidence attached when Telectro resolves a Customer ticket.
+
+It may include a completion photo, proof-of-work document, signed document, or other file that supports the resolution outcome.
+
+Completion evidence is optional.
+
+Not every resolved ticket needs completion evidence.
+
+### Customer-submitted attachments
+
+Customer-submitted attachments are files the Customer uploaded when creating a support request or adding follow-up information.
+
+These may remain visible to the Customer where the native Customer portal shows them.
+
+Examples include:
+
+* photos of equipment labels;
+* screenshots;
+* access notes;
+* site photos;
+* supporting documents.
+
+### Internal evidence
+
+Internal evidence is evidence used by Telectro, technicians, coordinators, supervisors, or Partners for operational work.
+
+Internal evidence is not automatically visible to the Customer.
+
+Examples include:
+
+* technician working photos;
+* internal diagnostic notes;
+* Partner-only documents;
+* supplier information;
+* governance notes;
+* private operational files;
+* documents containing unrelated Customer or Telectro information.
+
+### Controlled download
+
+Customer-facing evidence should be opened or downloaded through the Customer portal’s intended controlled access path.
+
+The Customer should not rely on raw `/private/files/...` links as the access model.
+
+The correct behaviour is that the portal only exposes evidence that belongs to the relevant Customer ticket and has been shared through a Customer-facing communication or allowed Customer portal attachment path.
+
+## Before you start
+
+Before downloading evidence, the Customer should confirm:
+
+* they are logged in as the correct Customer user;
+* they have opened the correct support request;
+* the update or resolution mentions evidence, if evidence is expected;
+* the file appears in the Customer-visible ticket activity or attachment area;
+* the file name looks relevant;
+* the file belongs to the ticket they are viewing.
+
+If the expected evidence is not visible, the Customer should use `Add information` or the agreed support channel to ask Telectro for help.
+
+## Step-by-step process
+
+### Step 1 — Open Support Requests
+
+Log in as a Customer portal user.
+
+Open `Support Requests`.
+
+This shows the Customer’s logged support requests.
+
+### Step 2 — Open the correct ticket
+
+Open the support request that contains the evidence.
+
+Before downloading anything, confirm:
+
+* the ticket number is correct;
+* the subject matches the issue;
+* the visible request details match the issue;
+* this is not a different or unrelated ticket.
+
+### Step 3 — Read the latest visible update
+
+Read the `Latest update` card or visible ticket activity.
+
+Look for wording that mentions evidence, attachments, completion proof, photos, documents, or a file.
+
+Examples:
+
+* “The completion photo is attached.”
+* “The signed completion document has been attached.”
+* “Please see the attached evidence.”
+* “Completion evidence is available on the ticket.”
+
+### Step 4 — Find the evidence in the visible activity
+
+Look in the Customer-visible ticket activity for the relevant file or attachment.
+
+The evidence may appear near:
+
+* the Customer-visible update;
+* the resolution update;
+* the Customer’s original request;
+* the Customer’s follow-up information;
+* the visible activity/timeline.
+
+If more than one file is visible, use the update wording and file name to choose the correct one.
+
+### Step 5 — Open or download the file
+
+Open or download the visible evidence file.
+
+Depending on the browser and file type, the file may:
+
+* open in the browser;
+* download to the computer;
+* ask for permission to download;
+* open in a separate viewer.
+
+Confirm the downloaded or opened file is the expected evidence.
+
+### Step 6 — Verify the file content
+
+After opening or downloading the file, confirm:
+
+* the file opens successfully;
+* the file belongs to the correct ticket;
+* the file matches the update or resolution wording;
+* the file is readable;
+* the file is the expected photo, PDF, document, or evidence item.
+
+If the wrong file was downloaded, return to the ticket and check the visible update and filename again.
+
+### Step 7 — If the expected evidence is missing
+
+If the Customer expected evidence but cannot see it, do not create a duplicate support request.
+
+Use `Add information` on the same ticket and ask Telectro for help.
+
+Good example:
+
+* “The resolution update mentions completion evidence, but I cannot see the attachment on the ticket. Please confirm whether the file has been shared.”
+
+Telectro can then check whether the correct file was deliberately selected and shared as Customer-visible evidence.
+
+### Step 8 — Keep the file safe
+
+Downloaded evidence may contain operational or Customer-specific information.
+
+The Customer should store it appropriately and avoid forwarding it outside the intended business context.
+
+Do not upload the downloaded file to unrelated systems unless that is part of the Customer’s internal process.
+
+## Verification checklist
+
+The process is complete when:
+
+* The Customer opened the correct support request.
+* The Customer reviewed the latest visible update or ticket activity.
+* The expected evidence was visible in the Customer-facing ticket view.
+* The Customer opened or downloaded the file.
+* The file opened successfully.
+* The file content matched the expected evidence.
+* The Customer did not expect internal-only ticket evidence to be visible.
+* The Customer used `Add information` if expected evidence was missing.
+
+## Common mistakes
+
+### Mistake: Assuming all ticket attachments are Customer-visible
+
+Problem:
+
+* A ticket can contain internal evidence, Partner evidence, or technician files that are not meant for the Customer.
+
+Correct approach:
+
+* Customers should only expect Customer-visible evidence or their own Customer-submitted attachments.
+* Telectro must deliberately share evidence when the Customer should see it.
+
+### Mistake: Looking for raw private file links
+
+Problem:
+
+* Raw `/private/files/...` links are not the intended Customer evidence access model.
+
+Correct approach:
+
+* Use the Customer portal’s visible file/download behaviour.
+* Ask Telectro if expected evidence is not visible.
+
+### Mistake: Downloading evidence from the wrong ticket
+
+Problem:
+
+* The Customer may rely on the wrong document or photo.
+
+Correct approach:
+
+* Confirm the ticket number, subject, update wording, and filename before using the file.
+
+### Mistake: Treating missing evidence as a new issue
+
+Problem:
+
+* Creating a duplicate support request splits the conversation and work history.
+
+Correct approach:
+
+* Use `Add information` on the same ticket to ask Telectro to check the missing evidence.
+
+### Mistake: Expecting Partner or internal files to be visible
+
+Problem:
+
+* Partner-only and internal operational evidence may contain information that should not be exposed to the Customer.
+
+Correct approach:
+
+* Only Customer-visible evidence should appear in the Customer portal.
+
+### Mistake: Assuming every resolved ticket has completion evidence
+
+Problem:
+
+* Completion evidence is optional and depends on the type of work and Telectro’s process.
+
+Correct approach:
+
+* Read the resolution update.
+* Download evidence only when evidence was actually shared.
+
+## Do
+
+* Open the correct ticket from `Support Requests`.
+* Read the latest visible update before downloading.
+* Download only files visible in the Customer-facing ticket view.
+* Confirm the file belongs to the correct ticket.
+* Confirm the file content matches the expected evidence.
+* Use `Add information` if expected evidence is missing.
+* Remember that Customer-visible evidence is selective.
+
+## Do not
+
+* Do not expect all ticket attachments to be visible.
+* Do not expect internal Telectro evidence to be visible.
+* Do not expect Partner-only evidence to be visible.
+* Do not rely on raw `/private/files/...` links.
+* Do not create a duplicate ticket just because evidence is missing.
+* Do not forward downloaded evidence outside the intended business context unless appropriate.
+* Do not use this process to upload new evidence; use `Add information` for that.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `Support Requests` list.
+2. Customer ticket detail page.
+3. `Latest update` card mentioning evidence.
+4. Visible activity/timeline showing Customer-visible evidence.
+5. Evidence filename/link in the Customer portal.
+6. Browser download/open behaviour.
+7. Downloaded/opened evidence file.
+8. Example resolved ticket with completion evidence.
+9. Example Customer-submitted attachment visible in activity.
+10. `Add information` action for asking Telectro when expected evidence is missing.
+
+## Related docs
+
+* `docs/runbooks/ticket-evidence-v1.md`
+* `docs/runbooks/customer-ticket-lifecycle-v1.md`
+* `docs/runbooks/pilot-outstanding-issues-timeline.md`
+* `docs/user-guides/activity-process-guides.md#1-add-a-customer-visible-update-with-photodocument-evidence`
+* `docs/user-guides/activity-process-guides.md#4-resolve-a-customer-ticket`
+* `docs/user-guides/activity-process-guides.md#7-customer-views-latest-update`
+
+# 9. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -2931,12 +3284,11 @@ Planned guides:
 
 Planned guides:
 
-- Customer downloads Customer-visible evidence
 - Customer checks resolved ticket outcome
 
 ---
 
-# 9. Maintenance rule
+# 10. Maintenance rule
 
 Keep Activity Process Guides practical.
 
