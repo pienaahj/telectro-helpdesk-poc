@@ -6318,7 +6318,476 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/pilot-welcome-guides.md`
 * `docs/runbooks/service-coverage-model.md`
 
-# 15. Activity Process Guide backlog
+# 15. Check unclaimed tickets
+
+## Purpose
+
+Use this process to check tickets that are in the true pool or otherwise unclaimed, and decide what should happen next.
+
+Unclaimed work is operational risk.
+
+A ticket with no accountable owner can be missed, delayed, or left without a clear next action. The purpose of this process is to make unclaimed work visible and move it into the correct ownership path.
+
+This guide does not replace the `Claim`, `Release`, or `Controlled Handoff` process.
+
+It explains when and how to review unclaimed work, and which ownership action to use after review.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician
+
+Technicians may use the unclaimed view to find work they can claim.
+
+Coordinators and supervisors use it to monitor the pool, protect service flow, and intervene when tickets should not remain unclaimed.
+
+Partner users do not use this internal process.
+
+Customer portal users do not use this internal process.
+
+## When to use this process
+
+Use this process when:
+
+* starting the day;
+* checking the Coordinator or Ops workspace;
+* monitoring queue health;
+* checking whether tickets are sitting without an accountable owner;
+* reviewing the unclaimed pool after tickets were released;
+* checking for stale unclaimed work;
+* deciding whether a ticket should be claimed, handed off, escalated, or left in the pool;
+* preparing for a supervisor/coordinator daily review.
+
+Typical examples:
+
+* “Are there any tickets nobody owns?”
+* “Which tickets are still in the pool?”
+* “Has anything been unclaimed for too long?”
+* “Did a released ticket get picked up?”
+* “Should this be claimed by a technician or handed off to a named owner?”
+* “Is the unclaimed queue hiding urgent work?”
+
+## When not to use this process
+
+Do not use this process when:
+
+* you are reviewing your own assigned work;
+* you are reviewing tickets shared with you;
+* you are reviewing Partner acceptance;
+* you are reviewing Partner completed work;
+* you need SLA-first-response oversight;
+* you need full aging and at-risk governance across all owned tickets.
+
+Use `Review current work` for your own assigned/shared/review buckets.
+
+Use `Review Partner acceptance` for Partner acceptance review.
+
+Use `Review Partner completed work` for Partner work completion review.
+
+Use aging, SLA, or supervisor reports for broader governance.
+
+## Important concepts
+
+### True pool / unclaimed ticket
+
+A true pool ticket has no accountable individual owner.
+
+In the pilot assignment model, true pool means:
+
+```text
+HD Ticket._assign = []
+No open assignment ToDo
+```
+
+Some reports and quick lists may also treat blank `_assign` as unclaimed.
+
+### Unclaimed is not the same as shared
+
+An unclaimed ticket has no accountable owner.
+
+A shared ticket may be visible to someone, but still has a different accountability model.
+
+Do not confuse visibility with ownership.
+
+### Unclaimed is not the same as low priority
+
+Unclaimed does not mean unimportant.
+
+An unclaimed ticket can be urgent, stale, or Customer-impacting.
+
+### Claim
+
+`Claim` is used when a user takes ownership of a true pool ticket.
+
+Use Claim when the person claiming can actually take the next meaningful action.
+
+### Release
+
+`Release` returns a ticket from its current owner to the true pool with a reason.
+
+A released ticket should be checked later to make sure it is not abandoned.
+
+### Controlled Handoff
+
+`Controlled Handoff` is the coordinator/supervisor action used when the next accountable owner is known.
+
+Use Controlled Handoff instead of leaving the ticket in the pool when a specific person should own it.
+
+## Before you start
+
+Before checking unclaimed tickets, confirm:
+
+* you are logged in as a Telectro internal user;
+* you are using the correct workspace or report;
+* you understand whether you are acting as Technician, Coordinator, or Supervisor/Ops;
+* you know whether your goal is to claim work, monitor work, or intervene;
+* you will open tickets before deciding ownership.
+
+## Step-by-step process
+
+### Step 1 — Open the unclaimed view
+
+Open the relevant Telectro workspace.
+
+Depending on your role, unclaimed work may appear through:
+
+```text
+Unclaimed Active Tickets
+Unclaimed more than 1 Day
+Unclaimed Over 1 Day
+Unclaimed (War Room)
+TELECTRO Unclaimed War Room
+```
+
+Coordinator and Ops workspaces may show unclaimed work through quick lists, number cards, or top-4 stale/unclaimed widgets.
+
+Technician workspaces may include an `Unclaimed (War Room)` shortcut.
+
+### Step 2 — Check the unclaimed count or list
+
+Review the unclaimed count, quick list, or report.
+
+Look for:
+
+* how many tickets are currently unclaimed;
+* whether any unclaimed tickets are older than expected;
+* whether any high-priority or high-severity tickets are unclaimed;
+* whether the same tickets remain unclaimed across checks.
+
+A non-zero unclaimed count is not automatically wrong, but it needs attention.
+
+### Step 3 — Open each important ticket
+
+Open the ticket before deciding what to do.
+
+Do not decide only from the list row.
+
+Check:
+
+* subject;
+* status;
+* priority;
+* severity;
+* Account / Customer context;
+* campus or site context;
+* service area;
+* request source;
+* fulfilment party;
+* latest activity;
+* why the ticket appears unclaimed.
+
+### Step 4 — Confirm it is active work
+
+Confirm the ticket is not terminal.
+
+Unclaimed monitoring is for active tickets, not completed history.
+
+Terminal statuses include:
+
+```text
+Resolved
+Closed
+Archived
+```
+
+If the ticket is terminal, it should not normally need unclaimed ownership intervention.
+
+### Step 5 — Decide why it is unclaimed
+
+Decide which case applies.
+
+#### Case A — Normal pool work waiting to be claimed
+
+The ticket is genuinely available for the correct technician or team member to claim.
+
+This may be acceptable for a short period.
+
+Next action:
+
+* leave it visible in the pool if it is fresh and safe to wait;
+* ask the correct team to claim it if needed;
+* claim it yourself only if you can own the next action.
+
+#### Case B — Ticket needs a known owner
+
+The correct next owner is already clear.
+
+Next action:
+
+* use `Controlled Handoff` if you are Coordinator/Ops/Supervisor;
+* include a clear reason;
+* verify the ticket moves to the named owner.
+
+Do not leave the ticket in the pool if the next accountable owner is already known.
+
+#### Case C — Ticket needs routing or triage
+
+The ticket is unclaimed because the service area, fault type, location, or next action is unclear.
+
+Next action:
+
+* add an internal note with the uncertainty;
+* correct obvious missing routing/context if your role allows it;
+* hand off to a coordinator/supervisor if a named owner is needed;
+* keep it visible until the routing decision is made.
+
+#### Case D — Ticket was released back to the pool
+
+The ticket was previously owned and then released.
+
+Next action:
+
+* read the release reason;
+* check whether the reason is clear;
+* decide whether it should remain in the pool, be claimed, or be handed off;
+* intervene if the reason is vague or the ticket is urgent.
+
+#### Case E — Ticket is stale or risky
+
+The ticket has been unclaimed too long, or urgency makes waiting unsafe.
+
+Next action:
+
+* open the ticket;
+* add internal context if needed;
+* use Controlled Handoff to assign a known accountable owner; or
+* escalate through the coordinator/supervisor process.
+
+Do not leave stale urgent work in the pool without action.
+
+### Step 6 — Choose the correct ownership action
+
+After reviewing the ticket, choose the correct path.
+
+#### Option A — Leave in pool
+
+Leave the ticket in the pool only when:
+
+* it is genuinely pool work;
+* it is fresh enough to wait;
+* no specific next owner is known;
+* it is visible in the correct unclaimed queue;
+* there is no urgent risk.
+
+#### Option B — Claim
+
+Use `Claim` when:
+
+* you are the correct person to own the ticket;
+* you can take the next meaningful action;
+* the ticket is actually in the true pool.
+
+After claiming, verify it appears in your current/assigned work.
+
+#### Option C — Controlled Handoff
+
+Use `Controlled Handoff` when:
+
+* a specific next owner is known;
+* coordinator/supervisor intervention is required;
+* the ticket should not remain in the pool;
+* a stale or risky ticket needs accountable ownership.
+
+Add a clear handoff reason.
+
+#### Option D — Add internal context first
+
+Add an internal note before claim or handoff when the next owner needs context.
+
+Examples:
+
+```text
+Unclaimed after release. Appears to be Internet Connection, not PABX. Coordinator to confirm service area before handoff.
+```
+
+```text
+Unclaimed > 1 day. Customer location is unclear. Please confirm fault point before dispatch.
+```
+
+```text
+Released back to pool because Alfa is unavailable for site visit. Needs coordinator reassignment.
+```
+
+### Step 7 — Verify the result
+
+After taking action, refresh the unclaimed view.
+
+Confirm:
+
+* the ticket no longer appears as unclaimed if it was claimed or handed off;
+* the ticket appears in the new owner’s current work if assigned;
+* the ticket remains visible in the pool only if that was deliberate;
+* any internal note or handoff reason is visible;
+* no duplicate or informal multi-owner state was created.
+
+## Verification checklist
+
+The unclaimed check is complete when:
+
+* The relevant unclaimed view was opened.
+* Unclaimed count/list was checked.
+* Important unclaimed tickets were opened.
+* Ticket priority, severity, status, account, site, service area, and latest activity were reviewed where relevant.
+* Stale or risky unclaimed tickets were identified.
+* Each reviewed ticket has a clear next action:
+
+  * remain in pool;
+  * claim;
+  * controlled handoff;
+  * internal note / triage;
+  * escalation.
+* Claimed or handed-off tickets no longer appear as unclaimed.
+* Handoff or internal context was recorded where needed.
+* No unclaimed urgent ticket was left without a deliberate decision.
+
+## Common mistakes
+
+### Mistake: Treating unclaimed as harmless
+
+Problem:
+
+* Tickets can sit without an accountable owner.
+
+Correct approach:
+
+* Review unclaimed work regularly and treat stale unclaimed items as operational risk.
+
+### Mistake: Claiming work you cannot action
+
+Problem:
+
+* The ticket leaves the pool but still does not move forward.
+
+Correct approach:
+
+* Claim only when you can take the next meaningful action.
+* Use Controlled Handoff or coordinator review when the correct owner is someone else.
+
+### Mistake: Leaving a known-owner ticket in the pool
+
+Problem:
+
+* The ticket waits unnecessarily even though the correct owner is clear.
+
+Correct approach:
+
+* Use Controlled Handoff when the next accountable owner is known.
+
+### Mistake: Ignoring release reasons
+
+Problem:
+
+* Released tickets may contain important routing or blocker information.
+
+Correct approach:
+
+* Read the release reason before deciding what to do next.
+
+### Mistake: Acting from the quick list only
+
+Problem:
+
+* The list row may not show enough context to make a safe decision.
+
+Correct approach:
+
+* Open the ticket before claiming, handing off, or escalating.
+
+### Mistake: Confusing unclaimed with shared
+
+Problem:
+
+* Shared visibility may be mistaken for pool work.
+
+Correct approach:
+
+* Check actual assignment/ownership before deciding.
+
+### Mistake: Using generic Assign/Unassign
+
+Problem:
+
+* Generic assignment can create states that do not match the pilot ownership model.
+
+Correct approach:
+
+* Use Claim, Release, and Controlled Handoff as the normal pilot ownership actions.
+
+## Do
+
+* Check unclaimed work regularly.
+* Open important unclaimed tickets before acting.
+* Treat stale unclaimed tickets as risk.
+* Read release reasons.
+* Claim only work you can own.
+* Use Controlled Handoff when the next owner is known.
+* Add internal context when routing or blockers are unclear.
+* Refresh the unclaimed view after acting.
+* Verify that ownership changed as expected.
+
+## Do not
+
+* Do not ignore the unclaimed pool.
+* Do not claim work only to remove it from the list.
+* Do not leave urgent known-owner work in the pool.
+* Do not skip release reasons.
+* Do not confuse shared visibility with unclaimed work.
+* Do not use generic Assign/Unassign as the normal pilot path.
+* Do not leave stale unclaimed work without a deliberate decision.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Coordinator or Ops workspace showing unclaimed count / quick list.
+2. `Unclaimed Active Tickets` quick list.
+3. `Unclaimed more than 1 Day` widget or card.
+4. `Unclaimed Over 1 Day` report.
+5. Tech workspace `Unclaimed (War Room)` shortcut.
+6. `TELECTRO Unclaimed War Room` report.
+7. Example unclaimed ticket before review.
+8. Claim action on an unclaimed ticket.
+9. Controlled Handoff action for a known-owner unclaimed ticket.
+10. Internal note explaining routing uncertainty.
+11. Ticket after Claim showing assigned owner.
+12. Ticket after Controlled Handoff showing named accountable owner.
+13. Refreshed unclaimed view showing ticket removed from the pool.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
+* `docs/user-guides/activity-process-guides.md#14-review-current-work`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/ticket-assignment-contract.md`
+* `docs/runbooks/supervisor-operating-model.md`
+
+# 16. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -6337,7 +6806,6 @@ Planned guides:
 
 Planned guides:
 
-- Check unclaimed tickets
 - Check aging and at-risk tickets
 - Check first-response risk
 - Review Partner acceptance queue
@@ -6358,7 +6826,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 16. Maintenance rule
+# 17. Maintenance rule
 
 Keep Activity Process Guides practical.
 
