@@ -354,10 +354,10 @@ The main risk is starting onboarding before the complete path has been proven:
   * Customer adds follow-up information
   * Customer views latest update
   * Customer downloads Customer-visible evidence
+  * Customer checks resolved ticket outcome
 
 ### Still needed
 
-* Customer checks resolved ticket outcome
 * Customer screenshot pack
 
 ### Required screenshots
@@ -434,6 +434,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Customer adds follow-up information
 * [ ] Customer views latest update
 * [ ] Customer downloads Customer-visible evidence
+* [ ] Customer checks resolved ticket outcome
 
 ## Activity Process Guides still needed
 
@@ -461,10 +462,6 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Review Partner completed work
 * [ ] Send rework back to Partner
 * [ ] Archive or close Partner-side work after Telectro review
-
-### Customer portal
-
-* [ ] Customer checks resolved ticket outcome
 
 ---
 

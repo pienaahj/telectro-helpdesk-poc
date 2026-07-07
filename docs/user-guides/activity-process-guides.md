@@ -3242,7 +3242,401 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/activity-process-guides.md#4-resolve-a-customer-ticket`
 * `docs/user-guides/activity-process-guides.md#7-customer-views-latest-update`
 
-# 9. Activity Process Guide backlog
+# 9. Customer checks resolved ticket outcome
+
+## Purpose
+
+Use this process when a Customer user needs to check the outcome of a support request that Telectro has marked as resolved.
+
+A resolved Customer ticket should show the Customer what Telectro has communicated as the work outcome.
+
+The Customer should be able to check:
+
+* the ticket status;
+* the latest Customer-visible resolution update;
+* any Customer-visible completion evidence;
+* whether the issue appears resolved from their side;
+* whether they need to add follow-up information.
+
+This process is not a formal approval, rejection, or sign-off workflow.
+
+For V1, Telectro controls ticket resolution from the Telectro side after confirming the work outcome through the normal service process.
+
+## Audience
+
+Primary users:
+
+* Customer portal users
+
+Secondary users:
+
+* Telectro Technician
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Customer understand what a resolved ticket means.
+
+This process is not for Partner users.
+
+Partner users should use the Partner workflow instead.
+
+## When to use this process
+
+Use this process when:
+
+* a Customer ticket shows as `Resolved`;
+* Telectro has sent a Customer-visible resolution update;
+* the Customer wants to understand what work was done;
+* the Customer wants to check whether completion evidence was shared;
+* the Customer wants to confirm whether the issue is resolved from their side;
+* the Customer still has a concern after the ticket was marked resolved.
+
+Typical examples:
+
+* “The ticket says Resolved. What did Telectro do?”
+* “I want to check the resolution note.”
+* “I need to download the completion evidence.”
+* “The issue is still happening after the ticket was resolved.”
+* “The issue came back after load shedding.”
+* “The resolved update is unclear, and I need to ask for clarification.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the Customer needs to log a new unrelated support request;
+* the Customer needs to send new information before reviewing the resolved outcome;
+* the ticket is still active and has not been resolved;
+* the Customer wants to formally approve or reject work through the portal;
+* the Customer expects to close the ticket themselves;
+* the Customer expects to see internal Telectro notes or operational history.
+
+Use `Customer views latest update` to check progress on an active ticket.
+
+Use `Add information` if the Customer has a concern or more detail to send on the resolved ticket.
+
+Use `Log a Support Request` only when the issue is genuinely new or unrelated.
+
+## Important concepts
+
+### Resolved
+
+`Resolved` means Telectro has marked the ticket as completed from the Telectro side.
+
+It should normally be accompanied by a Customer-visible resolution update that explains the outcome in clear Customer-facing wording.
+
+### Resolution update
+
+The resolution update is the Customer-visible message that explains the work outcome.
+
+It should help the Customer understand:
+
+* what was done;
+* what was restored or completed;
+* whether any evidence is attached;
+* what to do if the issue continues.
+
+### Completion evidence
+
+Completion evidence is optional Customer-visible evidence shared with the resolved ticket.
+
+It may include:
+
+* a completion photo;
+* proof-of-work document;
+* signed document;
+* worksheet;
+* other supporting file.
+
+Not every resolved ticket has completion evidence.
+
+If evidence was shared, it should be visible/downloadable through the Customer-facing ticket view.
+
+### Add information after resolution
+
+If the Customer still has a concern after resolution, they should use `Add information` on the same ticket.
+
+This lets Telectro see the concern in the context of the original request and resolution.
+
+Telectro can then decide whether to:
+
+* follow up on the same ticket;
+* reopen the issue operationally;
+* link a follow-up ticket;
+* create a new ticket if the issue is materially different.
+
+### No formal Customer portal sign-off
+
+The V1 Customer portal is not a formal sign-off workflow.
+
+The Customer does not need to press an approve, reject, sign-off, or close button as part of the normal process.
+
+The Customer should use `Add information` if something still needs attention.
+
+## Before you start
+
+Before checking the resolved outcome, the Customer should confirm:
+
+* they are logged in as the correct Customer user;
+* they have opened the correct support request;
+* the ticket subject and number match the issue;
+* the ticket status shows `Resolved` or the latest update says the work has been completed;
+* they understand that internal Telectro notes are not shown in the Customer portal.
+
+## Step-by-step process
+
+### Step 1 — Open Support Requests
+
+Log in as a Customer portal user.
+
+Open `Support Requests`.
+
+Find the support request that has been resolved.
+
+### Step 2 — Open the correct ticket
+
+Open the ticket.
+
+Before reviewing the outcome, confirm:
+
+* the ticket number is correct;
+* the subject matches the issue;
+* the location or fault details match the issue;
+* the visible request details match what was originally reported.
+
+Do not review or respond on the wrong ticket.
+
+### Step 3 — Check the ticket status
+
+Look at the ticket status.
+
+If the status shows `Resolved`, Telectro has marked the ticket as completed from the Telectro side.
+
+Status is important, but it is not the whole outcome.
+
+Always read the latest Customer-visible update as well.
+
+### Step 4 — Read the resolution update
+
+Read the `Latest update` card or the visible ticket activity.
+
+Look for the Customer-visible resolution update.
+
+A useful resolution update should explain the outcome in plain language.
+
+It may include:
+
+* what work was done;
+* what was checked;
+* what was restored;
+* what remains for the Customer to know;
+* whether completion evidence is attached;
+* what to do if the issue returns.
+
+### Step 5 — Check completion evidence, if present
+
+If the resolution update mentions evidence, look for the visible evidence file in the Customer-facing ticket activity.
+
+Open or download the file if needed.
+
+Confirm:
+
+* the evidence belongs to the correct ticket;
+* the file opens successfully;
+* the file matches the resolution wording;
+* the evidence is useful and readable.
+
+If evidence is expected but not visible, use `Add information` to ask Telectro to check it.
+
+### Step 6 — Check whether the issue is resolved from the Customer side
+
+After reading the resolution update, check the real-world issue where possible.
+
+Examples:
+
+* confirm the phone rings;
+* confirm the link is stable;
+* confirm the internet service works;
+* confirm the CCTV camera is online;
+* confirm the SIM/device connects;
+* confirm the affected location or equipment is working as expected.
+
+If the Customer cannot personally test the issue, they should check with the relevant site contact or user if possible.
+
+### Step 7 — If everything is acceptable
+
+If the issue appears resolved and the update is clear, no Customer portal action is normally required.
+
+The Customer does not need to close the ticket from the portal.
+
+The Customer may keep the ticket for reference and return later if needed.
+
+### Step 8 — If something is still wrong
+
+If the issue is not resolved, or the Customer has a concern, use `Add information` on the same ticket.
+
+Good examples:
+
+```text
+The ticket was marked resolved, but the reception phone is still not ringing for incoming calls. Outgoing calls work. Please check again.
+```
+
+```text
+The link worked after the visit but became unstable again after load shedding at about 18:30.
+```
+
+```text
+The resolution update mentions completion evidence, but I cannot see the attachment on the ticket. Please confirm whether it was shared.
+```
+
+```text
+The CCTV camera is online now, but the image is still blurred. I attached a screenshot.
+```
+
+Do not create a duplicate support request for the same issue unless there is a clear reason.
+
+### Step 9 — If the issue is new or materially different
+
+If the issue is not the same as the resolved ticket, log a new support request.
+
+Examples of a new or materially different issue:
+
+* a different service is affected;
+* a different location is affected;
+* the original fault is resolved but a new fault has appeared;
+* Telectro asks the Customer to log a new request;
+* the old ticket is no longer the right place for the new problem.
+
+When unsure, use `Add information` on the resolved ticket and ask Telectro whether a new request is needed.
+
+## Verification checklist
+
+The process is complete when:
+
+* The Customer opened the correct support request.
+* The Customer checked the ticket status.
+* The Customer read the Customer-visible resolution update.
+* The Customer checked completion evidence if it was mentioned.
+* The Customer understood that resolved status is not formal Customer sign-off.
+* The Customer confirmed whether the issue appears resolved from their side.
+* The Customer used `Add information` if something still needed attention.
+* The Customer did not create a duplicate request for the same issue.
+* The Customer logged a new support request only if the issue was genuinely new or materially different.
+
+## Common mistakes
+
+### Mistake: Treating resolved status as formal Customer approval
+
+Problem:
+
+* The Customer may think they approved the work or need to press an approval button.
+
+Correct approach:
+
+* `Resolved` is Telectro’s completion state.
+* The Customer portal is not a formal approve/reject/sign-off workflow.
+* Use `Add information` if there is a concern.
+
+### Mistake: Expecting to close the ticket from the Customer portal
+
+Problem:
+
+* Customer closure is not part of the normal V1 Customer workflow.
+
+Correct approach:
+
+* Review the resolved outcome.
+* Add information if needed.
+* Let Telectro manage resolution and closure through the Telectro-side process.
+
+### Mistake: Reading only the status and not the resolution update
+
+Problem:
+
+* The Customer may miss important outcome details or next steps.
+
+Correct approach:
+
+* Check status and read the latest Customer-visible update together.
+
+### Mistake: Creating a duplicate ticket for the same unresolved issue
+
+Problem:
+
+* Duplicate tickets split the work history and can confuse Telectro’s ownership and follow-up.
+
+Correct approach:
+
+* Use `Add information` on the same ticket when the issue is still related.
+
+### Mistake: Expecting every resolved ticket to include evidence
+
+Problem:
+
+* Completion evidence is optional.
+
+Correct approach:
+
+* Read the resolution update.
+* Download evidence only when it was shared or mentioned.
+* Ask through `Add information` if expected evidence is missing.
+
+### Mistake: Adding follow-up to the wrong resolved ticket
+
+Problem:
+
+* Telectro may investigate the wrong issue or location.
+
+Correct approach:
+
+* Confirm the ticket number, subject, location, and visible activity before sending follow-up.
+
+## Do
+
+* Open the correct ticket from `Support Requests`.
+* Check the status.
+* Read the Customer-visible resolution update.
+* Check Customer-visible completion evidence if present.
+* Test or confirm the issue from the Customer side where possible.
+* Use `Add information` if the issue continues or the update is unclear.
+* Keep related follow-up on the same ticket.
+* Log a new request only for a genuinely new or materially different issue.
+
+## Do not
+
+* Do not treat `Resolved` as formal Customer approval.
+* Do not expect an approve/reject/sign-off button.
+* Do not expect to close the ticket from the Customer portal.
+* Do not ignore the resolution update.
+* Do not create a duplicate request for the same unresolved issue.
+* Do not expect internal Telectro notes to be visible.
+* Do not expect every resolved ticket to have completion evidence.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `Support Requests` list with a resolved ticket.
+2. Customer ticket detail page.
+3. Status area showing `Resolved`.
+4. `Latest update` card showing the resolution update.
+5. Visible activity/timeline showing the resolution communication.
+6. Completion evidence visible/downloadable, if present.
+7. `Add information` action on a resolved ticket.
+8. Example follow-up message after resolution.
+9. Example where no formal Customer approval/sign-off action is shown.
+10. Example of when to log a new support request for a different issue.
+
+## Related docs
+
+* `docs/runbooks/customer-ticket-lifecycle-v1.md`
+* `docs/runbooks/pilot-outstanding-issues-timeline.md`
+* `docs/user-guides/activity-process-guides.md#4-resolve-a-customer-ticket`
+* `docs/user-guides/activity-process-guides.md#6-customer-adds-follow-up-information`
+* `docs/user-guides/activity-process-guides.md#7-customer-views-latest-update`
+* `docs/user-guides/activity-process-guides.md#8-customer-downloads-customer-visible-evidence`
+
+# 10. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -3280,15 +3674,9 @@ Planned guides:
 - Send rework back to Partner
 - Archive or close Partner-side work after Telectro review
 
-## Customer portal
-
-Planned guides:
-
-- Customer checks resolved ticket outcome
-
 ---
 
-# 10. Maintenance rule
+# 11. Maintenance rule
 
 Keep Activity Process Guides practical.
 
