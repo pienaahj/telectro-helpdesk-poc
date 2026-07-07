@@ -2094,7 +2094,423 @@ Recommended screenshots for the Obsidian/training version:
 - `docs/runbooks/customer-ticket-lifecycle-v1.md`
 - `docs/user-guides/pilot-welcome-guides.md`
 
-# 6. Activity Process Guide backlog
+# 6. Customer adds follow-up information
+
+## Purpose
+
+Use this process when a Customer user needs to add more information to an existing support request.
+
+This is the normal Customer portal follow-up action.
+
+Customers should use this process when the issue is already logged and they need to send Telectro more detail, photos, labels, access notes, corrected location information, or feedback.
+
+This avoids creating duplicate support requests for the same issue.
+
+## Audience
+
+Primary users:
+
+- Customer portal users
+
+Secondary users:
+
+- Telectro Technician
+- Telectro Coordinator
+- Telectro Ops / Supervisor
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Customer understand how to update an existing request.
+
+This process is not for Partner users.
+
+Partner users should use the Partner workflow instead.
+
+## When to use this process
+
+Use this process when:
+
+- the support request already exists;
+- the Customer has more information to add;
+- Telectro has asked for more detail;
+- the Customer wants to send photos, labels, access notes, or extra location information;
+- the Customer wants to clarify symptoms;
+- the Customer wants to add contact availability;
+- the Customer still has a concern after a ticket has been resolved;
+- the Customer needs to respond to a Customer-visible update from Telectro.
+
+Typical examples:
+
+- “The fault is now affecting the boardroom as well.”
+- “Here is a photo of the equipment label.”
+- “The correct room is the small office behind reception.”
+- “The technician can access the cabinet after 14:00.”
+- “The issue came back after load shedding.”
+- “The service is still unstable after the ticket was marked resolved.”
+
+## When not to use this process
+
+Do not use `Add information` when:
+
+- the issue is completely new and unrelated to the existing ticket;
+- the Customer needs to log a separate support request;
+- the Customer is trying to formally approve or reject work;
+- the Customer is trying to close the ticket;
+- the message contains private information that should not be attached to the support request;
+- the message is intended for internal Telectro notes.
+
+Use `Log a Support Request` for a genuinely new issue.
+
+Use `Add information` for follow-up on an existing issue.
+
+## Important concepts
+
+### Support Requests
+
+`Support Requests` is the Customer portal area where the Customer can view existing requests.
+
+Use it to open the relevant ticket before adding more information.
+
+### Add information
+
+`Add information` opens the Customer follow-up editor on the ticket detail page.
+
+Use it to send Telectro more details on the existing ticket.
+
+### Add more information
+
+The follow-up area may show the heading `Add more information`.
+
+This is the area where the Customer can enter a follow-up message.
+
+### Attachments
+
+Customers can attach photos or evidence when adding information.
+
+Useful attachments include:
+
+- photos of equipment labels;
+- screenshots;
+- fault lights;
+- site photos;
+- access notes;
+- corrected location photos;
+- supporting documents.
+
+Attachments should be relevant to the existing ticket.
+
+### Send
+
+`Send` submits the Customer follow-up.
+
+The follow-up is stored on the ticket and should appear in the ticket activity.
+
+### Active and resolved tickets
+
+Customer follow-up is intended for active or resolved ticket communication.
+
+If the Customer still has a concern after Telectro has resolved the ticket, they can add follow-up information on the existing ticket while the ticket remains available.
+
+Telectro can then decide whether to follow up, reopen, or link/create a new ticket if the issue is new or materially different.
+
+The Customer portal is not a formal approval/rejection workflow.
+
+The Customer should not close the ticket directly as part of the normal V1 process.
+
+## Before you start
+
+Before adding follow-up information, the Customer should confirm:
+
+- they are logged in as the correct Customer user;
+- they are looking at the correct support request;
+- the information belongs on this existing ticket;
+- the update is clear enough for Telectro to act on;
+- any photos or attachments are relevant;
+- the update does not contain passwords or unrelated private information.
+
+If the issue is new and unrelated, log a new support request instead.
+
+## Step-by-step process
+
+### Step 1 — Open Support Requests
+
+Log in as a Customer portal user.
+
+Open `Support Requests`.
+
+Find the existing support request that needs more information.
+
+### Step 2 — Open the correct ticket
+
+Open the ticket from the support request list.
+
+Before continuing, confirm:
+
+- the ticket number is correct;
+- the subject matches the issue;
+- the visible request/update history matches the issue;
+- this is not a different or unrelated fault.
+
+Do not add information to the wrong ticket.
+
+### Step 3 — Review the latest visible update
+
+Read the latest visible update and activity before writing.
+
+Check whether:
+
+- Telectro has asked for specific information;
+- Telectro has already explained the next step;
+- the ticket has been resolved;
+- the follow-up is still related to the same issue.
+
+If Telectro asked for a specific detail, answer that request clearly.
+
+### Step 4 — Select Add information
+
+Select `Add information`.
+
+The follow-up editor should open or become active.
+
+The editor may show guidance such as:
+
+- photos;
+- equipment labels;
+- access notes;
+- extra location details.
+
+### Step 5 — Write the follow-up message
+
+Write a clear message that explains what Telectro needs to know.
+
+A good follow-up message should include:
+
+- what changed;
+- what is still wrong;
+- where the issue is located;
+- which equipment or service is affected;
+- any access or contact detail;
+- what the attachment shows, if a file is attached.
+
+Good examples:
+
+```text
+The fault is still happening after the router restart. It affects the office behind reception. I have attached a photo of the equipment label.
+```
+
+```text
+The technician can access the cabinet today between 14:00 and 16:00. Please ask for Johan at reception.
+```
+
+```text
+The exact fault point is not listed. The issue is at the small office behind the tasting room. I attached a photo of the door and equipment label.
+```
+
+```text
+The service worked after the visit but failed again after load shedding at about 18:30.
+```
+
+Poor examples:
+
+```text
+Still broken.
+```
+
+```text
+Please check.
+```
+
+```text
+Urgent.
+```
+
+```text
+Same problem.
+```
+
+If the update is short, it should still say what is wrong and where.
+
+### Step 6 — Attach photos or evidence, if helpful
+
+Attach photos or evidence when it helps explain the follow-up.
+
+Useful examples:
+
+- equipment label photo;
+- cabinet or device photo;
+- screenshot of an error;
+- photo showing warning lights;
+- access instruction document;
+- updated location photo.
+
+Before sending, confirm that the attachment:
+
+- belongs to this ticket;
+- is clear enough to help;
+- does not expose passwords;
+- does not include unrelated Customer or private information.
+
+Skip this step if no attachment is needed.
+
+### Step 7 — Send the follow-up
+
+Review the message and attachments.
+
+Select `Send`.
+
+Wait for the ticket to update.
+
+Do not assume the update was sent until it appears on the ticket.
+
+### Step 8 — Verify the ticket activity
+
+After sending, verify that the follow-up appears in the ticket activity.
+
+Confirm:
+
+- the message appears on the correct ticket;
+- the wording is correct;
+- any attachment is present;
+- the attachment opens/downloads where expected;
+- the latest visible activity makes sense.
+
+If the update does not appear, try refreshing the ticket or contact Telectro through the agreed support channel.
+
+### Step 9 — Avoid duplicate tickets
+
+After sending follow-up information, do not create another new support request for the same issue unless there is a clear reason.
+
+Continue using the existing ticket for related information.
+
+Create a new support request only when:
+
+- the issue is separate;
+- the affected service/location is materially different;
+- Telectro asks for a new request;
+- the previous ticket is no longer the right place for the new issue.
+
+## Verification checklist
+
+The process is complete when:
+
+- The Customer opened the correct existing support request.
+- The latest visible update was reviewed.
+- `Add information` was used instead of creating a duplicate ticket.
+- The follow-up message was clear and relevant.
+- Photos or evidence were attached only when helpful.
+- `Send` was used to submit the update.
+- The follow-up appeared in the ticket activity.
+- Any attachment appeared with the update where expected.
+- No unrelated private information was attached.
+- No duplicate support request was created for the same issue.
+
+## Common mistakes
+
+### Mistake: Logging a duplicate request instead of adding information
+
+Problem:
+
+- Telectro may receive multiple tickets for the same issue, which can split updates and confuse ownership.
+
+Correct approach:
+
+- Open the existing ticket.
+- Use `Add information`.
+
+### Mistake: Adding information to the wrong ticket
+
+Problem:
+
+- Telectro may investigate the wrong issue or location.
+
+Correct approach:
+
+- Check the ticket number, subject, and visible activity before sending the update.
+
+### Mistake: Sending a vague follow-up
+
+Problem:
+
+- Telectro still does not know what changed or what action is needed.
+
+Correct approach:
+
+- Explain what is wrong, where it is happening, and what the attachment shows.
+
+### Mistake: Treating follow-up as formal approval or rejection
+
+Problem:
+
+- The Customer portal is not a formal sign-off workflow.
+
+Correct approach:
+
+- Use follow-up to provide information, photos, feedback, or concerns.
+- Telectro remains responsible for deciding whether to follow up, reopen, link, or create another ticket.
+
+### Mistake: Attaching unclear or unrelated files
+
+Problem:
+
+- Telectro may not be able to use the attachment or may receive unnecessary private information.
+
+Correct approach:
+
+- Attach only relevant, clear, safe files.
+
+### Mistake: Expecting the Customer to close the ticket
+
+Problem:
+
+- Customer closure is not part of the normal V1 Customer workflow.
+
+Correct approach:
+
+- Add follow-up information if something still needs attention.
+- Telectro resolves/closes through the Telectro-side process.
+
+## Do
+
+- Use `Add information` on the existing ticket for related follow-up.
+- Read the latest visible update before replying.
+- Write a clear message.
+- Include location, equipment, access, or contact details when useful.
+- Attach photos or evidence where helpful.
+- Verify the follow-up appears in the ticket activity.
+- Continue using the same ticket for the same issue.
+- Use a new support request only for a genuinely separate issue.
+
+## Do not
+
+- Do not log duplicate support requests for the same issue.
+- Do not add information to the wrong ticket.
+- Do not send one-word follow-ups without context.
+- Do not attach passwords or unrelated private information.
+- Do not use Customer follow-up as formal approval/rejection.
+- Do not expect to close the ticket from the Customer portal.
+- Do not use this process for Partner workflow actions.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `Support Requests` list with an existing ticket.
+2. Customer ticket detail page.
+3. Latest update card or visible activity before follow-up.
+4. `Add information` action.
+5. `Add more information` editor area.
+6. Editor placeholder showing photos/labels/access/location guidance.
+7. Attachment added to the editor.
+8. `Send` button.
+9. Ticket activity after follow-up submission.
+10. Attachment visible in the ticket activity, if applicable.
+11. Existing ticket after follow-up, showing why a duplicate request was not needed.
+
+## Related docs
+
+- `docs/runbooks/customer-ticket-lifecycle-v1.md`
+- `docs/user-guides/pilot-welcome-guides.md`
+- `docs/user-guides/activity-process-guides.md#5-customer-logs-a-support-request`
+
+# 7. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -2136,14 +2552,13 @@ Planned guides:
 
 Planned guides:
 
-- Customer adds follow-up information
 - Customer views latest update
 - Customer downloads Customer-visible evidence
 - Customer checks resolved ticket outcome
 
 ---
 
-# 7. Maintenance rule
+# 8. Maintenance rule
 
 Keep Activity Process Guides practical.
 
