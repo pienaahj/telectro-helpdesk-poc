@@ -7775,7 +7775,629 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/sla-and-supervisor-risk-signals.md`
 * `docs/runbooks/supervisor-operating-model.md`
 
-# 18. Activity Process Guide backlog
+# 18. Intervene on a stale or blocked ticket
+
+## Purpose
+
+Use this process when a ticket has been identified as stale, blocked, risky, or unclear, and Telectro needs to decide what intervention is required.
+
+This guide starts after a ticket has already been found through one of the normal monitoring paths, such as:
+
+* `Review current work`;
+* `Check unclaimed tickets`;
+* `Check aging and at-risk tickets`;
+* `Check first-response risk`;
+* Supervisor / Coordinator reports;
+* direct escalation from a technician;
+* Customer follow-up;
+* Partner follow-up.
+
+The purpose is to turn “this ticket looks stuck” into a clear next action.
+
+This guide does not replace:
+
+* normal technician ownership;
+* Claim, Release, and Controlled Handoff;
+* internal note and Customer-visible update guidance;
+* Partner acceptance or Partner work review;
+* Customer resolution;
+* SLA breach reporting.
+
+## Audience
+
+Primary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Secondary users:
+
+* Telectro Technician, when escalating or explaining a blocker
+
+Partner users do not use this internal intervention process.
+
+Customer portal users do not use this internal intervention process.
+
+## When to use this process
+
+Use this process when:
+
+* a ticket is aging without visible progress;
+* a ticket is blocked by missing information, site access, equipment, supplier input, Partner action, or internal decision;
+* the current owner is unclear, unavailable, or no longer the right owner;
+* a Customer has followed up and the ticket still lacks a clear next action;
+* an at-risk ticket needs a supervisor/coordinator decision;
+* a first-response or Customer-visible update risk has been identified;
+* a Partner-related ticket is waiting on Telectro review or rework;
+* a ticket appears complete but is still active;
+* someone says “this ticket is stuck” but the ticket does not clearly explain why.
+
+Typical examples:
+
+* “This ticket has not moved in two days.”
+* “The Customer is asking for an update.”
+* “The technician is waiting on site access but it is not documented.”
+* “The owner is on leave.”
+* “This should probably go to another technician.”
+* “The Partner has completed work but Telectro has not reviewed it.”
+* “The work looks done but the ticket is still open.”
+* “The ticket is unclaimed and looks urgent.”
+* “The ticket is assigned, but there is no visible next action.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the ticket has a clear owner, clear next action, and recent progress;
+* you only need to work your own assigned ticket normally;
+* you only need to add a routine Customer-visible progress update;
+* you only need to resolve a completed Customer ticket;
+* you only need to review Partner acceptance;
+* you only need to review Partner completed work;
+* the issue is already handled by a more specific guide.
+
+Use the more specific guide when the action is already obvious.
+
+Examples:
+
+* Use `Claim, release, and handoff ticket ownership` when the only decision is ownership movement.
+* Use `Internal notes and Customer-visible updates` when the only decision is message audience.
+* Use `Resolve a Customer ticket` when the work is complete and ready for Customer-facing resolution.
+* Use `Review Partner acceptance` when Partner acceptance is waiting for Telectro review.
+* Use `Review Partner completed work` when Partner work has been submitted for review.
+
+## Important concepts
+
+### Intervention
+
+Intervention means Telectro deliberately decides what must happen next to restore service flow.
+
+It does not always mean changing the owner.
+
+Intervention may be as light as asking for a note, or as strong as Controlled Handoff or escalation.
+
+### Stale ticket
+
+A stale ticket has not changed recently or does not show visible progress.
+
+A stale ticket is not automatically a bad ticket.
+
+It may be legitimately waiting, but the reason must be clear.
+
+### Blocked ticket
+
+A blocked ticket cannot progress until something else happens.
+
+Common blockers include:
+
+* missing Customer information;
+* no site access;
+* equipment or stock dependency;
+* supplier dependency;
+* Partner dependency;
+* unclear internal decision;
+* wrong service area;
+* wrong owner;
+* missing evidence;
+* unclear Customer-facing outcome.
+
+### Clear next action
+
+A clear next action tells the next person what should happen next, who is responsible, and what is being waited on.
+
+A ticket should not remain stale or blocked without a clear next action.
+
+### Customer-visible vs internal information
+
+Some intervention information is internal only.
+
+Some information must be communicated to the Customer.
+
+Use internal notes for Telectro-only coordination.
+
+Use Customer-visible updates when the Customer needs to know progress, next step, missing information, or outcome.
+
+### Ownership intervention
+
+Ownership intervention must follow the pilot ownership controls.
+
+Use:
+
+* Claim, when work is unclaimed and you are taking it yourself;
+* Release, when you own the ticket and it should return to the pool;
+* Controlled Handoff, when a Coordinator/Supervisor must transfer accountability to a specific new owner.
+
+Do not use generic Assign/Unassign to bypass the pilot ownership model.
+
+## Before you start
+
+Before intervening, confirm:
+
+* the ticket is not already terminal;
+* the latest ticket activity has been read;
+* the current owner or pool state is understood;
+* the Customer-visible history has been checked where relevant;
+* internal notes have been checked;
+* Partner state has been checked if Partner involvement exists;
+* you know whether this is an ownership issue, information issue, communication issue, blocker, or completion issue.
+
+## Step-by-step process
+
+### Step 1 — Open the ticket
+
+Open the HD Ticket from the report, workspace, queue, or link that identified it.
+
+Do not intervene based only on a report row.
+
+### Step 2 — Read the current context
+
+Review:
+
+* subject;
+* status;
+* Customer request;
+* latest activity;
+* latest internal notes;
+* latest Customer-visible updates;
+* current owner / assignment state;
+* service area / team;
+* fault location or asset details;
+* Partner fields, if Partner is involved;
+* SLA / response / resolution indicators if relevant;
+* attachments or evidence if relevant.
+
+### Step 3 — Identify the main problem
+
+Choose the main reason the ticket needs intervention.
+
+#### Case A — No accountable owner
+
+The ticket is unclaimed or in the true pool.
+
+Next action:
+
+* use `Claim` if you are taking the ticket yourself;
+* use `Controlled Handoff` if a Coordinator/Supervisor knows the correct named owner;
+* add an internal note first if the next owner needs context;
+* do not leave urgent or stale work in the pool without a decision.
+
+#### Case B — Current owner is still correct, but context is missing
+
+The owner is still the right person, but the ticket does not explain what is happening.
+
+Next action:
+
+* ask the owner to add an internal note;
+* ask the owner to send a Customer-visible update if the Customer needs progress visibility;
+* add supervisor/coordinator context if you performed the review;
+* leave ownership unchanged.
+
+#### Case C — Current owner is wrong or unavailable
+
+The current owner cannot or should not continue.
+
+Next action:
+
+* use Controlled Handoff to move accountability to a specific new owner;
+* include a clear handoff reason;
+* add an internal note before handoff if the new owner needs context;
+* confirm the new owner appears as the accountable owner after handoff.
+
+Do not use informal assignment changes.
+
+#### Case D — Waiting on Customer
+
+The ticket cannot progress until the Customer provides information, confirmation, access, or availability.
+
+Next action:
+
+* send a Customer-visible update asking clearly for what is needed;
+* add an internal note if Telectro needs additional internal context;
+* keep the current owner if they remain accountable for follow-up;
+* escalate only if Customer delay creates operational risk.
+
+#### Case E — Waiting on Partner
+
+The ticket is waiting on Partner action, Partner acceptance, Partner work done, or Partner rework.
+
+Next action:
+
+* check the Partner state;
+* use the Partner acceptance or Partner completed work review process where applicable;
+* add internal context if the Partner dependency is unclear;
+* do not use Controlled Handoff as a substitute for Partner review/rework workflow.
+
+#### Case F — Waiting on supplier or external dependency
+
+The ticket is waiting on a supplier, stock, third-party input, or external availability.
+
+Next action:
+
+* add an internal note explaining the dependency;
+* send a Customer-visible update if the Customer needs progress visibility;
+* set or confirm the owner who will follow up;
+* escalate if the dependency threatens service outcome.
+
+#### Case G — Technical blocker
+
+The owner cannot continue because of an unresolved technical decision, missing information, access issue, or unclear route.
+
+Next action:
+
+* add an internal note describing the blocker;
+* ask for Coordinator/Supervisor help if needed;
+* use Controlled Handoff only if the accountable owner must change;
+* send Customer-visible progress if the Customer needs to know the delay or next step.
+
+#### Case H — Customer needs an update
+
+The internal situation may be understood, but the Customer has not been kept informed.
+
+Next action:
+
+* send a Customer-visible update;
+* keep it clear, calm, and Customer-safe;
+* avoid internal routing, blame, SLA, governance, or debugging detail.
+
+#### Case I — Work appears complete
+
+The work appears done, but the ticket remains active.
+
+Next action:
+
+* confirm the outcome;
+* check whether completion evidence is required;
+* send the correct Customer-visible resolution update if this is a Customer ticket;
+* resolve or close through the correct process;
+* do not leave completed work aging in active queues.
+
+### Step 4 — Choose the lightest effective intervention
+
+Pick the smallest action that restores clear flow.
+
+Possible actions:
+
+* add an internal note;
+* ask the owner for an update;
+* send a Customer-visible update;
+* claim the ticket;
+* release the ticket to pool;
+* use Controlled Handoff;
+* request Customer information;
+* follow up Partner work/rework;
+* escalate a blocker;
+* resolve or close the ticket.
+
+Do not change ownership when a note or update is enough.
+
+Do not leave ownership unchanged when the owner is clearly wrong or unavailable.
+
+### Step 5 — Record internal context
+
+If the intervention is not obvious from the ticket history, add an internal note.
+
+A good internal note should explain:
+
+* what was reviewed;
+* why the ticket is stale or blocked;
+* what is being waited on;
+* who owns the next action;
+* whether a Customer-visible update was sent or is still needed;
+* whether ownership changed.
+
+Examples:
+
+```text
+Coordinator review: ticket is stale because no site access date is confirmed. Alfa remains owner and will request Customer access confirmation today.
+```
+
+```text
+Supervisor review: current owner unavailable. Controlled Handoff to Bravo for follow-up on Internet Connection fault.
+```
+
+```text
+Internal note: waiting on supplier quote before Customer resolution can be prepared. Owner to follow up tomorrow morning.
+```
+
+```text
+Coordinator review: Partner work is marked completed. Telectro review required before resolution.
+```
+
+```text
+Internal note: Customer has asked for an update. Customer-visible progress update sent.
+```
+
+### Step 6 — Communicate to the Customer where needed
+
+Send a Customer-visible update when the Customer needs progress, clarification, next step, or recovery communication.
+
+Good Customer-visible examples:
+
+```text
+We are still working on this request and are waiting for site access confirmation before the next step can be completed.
+```
+
+```text
+We have reviewed the request and need one detail before we can proceed. Please confirm which area or fault point is affected.
+```
+
+```text
+The work is still in progress. We are following up on the required part and will update you once the next step is confirmed.
+```
+
+Avoid:
+
+```text
+Ticket was stale in supervisor report.
+```
+
+```text
+SLA breach risk because technician did not update.
+```
+
+```text
+Internal routing was wrong and handoff was required.
+```
+
+Put internal detail in an internal note instead.
+
+### Step 7 — Move ownership only when needed
+
+If ownership must change, use the approved ownership action.
+
+#### Claim
+
+Use `Claim` when:
+
+* the ticket is unclaimed;
+* you are taking accountability yourself;
+* you can continue the work.
+
+#### Release
+
+Use `Release` when:
+
+* you own the ticket;
+* you cannot continue;
+* the correct next owner is not known;
+* the ticket should return to the pool with a clear reason.
+
+#### Controlled Handoff
+
+Use `Controlled Handoff` when:
+
+* Coordinator/Supervisor intervention is needed;
+* the next accountable owner is known;
+* the current owner is wrong or unavailable;
+* the ticket is stale or blocked and needs a named owner.
+
+Good handoff reasons:
+
+```text
+Supervisor intervention: current owner unavailable; Bravo to continue site follow-up.
+```
+
+```text
+Coordinator intervention: wrong service area ownership; handoff to Alfa for Internet Connection follow-up.
+```
+
+```text
+Supervisor intervention: stale ticket requires dedicated owner and Customer progress update.
+```
+
+Poor handoff reasons:
+
+```text
+Please handle.
+```
+
+```text
+Moved.
+```
+
+```text
+Stale.
+```
+
+### Step 8 — Escalate when the blocker cannot be solved locally
+
+Escalate when:
+
+* the owner cannot resolve the blocker;
+* Customer impact is high;
+* the ticket is repeatedly stale;
+* the same dependency keeps blocking progress;
+* Partner/supplier delay needs management attention;
+* the Customer has escalated;
+* a decision is needed from Supervisor/Ops.
+
+Escalation should still leave a clear ticket trace.
+
+### Step 9 — Verify the intervention worked
+
+After intervention, confirm:
+
+* the ticket has a clear accountable owner or is deliberately in the pool;
+* the latest internal note explains the intervention if needed;
+* any Customer-visible update was sent safely;
+* handoff/release/claim result is visible where expected;
+* Partner state was updated through the correct Partner workflow if applicable;
+* the next action is clear;
+* the ticket no longer appears stuck for the same reason.
+
+## Verification checklist
+
+The stale or blocked ticket intervention is complete when:
+
+* The ticket was opened and reviewed.
+* Latest activity was checked.
+* Internal notes were checked.
+* Customer-visible activity was checked where relevant.
+* Current owner or pool state was confirmed.
+* Partner state was checked where relevant.
+* The blocker or stale reason was identified.
+* The correct intervention action was selected.
+* Internal context was added where needed.
+* Customer-visible update was sent where needed.
+* Controlled Handoff was used if accountability had to move to a known owner.
+* Release was used only by the current owner when returning work to the pool.
+* Claim was used only when taking unclaimed work yourself.
+* Partner workflows were used for Partner acceptance/work review cases.
+* The final ticket state has a clear next action.
+* Reports or queues were refreshed where appropriate.
+
+## Common mistakes
+
+### Mistake: Treating every stale ticket as an ownership problem
+
+Problem:
+
+* The owner may be correct, but the ticket lacks visible context.
+
+Correct approach:
+
+* Add or request an internal note or Customer-visible update before changing ownership.
+
+### Mistake: Leaving a blocked ticket without a next action
+
+Problem:
+
+* The ticket remains stuck and the next person still does not know what to do.
+
+Correct approach:
+
+* Record the blocker and the next action.
+
+### Mistake: Using Customer-visible updates for internal problems
+
+Problem:
+
+* The Customer sees internal routing, assignment, SLA, or governance detail.
+
+Correct approach:
+
+* Keep internal details in internal notes.
+
+### Mistake: Using internal notes when the Customer needs progress
+
+Problem:
+
+* Telectro has documented the issue internally, but the Customer remains uninformed.
+
+Correct approach:
+
+* Send a Customer-visible update when the Customer needs to know progress or next steps.
+
+### Mistake: Bypassing Controlled Handoff
+
+Problem:
+
+* Ownership becomes unclear or duplicate assignments appear.
+
+Correct approach:
+
+* Use Controlled Handoff when a Coordinator/Supervisor transfers accountability to a known owner.
+
+### Mistake: Using handoff when Partner review is required
+
+Problem:
+
+* Partner work states are bypassed or confused.
+
+Correct approach:
+
+* Use Partner acceptance/work review processes for Partner workflow cases.
+
+### Mistake: Closing or resolving without checking Customer-facing outcome
+
+Problem:
+
+* The ticket disappears from active work, but the Customer may not understand the outcome.
+
+Correct approach:
+
+* Use the Customer resolution process where Customer-facing resolution is required.
+
+## Do
+
+* Open the ticket before intervening.
+* Identify the actual blocker or stale reason.
+* Preserve current ownership when it is still correct.
+* Use internal notes for Telectro-only context.
+* Use Customer-visible updates when the Customer needs progress.
+* Use Controlled Handoff for known-owner accountability transfer.
+* Use Partner review/rework workflows for Partner cases.
+* Escalate blockers that cannot be solved locally.
+* Leave a clear next action.
+* Refresh reports or queues after material intervention.
+
+## Do not
+
+* Do not intervene from the report row alone.
+* Do not treat stale work as automatic technician fault.
+* Do not use generic Assign/Unassign to bypass the pilot ownership model.
+* Do not move ownership when a note or update would solve the issue.
+* Do not leave a stale ticket without a documented next action.
+* Do not expose internal blocker, SLA, routing, assignment, or governance detail to the Customer.
+* Do not use Customer-visible updates as internal coordination.
+* Do not ignore Partner workflow state.
+* Do not leave completed work active.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Ticket identified from `Aging and At-Risk Tickets`.
+2. Ticket identified from `My Current Work`.
+3. Ticket identified from `Customer Ticket Oversight`.
+4. Ticket opened from report or workspace.
+5. Ticket activity showing stale or missing next action.
+6. Internal notes area before intervention.
+7. Internal note recording blocker or supervisor review.
+8. Customer-visible update dialog for progress communication.
+9. Controlled Handoff action.
+10. Controlled Handoff reason field.
+11. Ticket after Controlled Handoff showing new accountable owner.
+12. Partner state area where Partner review/rework is relevant.
+13. Ticket after intervention showing clear next action.
+14. Refreshed report or queue after intervention.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
+* `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
+* `docs/user-guides/activity-process-guides.md#4-resolve-a-customer-ticket`
+* `docs/user-guides/activity-process-guides.md#12-review-partner-acceptance`
+* `docs/user-guides/activity-process-guides.md#13-review-partner-completed-work`
+* `docs/user-guides/activity-process-guides.md#14-review-current-work`
+* `docs/user-guides/activity-process-guides.md#15-check-unclaimed-tickets`
+* `docs/user-guides/activity-process-guides.md#16-check-aging-and-at-risk-tickets`
+* `docs/user-guides/activity-process-guides.md#17-check-first-response-risk`
+* `docs/runbooks/supervisor-operating-model.md`
+* `docs/runbooks/ticket-assignment-contract.md`
+* `docs/runbooks/sla-and-supervisor-risk-signals.md`
+
+# 19. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -7796,7 +8418,6 @@ Planned guides:
 
 - Review Partner acceptance queue
 - Review Partner work completion queue
-- Intervene on a stale or blocked ticket
 
 ## Partner collaboration
 
@@ -7812,7 +8433,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 19. Maintenance rule
+# 20. Maintenance rule
 
 Keep Activity Process Guides practical.
 
