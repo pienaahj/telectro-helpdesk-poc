@@ -5861,7 +5861,464 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/notification-v1-operating-model.md`
 * `docs/runbooks/service-coverage-model.md`
 
-# 14. Activity Process Guide backlog
+# 14. Review current work
+
+## Purpose
+
+Use this process to review your current internal Telectro work and decide what needs action next.
+
+`My Current Work` is the main internal work review report for Telectro users. It brings together tickets that are assigned to you, shared with you, or waiting for Telectro review in Partner-related workflows.
+
+This guide explains how to use the report as a daily working list, not as a full supervisor dashboard.
+
+## Audience
+
+Primary users:
+
+* Telectro Technician
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Partner users do not use this internal report.
+
+Customer portal users do not use this internal report.
+
+## When to use this process
+
+Use this process when:
+
+* starting the day;
+* returning from a break or site visit;
+* checking what is currently assigned to you;
+* checking tickets shared with you;
+* checking Partner work or Partner acceptance review items;
+* deciding which ticket needs the next action;
+* verifying that your work queue is not drifting.
+
+Typical examples:
+
+* “What must I work on now?”
+* “Which tickets are assigned to me?”
+* “Which tickets are shared with me?”
+* “Is there Partner work waiting for Telectro review?”
+* “Is any Partner work currently with the Partner?”
+* “Which current work item needs the next update?”
+
+## When not to use this process
+
+Do not use this process when:
+
+* you need the full unclaimed queue;
+* you need aging and SLA oversight across the whole team;
+* you need first-response risk across Customer tickets;
+* you need a full supervisor governance view;
+* you are a Partner user checking Partner portal work;
+* you are a Customer checking Customer portal tickets.
+
+Use the relevant queue or oversight report for those workflows.
+
+## Important concepts
+
+### My Current Work
+
+`My Current Work` is an internal Telectro report.
+
+It helps internal users see active work that is relevant to them.
+
+The report excludes terminal tickets:
+
+```text
+Resolved
+Closed
+Archived
+```
+
+### Assigned to me
+
+`Assigned to me` means the ticket is assigned to your user.
+
+This is accountable work.
+
+You are expected to open the ticket, understand the next action, and move it forward.
+
+### Shared with me
+
+`Shared with me` means the ticket has been shared with you for visibility.
+
+This is not automatically the same as accountable ownership.
+
+Use shared visibility to review, assist, advise, or prepare context.
+
+Do not assume you own a shared ticket unless the ticket is also assigned to you or has been deliberately handed off to you.
+
+### Partner acceptance review needed
+
+`Partner acceptance review needed` means a Partner-originated ticket has been accepted by the Partner and Telectro must review the acceptance.
+
+Use the `Review Partner acceptance` process for these tickets.
+
+### Partner acceptance rework follow-up
+
+`Partner acceptance rework follow-up` means the Partner requested rework on a Partner-originated ticket.
+
+Telectro must complete the required correction or clarification, then request Partner acceptance again when ready.
+
+### Partner work review needed
+
+`Partner work review needed` means a Partner has submitted work done for Telectro-assigned Partner fulfilment work.
+
+Use the `Review Partner completed work` process for these tickets.
+
+### Partner work currently with Partner
+
+`Partner work currently with Partner` means work is currently assigned to the Partner or has been sent back to the Partner for rework.
+
+These tickets are usually monitored rather than worked directly by Telectro unless follow-up or intervention is required.
+
+## Before you start
+
+Before reviewing current work, confirm:
+
+* you are logged in as the correct internal Telectro user;
+* you are using the internal Telectro workspace or report area;
+* you understand whether you are acting as Technician, Coordinator, or Supervisor/Ops;
+* you know whether you are checking your own work or reviewing broader team/Partner work;
+* you will open tickets before acting on them rather than relying only on report rows.
+
+## Step-by-step process
+
+### Step 1 — Open My Current Work
+
+From the Telectro workspace, open `My Current Work`.
+
+Depending on the workspace, it may appear as a shortcut such as:
+
+```text
+My Current Work
+```
+
+or:
+
+```text
+My Current Work - Outstanding Things
+```
+
+### Step 2 — Scan the bucket column
+
+Start with the `Bucket` column.
+
+The bucket tells you why the ticket appears in the report.
+
+Typical buckets include:
+
+```text
+Assigned to me
+Shared with me
+Partner acceptance review needed
+Partner acceptance rework follow-up
+Partner work review needed
+Partner work currently with Partner
+```
+
+Do not treat all buckets the same.
+
+The bucket tells you what kind of action is expected.
+
+### Step 3 — Read the next action
+
+Check the `Next Action` column.
+
+The next action gives the intended action for that bucket.
+
+Examples include:
+
+```text
+Work assigned ticket
+Review shared ticket
+Review Partner acceptance and resolve, close, or review only
+Complete Telectro rework, then request Partner acceptance again
+Review Partner work and accept, request rework, resolve, or close
+Monitor Partner progress or follow up where needed
+```
+
+Use this as the starting instruction, then open the ticket for full context.
+
+### Step 4 — Review ticket priority and severity
+
+Check:
+
+* Priority;
+* Severity;
+* Status;
+* Modified date.
+
+Higher severity and recently changed tickets may need earlier attention.
+
+Do not rely only on modified date.
+
+A high-severity ticket with an older update may still need urgent attention.
+
+### Step 5 — Check Account, Campus, and Service Area
+
+Use the context columns to confirm what area the ticket belongs to.
+
+Useful columns include:
+
+* Account;
+* Campus;
+* Service Area;
+* Request Source;
+* Fulfilment Party.
+
+This helps confirm whether the ticket belongs to your role, team, or review responsibility.
+
+### Step 6 — Open the ticket
+
+Open the HD Ticket from the report row.
+
+Do not act from the report row alone.
+
+Review the ticket detail before making changes.
+
+### Step 7 — Confirm ownership or visibility
+
+Inside the ticket, confirm whether you are:
+
+* the assigned accountable owner;
+* a shared observer/helper;
+* a coordinator/supervisor reviewer;
+* reviewing Partner acceptance;
+* reviewing Partner completed work;
+* monitoring Partner work still with the Partner.
+
+If the ticket is only shared with you, do not take ownership informally.
+
+Use the correct claim, release, handoff, or review process.
+
+### Step 8 — Decide the next action
+
+Choose the next action based on the bucket and ticket context.
+
+#### Assigned to me
+
+Open the ticket and continue the work.
+
+Typical actions:
+
+* add an internal note;
+* send a Customer-visible update;
+* attach or review evidence;
+* resolve the Customer ticket if the outcome is confirmed;
+* release the ticket if it is not yours to work;
+* ask for controlled handoff if accountability must move to another named user.
+
+#### Shared with me
+
+Open the ticket and review the context.
+
+Typical actions:
+
+* read the ticket;
+* add useful context if appropriate;
+* assist the accountable owner;
+* prepare for a possible handoff;
+* avoid changing ownership unless instructed.
+
+#### Partner acceptance review needed
+
+Open the ticket and use the `Review Partner acceptance` process.
+
+Typical outcomes:
+
+* review only;
+* resolve ticket;
+* close ticket.
+
+#### Partner acceptance rework follow-up
+
+Open the ticket and review what the Partner requested.
+
+Typical actions:
+
+* complete Telectro correction or clarification;
+* add internal notes where needed;
+* request Partner acceptance again when the work is ready.
+
+#### Partner work review needed
+
+Open the ticket and use the `Review Partner completed work` process.
+
+Typical outcomes:
+
+* review only;
+* accept work;
+* request rework;
+* resolve ticket;
+* close ticket.
+
+#### Partner work currently with Partner
+
+Open the ticket only if follow-up or monitoring is needed.
+
+Typical actions:
+
+* check whether the Partner is still expected to act;
+* follow up if the work is stale or blocked;
+* avoid taking over Partner work unless Telectro has deliberately changed fulfilment.
+
+### Step 9 — Record useful context
+
+If you act on a ticket, leave useful context.
+
+Use:
+
+* internal notes for Telectro-only information;
+* Customer-visible updates for Customer-facing progress;
+* Partner review notes for Partner workflow outcomes;
+* evidence attachment or review processes where needed.
+
+Do not leave work in a state where the next person has to rediscover what happened.
+
+### Step 10 — Refresh and verify
+
+After acting on tickets, refresh `My Current Work`.
+
+Confirm:
+
+* completed or terminal tickets no longer appear;
+* accepted/resolved/closed Partner review items moved out of review buckets;
+* rework items moved to the correct waiting state;
+* assigned tickets still needing work remain visible;
+* shared tickets remain visible only when still relevant.
+
+## Verification checklist
+
+The review is complete when:
+
+* `My Current Work` was opened.
+* Buckets were reviewed.
+* Next action labels were checked.
+* High-priority or high-severity tickets were identified.
+* Assigned tickets were opened and reviewed.
+* Shared tickets were not mistaken for accountable ownership.
+* Partner acceptance review items were routed to the correct review process.
+* Partner work review items were routed to the correct review process.
+* Partner work currently with Partner was monitored or followed up where needed.
+* Any action taken was recorded clearly.
+* The report was refreshed or rechecked after material updates.
+
+## Common mistakes
+
+### Mistake: Treating Shared with me as Assigned to me
+
+Problem:
+
+* The user may start acting as if they own the ticket.
+
+Correct approach:
+
+* Confirm assignment before taking ownership.
+* Use controlled handoff when ownership must move deliberately.
+
+### Mistake: Working from the report row only
+
+Problem:
+
+* The report row does not show the full ticket history or latest context.
+
+Correct approach:
+
+* Open the HD Ticket before acting.
+
+### Mistake: Ignoring the Next Action column
+
+Problem:
+
+* Users may miss whether the ticket needs normal work, Partner acceptance review, Partner work review, or monitoring.
+
+Correct approach:
+
+* Read both `Bucket` and `Next Action`.
+
+### Mistake: Confusing Partner acceptance with Partner work review
+
+Problem:
+
+* The wrong Partner review action may be used.
+
+Correct approach:
+
+* Use `Review Partner acceptance` for Partner-originated acceptance review.
+* Use `Review Partner completed work` for Telectro-assigned Partner fulfilment work.
+
+### Mistake: Leaving rework without clear context
+
+Problem:
+
+* The Partner or Telectro reviewer may not know what needs to happen next.
+
+Correct approach:
+
+* Use clear internal notes, review notes, or rework reasons.
+
+### Mistake: Assuming missing tickets are lost
+
+Problem:
+
+* Terminal tickets do not appear in `My Current Work`.
+
+Correct approach:
+
+* Check the relevant history, resolved, closed, archived, or supervisor reports when looking for completed work.
+
+## Do
+
+* Open `My Current Work` at the start of the day.
+* Review the bucket and next action columns.
+* Open tickets before acting.
+* Treat assigned work as accountable work.
+* Treat shared work as visibility unless ownership is explicit.
+* Use the correct Partner review process.
+* Refresh the report after major actions.
+* Escalate or hand off unclear ownership through the correct process.
+
+## Do not
+
+* Do not use `My Current Work` as the only supervisor dashboard.
+* Do not treat shared tickets as automatically assigned to you.
+* Do not act on Partner review items using the wrong process.
+* Do not assume terminal tickets should appear in this report.
+* Do not leave tickets with unclear next action.
+* Do not use informal comments as a substitute for claim, release, handoff, or review actions.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Telectro workspace showing `My Current Work`.
+2. `My Current Work` report open.
+3. Bucket column showing `Assigned to me`.
+4. Bucket column showing `Shared with me`.
+5. Bucket column showing Partner acceptance review item, if available.
+6. Bucket column showing Partner work review item, if available.
+7. Next Action column.
+8. Ticket opened from `My Current Work`.
+9. Example assigned ticket.
+10. Example shared ticket.
+11. Example Partner review ticket.
+12. Refreshed report after an item is resolved, closed, accepted, or moved to rework.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
+* `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
+* `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
+* `docs/user-guides/activity-process-guides.md#12-review-partner-acceptance`
+* `docs/user-guides/activity-process-guides.md#13-review-partner-completed-work`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/service-coverage-model.md`
+
+# 15. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -5883,7 +6340,6 @@ Planned guides:
 - Check unclaimed tickets
 - Check aging and at-risk tickets
 - Check first-response risk
-- Review current work
 - Review Partner acceptance queue
 - Review Partner work completion queue
 - Intervene on a stale or blocked ticket
@@ -5902,7 +6358,7 @@ Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be 
 
 ---
 
-# 15. Maintenance rule
+# 16. Maintenance rule
 
 Keep Activity Process Guides practical.
 
