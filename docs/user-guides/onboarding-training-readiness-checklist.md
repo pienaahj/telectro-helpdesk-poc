@@ -443,6 +443,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Check first-response risk
 * [ ] Intervene on a stale or blocked ticket
 * [ ] Review Partner acceptance queue
+* [ ] Review Partner work completion queue
 
 ## Activity Process Guides still needed
 
@@ -451,10 +452,6 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Attach Customer-facing completion evidence
 * [ ] Extend internal note / Customer-visible update guide after production screenshots are captured
 * [ ] Extend Customer-visible evidence update guide after production screenshots are captured
-
-### Coordinator and Supervisor control
-
-* [ ] Review Partner work completion queue
 
 ---
 
