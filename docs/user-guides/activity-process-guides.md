@@ -4136,7 +4136,547 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/customer-ticket-lifecycle-v1.md`
 * `docs/user-guides/activity-process-guides.md#9-customer-checks-resolved-ticket-outcome`
 
-# 11. Activity Process Guide backlog
+# 11. Partner submits work done
+
+## Purpose
+
+Use this process when Telectro has assigned fulfilment work to a Partner and the Partner has completed the work.
+
+This process records that Partner-side work is complete and ready for Telectro review.
+
+It is used when:
+
+* the ticket is assigned to Partner fulfilment;
+* the Partner has completed the assigned work;
+* the Partner needs to submit a work-done note;
+* Telectro must review the Partner’s completed work.
+
+This process is not the same as Partner acceptance.
+
+Partner work done means:
+
+```text
+The Partner has completed work assigned to the Partner by Telectro.
+```
+
+Partner acceptance means:
+
+```text
+The Partner accepts Telectro’s handling of a Partner-originated request.
+```
+
+These are separate Partner workflow trains.
+
+## Audience
+
+Primary users:
+
+* Partner users
+
+Secondary users:
+
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+* Telectro Technician
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Partner understand the work-done submission process.
+
+This process is not for Customer portal users.
+
+Customer tickets do not use the Partner work-done workflow directly.
+
+## When to use this process
+
+Use this process when:
+
+* Telectro has assigned work to a Partner;
+* the ticket’s fulfilment party is `Partner`;
+* the Partner sees `Submit Work Done`;
+* the Partner has completed the assigned work;
+* the Partner has uploaded any required evidence;
+* the Partner is ready for Telectro to review the work.
+
+Typical examples:
+
+* “The Partner completed the site work.”
+* “The Partner replaced the hardware.”
+* “The Partner completed the installation.”
+* “The Partner uploaded the completion photo and needs to submit work done.”
+* “Telectro requested rework and the Partner has completed the rework.”
+* “The Partner needs to send the work-done note for Telectro review.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the ticket was originally logged by a Partner and is waiting for Partner acceptance;
+* the Partner only needs to accept Telectro’s handling of a Partner-originated request;
+* no Partner work has actually been completed;
+* the Partner still needs to upload required evidence;
+* the ticket is already `Resolved`, `Closed`, or `Archived`;
+* the Partner wants to resolve or close the ticket directly;
+* the Customer is trying to confirm a Customer-facing resolution.
+
+Use `Partner responds to an acceptance request` when the Partner is accepting or requesting rework on a Partner-originated ticket.
+
+Use the Customer resolved outcome process for Customer-facing resolution review.
+
+## Important concepts
+
+### Telectro-assigned Partner work
+
+Telectro-assigned Partner work is a ticket where Telectro has asked the Partner to perform fulfilment work.
+
+In this train:
+
+```text
+Request Source is not Partner
+Fulfilment Party is Partner
+```
+
+The Partner completes the work and then submits a work-done note.
+
+### Partner Work State
+
+The Partner Work State shows where the Partner work train currently is.
+
+Common states include:
+
+```text
+Assigned to Partner
+Work Completed by Partner
+Rework Required
+Reviewed by Telectro
+```
+
+### Submit Work Done
+
+`Submit Work Done` is the Partner action used when the Partner has completed the assigned work.
+
+The Partner must enter a work-done note.
+
+The Partner may also select the completed date.
+
+After submission, the Partner Work State becomes:
+
+```text
+Work Completed by Partner
+```
+
+The ticket then waits for Telectro work review.
+
+### Work Done Note
+
+The Work Done Note should explain what the Partner did.
+
+A good Work Done Note should be specific enough for Telectro to review the work without guessing.
+
+It may include:
+
+* what was completed;
+* what was replaced or repaired;
+* what was tested;
+* what evidence was uploaded;
+* what remains outstanding, if anything;
+* any access, site, or safety notes Telectro should know.
+
+### Partner evidence
+
+Partner users can upload supporting evidence on the Partner ticket page.
+
+Evidence may include:
+
+* photos;
+* quotes;
+* signed documents;
+* proof-of-work files;
+* worksheets;
+* site notes;
+* screenshots.
+
+Evidence upload is separate from `Submit Work Done`.
+
+If evidence is required, upload the evidence before submitting the work-done note.
+
+### Telectro review
+
+After the Partner submits work done, Telectro reviews the completed work.
+
+Telectro may:
+
+* review only;
+* accept the work;
+* request rework;
+* resolve the ticket;
+* close the ticket.
+
+The Partner does not resolve or close the ticket directly.
+
+## Before you start
+
+Before submitting work done, the Partner should confirm:
+
+* they are logged in as the correct Partner user;
+* they have opened the correct Partner ticket;
+* the ticket is assigned to Partner fulfilment;
+* the ticket is not `Resolved`, `Closed`, or `Archived`;
+* the work has actually been completed;
+* any required evidence has been uploaded;
+* the work-done note is ready;
+* the completed date is known.
+
+If the Partner is unsure whether the work is complete, they should not submit work done yet.
+
+## Step-by-step process
+
+### Step 1 — Open the Partner workspace
+
+Log in as a Partner user.
+
+Open the Partner workspace.
+
+The Partner workspace is the Partner-safe starting point.
+
+Do not use the internal Telectro workspace for this process.
+
+### Step 2 — Open assigned Partner work
+
+Open the Partner ticket list that contains work assigned to the Partner.
+
+This may be shown as:
+
+* current Partner work;
+* tickets assigned to Partner;
+* Partner active tickets;
+* work assigned to Partner.
+
+Open the relevant ticket.
+
+### Step 3 — Confirm this is the correct ticket
+
+On the Partner ticket page, confirm:
+
+* the ticket ID;
+* the subject;
+* the summary;
+* the status;
+* the request source;
+* the fulfilment party;
+* the Customer / Account context, where visible;
+* the site, fault, or service context, where visible;
+* the Partner Work State.
+
+Do not submit work done on the wrong ticket.
+
+### Step 4 — Review the assigned work
+
+Review the Partner-safe ticket information.
+
+This may include:
+
+* status;
+* priority;
+* request type;
+* due date;
+* ticket type;
+* request source;
+* fulfilment party;
+* Customer / Account;
+* campus or location;
+* fault category;
+* fault asset;
+* fault point;
+* service area;
+* severity;
+* subject;
+* summary;
+* attachments;
+* prior Partner work notes;
+* Telectro rework notes.
+
+Make sure the Partner understands what Telectro assigned.
+
+### Step 5 — Complete the work outside the system
+
+Complete the assigned operational work.
+
+Examples:
+
+* repair the fault;
+* install or replace equipment;
+* complete the site visit;
+* perform the configuration;
+* gather the requested information;
+* prepare the quote or document;
+* complete the Partner-side task.
+
+Do not submit work done before the work is actually complete.
+
+### Step 6 — Upload supporting evidence, if required
+
+If evidence is needed, use the Partner ticket page to upload it before submitting work done.
+
+Use the `Upload Attachment` action.
+
+Evidence should be relevant and readable.
+
+Good evidence examples:
+
+* completion photo;
+* before/after photo;
+* signed job card;
+* installation document;
+* test result;
+* device screenshot;
+* quote or worksheet;
+* site note.
+
+Do not upload unrelated or duplicate files.
+
+### Step 7 — Select Submit Work Done
+
+When the work is complete, select `Submit Work Done`.
+
+The dialog asks for:
+
+* `Completed On`;
+* `Work Done Note`.
+
+The completed date should reflect when the Partner completed the work.
+
+### Step 8 — Write the Work Done Note
+
+Write a clear Work Done Note.
+
+Good examples:
+
+```text
+Completed. Replaced the faulty PoE injector at the cellar switch cabinet and confirmed the camera came back online. Completion photo uploaded.
+```
+
+```text
+Completed. Installed the replacement router, restored internet connectivity, and confirmed browsing from the reception desk.
+```
+
+```text
+Completed. Site survey done for the requested extension. Photos and measurements uploaded.
+```
+
+```text
+Completed rework. The missing signed page has been uploaded and the full worksheet is now attached.
+```
+
+```text
+Completed. SIM was tested in the backup router and confirmed online. Screenshot uploaded.
+```
+
+A good Work Done Note should avoid vague wording such as:
+
+```text
+Done.
+```
+
+or:
+
+```text
+Fixed.
+```
+
+### Step 9 — Submit the dialog
+
+Submit the `Submit Work Done` dialog.
+
+After submission, the ticket moves to:
+
+```text
+Work Completed by Partner
+```
+
+The work-done note is recorded on the ticket.
+
+The completed date is recorded if supplied.
+
+### Step 10 — Verify the result
+
+After submitting, reload or review the Partner ticket page.
+
+Confirm:
+
+* the Partner Work State changed to `Work Completed by Partner`;
+* the Partner Work Completed date is correct, if shown;
+* the Partner Work Done Note is visible;
+* uploaded evidence is still visible/downloadable;
+* `Submit Work Done` no longer appears while the work is awaiting Telectro review.
+
+If the page did not update, refresh the page and check again.
+
+### Step 11 — Wait for Telectro review
+
+After work done is submitted, Telectro reviews the work.
+
+Telectro may:
+
+* accept the work;
+* request rework;
+* resolve the ticket;
+* close the ticket;
+* leave a review note.
+
+If Telectro requests rework, the Partner should complete the rework and submit work done again when ready.
+
+## Verification checklist
+
+The process is complete when:
+
+* The Partner opened the correct assigned Partner ticket.
+* The Partner confirmed the ticket context before acting.
+* The Partner completed the assigned work.
+* Required evidence was uploaded before submission.
+* The Partner selected `Submit Work Done`.
+* The Partner entered a clear Work Done Note.
+* The Partner submitted the action.
+* The Partner Work State changed to `Work Completed by Partner`.
+* The Work Done Note is visible on the ticket.
+* Telectro has a clear review action.
+
+## Common mistakes
+
+### Mistake: Using Submit Work Done for Partner acceptance
+
+Problem:
+
+* The Partner may submit work done when they should respond to an acceptance request.
+
+Correct approach:
+
+* Use `Submit Work Done` only for Telectro-assigned Partner fulfilment work.
+* Use `Submit Acceptance Note` or `Request Rework` for Partner-originated acceptance requests.
+
+### Mistake: Submitting work done before the work is complete
+
+Problem:
+
+* Telectro may review incomplete work and request rework.
+
+Correct approach:
+
+* Complete the operational work first.
+* Upload evidence if required.
+* Submit work done only when the work is ready for Telectro review.
+
+### Mistake: Forgetting to upload evidence
+
+Problem:
+
+* Telectro may not have enough proof to review the work.
+
+Correct approach:
+
+* Upload relevant evidence before submitting work done.
+* Mention the evidence in the Work Done Note.
+
+### Mistake: Writing a vague Work Done Note
+
+Problem:
+
+* Telectro cannot tell what was completed.
+
+Poor example:
+
+```text
+Done.
+```
+
+Better example:
+
+```text
+Completed. Replaced the faulty injector, confirmed the device powered up, and uploaded the completion photo.
+```
+
+### Mistake: Acting on the wrong Partner ticket
+
+Problem:
+
+* Telectro may review the wrong work or location.
+
+Correct approach:
+
+* Confirm the ticket ID, subject, location, and summary before submitting.
+
+### Mistake: Expecting Partner users to resolve or close the ticket
+
+Problem:
+
+* Partner work done is not Partner closure authority.
+
+Correct approach:
+
+* Submit work done.
+* Wait for Telectro review.
+* Telectro resolves or closes the ticket where appropriate.
+
+### Mistake: Ignoring a Telectro rework request
+
+Problem:
+
+* The ticket may remain waiting on the Partner.
+
+Correct approach:
+
+* Read the rework note.
+* Complete the rework.
+* Submit work done again when ready.
+
+## Do
+
+* Use the Partner workspace.
+* Open the correct assigned Partner ticket.
+* Review the work request before acting.
+* Complete the work before submitting.
+* Upload relevant evidence where required.
+* Write a clear Work Done Note.
+* Mention uploaded evidence in the Work Done Note.
+* Confirm the Partner Work State changed to `Work Completed by Partner`.
+* Wait for Telectro review.
+
+## Do not
+
+* Do not use `Submit Work Done` for Partner acceptance requests.
+* Do not submit work done before work is complete.
+* Do not skip required evidence.
+* Do not write vague notes such as “Done” or “Fixed”.
+* Do not submit work done on the wrong ticket.
+* Do not expect Partner users to resolve or close the ticket directly.
+* Do not ignore rework requested by Telectro.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. Partner workspace.
+2. Partner current work / assigned tickets list.
+3. Partner ticket detail page.
+4. Ticket showing Partner Work State `Assigned to Partner`.
+5. `Upload Attachment` action.
+6. Upload Attachment dialog.
+7. Evidence list showing uploaded file.
+8. `Submit Work Done` button.
+9. `Submit Work Done` dialog.
+10. Completed Work Done Note example.
+11. Ticket showing Partner Work State `Work Completed by Partner`.
+12. Ticket showing Partner Work Completed date.
+13. Partner Work Done Note visible on the ticket.
+14. Telectro-side `Review Partner Work` action.
+15. Rework case showing Partner Work State `Rework Required`.
+
+## Related docs
+
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
+* `docs/runbooks/notification-v1-operating-model.md`
+* `docs/runbooks/service-coverage-model.md`
+
+# 12. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -4168,14 +4708,13 @@ Planned guides:
 Planned guides:
 
 - Review Partner acceptance
-- Partner submits work done
 - Review Partner completed work
 - Send rework back to Partner
 - Archive or close Partner-side work after Telectro review
 
 ---
 
-# 12. Maintenance rule
+# 13. Maintenance rule
 
 Keep Activity Process Guides practical.
 
