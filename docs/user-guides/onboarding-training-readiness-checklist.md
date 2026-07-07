@@ -293,10 +293,10 @@ The main risk is starting onboarding before the complete path has been proven:
 
   * Partner Welcome Guide
   * Partner quick start
+  * Partner responds to an acceptance request
 
 ### Still needed
 
-* Request Partner acceptance
 * Review Partner acceptance
 * Partner submits work done
 * Telectro reviews Partner completed work
@@ -435,6 +435,7 @@ The main risk is starting onboarding before the complete path has been proven:
 * [ ] Customer views latest update
 * [ ] Customer downloads Customer-visible evidence
 * [ ] Customer checks resolved ticket outcome
+* [ ] Partner responds to an acceptance request
 
 ## Activity Process Guides still needed
 
@@ -456,7 +457,6 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Partner collaboration
 
-* [ ] Request Partner acceptance
 * [ ] Review Partner acceptance
 * [ ] Partner submits work done
 * [ ] Review Partner completed work
