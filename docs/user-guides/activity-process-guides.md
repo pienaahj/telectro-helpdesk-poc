@@ -2510,7 +2510,386 @@ Recommended screenshots for the Obsidian/training version:
 - `docs/user-guides/pilot-welcome-guides.md`
 - `docs/user-guides/activity-process-guides.md#5-customer-logs-a-support-request`
 
-# 7. Activity Process Guide backlog
+# 7. Customer views latest update
+
+## Purpose
+
+Use this process when a Customer user wants to check what Telectro has said or done on an existing support request.
+
+The `Latest update` card gives the Customer a quick view of the most recent Customer-visible update on the ticket.
+
+This helps Customers see progress without needing to understand Telectro’s internal workflow, assignments, handoffs, Partner reviews, internal notes, or operational comments.
+
+The goal is to help the Customer answer:
+
+* Has Telectro responded?
+* What is the latest Customer-visible update?
+* What should I do next?
+* Do I need to add more information?
+* Has the ticket been resolved?
+
+## Audience
+
+Primary users:
+
+* Customer portal users
+
+Secondary users:
+
+* Telectro Technician
+* Telectro Coordinator
+* Telectro Ops / Supervisor
+
+Internal Telectro users may use this guide during training, onboarding, or when helping a Customer understand what they can see in the Customer portal.
+
+This process is not for Partner users.
+
+Partner users should use the Partner workflow instead.
+
+## When to use this process
+
+Use this process when:
+
+* the Customer wants to check progress on an existing request;
+* Telectro has sent a Customer-visible update;
+* Telectro has resolved a Customer ticket with a Customer-visible resolution update;
+* the Customer wants to confirm the latest visible information before adding follow-up;
+* the Customer wants to check whether an attachment, evidence item, or update is visible;
+* the Customer wants to understand whether the ticket needs a response from them.
+
+Typical examples:
+
+* “I want to see whether Telectro has replied.”
+* “I want to check the latest update before phoning.”
+* “I want to confirm what Telectro said after the site visit.”
+* “I want to check whether the ticket has been resolved.”
+* “I want to know whether I should add more information.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* the Customer needs to log a new support request;
+* the Customer needs to send new information to Telectro;
+* the Customer needs to attach photos or evidence;
+* the Customer wants to formally approve or reject work;
+* the Customer expects to see internal Telectro notes, assignments, debug comments, or Partner workflow detail.
+
+Use `Log a Support Request` for a new issue.
+
+Use `Add information` when the Customer needs to send more detail on an existing ticket.
+
+The Customer portal is not a formal sign-off or internal operations portal.
+
+## Important concepts
+
+### Support Requests
+
+`Support Requests` is the Customer portal area where the Customer can see their logged requests.
+
+Use it to open the existing ticket before checking the latest update.
+
+### Request details
+
+`Request details` shows the original Customer request where available.
+
+This is the Customer’s starting message or original logged request.
+
+It helps the Customer compare the latest update against what was originally reported.
+
+### Latest update
+
+`Latest update` shows the most recent Customer-visible update from the ticket activity.
+
+It is intended to show the newest Customer-facing communication after the original request.
+
+If there has not yet been a later Customer-visible update, the `Latest update` card may not appear.
+
+### Customer-visible activity
+
+Customer-visible activity is the ticket activity that the Customer is allowed to see.
+
+It can include:
+
+* the original Customer request;
+* Customer follow-up information;
+* Telectro Customer-visible updates;
+* Telectro Customer-visible resolution updates;
+* Customer-visible attachments where deliberately exposed.
+
+### Internal Telectro notes
+
+Internal Telectro notes are not shown to the Customer.
+
+Customers should not expect to see:
+
+* internal routing notes;
+* assignment comments;
+* technician-only notes;
+* coordinator/supervisor governance notes;
+* Partner workflow states;
+* debug comments;
+* private operational discussion.
+
+If the Customer needs to know something, Telectro should send a deliberate Customer-visible update.
+
+### Add information
+
+`Add information` is the Customer response path.
+
+Use it when the Customer has more detail, photos, access notes, corrected location information, or feedback to send after reading the latest update.
+
+## Before you start
+
+Before checking the latest update, the Customer should confirm:
+
+* they are logged in as the correct Customer user;
+* they are opening the correct support request;
+* they know what issue they are checking;
+* they understand that only Customer-visible information will appear;
+* they understand that internal Telectro notes are not shown in the Customer portal.
+
+## Step-by-step process
+
+### Step 1 — Open Support Requests
+
+Log in as a Customer portal user.
+
+Open `Support Requests`.
+
+This shows the Customer’s logged support requests.
+
+### Step 2 — Open the correct ticket
+
+Open the support request that needs to be checked.
+
+Before reading the update, confirm:
+
+* the ticket number is correct;
+* the subject matches the issue;
+* the visible request details match the issue;
+* this is not a different or unrelated ticket.
+
+### Step 3 — Check the ticket status
+
+Look at the ticket status or status area where available.
+
+The status helps the Customer understand whether the ticket is still active, resolved, or closed.
+
+Status alone may not explain the full situation.
+
+Read the latest visible update as well.
+
+### Step 4 — Read the Request details
+
+Read `Request details` where shown.
+
+This confirms the original Customer request.
+
+Use it to remember:
+
+* what was reported;
+* where the issue was located;
+* what details or evidence were originally supplied;
+* whether the latest update is responding to the same issue.
+
+### Step 5 — Read the Latest update card
+
+Find the `Latest update` card.
+
+Read the update carefully.
+
+The latest update may include:
+
+* acknowledgement of the request;
+* progress information;
+* a request for more detail;
+* site visit information;
+* next steps;
+* resolution wording;
+* completion outcome;
+* reference to Customer-visible evidence.
+
+If the `Latest update` card is not visible, it may mean there is no later Customer-visible update after the original request yet.
+
+In that case, check the visible activity/timeline for available Customer-visible communication.
+
+### Step 6 — Review the visible activity if needed
+
+If more context is needed, review the visible ticket activity.
+
+Use the activity to understand:
+
+* what the Customer originally logged;
+* whether the Customer already added follow-up information;
+* what Telectro has sent to the Customer;
+* whether the latest update is part of a longer conversation.
+
+Do not expect internal Telectro notes to appear.
+
+Only Customer-visible communication should be visible in the Customer portal.
+
+### Step 7 — Decide whether a response is needed
+
+After reading the latest update, decide whether the Customer needs to respond.
+
+A response may be needed when:
+
+* Telectro asks for more information;
+* the Customer has new symptoms to report;
+* the Customer needs to correct a location or equipment detail;
+* the Customer needs to attach a photo or label;
+* the Customer still has a concern after resolution;
+* the issue has returned after being marked resolved.
+
+If a response is needed, use `Add information`.
+
+Do not log a duplicate support request for the same issue.
+
+### Step 8 — Use Add information if follow-up is needed
+
+Select `Add information` on the existing ticket.
+
+Send a clear follow-up message.
+
+Attach photos or evidence where helpful.
+
+Use the existing ticket for related follow-up so that Telectro can keep the conversation and work history together.
+
+### Step 9 — Do not look for internal notes
+
+Customers should not try to find internal Telectro notes in the Customer portal.
+
+Internal notes are intentionally hidden.
+
+If the Customer needs an explanation, they should ask through `Add information` or the agreed support channel.
+
+Telectro should then provide a clear Customer-visible update if appropriate.
+
+## Verification checklist
+
+The process is complete when:
+
+* The Customer opened `Support Requests`.
+* The Customer opened the correct ticket.
+* The Customer checked the ticket status.
+* The Customer reviewed `Request details` where available.
+* The Customer read the `Latest update` card where available.
+* The Customer reviewed visible activity if more context was needed.
+* The Customer understood that internal Telectro notes are not shown.
+* The Customer used `Add information` when a response or clarification was needed.
+* No duplicate support request was created for the same issue.
+
+## Common mistakes
+
+### Mistake: Expecting to see internal Telectro notes
+
+Problem:
+
+* Customers may think information is missing because they cannot see internal operational notes.
+
+Correct approach:
+
+* Customers should only expect to see Customer-visible information.
+* Telectro must send a deliberate Customer-visible update when the Customer needs to know something.
+
+### Mistake: Treating Latest update as the whole ticket history
+
+Problem:
+
+* The Latest update card shows the newest Customer-visible update, not necessarily the full conversation.
+
+Correct approach:
+
+* Read the visible activity/timeline when more context is needed.
+
+### Mistake: Logging a duplicate request after reading an update
+
+Problem:
+
+* Duplicate requests can split the work history and confuse ownership.
+
+Correct approach:
+
+* Use `Add information` on the existing ticket when the follow-up belongs to the same issue.
+
+### Mistake: Assuming no Latest update means no ticket exists
+
+Problem:
+
+* A ticket may exist even if there is no later Customer-visible update yet.
+
+Correct approach:
+
+* Confirm the ticket is visible in `Support Requests`.
+* Check the request details and visible activity.
+* Use `Add information` only if the Customer needs to add useful detail.
+
+### Mistake: Using the Customer portal as a formal sign-off system
+
+Problem:
+
+* The V1 Customer portal is not a formal approval/rejection workflow.
+
+Correct approach:
+
+* Read the latest update for progress or outcome.
+* Use `Add information` if there is a concern.
+* Telectro remains responsible for resolution/closure through the Telectro-side process.
+
+### Mistake: Missing a request for information
+
+Problem:
+
+* Telectro may be waiting for the Customer to provide access notes, photos, labels, or corrected location details.
+
+Correct approach:
+
+* Read the latest update carefully.
+* If Telectro asks for detail, respond through `Add information`.
+
+## Do
+
+* Open the correct ticket from `Support Requests`.
+* Read the ticket status and latest visible update together.
+* Use `Request details` to compare the latest update with the original issue.
+* Review the visible activity/timeline when more context is needed.
+* Use `Add information` to respond on the same ticket.
+* Expect Customer-visible updates only.
+* Ask for clarification if the latest update is unclear.
+
+## Do not
+
+* Do not expect to see internal Telectro notes.
+* Do not log a duplicate request for the same issue.
+* Do not treat `Latest update` as a formal approval/rejection step.
+* Do not assume the full internal work history is visible.
+* Do not use this process to submit new issue details; use `Log a Support Request` for a genuinely new issue.
+* Do not close tickets as part of the normal Customer V1 workflow.
+
+## Screenshot checklist
+
+Recommended screenshots for the Obsidian/training version:
+
+1. `Support Requests` list.
+2. Customer ticket detail page.
+3. Ticket status area.
+4. `Request details` card.
+5. `Latest update` card.
+6. Visible activity/timeline.
+7. Example Customer-visible Telectro update.
+8. Example resolved ticket outcome.
+9. `Add information` action as the response path.
+10. Example where no later `Latest update` is shown yet, if useful for training.
+
+## Related docs
+
+* `docs/runbooks/customer-ticket-lifecycle-v1.md`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
+* `docs/user-guides/activity-process-guides.md#6-customer-adds-follow-up-information`
+
+# 8. Activity Process Guide backlog
 
 The following process guides are candidates for this document as the pilot training pack matures.
 
@@ -2552,13 +2931,12 @@ Planned guides:
 
 Planned guides:
 
-- Customer views latest update
 - Customer downloads Customer-visible evidence
 - Customer checks resolved ticket outcome
 
 ---
 
-# 8. Maintenance rule
+# 9. Maintenance rule
 
 Keep Activity Process Guides practical.
 
