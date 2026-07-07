@@ -488,7 +488,7 @@ At the moment, the doc set has a good emerging split:
 
 - **README** = repo entry point
 - **Pilot Welcome Guides** = role-based onboarding and orientation for Telectro internal users, Partner users, and Customer users.
-- **Activity Process Guides** = user-facing step-by-step activity workflows, including Customer-visible evidence updates, controlled claim/release/handoff ownership flows, internal note vs Customer-visible update guidance, Customer ticket resolution, Customer support request logging, Customer follow-up information, Customer latest update review, Customer-visible evidence download, Customer resolved outcome review, Partner acceptance response, and Partner work-done submission.
+- **Activity Process Guides** = user-facing step-by-step activity workflows, including Customer-visible evidence updates, controlled claim/release/handoff ownership flows, internal note vs Customer-visible update guidance, Customer ticket resolution, Customer support request logging, Customer follow-up information, Customer latest update review, Customer-visible evidence download, Customer resolved outcome review, Partner acceptance response, Partner work-done submission, and Telectro Partner acceptance review.
 - **Onboarding and Training Readiness Checklist** = onboarding and training readiness control checklist covering required guides, role-specific training material, screenshot readiness, production-blocked proof, and onboarding go/no-go checks.
 - **Bench Verification Playbook** = proof method
 - **Email Reference** = command/reference note
