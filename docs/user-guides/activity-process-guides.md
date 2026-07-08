@@ -9505,18 +9505,14 @@ Recommended screenshots for the Obsidian/training version:
 
 # 21. Activity Process Guide backlog
 
-The following process guides are candidates for this document as the pilot training pack matures.
+The following follow-up items remain for this document as the pilot training pack matures.
 
 ## Internal Telectro ticket execution
 
-Planned guides:
+Follow-up items:
 
-- Claim a ticket
-- Release a ticket
-- Handoff / share ticket context
 - Extend internal note / Customer-visible update guide after production screenshots are captured
 - Extend Customer-visible evidence update guide after production screenshots are captured
-- Attach Customer-facing completion evidence
 
 ## Partner collaboration
 

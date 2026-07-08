@@ -60,17 +60,19 @@ Ready now:
 * Customer-visible evidence update process;
 * claim, release, and controlled handoff process;
 * internal note vs Customer-visible update process;
-* screenshot checklist placeholders;
-* role-specific quick-start sections.
+* Customer ticket resolution process;
+* Customer portal request, follow-up, update, evidence, and resolved-outcome processes;
+* Partner acceptance, work-done, and Telectro review processes;
+* Coordinator / Supervisor operational review processes;
+* role-specific quick-start sections;
+* screenshot checklist placeholders.
 
 Still needed:
 
-* remaining Partner process guides;
-* remaining Customer portal process guides;
-* remaining resolve/completion process guides;
 * production screenshots;
 * first-user invitation and password setup proof;
-* final training pack assembly.
+* final training pack assembly;
+* production screenshot follow-up pass for guides that currently use screenshot placeholders.
 
 Blocked by production setup:
 
@@ -120,9 +122,8 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Still needed
 
-* Attach Customer-facing completion evidence
-* Customer-facing completion evidence vs internal evidence distinction
 * Technician screenshot pack
+* Production screenshot follow-up pass for Customer-facing evidence and completion evidence examples
 
 ### Required screenshots
 
@@ -180,15 +181,16 @@ The main risk is starting onboarding before the complete path has been proven:
   * Claim, release, and handoff ticket ownership
   * Internal notes and Customer-visible updates
   * Add a Customer-visible update with photo/document evidence
+  * Review current work
+  * Check unclaimed tickets
+  * Check aging and at-risk tickets
+  * Check first-response risk
+  * Intervene on a stale or blocked ticket
+  * Review Partner acceptance queue
+  * Review Partner work completion queue
 
 ### Still needed
 
-* Check unclaimed tickets
-* Check aging and at-risk tickets
-* Check first-response risk
-* Review Partner acceptance queue
-* Review Partner work completion queue
-* Intervene on a stale or blocked ticket
 * Coordinator screenshot pack
 
 ### Required screenshots
@@ -241,13 +243,13 @@ The main risk is starting onboarding before the complete path has been proven:
 
   * Claim, release, and handoff ticket ownership
   * Internal notes and Customer-visible updates
+  * Review current work
+  * Check aging and at-risk tickets
+  * Check first-response risk
+  * Intervene on a stale or blocked ticket
 
 ### Still needed
 
-* Supervisor checks first-response / SLA risk
-* Supervisor checks aging and at-risk tickets
-* Supervisor reviews workload
-* Supervisor intervenes on a stale or blocked ticket
 * Supervisor screenshot pack
 
 ### Required screenshots
@@ -424,32 +426,31 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ## Existing Activity Process Guide coverage
 
-* [ ] Add a Customer-visible update with photo/document evidence
-* [ ] Claim, release, and handoff ticket ownership
-* [ ] Internal notes and Customer-visible updates
-* [ ] Resolve a Customer ticket
-* [ ] Customer logs a support request
-* [ ] Customer adds follow-up information
-* [ ] Customer views latest update
-* [ ] Customer downloads Customer-visible evidence
-* [ ] Customer checks resolved ticket outcome
-* [ ] Partner responds to an acceptance request
-* [ ] Partner submits work done
-* [ ] Review Partner acceptance
-* [ ] Review Partner completed work
-* [ ] Review current work
-* [ ] Check unclaimed tickets
-* [ ] Check aging and at-risk tickets
-* [ ] Check first-response risk
-* [ ] Intervene on a stale or blocked ticket
-* [ ] Review Partner acceptance queue
-* [ ] Review Partner work completion queue
+* [x] Add a Customer-visible update with photo/document evidence
+* [x] Claim, release, and handoff ticket ownership
+* [x] Internal notes and Customer-visible updates
+* [x] Resolve a Customer ticket
+* [x] Customer logs a support request
+* [x] Customer adds follow-up information
+* [x] Customer views latest update
+* [x] Customer downloads Customer-visible evidence
+* [x] Customer checks resolved ticket outcome
+* [x] Partner responds to an acceptance request
+* [x] Partner submits work done
+* [x] Review Partner acceptance
+* [x] Review Partner completed work
+* [x] Review current work
+* [x] Check unclaimed tickets
+* [x] Check aging and at-risk tickets
+* [x] Check first-response risk
+* [x] Intervene on a stale or blocked ticket
+* [x] Review Partner acceptance queue
+* [x] Review Partner work completion queue
 
-## Activity Process Guides still needed
+## Activity Process Guide follow-up items
 
 ### Internal Telectro ticket execution
 
-* [ ] Attach Customer-facing completion evidence
 * [ ] Extend internal note / Customer-visible update guide after production screenshots are captured
 * [ ] Extend Customer-visible evidence update guide after production screenshots are captured
 
