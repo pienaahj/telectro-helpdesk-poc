@@ -464,6 +464,16 @@ Keep screenshot-heavy training material in Obsidian unless a screenshot is delib
 
 Repo docs should remain text-first and durable.
 
+## Screenshot source and production data rule
+
+Training and Welcome Guide screenshots may use local/dev demo data when the screenshot demonstrates generic UI behaviour, layout, actions, queues, or role navigation.
+
+Production screenshots are required only when the screenshot proves production-specific behaviour, such as public HTTPS access, password setup links, first-user login, production email delivery, Customer portal access, or Partner workspace access.
+
+Do not create fake/demo operational tickets in production for training screenshots.
+
+If production smoke testing requires a record, keep it minimal, clearly labelled as smoke-test evidence, and do not reuse it as normal training material.
+
 ## Screenshot status categories
 
 Use these labels while assembling the training pack:
