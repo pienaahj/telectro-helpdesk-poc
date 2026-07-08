@@ -609,6 +609,79 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Known limitations are documented.
 * [ ] Support/escalation person is identified for first onboarding session.
 
+## Final training pack assembly
+
+Use this section before the first onboarding session to confirm that the training material is assembled, clearly labelled, and safe to use.
+
+The final training pack does not need every production screenshot before dry-run preparation can start.
+
+It must, however, clearly separate:
+
+* repo-backed written guidance;
+* Obsidian screenshot packs;
+* production screenshots still pending;
+* live-demo-only sections;
+* production proof that has not yet been completed.
+
+### Minimum assembled pack
+
+For each audience, prepare a small role pack containing:
+
+* the relevant Welcome Guide section;
+* the relevant Activity Process Guides;
+* the role-specific quick start;
+* screenshot pack status;
+* known production-proof blockers;
+* trainer notes for live-demo-only steps;
+* support/escalation contact for questions after onboarding.
+
+### Role pack status labels
+
+Use one of these labels for each role pack:
+
+* `Ready for dry run` — written guides are current, demo flow is known, and missing screenshots are clearly marked.
+* `Ready for production onboarding` — production access, password setup, role login, screenshots, and smoke flow are proven.
+* `Live-demo only` — screenshots are missing or stale, but the trainer can safely demonstrate the flow.
+* `Blocked by production proof` — the role cannot be honestly onboarded until production setup, access, email, or HTTPS proof is complete.
+
+### Screenshot handling
+
+Do not block dry-run preparation only because screenshots are missing.
+
+Instead:
+
+* mark missing screenshots as `Pending production screenshot`;
+* mark replacement screenshots as `Retake in production`;
+* mark temporary demo-only areas as `Live-demo only`;
+* keep screenshot-heavy material in Obsidian unless deliberately selected for repo-backed documentation.
+
+### Production-proof handling
+
+Do not describe any production-only onboarding step as proven until it has actually been tested.
+
+This applies especially to:
+
+* first-user invitation email;
+* setup/reset password email;
+* public HTTPS setup link;
+* first production role login;
+* Customer portal access;
+* Partner workspace access;
+* outgoing Customer-visible email, if used during onboarding proof.
+
+### Assembly checklist
+
+* [ ] Each role has a named role pack.
+* [ ] Each role pack links to the correct Welcome Guide section.
+* [ ] Each role pack links to the correct Activity Process Guides.
+* [ ] Each role pack identifies required screenshots.
+* [ ] Missing screenshots are labelled as pending, retake, or live-demo-only.
+* [ ] Production-only proof is not presented as complete unless tested.
+* [ ] Known limitations are listed in trainer notes.
+* [ ] A dry-run sequence is prepared before first live onboarding.
+* [ ] A support/escalation person is named.
+* [ ] Post-session feedback capture is prepared.
+
 ---
 
 # 6. Suggested onboarding sequence
