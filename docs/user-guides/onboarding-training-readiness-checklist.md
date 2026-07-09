@@ -35,6 +35,24 @@ Related documents:
 
 Avoid duplicating those documents here.
 
+## Obsidian and PDF pack alignment rule
+
+Repo documents are the canonical source for pilot process, readiness, access rules, and go/no-go decisions.
+
+Obsidian may be used for presentation copy, screenshots, trainer notes, pagination, role-pack assembly, and PDF export preparation.
+
+PDF packs are distribution outputs, not a separate source of truth.
+
+When Obsidian or PDF material describes a process, role boundary, screenshot status, or production-proof claim, it should stay aligned with the repo-controlled Welcome Guides, Activity Process Guides, and this readiness checklist.
+
+If an Obsidian note is older than the repo guidance, mark it as one of:
+
+* `Current training/export copy`
+* `Needs repo comparison`
+* `Stale/archive candidate`
+
+Do not silently reuse stale Obsidian notes in final training packs.
+
 This checklist should answer:
 
 * which guides exist;
