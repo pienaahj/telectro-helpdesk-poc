@@ -336,6 +336,11 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
+### 10) Phase 2 Pilot Enhancements
+
+- [Pilot Phase 2 Enhancements](pilot-phase-2-enhancements.md)
+  - Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
+
 ### If the question is
 
 **“How do I prove this safely?”**  
@@ -506,6 +511,7 @@ At the moment, the doc set has a good emerging split:
 - **Service Coverage Model** = how service coverage is currently modeled in the system, how it interacts with assignment and routing, and known limitations.
 - **Customer Ticket Lifecycle** = current contract for customer ticket status lifecycle, customer portal visibility, and Telectro-side finalisation requirements.
 - **Customer Location and Organisation Model** = how customer locations and organisational structures are represented in the system.
+- **Pilot Phase 2 Enhancements** = Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
 
 That is a healthy baseline for the pilot.
 
