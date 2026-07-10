@@ -1,0 +1,158 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2026-04-29 15:55:23.374703",
+  "name": "TELECTRO-POC Profile - Supervisor",
+  "role_profile": "TELECTRO-POC Profile - Supervisor",
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Agent"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Support Team"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Supervisor Governance"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Ops Workspace"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Supervisor",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   }
+  ]
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2026-04-22 10:19:06.301362",
+  "name": "TELECTRO-POC Profile Partner",
+  "role_profile": "TELECTRO-POC Profile Partner",
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Profile Partner",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Partner"
+   },
+   {
+    "parent": "TELECTRO-POC Profile Partner",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Partner Creator"
+   }
+  ]
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2026-04-10 19:15:22.082512",
+  "name": "TELECTRO-POC Profile - Technician",
+  "role_profile": "TELECTRO-POC Profile - Technician",
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Profile - Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Agent"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Support Team"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   }
+  ]
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2026-04-13 17:52:16.926979",
+  "name": "TELECTRO-POC Profile - Coordinator-Technician",
+  "role_profile": "TELECTRO-POC Profile - Coordinator-Technician",
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Agent"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Support Team"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator-Technician",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Tech Workspace"
+   }
+  ]
+ }
+]

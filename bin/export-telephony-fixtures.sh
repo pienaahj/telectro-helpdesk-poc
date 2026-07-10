@@ -56,7 +56,7 @@ docker compose cp \
 echo
 echo "==> Host hd_team.json summary..."
 
-python - <<'PY'
+python3 - <<'PY'
 import json
 from pathlib import Path
 
