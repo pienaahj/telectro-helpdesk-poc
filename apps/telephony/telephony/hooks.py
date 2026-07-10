@@ -10,7 +10,43 @@ app_license = "agpl-3.0"
 
 
 fixtures = [
-    {"dt": "Role", "filters": [["role_name", "like", "TP%"]]},
+        {
+        "dt": "Role",
+        "filters": [[
+            "role_name",
+            "in",
+            [
+                "TP Agent",
+                "TP Manager",
+                "Pilot Admin",
+                "TELECTRO-POC Role - Tech",
+                "TELECTRO-POC Role - Coordinator Ops",
+                "TELECTRO-POC Role - Supervisor Governance",
+                "TELECTRO-POC Role - Tech Workspace",
+                "TELECTRO-POC Role - Coordinator Workspace",
+                "TELECTRO-POC Role - Ops Workspace",
+                "TELECTRO-POC Role - Partner",
+                "TELECTRO-POC Role - Partner Creator",
+                "TELECTRO-POC Role - Faults Tech",
+                "TELECTRO-POC Role - PABX Tech",
+                "TELECTRO-POC Role - Routing Tech",
+            ],
+        ]],
+    },
+
+    {
+        "dt": "Role Profile",
+        "filters": [[
+            "name",
+            "in",
+            [
+                "TELECTRO-POC Profile - Technician",
+                "TELECTRO-POC Profile - Coordinator-Technician",
+                "TELECTRO-POC Profile - Supervisor",
+                "TELECTRO-POC Profile Partner",
+            ],
+        ]],
+    },
 
     {
         "dt": "Workspace",
