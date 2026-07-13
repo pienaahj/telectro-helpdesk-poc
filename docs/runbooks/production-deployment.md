@@ -705,6 +705,225 @@ That is acceptable for the first production proof because current assets.json po
 A later hardening slice may add a deliberate prune/snapshot mode if required.
 ```
 
+### 2026-07-13 Helpdesk frontend deployment checkpoint
+
+Production Customer Portal proof confirmed that the Helpdesk frontend consists of two related deployment artifacts which must remain synchronized.
+
+Compiled frontend:
+
+```text
+apps/helpdesk/helpdesk/public/desk/
+```
+
+Frappe Helpdesk route template:
+
+```text
+apps/helpdesk/helpdesk/www/helpdesk/index.html
+```
+
+The compiled frontend contains:
+
+```text
+- compiled Vue/Vite application
+- hashed JavaScript files
+- hashed CSS files
+- index.html
+- PWA manifest
+- service worker files
+- static images and fonts
+```
+
+The Frappe route template is rendered for:
+
+```text
+/helpdesk/*
+```
+
+and contains the active hashed JavaScript and CSS references used by the Customer Portal.
+
+Production proof showed that deploying only the compiled frontend is insufficient.
+
+Observed split-build failure:
+
+```text
+Frappe route template:
+- referenced old hashed JS/CSS files
+
+Persistent production asset tree:
+- contained the newly built hashed JS/CSS files
+
+Browser result:
+- old asset requests returned HTTP 404
+- Customer Portal rendered as a blank page
+```
+
+The production route still referenced:
+
+```text
+/assets/helpdesk/desk/assets/index-b639611e.js
+/assets/helpdesk/desk/assets/index-d8e1e420.css
+```
+
+while the deployed compiled frontend contained:
+
+```text
+/assets/helpdesk/desk/assets/index-85ea3613.js
+/assets/helpdesk/desk/assets/index-7945e9d6.css
+```
+
+The deployment was repaired by aligning both surfaces:
+
+```text
+1. Deploy the complete compiled Helpdesk desk tree.
+2. Deploy the matching Helpdesk Frappe route template.
+3. Confirm the route template references the same hashed assets present in the live asset tree.
+4. Restart the affected runtime services.
+5. Confirm the referenced JS/CSS files return HTTP 200.
+6. Complete browser proof in a fresh session.
+```
+
+Required Helpdesk frontend deployment rule:
+
+```text
+Always deploy these together:
+
+apps/helpdesk/helpdesk/public/desk/
+apps/helpdesk/helpdesk/www/helpdesk/index.html
+```
+
+Do not deploy only one of these artifacts.
+
+Deploying only the compiled frontend can leave the Frappe route template pointing to stale hashed assets.
+
+Deploying only the route template can point the browser to hashed assets which do not exist in the live asset tree.
+
+Production runtime surfaces involved:
+
+```text
+Deployed application artifact tree:
+- /opt/telectro/erpnext/app
+
+Persistent production assets bind mount:
+- /opt/telectro/erpnext/data/assets
+
+Backend runtime app tree:
+- /home/frappe/frappe-bench/apps/helpdesk
+
+Frontend asset paths:
+- /assets
+- /home/frappe/frappe-bench/sites/assets
+```
+
+The production frontend mounts:
+
+```text
+/opt/telectro/erpnext/data/assets -> /assets
+/opt/telectro/erpnext/data/assets -> /home/frappe/frappe-bench/sites/assets
+```
+
+This means the live frontend asset tree is persistent across frontend container recreation.
+
+However, the Helpdesk route template is supplied by the backend runtime app tree.
+
+Updating only the production artifact tree or persistent assets bind mount does not automatically update an already running backend container when the current runtime image still contains older app files.
+
+Temporary runtime repair may require copying the matching route template into the running backend container.
+
+This is a recovery measure only.
+
+The durable production fix is to rebuild and deploy a new immutable runtime image from merged source so the runtime image contains:
+
+```text
+- current Helpdesk source overlays
+- current Helpdesk route template
+- current Telephony source and fixtures
+- matching built frontend assets
+```
+
+Minimum deployment verification:
+
+```bash
+grep -Eo '/assets/helpdesk/desk/assets/[^"]+\.(js|css)' \
+  apps/helpdesk/helpdesk/www/helpdesk/index.html \
+  | sort -u
+```
+
+Verify each route-template asset exists in the live production asset tree:
+
+```bash
+INDEX="apps/helpdesk/helpdesk/www/helpdesk/index.html"
+
+grep -Eo '/assets/helpdesk/desk/assets/[^"]+\.(js|css)' "$INDEX" \
+  | sort -u \
+  | while read -r url; do
+      file="/opt/telectro/erpnext/data${url}"
+      test -f "$file"
+      echo "FOUND $url"
+    done
+```
+
+Verify the live Helpdesk route returns the same hashes:
+
+```bash
+curl -fsS \
+  -H 'Host: erp.telectro.co.za' \
+  http://192.168.0.11:8080/helpdesk/my-tickets \
+  | grep -Eo '/assets/helpdesk/desk/assets/[^"]+\.(js|css)' \
+  | sort -u
+```
+
+Verify the referenced assets are served successfully:
+
+```bash
+curl -fsSI \
+  -H 'Host: erp.telectro.co.za' \
+  http://192.168.0.11:8080/assets/helpdesk/desk/assets/<current-index>.js
+
+curl -fsSI \
+  -H 'Host: erp.telectro.co.za' \
+  http://192.168.0.11:8080/assets/helpdesk/desk/assets/<current-index>.css
+```
+
+Expected result:
+
+```text
+- route-template hashes match live route hashes
+- all referenced asset files exist
+- JavaScript returns HTTP 200
+- CSS returns HTTP 200
+- Customer Portal renders without a blank page
+- no Helpdesk asset 404s appear in browser network checks
+```
+
+Production browser proof completed on 2026-07-13:
+
+```text
+- /helpdesk/my-tickets loaded successfully
+- Boschendal Customer Portal branding remained intact
+- No Tickets Found empty state remained visible
+- redundant centre Create action was removed
+- top-right Log a Support Request action remained available
+- current hashed JavaScript and CSS returned HTTP 200
+```
+
+Source-control requirement:
+
+```text
+apps/helpdesk/helpdesk/www/helpdesk/index.html
+```
+
+must remain tracked and included in the Helpdesk container-to-repository pull workflow.
+
+The helper:
+
+```text
+bin/pull-helpdesk-changes.sh
+```
+
+must pull the generated Helpdesk route template together with the Helpdesk frontend source overlays.
+
+Future deployment artifact or CI/CD design should treat the Helpdesk compiled frontend and matching route template as one versioned deployment unit.
+
 ### 2026-06-25 custom runtime deployment sequence
 
 For a production deployment using the Telectro runtime image, keep the runtime image, assets, app installation, migration, restart, and smoke proof as explicit steps.
