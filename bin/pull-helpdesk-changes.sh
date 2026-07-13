@@ -47,6 +47,9 @@ cp_helpdesk_desk_from_container() {
 # --- Helpdesk Python/app files we changed previously ---
 cp_helpdesk_py_from_container "overrides/email_account.py" "overrides/email_account.py"
 
+# --- Helpdesk generated route template for the compiled desk frontend ---
+cp_helpdesk_py_from_container "www/helpdesk/index.html" "www/helpdesk/index.html"
+
 # --- Helpdesk desk frontend files changed for Customer portal lifecycle hardening ---
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomer.vue" "src/pages/ticket/TicketCustomer.vue"
 
