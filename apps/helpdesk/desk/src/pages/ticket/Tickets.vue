@@ -53,13 +53,13 @@
           </div>
 
           <div>
-            <div class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]">
+            <div class="text-sm uppercase tracking-[0.22em] text-[#d8c28a]">
               {{ __("Boschendal Service Desk") }}
             </div>
             <div class="text-xl font-semibold text-white">
               {{ __("Support Requests") }}
             </div>
-            <div class="mt-1 max-w-2xl text-sm text-[#fffaf0]">
+            <div class="mt-1 max-w-2xl text-sm text-[#efe6d4]">
               {{
                 __(
                   "View your logged support requests, follow progress, and add information for the Telectro team.",
@@ -211,6 +211,7 @@ const options = {
     icon: h(TicketIcon, {
       class: "h-10 w-10",
     }),
+    showAction: !isCustomerPortal.value,
   },
   rowRoute: {
     name: isCustomerPortal.value ? "TicketCustomer" : "TicketAgent",

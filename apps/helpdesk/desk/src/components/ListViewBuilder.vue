@@ -111,6 +111,7 @@
     v-else
     :title="emptyState.title"
     :icon="emptyState.icon"
+    :show-action="emptyState.showAction"
     @emptyStateAction="emit('emptyStateAction')"
   />
 </template>
@@ -174,9 +175,9 @@ interface P {
     defaultFilters?: Record<string, any>;
     columnConfig?: Record<string, any>;
     emptyState?: {
-      // type of a h componnt
       icon?: string | VNode;
       title: string;
+      showAction?: boolean;
     };
     hideViewControls?: boolean;
     hideColumnSetting?: boolean;

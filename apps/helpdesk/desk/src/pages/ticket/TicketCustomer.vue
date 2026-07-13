@@ -49,7 +49,7 @@
     <div
       class="mx-6 mt-4 overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm md:mx-10"
     >
-      <div class="h-1 bg-[#c9b37a]" />
+      <div class="h-1 bg-[#b79a55]" />
 
       <div
         class="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between"
