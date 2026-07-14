@@ -23,6 +23,7 @@ mkdir -p "${DST_BASE}/ftelephony/page"
 mkdir -p "${DST_BASE}/ftelephony/doctype"
 mkdir -p "${DST_BASE}/public/js"
 mkdir -p "${DST_BASE}/api"
+mkdir -p "${DST_BASE}/setup"
 
 mirror_dir_from_container() {
   local src_dir="$1"
@@ -177,8 +178,21 @@ cp_dir_from_container() {
 # cp_dir_from_container "scripts" "scripts"
 # cp_dir_from_container "monkey_patches" "monkey_patches"
 
+# Setup directory
+mirror_dir_from_container "setup" "setup"
+
+# Explicit pulls ensure these required files are always copied.
+cp_from_container \
+  "setup/__init__.py" \
+  "setup/__init__.py"
+
+cp_from_container \
+  "setup/workspace_visibility.py" \
+  "setup/workspace_visibility.py"
+
 # Standard DocType files
 mirror_dir_from_container "ftelephony/doctype" "ftelephony/doctype"
+
 # --------------------------------------------------------------------
 cp_from_container \
   "ftelephony/doctype/telectro_service_coverage/__init__.py" \
