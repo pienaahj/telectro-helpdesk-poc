@@ -238,6 +238,18 @@ scheduler_events["cron"] = cron_events
 # ------------------
 import os
 
+
+# Restore and verify controlled Workspace visibility after migrations.
+after_migrate = list(globals().get("after_migrate") or [])
+
+workspace_visibility_after_migrate = (
+    "telephony.setup.workspace_visibility.after_migrate"
+)
+
+if workspace_visibility_after_migrate not in after_migrate:
+    after_migrate.append(workspace_visibility_after_migrate)
+
+
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
 doc_events.setdefault("DocShare", {})
