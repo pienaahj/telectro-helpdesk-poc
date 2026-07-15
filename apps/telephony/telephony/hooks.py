@@ -168,6 +168,7 @@ fixtures = [
                 "Partner Acceptance Review",
                 "Partner Acceptance Review Queue",
                 "Partner Acceptance Rework Queue",
+                "Partner Work Completion Review Queue",
                 "Partner Workflow War Room",
                 "My Current Work",
                 "Partner Current Work",
