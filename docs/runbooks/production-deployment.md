@@ -6,6 +6,37 @@ This runbook captures the requirements, deployment model, backup/rollback expect
 
 The first production deployment should be treated as a controlled technical deployment, not an instant go-live.
 
+## Operational runtime release procedure
+
+For the canonical procedure used to deploy a merged application change to the existing Telectro production site, see:
+
+- [Production Runtime Release Runbook](production-runtime-release.md)
+
+That runbook owns the repeatable operational release path, including:
+
+- release identity and source proof;
+- immutable runtime-image build and validation;
+- image transfer and production loading;
+- fresh backup verification;
+- `.env.production` image switching;
+- selective runtime-service recreation;
+- mandatory frontend nginx reload;
+- migration and cache clearing;
+- site-aware database and functional proof;
+- browser verification;
+- deployment evidence;
+- pre-migration rollback and post-migration restore boundaries.
+
+This document remains the canonical source for:
+
+- production architecture and responsibility boundaries;
+- production-host and Compose readiness;
+- initial application-layer deployment decisions;
+- infrastructure requirements;
+- broader production acceptance and operational-readiness guidance.
+
+Do not duplicate the full runtime release procedure here. Link to the operational runbook when detailed release steps are required.
+
 ## 2026-06-09 production shape update
 
 This runbook was originally written around an application-owned production edge, where the ERPNext stack would expose Traefik on ports `80` and `443` and handle HTTPS/certificate wiring inside the application deployment.

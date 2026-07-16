@@ -336,42 +336,65 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
-### 10) Phase 2 Pilot Enhancements
+### 10) Production runtime releases
+
+**Canonical source:** `docs/runbooks/production-runtime-release.md`
+
+**Use for:**
+
+- promoting a merged application change to the existing Telectro production site;
+- defining and validating an immutable runtime release;
+- building, saving, transferring, and loading the production runtime image;
+- taking and verifying the pre-release site backup;
+- updating `.env.production`;
+- recreating only the five application runtime services;
+- reloading frontend nginx after backend recreation;
+- running production migration and cache clearing;
+- validating migrated database and functional state;
+- completing browser and role proof;
+- recording final deployment evidence;
+- understanding pre-migration rollback and post-migration restore boundaries.
+
+**Read this when:**
+
+- preparing a routine production application release;
+- deploying changed fixtures, Reports, Workspaces, roles, permissions, or application code;
+- diagnosing a healthy backend with a routed `502 Bad Gateway`;
+- deciding whether an image rollback is safe after migration;
+- recording the evidence required to close a production release.
+
+**Do not duplicate elsewhere:**
+
+- the full runtime release sequence;
+- image transfer and identity proof;
+- selective runtime recreation procedure;
+- mandatory nginx reload procedure;
+- migration and post-migration verification order;
+- runtime rollback procedure;
+- final release evidence requirements.
+
+Use `docs/runbooks/production-deployment.md` for the broader production architecture, host readiness, responsibility boundary, and initial deployment model.
+
+---
+
+### 11) Phase 2 Pilot Enhancements
 
 - [Pilot Phase 2 Enhancements](pilot-phase-2-enhancements.md)
   - Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
 
 ### If the question is
 
-**“How do I prove this safely?”**  
-Read: **Bench Verification Playbook**
-
-**“Is the mail path healthy?”**  
-Read: **Mail Health Runbook**
-
-**“How should an email-created ticket behave?”**  
-Read: **Email Ticket Intake Runbook**
-
-**“How should a manual ticket behave?”**  
-Read: **Manual Ticket Intake Runbook**
-
-**“Why did this ticket assign this way?”**  
-Read: **Ticket Assignment Contract**
-
-**“Why is this old ticket not trustworthy?”**  
-Read: **Ticket Status and Workspace Baseline**
-
-**“What are the actual mail commands / container checks again?”**  
-Read: **Email Reference**
-
-**“How do I stand this repo up and work in it?”**  
-Read: **README.md**
-
-**“How should a supervisor monitor and intervene?”**  
-Read: **Supervisor Operating Model**
-
-**"How to understand the SLA timing signals?"**
-Read: **SLA and Supervisor Risk Signals**
+- **“How do I prove this safely?”** — Read: **Bench Verification Playbook**
+- **“Is the mail path healthy?”** — Read: **Mail Health Runbook**
+- **“How should an email-created ticket behave?”** — Read: **Email Ticket Intake Runbook**
+- **“How should a manual ticket behave?”** — Read: **Manual Ticket Intake Runbook**
+- **“Why did this ticket assign this way?”** — Read: **Ticket Assignment Contract**
+- **“Why is this old ticket not trustworthy?”** — Read: **Ticket Status and Workspace Baseline**
+- **“What are the actual mail commands / container checks again?”** — Read: **Email Reference**
+- **“How do I stand this repo up and work in it?”** — Read: **README.md**
+- **“How should a supervisor monitor and intervene?”** — Read: **Supervisor Operating Model**
+- **“How do I deploy a merged application change to production?”** — Read: **Production Runtime Release Runbook**
+- **“How do I understand the SLA timing signals?”** — Read: **SLA and Supervisor Risk Signals**
 
 ---
 
@@ -512,6 +535,7 @@ At the moment, the doc set has a good emerging split:
 - **Customer Ticket Lifecycle** = current contract for customer ticket status lifecycle, customer portal visibility, and Telectro-side finalisation requirements.
 - **Customer Location and Organisation Model** = how customer locations and organisational structures are represented in the system.
 - **Pilot Phase 2 Enhancements** = Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
+- **Production Runtime Release** = canonical procedure for deploying merged application changes to the existing production site.
 
 That is a healthy baseline for the pilot.
 
