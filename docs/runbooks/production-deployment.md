@@ -5910,6 +5910,145 @@ However, updates must not be applied casually during the pilot or directly on pr
 
 For the pilot, update notifications should be recorded and reviewed, but not clicked through blindly.
 
+### Host and Docker patch restart resilience
+
+Telectro applies approved operating-system and package patches through its infrastructure-management process. Application resilience must therefore assume that an approved patch may restart the Docker daemon or the production host.
+
+Do not disable or bypass approved Telectro patching merely to keep the application containers running. The Compose configuration and operational checks must allow the persistent application stack to return automatically.
+
+#### 2026-07-16 Docker restart incident
+
+On 16 July 2026, an approved package transaction upgraded Docker CE from `29.6.1` to `29.6.2` and restarted the Docker daemon.
+
+The host remained up, and the database showed no corruption. However, most persistent application containers remained stopped after Docker returned.
+
+The affected services used:
+
+```yaml
+deploy:
+  restart_policy:
+    condition: on-failure
+```
+
+Docker applied this as the container restart policy `on-failure`.
+
+During the daemon shutdown, the containers exited cleanly with exit code `0`. Because a clean exit is not a failure, Docker did not restart them after the daemon returned.
+
+The frontend already used `restart: unless-stopped`, so it returned independently. This produced a partial stack in which frontend, scheduler, or websocket processes could be running while database, Redis, backend, or workers remained stopped.
+
+#### Required persistent-service restart policy
+
+All long-running production services must use the service-level Compose policy:
+
+```yaml
+restart: unless-stopped
+```
+
+This applies to:
+
+```text
+backend
+db
+frontend
+queue-long
+queue-short
+redis-cache
+redis-queue
+scheduler
+websocket
+```
+
+The following one-shot setup services must not receive an automatic restart policy:
+
+```text
+configurator
+create-site
+```
+
+They are expected to remain exited after initial configuration and site creation.
+
+The production Compose render must be checked to confirm:
+
+```text
+persistent services: restart = unless-stopped
+one-shot services: restart policy unset
+```
+
+Changing the Compose source does not automatically change the policy stored on already-created containers. A production policy correction therefore requires both:
+
+1. deployment of the merged Compose source to the production artifact tree;
+2. reconciliation of the existing containers’ live restart policies.
+
+For a restart-policy-only correction, the live policy may be aligned without container recreation by using:
+
+```bash
+docker update \
+  --restart unless-stopped \
+  <persistent-container-names>
+```
+
+Record container IDs, start timestamps, status, restart counts, and restart policies before and after the update. The IDs and start timestamps must remain unchanged.
+
+#### Controlled restart proof completed on 2026-07-17
+
+The corrected policy was deployed from merged repository commit:
+
+```text
+fd0889b44acaa6dea6b8718dbb44f8886fb4ebf2
+```
+
+A controlled Docker daemon restart was then performed on the production VM:
+
+```bash
+sudo systemctl restart docker
+```
+
+No containers were manually started afterward.
+
+The proof confirmed:
+
+* all nine persistent services returned automatically;
+* all persistent services retained their existing container IDs;
+* all persistent services showed `restart: unless-stopped`;
+* all persistent-service restart counts remained `0`;
+* `backend` and `db` returned healthy;
+* `configurator` and `create-site` remained exited with `restart=no`;
+* direct backend, routed internal, and external HTTPS pings returned `{"message":"pong"}`;
+* the browser application returned normally;
+* no fresh service errors appeared after the convergence window.
+
+Brief Redis, websocket, and nginx connection errors were observed during the first seconds of concurrent startup. These were startup-order transients: they cleared without intervention, did not increase restart counts, and were absent from the later verification window.
+
+The retained production evidence is:
+
+```text
+/opt/telectro/erpnext/deploy-evidence/20260717-restart-resilience-deploy
+```
+
+The final evidence manifest contains 20 files:
+
+```text
+SHA256SUMS-final.txt
+SHA-256:
+a736739f1abd1c12b3afca495aa36ee61b50cf2caf5634c1667825aaf0581aaa
+```
+
+#### Post-patch operational expectation
+
+After any approved host or Docker package maintenance:
+
+1. confirm all nine persistent services are running;
+2. confirm `backend` and `db` are healthy;
+3. confirm restart policies remain `unless-stopped`;
+4. confirm the one-shot services remain exited;
+5. prove the direct backend path;
+6. prove the routed internal HTTP path;
+7. prove the external HTTPS path;
+8. inspect recent logs for errors that continue beyond the startup-convergence window;
+9. retain the results as production evidence.
+
+Docker `live-restore`, automated post-patch reconciliation, and application health alerting are useful defence-in-depth measures, but they do not replace the required persistent-service restart policy.
+
 Before production go-live, a controlled update rehearsal should be completed on a branch or staging/local copy.
 
 Minimum update rehearsal sequence:
