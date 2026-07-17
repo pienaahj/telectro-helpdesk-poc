@@ -3,9 +3,7 @@ services:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     volumes:
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
@@ -95,9 +93,7 @@ services:
       test: mysqladmin ping -h localhost --password=admin
       interval: 1s
       retries: 20
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -134,9 +130,7 @@ services:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - bench
       - worker
@@ -154,9 +148,7 @@ services:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - bench
       - worker
@@ -174,9 +166,7 @@ services:
     image: redis:6.2-alpine
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     volumes:
       - redis-queue-data:/data
 
@@ -184,17 +174,13 @@ services:
     image: redis:6.2-alpine
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
 
   scheduler:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - bench
       - schedule
@@ -206,9 +192,7 @@ services:
     image: ${ERPNEXT_IMAGE:-frappe/erpnext:v15.94.1}
     networks:
       - frappe_network
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
     command:
       - node
       - /home/frappe/frappe-bench/apps/frappe/socketio.js
