@@ -1,0 +1,244 @@
+/*
+ * Initial paged-media theme for:
+ * docs/user-guides/activity-process-guides.md
+ *
+ * Keep this stylesheet conservative until the complete document has been
+ * rendered and inspected in Vivliostyle.
+ */
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 20mm 18mm;
+
+  @top-left {
+    content: "ERPNext / Helpdesk Pilot";
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    font-size: 7.5pt;
+    color: #4b5563;
+  }
+
+  @top-right {
+    content: string(section-title);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    font-size: 7.5pt;
+    color: #4b5563;
+    text-align: right;
+  }
+
+  @bottom-center {
+    content: "Page " counter(page);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    font-size: 8pt;
+    color: #4b5563;
+  }
+}
+
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.42;
+  color: #1f2933;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  break-after: avoid-page;
+  font-weight: 650;
+  color: #17212b;
+}
+
+/*
+ * Pandoc wraps each Markdown level-one section in:
+ *
+ *   <section class="level1">
+ *     <h1>...</h1>
+ *   </section>
+ *
+ * Apply chapter page breaks to that wrapper. The first section contains the
+ * document introduction and should not force an extra blank page.
+ */
+body > section.level1 {
+  break-before: page;
+}
+
+body > section.level1:first-child {
+  break-before: auto;
+}
+
+h1 {
+  string-set: section-title content();
+  margin: 0 0 7mm;
+  font-size: 22pt;
+  line-height: 1.16;
+}
+
+h2 {
+  margin: 8mm 0 3mm;
+  font-size: 15pt;
+  line-height: 1.22;
+}
+
+h3 {
+  margin: 6mm 0 2.5mm;
+  font-size: 12pt;
+  line-height: 1.25;
+}
+
+h4 {
+  margin: 5mm 0 2mm;
+  font-size: 10.5pt;
+  line-height: 1.3;
+}
+
+h1 + *,
+h2 + *,
+h3 + *,
+h4 + * {
+  break-before: avoid-page;
+}
+
+p,
+ul,
+ol,
+blockquote,
+pre,
+table {
+  margin-top: 0;
+  margin-bottom: 3.5mm;
+}
+
+p {
+  orphans: 3;
+  widows: 3;
+}
+
+ul,
+ol {
+  padding-left: 6mm;
+}
+
+li {
+  orphans: 2;
+  widows: 2;
+}
+
+li + li {
+  margin-top: 1mm;
+}
+
+strong {
+  font-weight: 700;
+}
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  break-inside: avoid-page;
+  box-sizing: border-box;
+  padding: 3mm;
+  border: 0.3mm solid #d5dce3;
+  border-radius: 1.5mm;
+  background: #f6f8fa;
+  font-size: 8.6pt;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+pre code {
+  font-size: inherit;
+  white-space: inherit;
+}
+
+blockquote {
+  break-inside: avoid-page;
+  margin-left: 0;
+  padding: 2mm 0 2mm 4mm;
+  border-left: 1mm solid #aab4be;
+  color: #374151;
+}
+
+hr {
+  height: 0;
+  margin: 8mm 0;
+  border: 0;
+  border-top: 0.3mm solid #cbd3da;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+  break-inside: avoid-page;
+}
+
+/*
+ * Future-safe table rules. The current guide contains little or no tabular
+ * content, but these prevent basic Markdown tables from rendering poorly.
+ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr {
+  break-inside: avoid-page;
+}
+
+th,
+td {
+  padding: 2mm;
+  border: 0.3mm solid #cbd3da;
+  text-align: left;
+  vertical-align: top;
+}
+
+/*
+ * Generated table of contents.
+ *
+ * The configuration limits the TOC to top-level headings, so this should
+ * contain one useful entry per numbered Activity Process Guide rather than
+ * every repeated Purpose, Audience, and Verification heading.
+ */
+nav[role="doc-toc"],
+#toc {
+  break-after: page;
+}
+
+nav[role="doc-toc"] ol,
+#toc ol {
+  padding-left: 0;
+  list-style: none;
+}
+
+nav[role="doc-toc"] li,
+#toc li {
+  break-inside: avoid-page;
+  margin: 0 0 2.2mm;
+}
+
+nav[role="doc-toc"] a::after,
+#toc a::after {
+  content: leader(".") target-counter(attr(href), page);
+}
