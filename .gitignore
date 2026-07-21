@@ -469,3 +469,6 @@ import/
 # Local deployment/source provenance markers
 .source-branch
 .source-commit
+
+# Generated PDF publication output
+/docs/pdf/dist/

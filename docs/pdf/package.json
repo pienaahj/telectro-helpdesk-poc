@@ -1,0 +1,15 @@
+{
+  "name": "telectro-pilot-pdf",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reproducible PDF publishing tools for the Telectro ERPNext pilot documentation.",
+  "type": "module",
+  "scripts": {
+    "preview": "vivliostyle preview",
+    "preview:quick": "vivliostyle preview --quick",
+    "build": "vivliostyle build"
+  },
+  "devDependencies": {
+    "@vivliostyle/cli": "11.1.0"
+  }
+}
