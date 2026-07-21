@@ -109,5 +109,46 @@ RUN set -eux; \
     cat sites/common_site_config.json; \
     bench build
 
+# Frappe's asset build can minify rgba(0, 0, 0, 0.1) to eight-digit hex.
+# Premailer's CSS parser rejects that syntax while preparing email HTML.
+# Normalize only the known screenshot shadow and fail if the asset changes.
+RUN python - <<'PY'
+from pathlib import Path
+
+asset_dir = Path("/home/frappe/frappe-bench/sites/assets/frappe/dist/css")
+assets = sorted(asset_dir.glob("email.bundle*.css"))
+
+if len(assets) != 1:
+    raise SystemExit(
+        f"Expected exactly one compiled Frappe email CSS asset in {asset_dir}; "
+        f"found {len(assets)}: {[str(asset) for asset in assets]}"
+    )
+
+asset_path = assets[0]
+css = asset_path.read_text(encoding="utf-8")
+
+before = ".screenshot{box-shadow:0 3px 6px #0000001a;"
+after = ".screenshot{box-shadow:0 3px 6px rgba(0,0,0,.1);"
+
+count = css.count(before)
+
+if count != 1:
+    raise SystemExit(
+        "Expected exactly one known Premailer-incompatible screenshot shadow "
+        f"in {asset_path}; found {count}"
+    )
+
+css = css.replace(before, after, 1)
+
+if "#0000001a" in css:
+    raise SystemExit(
+        f"Premailer-incompatible colour remains in {asset_path}"
+    )
+
+asset_path.write_text(css, encoding="utf-8")
+
+print(f"email_css_normalization: patched {asset_path}")
+PY
+
 LABEL org.opencontainers.image.title="Telectro ERPNext Helpdesk Runtime"
 LABEL org.opencontainers.image.description="ERPNext runtime with Helpdesk, Telephony, and Telectro overlays"
