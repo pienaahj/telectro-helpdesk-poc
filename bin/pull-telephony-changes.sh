@@ -1,818 +1,647 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-trap 'echo "❌ pull-telephony-changes failed on line $LINENO" >&2' ERR
+trap 'echo "ERROR: pull-telephony-changes failed on line ${LINENO}" >&2' ERR
 
-# Pull edited Telephony app files out of the running backend container
-# into the host repo, so they can be committed + pushed.
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "${REPO_ROOT}"
 
-# --- ensure container exists (and is up) ---
-docker compose ps backend >/dev/null
+OVERLAY_REL="apps/telephony/telephony"
+OVERLAY_ROOT="${REPO_ROOT}/${OVERLAY_REL}"
+BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
+CONTAINER_ROOT="/home/frappe/frappe-bench/apps/telephony/telephony"
 
-SRC_BASE="backend:/home/frappe/frappe-bench/apps/telephony/telephony"
-DST_BASE="apps/telephony/telephony"
+DRY_RUN=0
 
-# --- ensure common dirs exist on host (safe even if we later sync whole dir) ---
-mkdir -p "${DST_BASE}/overrides"
-mkdir -p "${DST_BASE}/scripts"
-mkdir -p "${DST_BASE}/fixtures"
-mkdir -p "${DST_BASE}/monkey_patches"
-mkdir -p "${DST_BASE}/jobs"
-mkdir -p "${DST_BASE}/ftelephony/report"
-mkdir -p "${DST_BASE}/ftelephony/page"
-mkdir -p "${DST_BASE}/ftelephony/doctype"
-mkdir -p "${DST_BASE}/public/js"
-mkdir -p "${DST_BASE}/api"
-mkdir -p "${DST_BASE}/setup"
+usage() {
+  cat <<'EOF'
+Usage:
+  bin/pull-telephony-changes.sh
+  bin/pull-telephony-changes.sh --dry-run
 
-mirror_dir_from_container() {
-  local src_dir="$1"
-  local dst_dir="$2"
+The script synchronizes Git-tracked Telephony overlay files from the
+development backend container to the same repository paths.
 
-  if ! docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}'"; then
-    echo "↪ dir missing in container (mirror skipped): ${dst_dir}"
-    return 0
-  fi
-
-  echo "⇄ mirror dir ${dst_dir}/"
-  mkdir -p "${DST_BASE}/${dst_dir}"
-
-  local tmp_manifest
-  local tmp_host_manifest
-  tmp_manifest="$(mktemp)"
-  tmp_host_manifest="$(mktemp)"
-
-  docker compose exec -T backend bash -lc "
-    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
-    find . \
-      -path './__pycache__' -prune -o \
-      -path '*/__pycache__' -prune -o \
-      -name '.DS_Store' -prune -o \
-      -print |
-    sed 's#^\./##' |
-    awk 'NF'
-  " | sort > "${tmp_manifest}"
-
-  echo "  manifest entries: $(wc -l < "${tmp_manifest}" | tr -d ' ')"
-
-  while IFS= read -r rel; do
-    [ -z "${rel}" ] && continue
-
-    if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${rel}'"; then
-      echo "  ↪ mkdir ${dst_dir}/${rel}/"
-      mkdir -p "${DST_BASE}/${dst_dir}/${rel}"
-    else
-      echo "  → copy ${dst_dir}/${rel}"
-      mkdir -p "$(dirname "${DST_BASE}/${dst_dir}/${rel}")"
-      docker compose cp \
-        "${SRC_BASE}/${src_dir}/${rel}" \
-        "${DST_BASE}/${dst_dir}/${rel}"
-
-      if [ ! -e "${DST_BASE}/${dst_dir}/${rel}" ]; then
-        echo "ERROR: mirrored file missing after copy: ${dst_dir}/${rel}" >&2
-        rm -f "${tmp_manifest}" "${tmp_host_manifest}"
-        return 1
-      fi
-    fi
-  done < "${tmp_manifest}"
-
-  find "${DST_BASE}/${dst_dir}" \
-    \( -name '__pycache__' -o -name '.DS_Store' \) -prune -o \
-    -mindepth 1 -print | \
-    sed "s#^${DST_BASE}/${dst_dir}/##" | sort > "${tmp_host_manifest}"
-
-  comm -23 "${tmp_host_manifest}" "${tmp_manifest}" | while IFS= read -r stale; do
-    [ -z "${stale}" ] && continue
-    echo "  ✗ remove stale ${dst_dir}/${stale}"
-    rm -rf "${DST_BASE}/${dst_dir}/${stale}"
-  done
-
-  rm -f "${tmp_manifest}" "${tmp_host_manifest}"
+Fixture files are deliberately excluded. Use the controlled fixture-export
+workflow for fixture changes.
+EOF
 }
 
-cp_from_container() {
-  local src="$1"
-  local dst="$2"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
 
-  if ! docker compose exec -T backend bash -lc "test -e '/home/frappe/frappe-bench/apps/telephony/telephony/${src}'"; then
-    echo "❌ Missing in container: telephony/${src}" >&2
-    exit 1
-  fi
+  shift
+done
 
-  echo "→ ${dst}"
-  # Ensure dst dir exists to avoid `docker compose cp` nesting issues (it doesn't auto-create intermediate dirs, and if dst doesn't exist it creates a dst file instead of copying into it)
-  mkdir -p "$(dirname "${DST_BASE}/${dst}")"
-  docker compose cp "${SRC_BASE}/${src}" "${DST_BASE}/${dst}"
+if [ ! -d "${OVERLAY_ROOT}" ]; then
+  echo "ERROR: Telephony overlay directory does not exist:" >&2
+  echo "  ${OVERLAY_ROOT}" >&2
+  exit 1
+fi
+
+if ! docker compose ps --status running --services |
+  grep -qx "${BACKEND_SERVICE}"
+then
+  echo "ERROR: backend service is not running: ${BACKEND_SERVICE}" >&2
+  exit 1
+fi
+
+SNAPSHOT="$(mktemp -d "${TMPDIR:-/tmp}/telephony-pull.XXXXXX")"
+TRACKED_MANIFEST="${SNAPSHOT}/tracked.txt"
+MISSING_MANIFEST="${SNAPSHOT}/missing.txt"
+
+cleanup() {
+  rm -rf "${SNAPSHOT}"
 }
 
-cp_optional_from_container() {
-  local src="$1"
-  local dst="$2"
-
-  if docker compose exec -T backend bash -lc "test -e '/home/frappe/frappe-bench/apps/telephony/telephony/${src}'"; then
-    echo "→ ${dst}"
-    # Ensure dst dir exists to avoid `docker compose cp` nesting issues (it doesn't auto-create intermediate dirs, and if dst doesn't exist it creates a dst file instead of copying into it)
-    mkdir -p "$(dirname "${DST_BASE}/${dst}")"
-    docker compose cp "${SRC_BASE}/${src}" "${DST_BASE}/${dst}"
-  else
-    echo "↪ optional missing (skipped): ${dst}"
-  fi
-}
-
-# Sync a directory by copying its *contents* (not the directory itself),
-# to avoid nested dst_dir/dst_dir issues with `docker compose cp`.
-cp_dir_from_container() {
-  local src_dir="$1"
-  local dst_dir="$2"
-
-  if ! docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}'"; then
-    echo "↪ dir missing (skipped): ${dst_dir}"
-    return 0
-  fi
-
-  echo "⇒ dir ${dst_dir}/"
-  mkdir -p "${DST_BASE}/${dst_dir}"
-
-  docker compose exec -T backend bash -lc "
-    cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir} &&
-    for p in * .*; do
-      [ \"\$p\" = \".\" ] && continue
-      [ \"\$p\" = \"..\" ] && continue
-      [ \"\$p\" = \".DS_Store\" ] && continue
-      [ ! -e \"\$p\" ] && continue
-      printf '%s\n' \"\$p\"
-    done
-  " | while IFS= read -r entry; do
-    if docker compose exec -T backend bash -lc "test -d '/home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry}'"; then
-      mkdir -p "${DST_BASE}/${dst_dir}/${entry}"
-      docker compose exec -T backend bash -lc "
-        cd /home/frappe/frappe-bench/apps/telephony/telephony/${src_dir}/${entry} &&
-        for p in * .*; do
-          [ \"\$p\" = \".\" ] && continue
-          [ \"\$p\" = \"..\" ] && continue
-          [ \"\$p\" = \".DS_Store\" ] && continue
-          [ ! -e \"\$p\" ] && continue
-          printf '%s\n' \"\$p\"
-        done
-      " | while IFS= read -r subentry; do
-        docker compose cp \
-          "${SRC_BASE}/${src_dir}/${entry}/${subentry}" \
-          "${DST_BASE}/${dst_dir}/${entry}/${subentry}"
-      done
-    else
-      docker compose cp \
-        "${SRC_BASE}/${src_dir}/${entry}" \
-        "${DST_BASE}/${dst_dir}/${entry}"
-    fi
-  done
-}
-
-# --------------------------------------------------------------------
-# 2) “Low-risk” directory sync (new)
-#    These are areas where new files are expected and should be pulled
-#    without you updating the script each time.
-# --------------------------------------------------------------------
-
-# Optional: keep these dirs fully synced too (comment out if you want strict lists only)
-# cp_dir_from_container "overrides" "overrides"
-# cp_dir_from_container "scripts" "scripts"
-# cp_dir_from_container "monkey_patches" "monkey_patches"
-
-# Setup directory
-mirror_dir_from_container "setup" "setup"
-
-# Explicit pulls ensure these required files are always copied.
-cp_from_container \
-  "setup/__init__.py" \
-  "setup/__init__.py"
-
-cp_from_container \
-  "setup/workspace_visibility.py" \
-  "setup/workspace_visibility.py"
-
-# Standard DocType files
-mirror_dir_from_container "ftelephony/doctype" "ftelephony/doctype"
-
-# --------------------------------------------------------------------
-cp_from_container \
-  "ftelephony/doctype/telectro_service_coverage/__init__.py" \
-  "ftelephony/doctype/telectro_service_coverage/__init__.py"
-
-cp_from_container \
-  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.py" \
-  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.py"
-
-cp_from_container \
-  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json" \
-  "ftelephony/doctype/telectro_service_coverage/telectro_service_coverage.json"
-  
-# --------------------------------------------------------------------
-# Standard report files
-mirror_dir_from_container "ftelephony/report" "ftelephony/report"
-
-# Explicitly pull report files too (since they can be edited in-place in the container, and we want to ensure we get them even if new files are added without updating the script)
-# Report files are also pulled explicitly because mirror_dir_from_container
-# alone did not reliably propagate in-place updates for already-existing host files.
-# Keep these explicit pulls unless/update propagation is re-proved.
-cp_from_container \
-  "ftelephony/report/active_tickets_by_technician/__init__.py" \
-  "ftelephony/report/active_tickets_by_technician/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py" \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.py"
-
-cp_from_container \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.json" \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.json"
-
-cp_from_container \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js" \
-  "ftelephony/report/active_tickets_by_technician/active_tickets_by_technician.js"
-# --------------------------------------------------------------------
-cp_from_container \
-  "ftelephony/report/aging_and_at_risk_tickets/__init__.py" \
-  "ftelephony/report/aging_and_at_risk_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py" \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.py"
-
-cp_from_container \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.json" \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js" \
-  "ftelephony/report/aging_and_at_risk_tickets/aging_and_at_risk_tickets.js"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/customer_ticket_oversight/__init__.py" \
-  "ftelephony/report/customer_ticket_oversight/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.js" \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.js"
-
-cp_from_container \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.json" \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.json"
-
-cp_from_container \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py" \
-  "ftelephony/report/customer_ticket_oversight/customer_ticket_oversight.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/customer_sla_breach_oversight/__init__.py" \
-  "ftelephony/report/customer_sla_breach_oversight/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.js" \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.js"
-
-cp_from_container \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.json" \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.json"
-
-cp_from_container \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.py" \
-  "ftelephony/report/customer_sla_breach_oversight/customer_sla_breach_oversight.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/customer_resolution_oversight/__init__.py" \
-  "ftelephony/report/customer_resolution_oversight/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.js" \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.js"
-
-cp_from_container \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.json" \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.json"
-
-cp_from_container \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.py" \
-  "ftelephony/report/customer_resolution_oversight/customer_resolution_oversight.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/coordinator_uplift_history/__init__.py" \
-  "ftelephony/report/coordinator_uplift_history/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.js"
-
-cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.json"
-
-cp_from_container \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py" \
-  "ftelephony/report/coordinator_uplift_history/coordinator_uplift_history.py"
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/first_response_missed/__init__.py" \
-  "ftelephony/report/first_response_missed/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/first_response_missed/first_response_missed.js" \
-  "ftelephony/report/first_response_missed/first_response_missed.js"
-
-cp_from_container \
-  "ftelephony/report/first_response_missed/first_response_missed.json" \
-  "ftelephony/report/first_response_missed/first_response_missed.json"
-
-cp_from_container \
-  "ftelephony/report/first_response_missed/first_response_missed.py" \
-  "ftelephony/report/first_response_missed/first_response_missed.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_acceptance_review_queue/__init__.py" \
-  "ftelephony/report/partner_acceptance_review_queue/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.js" \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.js"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.json" \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.json"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.py" \
-  "ftelephony/report/partner_acceptance_review_queue/partner_acceptance_review_queue.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_acceptance_rework_queue/__init__.py" \
-  "ftelephony/report/partner_acceptance_rework_queue/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.js" \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.js"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.json" \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.json"
-
-cp_from_container \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.py" \
-  "ftelephony/report/partner_acceptance_rework_queue/partner_acceptance_rework_queue.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/my_current_work/__init__.py" \
-  "ftelephony/report/my_current_work/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/my_current_work/my_current_work.js" \
-  "ftelephony/report/my_current_work/my_current_work.js"
-
-cp_from_container \
-  "ftelephony/report/my_current_work/my_current_work.json" \
-  "ftelephony/report/my_current_work/my_current_work.json"
-
-cp_from_container \
-  "ftelephony/report/my_current_work/my_current_work.py" \
-  "ftelephony/report/my_current_work/my_current_work.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/my_team_load/__init__.py" \
-  "ftelephony/report/my_team_load/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/my_team_load/my_team_load.js" \
-  "ftelephony/report/my_team_load/my_team_load.js"
-
-cp_from_container \
-  "ftelephony/report/my_team_load/my_team_load.json" \
-  "ftelephony/report/my_team_load/my_team_load.json"
-
-cp_from_container \
-  "ftelephony/report/my_team_load/my_team_load.py" \
-  "ftelephony/report/my_team_load/my_team_load.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/my_team_tickets/__init__.py" \
-  "ftelephony/report/my_team_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/my_team_tickets/my_team_tickets.js" \
-  "ftelephony/report/my_team_tickets/my_team_tickets.js"
-
-cp_from_container \
-  "ftelephony/report/my_team_tickets/my_team_tickets.json" \
-  "ftelephony/report/my_team_tickets/my_team_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/my_team_tickets/my_team_tickets.py" \
-  "ftelephony/report/my_team_tickets/my_team_tickets.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/my_tickets/__init__.py" \
-  "ftelephony/report/my_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/my_tickets/my_tickets.js" \
-  "ftelephony/report/my_tickets/my_tickets.js"
-
-cp_from_container \
-  "ftelephony/report/my_tickets/my_tickets.json" \
-  "ftelephony/report/my_tickets/my_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/my_tickets/my_tickets.py" \
-  "ftelephony/report/my_tickets/my_tickets.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_active_tickets/__init__.py" \
-  "ftelephony/report/partner_active_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.js" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.js"
-
-cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.json" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.py" \
-  "ftelephony/report/partner_active_tickets/partner_active_tickets.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_current_work/__init__.py" \
-  "ftelephony/report/partner_current_work/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_current_work/partner_current_work.js" \
-  "ftelephony/report/partner_current_work/partner_current_work.js"
-
-cp_from_container \
-  "ftelephony/report/partner_current_work/partner_current_work.json" \
-  "ftelephony/report/partner_current_work/partner_current_work.json"
-
-cp_from_container \
-  "ftelephony/report/partner_current_work/partner_current_work.py" \
-  "ftelephony/report/partner_current_work/partner_current_work.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
-  "ftelephony/report/tickets_assigned_to_partner/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/new_partner_tickets/__init__.py" \
-  "ftelephony/report/new_partner_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.js" \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.js"
-
-cp_from_container \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.json" \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.py" \
-  "ftelephony/report/new_partner_tickets/new_partner_tickets.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/__init__.py" \
-  "ftelephony/report/tickets_assigned_to_partner/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.js"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.json"
-
-cp_from_container \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py" \
-  "ftelephony/report/tickets_assigned_to_partner/tickets_assigned_to_partner.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_archived_tickets/__init__.py" \
-  "ftelephony/report/partner_archived_tickets/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.js" \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.js"
-
-cp_from_container \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.json" \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.json"
-
-cp_from_container \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py" \
-  "ftelephony/report/partner_archived_tickets/partner_archived_tickets.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/partner_workflow_war_room/__init__.py" \
-  "ftelephony/report/partner_workflow_war_room/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.js" \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.js"
-
-cp_from_container \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.json" \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.json"
-
-cp_from_container \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.py" \
-  "ftelephony/report/partner_workflow_war_room/partner_workflow_war_room.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/telectro_assignment_handoff_audit/__init__.py" \
-  "ftelephony/report/telectro_assignment_handoff_audit/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.json" \
-  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.json"
-
-cp_from_container \
-  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.py" \
-  "ftelephony/report/telectro_assignment_handoff_audit/telectro_assignment_handoff_audit.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/telectro_repeat_faults_by_location/__init__.py" \
-  "ftelephony/report/telectro_repeat_faults_by_location/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.js" \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.js"
-
-cp_from_container \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.json" \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.json"
-
-cp_from_container \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.py" \
-  "ftelephony/report/telectro_repeat_faults_by_location/telectro_repeat_faults_by_location.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/tickets_submitted_by_partner/__init__.py" \
-  "ftelephony/report/tickets_submitted_by_partner/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.js" \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.js"
-
-cp_from_container \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.json" \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.json"
-
-cp_from_container \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.py" \
-  "ftelephony/report/tickets_submitted_by_partner/tickets_submitted_by_partner.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py" \
-  "ftelephony/report/supervisor_active_work_by_bucket/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.json"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js" \
-  "ftelephony/report/supervisor_active_work_by_bucket/supervisor_active_work_by_bucket.js"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/__init__.py" \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.py" \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.json" \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.json"
-
-cp_from_container \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.js" \
-  "ftelephony/report/supervisor_active_work_by_owner_bucket/supervisor_active_work_by_owner_bucket.js"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/__init__.py" \
-  "ftelephony/report/supervisor_team_load_snapshot/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.py"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.json"
-
-cp_from_container \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js" \
-  "ftelephony/report/supervisor_team_load_snapshot/supervisor_team_load_snapshot.js"
-# --------------------------------------------------------------------
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/__init__.py" \
-  "ftelephony/report/supervisor_team_snapshot/__init__.py"
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.json"
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.js"
-cp_from_container \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py" \
-  "ftelephony/report/supervisor_team_snapshot/supervisor_team_snapshot.py"
-# --------------------------------------------------------------------
-
-cp_optional_from_container \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py" \
-  "ftelephony/report/unclaimed_over_1_day/__init__.py"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.js"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.json"
-
-cp_from_container \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py" \
-  "ftelephony/report/unclaimed_over_1_day/unclaimed_over_1_day.py"
-# --------------------------------------------------------------------
-
-# Standard page files
-mirror_dir_from_container "ftelephony/page" "ftelephony/page"
-# -----------------------------page---------------------------------------
-cp_optional_from_container \
-  "ftelephony/page/partner_request/__init__.py" \
-  "ftelephony/page/partner_request/__init__.py"
-
-cp_from_container \
-  "ftelephony/page/partner_request/partner_request.js" \
-  "ftelephony/page/partner_request/partner_request.js"
-
-cp_from_container \
-  "ftelephony/page/partner_request/partner_request.json" \
-  "ftelephony/page/partner_request/partner_request.json"
-
-cp_from_container \
-  "ftelephony/page/partner_request/partner_request.py" \
-  "ftelephony/page/partner_request/partner_request.py"
-# --------------------------------------------------------------------
-cp_optional_from_container \
-  "ftelephony/page/partner_ticket/__init__.py" \
-  "ftelephony/page/partner_ticket/__init__.py"
-
-cp_from_container \
-  "ftelephony/page/partner_ticket/partner_ticket.js" \
-  "ftelephony/page/partner_ticket/partner_ticket.js"
-
-cp_from_container \
-  "ftelephony/page/partner_ticket/partner_ticket.json" \
-  "ftelephony/page/partner_ticket/partner_ticket.json"
-
-cp_from_container \
-  "ftelephony/page/partner_ticket/partner_ticket.py" \
-  "ftelephony/page/partner_ticket/partner_ticket.py"
-# --------------------------------------------------------------------
-# --- workspace api ---
-cp_from_container "api/workspace.py" "api/workspace.py"
-cp_from_container "api/__init__.py" "api/__init__.py"
-#  --- ops_kpis ---
-cp_from_container "ops_kpis.py" "ops_kpis.py"
-# --- overrides we care about ---
-cp_from_container "overrides/assign_to.py" "overrides/assign_to.py"
-cp_from_container "overrides/query_report.py" "overrides/query_report.py"
-
-# --- customer lifecycle ---
-cp_from_container "customer_ticket_lifecycle_guard.py" "customer_ticket_lifecycle_guard.py"
-cp_from_container "customer_ticket_resolution.py" "customer_ticket_resolution.py"
-
-# --- core telephony pilot logic ---
-cp_from_container "telectro_round_robin.py" "telectro_round_robin.py"
-cp_from_container "telectro_claim.py" "telectro_claim.py"
-cp_from_container "telectro_intake.py" "telectro_intake.py"
-cp_from_container "telectro_site_guard.py" "telectro_site_guard.py"
-cp_from_container "telectro_assign_sync.py" "telectro_assign_sync.py"
-cp_from_container "telectro_ticket_routing.py" "telectro_ticket_routing.py"
-cp_from_container "telectro_ticket_edit_guard.py" "telectro_ticket_edit_guard.py"
-cp_from_container "telectro_reassign_on_update.py" "telectro_reassign_on_update.py"
-cp_from_container "telectro_notifications.py" "telectro_notifications.py"
-
-# --- location logic ---
-cp_from_container "customer_location_lookup.py" "customer_location_lookup.py"
-
-# --- coverage helpers ---
-cp_from_container "service_coverage.py" "service_coverage.py"
-
-# --- small helpers / guard wrappers ---
-cp_optional_from_container "assign_guard.py" "assign_guard.py"
-
-# --- scripts folder: proof/diag helpers we rely on ---
-cp_from_container "scripts/diag_assign_roundtrip.py" "scripts/diag_assign_roundtrip.py"
-cp_from_container "scripts/proof_ticket_assignment.py" "scripts/proof_ticket_assignment.py"
-cp_from_container "scripts/inspect_ticket_todos.py" "scripts/inspect_ticket_todos.py"
-cp_from_container "scripts/find_recent_hd_tickets.py" "scripts/find_recent_hd_tickets.py"
-cp_from_container "scripts/email_account_snapshot.py" "scripts/email_account_snapshot.py"
-cp_from_container "scripts/run_claim_handoff_proof.py" "scripts/run_claim_handoff_proof.py"
-cp_from_container "scripts/repair_ticket_assignments.py" "scripts/repair_ticket_assignments.py"
-cp_from_container "scripts/diagnose_assign_without_todo.py" "scripts/diagnose_assign_without_todo.py"
-cp_from_container "scripts/intake_stage_a_proof.py" "scripts/intake_stage_a_proof.py"
-cp_from_container "scripts/backfill_stage_a_v2_recent.py" "backfill_stage_a_v2_recent.py"
-cp_from_container "scripts/harness_customer_from_sender.py" "scripts/harness_customer_from_sender.py"
-cp_from_container "scripts/verify_stage_c_matrix.py" "scripts/verify_stage_c_matrix.py"
-cp_from_container "scripts/stage_g_status.py" "scripts/stage_g_status.py"
-cp_from_container "scripts/debug_location_map.py" "scripts/debug_location_map.py"
-cp_from_container "scripts/repair_kmz_location_names.py" "scripts/repair_kmz_location_names.py"
-cp_from_container "scripts/proof_report_my_hd_tickets.py" "scripts/proof_report_my_hd_tickets.py"
-cp_from_container "scripts/proof_mail_health.py" "scripts/proof_mail_health.py"
-cp_from_container "scripts/proof_pull_pilot_inboxes.py" "scripts/proof_pull_pilot_inboxes.py"
-cp_from_container "scripts/proof_runtime_state.py" "scripts/proof_runtime_state.py"
-cp_from_container "scripts/merge_duplicate_kmz_locations.py" "scripts/merge_duplicate_kmz_locations.py"
-
-
-# --- jobs (explicit: avoid docker cp directory nesting) ---
-cp_from_container "jobs/__init__.py" "jobs/__init__.py"
-cp_from_container "jobs/pull_pilot_inboxes.py" "jobs/pull_pilot_inboxes.py"
-cp_from_container "scripts/job_status_pull_pilot_inboxes.py" "scripts/job_status_pull_pilot_inboxes.py"
-cp_from_container "scripts/proof_stage_a_v2.py" "scripts/proof_stage_a_v2.py"
-
-
-# --- notification guard ---
-cp_from_container "monkey_patches/notification_log_guard.py" "monkey_patches/notification_log_guard.py"
-
-# --- datetime guard ---
-cp_from_container "public/js/telectro_datetime_guard.js" "public/js/telectro_datetime_guard.js"
-
-# --- telectro_ ops_workspace ---
-cp_from_container "public/js/telectro_ops_workspace.js" "public/js/telectro_ops_workspace.js"
-
-# --- telectro_home_redirect ---
-cp_from_container "public/js/telectro_home_redirect.js" "public/js/telectro_home_redirect.js"
-
-# --- partner_acceptance_review ---
-cp_from_container "public/js/partner_acceptance_review.js" "public/js/partner_acceptance_review.js"
-
-# --- handoff actions ---
-cp_from_container "public/js/telectro_handoff_action.js" "public/js/telectro_handoff_action.js"
-
-# --- partner route guard ---
-cp_from_container "public/js/partner_route_guard.js" "public/js/partner_route_guard.js"
-
-# -- customer resolution action ---
-cp_from_container "public/js/customer_resolution_action.js" "public/js/customer_resolution_action.js"
-
-# --- Telectro map zoom helper ---
-cp_from_container "public/js/telectro_location_map_zoom.js" "public/js/telectro_location_map_zoom.js"
-
-# --- app config (fixtures, includes, doc_events, overrides) ---
-cp_from_container "hooks.py" "hooks.py"
-
-# --- fixtures directory (export-fixtures output) ---
-cp_from_container "fixtures" "fixtures"
-
-# --- main directory files ---
-cp_optional_from_container "partner_create.py" "partner_create.py"
-
-# --- partner permissions ---
-cp_from_container "permissions.py" "permissions.py"
-
-# -- partner kpis ---
-cp_from_container "partner_kpis.py" "partner_kpis.py"
-
-# --------------------------------------------------------------------
-# 3) Normalize fixtures nesting (unchanged)
-# --------------------------------------------------------------------
-if [ -d "${DST_BASE}/fixtures/fixtures" ]; then
-  echo "↪ flatten fixtures/fixtures -> fixtures"
-  rsync -a "${DST_BASE}/fixtures/fixtures/" "${DST_BASE}/fixtures/"
-  rm -rf "${DST_BASE}/fixtures/fixtures"
+trap cleanup EXIT
+
+echo "=== Telephony exact-path pull ==="
+echo "Repository: ${REPO_ROOT}"
+echo "Branch:     $(git branch --show-current)"
+echo "Container:  ${BACKEND_SERVICE}:${CONTAINER_ROOT}"
+
+if [ "${DRY_RUN}" -eq 1 ]; then
+  echo "Mode:       dry run"
+else
+  echo "Mode:       write"
 fi
 
 echo
-echo "✅ Pulled telephony changes from container."
+echo "=== Taking container snapshot ==="
+
+mkdir -p "${SNAPSHOT}/container"
+
+docker compose cp \
+  "${BACKEND_SERVICE}:${CONTAINER_ROOT}/." \
+  "${SNAPSHOT}/container/"
+
+echo
+echo "=== Building tracked overlay manifest ==="
+
+git ls-files "${OVERLAY_REL}" |
+  while IFS= read -r repository_path; do
+    [ -n "${repository_path}" ] || continue
+
+    printf '%s\n' \
+      "${repository_path#"${OVERLAY_REL}/"}"
+  done |
+  sort > "${TRACKED_MANIFEST}"
+
+TRACKED_COUNT="$(
+  wc -l < "${TRACKED_MANIFEST}" |
+    tr -d ' '
+)"
+
+FIXTURE_COUNT="$(
+  awk '
+    /^fixtures\// {
+      count += 1
+    }
+    END {
+      print count + 0
+    }
+  ' "${TRACKED_MANIFEST}"
+)"
+
+SOURCE_COUNT="$((TRACKED_COUNT - FIXTURE_COUNT))"
+
+printf 'Tracked overlay files: %s\n' "${TRACKED_COUNT}"
+printf 'Tracked source files:  %s\n' "${SOURCE_COUNT}"
+printf 'Skipped fixture files: %s\n' "${FIXTURE_COUNT}"
+
+echo
+echo "=== Preflight: tracked paths must exist in container ==="
+
+: > "${MISSING_MANIFEST}"
+
+while IFS= read -r relative_path; do
+  [ -n "${relative_path}" ] || continue
+
+  case "${relative_path}" in
+    fixtures/*)
+      continue
+      ;;
+  esac
+
+  if [ ! -f "${SNAPSHOT}/container/${relative_path}" ]; then
+    printf '%s\n' "${relative_path}" >> "${MISSING_MANIFEST}"
+  fi
+done < "${TRACKED_MANIFEST}"
+
+if [ -s "${MISSING_MANIFEST}" ]; then
+  echo "ERROR: tracked source paths are missing from the container:" >&2
+
+  while IFS= read -r relative_path; do
+    printf '  %s\n' "${relative_path}" >&2
+  done < "${MISSING_MANIFEST}"
+
+  echo >&2
+  echo "No host files were changed." >&2
+  exit 1
+fi
+
+echo "Tracked-path preflight: PASS"
+
+echo
+echo "=== Static local dependency audit ==="
+
+
+python3 - \
+  "${REPO_ROOT}" \
+  "${OVERLAY_REL}" \
+  "${SNAPSHOT}/container" <<'PY'
+from __future__ import annotations
+
+import ast
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+repo = Path(sys.argv[1]).resolve()
+overlay_rel = Path(sys.argv[2])
+snapshot = Path(sys.argv[3]).resolve()
+
+
+def module_name(relative_name: str) -> str | None:
+    path = Path(relative_name)
+
+    if path.suffix != ".py":
+        return None
+
+    if path.name == "__init__.py":
+        parts = path.parent.parts
+    else:
+        parts = path.with_suffix("").parts
+
+    return ".".join(("telephony", *parts))
+
+
+def modules_below(root: Path) -> set[str]:
+    result = {"telephony"}
+
+    for source_path in root.rglob("*.py"):
+        if "__pycache__" in source_path.parts:
+            continue
+
+        relative_name = source_path.relative_to(root).as_posix()
+        module = module_name(relative_name)
+
+        if module:
+            result.add(module)
+
+    return result
+
+
+def is_custom_module(module: str) -> bool:
+    if not module.startswith("telephony."):
+        return False
+
+    relative = module.removeprefix("telephony.")
+    first = relative.split(".", 1)[0]
+
+    if first.startswith(
+        (
+            "telectro_",
+            "customer_",
+            "partner_",
+            "debug_",
+        )
+    ):
+        return True
+
+    if first in {
+        "assign_guard",
+        "docshare_guard",
+        "ops_kpis",
+        "partner_kpis",
+        "service_coverage",
+    }:
+        return True
+
+    if relative.startswith("monkey_patches."):
+        return True
+
+    if relative.startswith("setup.workspace_visibility"):
+        return True
+
+    if relative.startswith("api.workspace"):
+        return True
+
+    if ".telectro_" in relative:
+        return True
+
+    return False
+
+
+def resolve_module(
+    dotted_path: str,
+    available_modules: set[str],
+) -> str | None:
+    parts = dotted_path.split(".")
+
+    for stop in range(len(parts), 0, -1):
+        candidate = ".".join(parts[:stop])
+
+        if candidate in available_modules:
+            return candidate
+
+    return None
+
+
+tracked_output = subprocess.check_output(
+    ["git", "ls-files", overlay_rel.as_posix()],
+    cwd=repo,
+    text=True,
+)
+
+tracked_files = {
+    Path(line).relative_to(overlay_rel).as_posix()
+    for line in tracked_output.splitlines()
+    if line.strip()
+}
+
+tracked_source = {
+    relative_name
+    for relative_name in tracked_files
+    if not relative_name.startswith("fixtures/")
+}
+
+tracked_modules = {"telephony"}
+
+for relative_name in tracked_source:
+    module = module_name(relative_name)
+
+    if module:
+        tracked_modules.add(module)
+
+container_modules = modules_below(snapshot)
+
+runtime_missing: set[tuple[str, str]] = set()
+custom_untracked: set[tuple[str, str]] = set()
+upstream_dependencies: set[str] = set()
+syntax_errors: list[tuple[str, str]] = []
+
+
+def inspect_dependency(
+    source_file: str,
+    dotted_path: str,
+) -> None:
+    if not dotted_path.startswith("telephony."):
+        return
+
+    resolved = resolve_module(
+        dotted_path,
+        container_modules,
+    )
+
+    if resolved is None:
+        runtime_missing.add(
+            (
+                source_file,
+                dotted_path,
+            )
+        )
+        return
+
+    if resolved in tracked_modules:
+        return
+
+    if is_custom_module(resolved):
+        custom_untracked.add(
+            (
+                source_file,
+                resolved,
+            )
+        )
+        return
+
+    upstream_dependencies.add(resolved)
+
+
+for relative_name in sorted(tracked_source):
+    relative_path = Path(relative_name)
+
+    if relative_path.suffix != ".py":
+        continue
+
+    source_path = snapshot / relative_name
+
+    try:
+        source = source_path.read_text(
+            encoding="utf-8"
+        )
+        tree = ast.parse(
+            source,
+            filename=relative_name,
+        )
+    except (SyntaxError, UnicodeDecodeError) as exc:
+        syntax_errors.append(
+            (
+                relative_name,
+                str(exc),
+            )
+        )
+        continue
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                inspect_dependency(
+                    relative_name,
+                    alias.name,
+                )
+
+        elif isinstance(node, ast.ImportFrom):
+            imported = node.module or ""
+
+            inspect_dependency(
+                relative_name,
+                imported,
+            )
+
+
+hooks_path = snapshot / "hooks.py"
+
+if hooks_path.exists():
+    try:
+        hooks_tree = ast.parse(
+            hooks_path.read_text(
+                encoding="utf-8"
+            ),
+            filename="hooks.py",
+        )
+    except (SyntaxError, UnicodeDecodeError) as exc:
+        syntax_errors.append(
+            (
+                "hooks.py",
+                str(exc),
+            )
+        )
+    else:
+        dotted_path_pattern = re.compile(
+            r"^telephony"
+            r"(?:\.[A-Za-z_][A-Za-z0-9_]*)+$"
+        )
+
+        for node in ast.walk(hooks_tree):
+            if not (
+                isinstance(node, ast.Constant)
+                and isinstance(node.value, str)
+            ):
+                continue
+
+            dotted_path = node.value.strip()
+
+            if dotted_path_pattern.match(
+                dotted_path
+            ):
+                inspect_dependency(
+                    "hooks.py",
+                    dotted_path,
+                )
+
+
+if syntax_errors:
+    print(
+        "Syntax errors detected:",
+        file=sys.stderr,
+    )
+
+    for relative_name, error in syntax_errors:
+        print(
+            f"  {relative_name}: {error}",
+            file=sys.stderr,
+        )
+
+    raise SystemExit(1)
+
+
+if runtime_missing:
+    print(
+        "Telephony dependencies missing from "
+        "the container runtime:",
+        file=sys.stderr,
+    )
+
+    for source_file, imported in sorted(
+        runtime_missing
+    ):
+        print(
+            f"  {source_file}: {imported}",
+            file=sys.stderr,
+        )
+
+    raise SystemExit(1)
+
+
+if custom_untracked:
+    print(
+        "Custom Telephony dependencies exist "
+        "in the container but are not tracked:",
+        file=sys.stderr,
+    )
+
+    for source_file, imported in sorted(
+        custom_untracked
+    ):
+        print(
+            f"  {source_file}: {imported}",
+            file=sys.stderr,
+        )
+
+    raise SystemExit(1)
+
+
+print(
+    {
+        "tracked_python_modules": len(
+            tracked_modules
+        ),
+        "container_python_modules": len(
+            container_modules
+        ),
+        "upstream_dependencies_allowed": len(
+            upstream_dependencies
+        ),
+        "runtime_missing": 0,
+        "custom_untracked": 0,
+        "syntax_errors": 0,
+    }
+)
+
+print("Static dependency audit: PASS")
+PY
+
+echo
+echo "=== Synchronizing tracked source files ==="
+
+CHANGED_COUNT=0
+UNCHANGED_COUNT=0
+
+while IFS= read -r relative_path; do
+  [ -n "${relative_path}" ] || continue
+
+  case "${relative_path}" in
+    fixtures/*)
+      continue
+      ;;
+  esac
+
+  source_path="${SNAPSHOT}/container/${relative_path}"
+  destination_path="${OVERLAY_ROOT}/${relative_path}"
+
+  if cmp -s "${source_path}" "${destination_path}"; then
+    UNCHANGED_COUNT="$((UNCHANGED_COUNT + 1))"
+    continue
+  fi
+
+  printf 'UPDATE  %s\n' "${relative_path}"
+  CHANGED_COUNT="$((CHANGED_COUNT + 1))"
+
+  if [ "${DRY_RUN}" -eq 1 ]; then
+    continue
+  fi
+
+  mkdir -p "$(dirname "${destination_path}")"
+
+  if [ -f "${destination_path}" ]; then
+    cat "${source_path}" > "${destination_path}"
+  else
+    cp "${source_path}" "${destination_path}"
+
+    INDEX_MODE="$(
+      git ls-files -s -- "${OVERLAY_REL}/${relative_path}" |
+        awk '{print $1}'
+    )"
+
+    if [ "${INDEX_MODE}" = "100755" ]; then
+      chmod +x "${destination_path}"
+    else
+      chmod -x "${destination_path}"
+    fi
+  fi
+done < "${TRACKED_MANIFEST}"
+
+printf 'Changed source files:   %s\n' "${CHANGED_COUNT}"
+printf 'Unchanged source files: %s\n' "${UNCHANGED_COUNT}"
+
+echo
+echo "=== Container-only custom-looking candidates ==="
+
+python3 - \
+  "${REPO_ROOT}" \
+  "${OVERLAY_REL}" \
+  "${SNAPSHOT}/container" <<'PY'
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+repo = Path(sys.argv[1]).resolve()
+overlay_rel = Path(sys.argv[2])
+snapshot = Path(sys.argv[3]).resolve()
+
+tracked_output = subprocess.check_output(
+    ["git", "ls-files", overlay_rel.as_posix()],
+    cwd=repo,
+    text=True,
+)
+
+tracked = {
+    Path(line).relative_to(overlay_rel).as_posix()
+    for line in tracked_output.splitlines()
+    if line.strip()
+}
+
+patterns = [
+    "telectro_*.py",
+    "customer_*.py",
+    "partner_*.py",
+    "debug_*.py",
+    "assign_guard.py",
+    "docshare_guard.py",
+    "ops_kpis.py",
+    "partner_kpis.py",
+    "service_coverage.py",
+    "monkey_patches/*.py",
+    "ftelephony/doctype/telectro_*/*",
+    "ftelephony/report/telectro_*/*",
+    "ftelephony/page/telectro_*/*",
+    "public/js/telectro_*",
+]
+
+candidates: set[str] = set()
+
+for pattern in patterns:
+    for source_path in snapshot.glob(pattern):
+        if not source_path.is_file():
+            continue
+
+        relative_name = source_path.relative_to(snapshot).as_posix()
+
+        if (
+            "__pycache__" in source_path.parts
+            or source_path.suffix in {".pyc", ".pyo"}
+        ):
+            continue
+
+        if relative_name not in tracked:
+            candidates.add(relative_name)
+
+
+if candidates:
+    print(
+        "Review these files manually; they were not copied:"
+    )
+
+    for relative_name in sorted(candidates):
+        print(f"  {relative_name}")
+else:
+    print("None")
+PY
+
+echo
+echo "=== Fixture policy ==="
+echo "Fixture files were not copied."
+echo "Use bin/export-telephony-fixtures.sh for controlled fixture changes."
+
+if [ "${DRY_RUN}" -eq 0 ]; then
+  echo
+  echo "=== Repository validation ==="
+
+  git diff --check
+
+  echo "Whitespace validation: PASS"
+fi
+
+echo
+echo "=== Result ==="
+git status --short
+
 echo
 
-git status --porcelain
-echo
-git diff --stat
+if [ "${DRY_RUN}" -eq 1 ]; then
+  echo "Dry run complete. No host files were changed."
+else
+  git diff --stat
+  echo
+  echo "Telephony tracked-source pull complete."
+fi

@@ -5,6 +5,28 @@ from pathlib import Path
 
 import frappe
 import hashlib
+import json
+
+def _parse_gx_coords(texts: list[str]):
+    # gx:coord is "lon lat alt" (space-separated)
+    pts = []
+    for t in texts or []:
+        t = (t or "").strip()
+        if not t:
+            continue
+        parts = t.split()
+        if len(parts) >= 2:
+            lon = float(parts[0])
+            lat = float(parts[1])
+            pts.append((lon, lat))
+    return pts
+
+def _bbox(pts):
+    if not pts:
+        return None
+    lons = [p[0] for p in pts]
+    lats = [p[1] for p in pts]
+    return {"min_lon": min(lons), "min_lat": min(lats), "max_lon": max(lons), "max_lat": max(lats)}
 
 def _unique_location_name(base: str, docname: str) -> str:
     base = (base or "").strip()
@@ -77,38 +99,52 @@ def _parse_coords(coord_text: str):
 
 
 def _centroid(pts):
-    if not pts:
+    # pts: list of (lon, lat)
+    good = [(lon, lat) for lon, lat in (pts or []) if lon not in (None, 0.0) and lat not in (None, 0.0)]
+    if not good:
         return None
-    lon = sum(p[0] for p in pts) / len(pts)
-    lat = sum(p[1] for p in pts) / len(pts)
+    lon = sum(p[0] for p in good) / len(good)
+    lat = sum(p[1] for p in good) / len(good)
     return lat, lon
 
 
 def _geom_from_placemark(pm):
+    # 1) Point (classic KML)
     pt = pm.find(".//kml:Point/kml:coordinates", KML_NS)
     if pt is not None and pt.text:
         pts = _parse_coords(pt.text)
         if pts:
             lon, lat = pts[0]
-            return "Point", lat, lon
+            return "Point", lat, lon, pts
 
+    # 2) gx:Track / gx:MultiTrack (common in Google Earth exports)
+    gx_coords = [e.text for e in pm.findall(".//gx:Track/gx:coord", KML_NS) if e is not None and e.text]
+    if gx_coords:
+        pts = _parse_gx_coords(gx_coords)
+        c = _centroid(pts)
+        if c:
+            lat, lon = c
+            return "gx:Track", lat, lon, pts
+
+    # 3) Polygon
     poly = pm.find(".//kml:Polygon//kml:coordinates", KML_NS)
     if poly is not None and poly.text:
         pts = _parse_coords(poly.text)
         c = _centroid(pts)
         if c:
             lat, lon = c
-            return "Polygon", lat, lon
+            return "Polygon", lat, lon, pts
 
+    # 4) LineString (classic KML)
     line = pm.find(".//kml:LineString/kml:coordinates", KML_NS)
     if line is not None and line.text:
         pts = _parse_coords(line.text)
         c = _centroid(pts)
         if c:
             lat, lon = c
-            return "LineString", lat, lon
+            return "LineString", lat, lon, pts
 
-    return "Unknown", None, None
+    return "Unknown", None, None, []
 
 
 def _iter_folders(parent_el, parent_path):
@@ -149,7 +185,28 @@ def _ensure_location(
     if is_group and frappe.db.exists("Location", location_name):
         if not frappe.db.get_value("Location", location_name, "is_group"):
             frappe.throw(f"Location '{location_name}' exists but is not a group; cannot reuse as group.")
-        return location_name, "exists"
+        if dry_run:
+            return location_name, "exists"
+
+        # Optional: update parent + extra for groups too
+        doc = frappe.get_doc("Location", location_name)
+        changed = False
+
+        if parent_docname and doc.get("parent_location") != parent_docname:
+            doc.parent_location = parent_docname
+            changed = True
+
+        if extra:
+            meta = frappe.get_meta("Location")
+            valid = set(meta.get_valid_columns() or [])
+            for k, v in extra.items():
+                if k in valid and doc.get(k) != v:
+                    setattr(doc, k, v)
+                    changed = True
+
+        if changed:
+            doc.save(ignore_permissions=True)
+        return location_name, "updated" if changed else "exists"
 
     # ✅ choose docname
     if is_group:
@@ -159,8 +216,45 @@ def _ensure_location(
 
     # ✅ existence check by docname
     if frappe.db.exists("Location", docname):
-        return docname, "exists"
-    
+        if dry_run:
+            return docname, "exists"
+
+        # 🔧 UPDATE existing with any new info (idempotent backfill) - DB write, no doc.save()
+        changed = False
+
+        # parent might change if you change bucketing rules
+        if parent_docname:
+            cur_parent = frappe.db.get_value("Location", docname, "parent_location")
+            if cur_parent != parent_docname:
+                frappe.db.set_value("Location", docname, "parent_location", parent_docname, update_modified=False)
+                changed = True
+
+        # lat/lon (only if provided and non-zero)
+        if lat is not None:
+            cur_lat = float(frappe.db.get_value("Location", docname, "latitude") or 0)
+            if float(lat) != 0.0 and cur_lat != float(lat):
+                frappe.db.set_value("Location", docname, "latitude", float(lat), update_modified=False)
+                changed = True
+
+        if lon is not None:
+            cur_lon = float(frappe.db.get_value("Location", docname, "longitude") or 0)
+            if float(lon) != 0.0 and cur_lon != float(lon):
+                frappe.db.set_value("Location", docname, "longitude", float(lon), update_modified=False)
+                changed = True
+
+        # extra fields
+        if extra:
+            meta = frappe.get_meta("Location")
+            valid = set(meta.get_valid_columns() or [])
+            for k, v in extra.items():
+                if k in valid:
+                    cur = frappe.db.get_value("Location", docname, k)
+                    if cur != v:
+                        frappe.db.set_value("Location", docname, k, v, update_modified=False)
+                        changed = True
+
+        return docname, "updated" if changed else "exists"
+
     # ✅ enforce unique, human-readable location_name (Location has unique constraint here)
     if not is_group:
         location_name = _unique_location_name(location_name, docname)
@@ -191,9 +285,9 @@ def _ensure_location(
 
     if not doc.name:
         frappe.throw(f"BUG: empty doc.name for Location '{location_name}' parent '{parent_docname}'")
-       
+
     doc.insert(ignore_permissions=True, set_name=docname)
-    
+
     return doc.name, "created"
 
 
@@ -209,7 +303,7 @@ def _bucket_for(folder_path: list[str], geom_type: str) -> str:
         return "Residents"
     if "wireless" in p0 or "wifi" in p0 or "wireless" in p1 or "wifi" in p1:
         return "Network Nodes"
-    if geom_type == "LineString":
+    if geom_type in ("LineString", "gx:Track"):
         return "Links"
     if geom_type == "Polygon":
         return "Areas"
@@ -308,21 +402,32 @@ def run(
     for folder_path, pm in placemarks:
         pname = _txt(pm, "kml:name") or "Unnamed"
         desc = _txt(pm, "kml:description")
-        geom_type, lat, lon = _geom_from_placemark(pm)
+
+        # ✅ MUST return pts as well
+        geom_type, lat, lon, pts = _geom_from_placemark(pm)
 
         bucket = _bucket_for(folder_path, geom_type)
 
-        # Buildings go directly under the Site Group docname (ticketable immediately)
-        parent_dn = site_group_dn if bucket == "Buildings" else bucket_dns[bucket]
+        # ✅ all categories (including Buildings) go under their bucket group
+        parent_dn = bucket_dns[bucket]
 
-        # Leaf name: keep original, but prefix with bucket for safety if duplicates might exist
         leaf_name = f"{bucket}: {pname}".strip()
+
+        meta_obj = {
+            "geom_type": geom_type,
+            "pts_count": len(pts),
+            "centroid": {"lat": lat, "lon": lon} if (lat is not None and lon is not None) else None,
+            "bbox": _bbox(pts),
+            "first": {"lon": pts[0][0], "lat": pts[0][1]} if pts else None,
+            "last": {"lon": pts[-1][0], "lat": pts[-1][1]} if pts else None,
+        }
 
         extra = {
             "custom_kmz_source": kmz.name,
             "custom_kmz_folder_path": f"{site_group} / " + " / ".join(folder_path) if folder_path else site_group,
-            "custom_kmz_geometry_type": geom_type,   # <- match your fieldname
+            "custom_kmz_geometry_type": geom_type,
             "custom_kmz_description": (desc or "")[:2000],
+            "custom_kmz_metadata_json": json.dumps(meta_obj),
         }
 
         nm, st = _ensure_location(
@@ -339,6 +444,8 @@ def run(
             created["skipped"] += 1
         elif st in ("created", "create_dry"):
             created["leafs"] += 1
+        elif st == "updated":
+            created["updated"] = created.get("updated", 0) + 1
         else:
             created["exists"] += 1
 

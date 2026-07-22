@@ -6,7 +6,7 @@ def _is_missing(v) -> bool:
 def _has_tokens(body: str) -> tuple[bool, bool]:
     body = body or ""
     return ("SITE:" in body), ("ASSET:" in body)
-    
+
 def _to_int(v, default: int) -> int:
     if v is None:
         return default
