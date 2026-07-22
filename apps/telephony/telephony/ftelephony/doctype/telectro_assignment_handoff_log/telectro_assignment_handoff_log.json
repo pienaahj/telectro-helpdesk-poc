@@ -1,0 +1,153 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "naming_series:",
+  "creation": "2026-04-30 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "naming_series",
+    "ticket",
+    "ticket_subject",
+    "changed_on",
+    "changed_by",
+    "from_user",
+    "to_user",
+    "reason",
+    "source"
+  ],
+  "fields": [
+    {
+      "default": "TAHL-.YYYY.-.#####",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "hidden": 1,
+      "label": "Naming Series",
+      "options": "TAHL-.YYYY.-.#####",
+      "reqd": 1
+    },
+    {
+      "fieldname": "ticket",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Ticket",
+      "options": "HD Ticket",
+      "reqd": 1
+    },
+    {
+      "fieldname": "ticket_subject",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Ticket Subject",
+      "read_only": 1
+    },
+    {
+      "fieldname": "changed_on",
+      "fieldtype": "Datetime",
+      "in_list_view": 1,
+      "label": "Changed On",
+      "reqd": 1
+    },
+    {
+      "fieldname": "changed_by",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Changed By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "from_user",
+      "fieldtype": "Link",
+      "label": "From User",
+      "options": "User"
+    },
+    {
+      "fieldname": "to_user",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "To User",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "label": "Reason",
+      "reqd": 1
+    },
+    {
+      "default": "Controlled Handoff",
+      "fieldname": "source",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Source",
+      "options": "Controlled Handoff\nClaim\nRelease\nSystem Sync\nGeneric Assign"
+    }
+  ],
+  "index_web_pages_for_search": 1,
+  "istable": 0,
+  "links": [],
+  "modified": "2026-04-30 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "FTelephony",
+  "name": "TELECTRO Assignment Handoff Log",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 0,
+      "write": 0
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Pilot Admin",
+      "share": 0,
+      "write": 0
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Supervisor Governance",
+      "share": 0,
+      "write": 0
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Coordinator Ops",
+      "share": 0,
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
+}
