@@ -96,12 +96,126 @@ RUN set -eux; \
     npm --version; \
     yarn --version; \
     bench version; \
-    echo "--- import proof ---"; \
-    ./env/bin/python -c "import frappe, erpnext, helpdesk, telephony; print('IMPORTS_OK')"; \
-    echo "--- overlay proof ---"; \
-    test -f apps/helpdesk/desk/src/pages/ticket/TicketCustomer.vue; \
-    test -f apps/telephony/telephony/telectro_round_robin.py; \
-    test -f apps/telephony/telephony/hooks.py
+    echo "--- top-level import proof ---"; \
+    ./env/bin/python -c "import frappe, erpnext, helpdesk, telephony; print('TOP_LEVEL_IMPORTS_OK')"; \
+    echo "--- Helpdesk overlay proof ---"; \
+    test -f apps/helpdesk/desk/src/pages/ticket/TicketCustomer.vue
+
+RUN ./env/bin/python - <<'PY'
+from __future__ import annotations
+
+import ast
+import importlib
+import importlib.util
+from pathlib import Path
+
+
+overlay_root = Path(
+    "/home/frappe/frappe-bench/apps/telephony/telephony"
+).resolve()
+
+operational_modules = [
+    "telephony.telectro_routing_policy",
+    "telephony.telectro_round_robin",
+    "telephony.telectro_reassign_on_update",
+    "telephony.docshare_guard",
+    (
+        "telephony.ftelephony.doctype."
+        "telectro_assignment_handoff_log."
+        "telectro_assignment_handoff_log"
+    ),
+]
+
+context_dependent_modules = [
+    "telephony.hooks",
+    "telephony.debug_docshare",
+    "telephony.monkey_patches.assignment_rule_debug",
+]
+
+
+def require_overlay_origin(
+    module_name: str,
+    origin_value: str | None,
+) -> Path:
+    if not origin_value:
+        raise RuntimeError(
+            f"{module_name}: module has no source origin"
+        )
+
+    origin = Path(origin_value).resolve()
+
+    try:
+        origin.relative_to(overlay_root)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"{module_name}: resolved outside Telephony overlay: {origin}"
+        ) from exc
+
+    return origin
+
+
+imported = []
+
+for module_name in operational_modules:
+    module = importlib.import_module(module_name)
+
+    origin = require_overlay_origin(
+        module_name,
+        getattr(module, "__file__", None),
+    )
+
+    imported.append(module_name)
+
+    print(
+        {
+            "check": "import",
+            "module": module_name,
+            "origin": str(origin),
+            "result": "PASS",
+        }
+    )
+
+
+resolved_and_parsed = []
+
+for module_name in context_dependent_modules:
+    spec = importlib.util.find_spec(module_name)
+
+    if spec is None:
+        raise RuntimeError(
+            f"{module_name}: module specification not found"
+        )
+
+    origin = require_overlay_origin(
+        module_name,
+        spec.origin,
+    )
+
+    source = origin.read_text(encoding="utf-8")
+    ast.parse(source, filename=str(origin))
+
+    resolved_and_parsed.append(module_name)
+
+    print(
+        {
+            "check": "resolve-and-parse",
+            "module": module_name,
+            "origin": str(origin),
+            "result": "PASS",
+        }
+    )
+
+
+print(
+    {
+        "operational_modules_imported": len(imported),
+        "context_dependent_modules_resolved_and_parsed": len(
+            resolved_and_parsed
+        ),
+        "runtime_overlay_import_proof": "PASS",
+    }
+)
+PY
 
 RUN set -eux; \
     mkdir -p sites; \
