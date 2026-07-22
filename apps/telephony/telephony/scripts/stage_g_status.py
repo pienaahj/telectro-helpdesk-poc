@@ -154,9 +154,15 @@ def run(
             for k, v in out:
                 print(k, "=>", v)
 
-print("breadcrumbs_present:", shown, "/", len(bkeys))
+        print("breadcrumbs_present:", shown, "/", len(bkeys))
 
     if show_stage_c:
         print("\n--- Stage C matrix ---")
         from telephony.scripts.verify_stage_c_matrix import run as stage_c
-        stage_c(limit=limit, per_inbox=per_inbox, hide_bounces=1, hide_closed_bounces=0)
+
+        stage_c(
+            limit=limit,
+            per_inbox=per_inbox,
+            hide_bounces=1,
+            hide_closed_bounces=0,
+        )
