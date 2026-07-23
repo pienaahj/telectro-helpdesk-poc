@@ -37,6 +37,118 @@ This document remains the canonical source for:
 
 Do not duplicate the full runtime release procedure here. Link to the operational runbook when detailed release steps are required.
 
+### 2026-07-22 durable runtime release checkpoint
+
+Production release `20260722-514ce4c` completed successfully as a Type C durable runtime release.
+
+Release identity:
+
+```text
+Release ID: 20260722-514ce4c
+Source commit: 514ce4cc01abb1567861cc415314e6eb7393cf2f
+Runtime image: telectro/erpnext-runtime:prod-20260722-514ce4c
+Frontend image: frappe/erpnext:v15.94.1
+Site: erp.telectro.co.za
+```
+
+The release deployed the standard Telephony DocType:
+
+```text
+TELECTRO Assignment Handoff Log
+```
+
+The release completed the following production gates:
+
+* immutable Linux AMD64 runtime-image build and validation;
+* source-content proof inside the candidate image;
+* verified archive creation and transfer;
+* cross-store Docker image identity reconciliation;
+* fresh four-part production backup;
+* exact `ERPNEXT_IMAGE` update;
+* unchanged `ERPNEXT_NGINX_IMAGE`;
+* rendered Compose intent validation;
+* selective recreation of:
+
+  * `backend`;
+  * `websocket`;
+  * `queue-short`;
+  * `queue-long`;
+  * `scheduler`;
+* unchanged infrastructure and one-shot services;
+* direct backend health proof;
+* frontend nginx reload;
+* routed internal application proof;
+* one controlled production migration;
+* cache clearing;
+* semantic DocType and database verification;
+* non-destructive Frappe functional proof;
+* browser-level permission proof;
+* internal and external application-route proof;
+* final release evidence and release-state reconciliation.
+
+The final production release manifest is:
+
+```text
+/opt/telectro/erpnext/deploy-evidence/releases/20260722-514ce4c/final-release/final-release-20260722T210802Z.env
+```
+
+Manifest SHA-256:
+
+```text
+c66035fe007065b1b5e2d5b4718f1d1dd90a6689772c7b5615673f59bb24babd
+```
+
+The repaired local release-state file is:
+
+```text
+/tmp/telectro-release-20260722-514ce4c.env
+```
+
+Local release-state SHA-256:
+
+```text
+4ae671dbc1fb61832c001d38750169d2addea37fe63417352cfcc9edacf3a1b2
+```
+
+The durable release proved several permanent operational requirements that are now documented in:
+
+```text
+docs/runbooks/production-runtime-release.md
+docs/runbooks/production-script-safety.md
+```
+
+These include:
+
+* shell-safe and atomic release-state serialization;
+* SSH standard-input isolation;
+* replay-safe migration evidence;
+* preservation of failed and recovery evidence;
+* Docker image identity as an evidence chain;
+* Bench/IPython transcript parsing;
+* macOS and Linux portability;
+* mandatory nginx reload after backend recreation;
+* separation of interactive and automated Bench execution.
+
+The production host also received the repository-controlled interactive helper:
+
+```text
+bin/prod-console.sh
+```
+
+Source commit:
+
+```text
+7a053ccfd065fb833b08d1d94e099a1cb619ef8d
+```
+
+Installed production SHA-256:
+
+```text
+818007440f8487c7cc658fdd9cb393e0859d7fc01a0ebb5aa572fa75befdc51b
+```
+
+The helper opens an attended production Bench console and does not require an image rebuild, container recreation, migration, or service restart.
+
 ## 2026-06-09 production shape update
 
 This runbook was originally written around an application-owned production edge, where the ERPNext stack would expose Traefik on ports `80` and `443` and handle HTTPS/certificate wiring inside the application deployment.
