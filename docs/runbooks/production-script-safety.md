@@ -97,8 +97,9 @@ These scripts are intended for production-readiness proof.
 | ---------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bin/prod-host-preflight.sh` | Production-safe read-only diagnostic           | Does not install packages, change firewall, change SELinux, or start containers.                                                                                                                                                                                                                                                                                                      |
 | `bin/prod-compose.sh`        | Production Compose wrapper                     | Standardizes `.env.production`, `compose.yaml`, and `compose.production.yaml`.                                                                                                                                                                                                                                                                                                        |
-| `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags.                                                                                                                                                                                                                                                                                                     |
-| `bin/prod-bench.sh`          | Production bench wrapper                       | Runs bench inside the production backend container through `bin/prod-compose.sh`; does not use `.env.local`, `.env`, `pwd.yml`, or `compose.override.yaml`.                                                                                                                                                                                                                           |
+| `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags.                                                                                                                                                                                                                                                                                                   |
+| `bin/prod-bench.sh`          | Production bench wrapper                       | Runs bench inside the production backend container through `bin/prod-compose.sh`; does not use `.env.local`, `.env`, `pwd.yml`, or `compose.override.yaml`.                                                                                                                                                                                                                   |
+| `bin/prod-console.sh`        | Interactive production Bench console helper   | Opens `bench --site <site> console` inside the production backend through `bin/prod-compose.sh`. It intentionally preserves the interactive terminal and defaults to `erp.telectro.co.za`. It is for attended operator use only and must not be called from release automation, piped execution, or an SSH-fed script.                                                     |
 | `bin/prod-migrate.sh`        | Production migration wrapper                   | Runs `bench --site <site> migrate` through `bin/prod-bench.sh`; requires explicit `SITE`.                                                                                                                                                                                                                                                                                             |
 | `bin/prod-restart-core.sh`   | Guarded production restart wrapper             | Restarts core production services through `bin/prod-compose.sh`; requires `CONFIRM_PROD_RESTART=restart-core`.                                                                                                                                                                                                                                                                        |
 | `bin/prod-seed-assets.sh`    | Production asset handoff helper                | Copies built assets from the selected `ERPNEXT_IMAGE` into `${PRODUCTION_DATA_ROOT}/assets`, dereferencing app asset symlinks so the host bind mount receives real files. Requires `PROD_ENV_FILE`, `ERPNEXT_IMAGE`, and `PRODUCTION_DATA_ROOT`. Does not delete existing assets; it overlays image-built assets into the production assets bind mount and verifies manifest targets. |
@@ -159,8 +160,59 @@ Use these production-safe commands first:
 ./bin/prod-compose.sh config
 ./bin/prod-compose.sh ps
 ./bin/prod-bench.sh --site <site-name> list-apps
+./bin/prod-console.sh
 SITE=<site-name> ./bin/prod-migrate.sh
 CONFIRM_PROD_RESTART=restart-core ./bin/prod-restart-core.sh
+```
+
+### Interactive production Bench console
+
+Use the repository-controlled interactive helper for an attended Bench console session:
+
+```bash
+./bin/prod-console.sh
+```
+
+The helper defaults to:
+
+```text
+SITE=erp.telectro.co.za
+BACKEND_SVC=backend
+BENCH_DIR=/home/frappe/frappe-bench
+```
+
+Overrides remain available when required:
+
+```bash
+SITE=<site-name> \
+BACKEND_SVC=<backend-service> \
+BENCH_DIR=<bench-directory> \
+  ./bin/prod-console.sh
+```
+
+`bin/prod-console.sh` intentionally does not pass Docker Compose’s `-T` option because Bench console requires an interactive pseudo-terminal.
+
+This helper must not be used for:
+
+- unattended release execution;
+- evidence-producing release gates;
+- commands whose output must be parsed deterministically;
+- piped standard input;
+- scripts supplied through `ssh ... bash -s`;
+- migration or other replay-sensitive production mutations.
+
+For non-interactive production Bench commands, continue to use:
+
+```bash
+./bin/prod-bench.sh --site <site-name> <bench-command>
+```
+
+`bin/prod-bench.sh` intentionally uses `docker compose exec -T`, making it the correct boundary for scripted execution.
+
+When a production wrapper is invoked from an SSH-fed script, detach its standard input unless the command deliberately receives a separate input stream:
+
+```bash
+./bin/prod-bench.sh --site <site-name> <bench-command> < /dev/null
 ```
 
 For production start/stop/restart/migrate operations, do not reuse local scripts blindly.

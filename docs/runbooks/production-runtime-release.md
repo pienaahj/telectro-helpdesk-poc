@@ -544,6 +544,234 @@ A release is not complete until:
 - the final success marker is present;
 - the daily handover records the commit, image, migration result, and proof state.
 
+### Release hardening lessons from `20260722-514ce4c`
+
+The durable runtime release completed on 2026-07-22 exposed several operational failure modes that must be treated as permanent release rules.
+
+#### Release-state files must be shell-safe
+
+Release-state files must:
+
+- define their allowed keys centrally;
+- reject missing, duplicated, renamed, unknown, or empty required keys;
+- serialize values safely;
+- remain valid when values contain spaces or shell-special characters;
+- be written to a temporary file first;
+- use mode `0600`;
+- pass `bash -n` before replacing the previous state file;
+- preserve the previous valid state when validation fails.
+
+Do not write raw values directly as unquoted `KEY=value` lines.
+
+Use a proven shell serializer such as Python `shlex.quote()`.
+
+This failure must remain covered by regression testing:
+
+```text
+PRODUCTION_BROWSER_SCREENSHOT_FILENAME=TELECTRO Assignment Handoff Log.png
+```
+
+A valid release-state file must remain safely sourceable when this value is present.
+
+#### Detach standard input in SSH-fed execution
+
+A nested wrapper or command executed from a script supplied through:
+
+```bash
+ssh <production-host> bash -s
+```
+
+may consume the remainder of the SSH script through inherited standard input.
+
+Unless a command intentionally receives a separately supplied input stream, invoke it with:
+
+```bash
+<command> < /dev/null
+```
+
+This applies especially to:
+
+- `bin/prod-bench.sh`;
+- `bin/prod-migrate.sh`;
+- Bench commands;
+- Docker Compose execution;
+- interactive-capable tools;
+- wrappers that ultimately call `exec`.
+
+Post-command validation must never be placed after a command that can consume the SSH script’s remaining standard input without first detaching that input.
+
+#### Migration evidence must be replay-safe
+
+Immediately before migration begins, write a persistent started sentinel.
+
+Preserve separate evidence files for:
+
+```text
+migration-started.env
+migration-completed.env
+migration-failed.env
+migration-output.log
+```
+
+Once `migration-started.env` exists:
+
+- do not rerun migration automatically;
+- first determine whether migration completed;
+- distinguish migration failure from later evidence or validator failure;
+- treat the database as potentially post-migration;
+- do not automatically restore the previous runtime image without proving database compatibility.
+
+Failure to capture completion evidence does not prove that migration failed.
+
+A later cache, routing, parser, validation, or evidence failure must not trigger migration replay.
+
+#### Preserve failed and recovery evidence
+
+Do not delete or overwrite failed evidence after a corrected gate succeeds.
+
+Preserve:
+
+- the original failed output;
+- recovery output;
+- migration sentinels;
+- previous environment state;
+- original image-identity fields;
+- backup manifests;
+- parser failures;
+- corrected final evidence.
+
+Recovery evidence must add new facts rather than silently changing the meaning of previously recorded fields.
+
+Record the reason for every recovery, including:
+
+```text
+SSH standard-input consumption
+cross-store image identity
+IPython globals/locals divergence
+IPython prompt-prefixed evidence
+macOS and GNU command incompatibility
+unquoted shell-state values
+```
+
+#### Docker image identity is an evidence chain
+
+Classic Docker and containerd may expose different top-level image IDs for an image loaded from the same archive.
+
+Record separately:
+
+```text
+immutable image tag
+archive SHA-256
+archive manifest digest
+embedded config digest
+layer digests
+local daemon image object
+production daemon image object
+```
+
+Validate that the archive manifest references the expected config object and layers.
+
+Do not overwrite the config-digest field with a daemon-reported manifest or image-object digest.
+
+Do not rebuild or retransmit a valid candidate solely because the local and production daemons display different top-level image identities.
+
+#### Bench console output is an interactive transcript
+
+Bench console may return process status `0` while the transcript still contains a traceback or failed assertion.
+
+Every evidence-producing console execution must require:
+
+- an exact success marker;
+- absence of known failure signatures;
+- explicit console exit;
+- captured input;
+- captured output;
+- an output SHA-256.
+
+Reject at minimum:
+
+```text
+Traceback
+AssertionError
+OperationalError
+ProgrammingError
+FileNotFoundError
+SyntaxError
+NameError
+```
+
+IPython may prefix output with prompts such as:
+
+```text
+In [1]:
+```
+
+Evidence parsers must therefore locate markers and `KEY=value` tokens within transcript lines rather than assuming they begin at column one.
+
+When executing compiled validation code through `exec`, use the same namespace for globals and locals:
+
+```python
+namespace = {}
+exec(compiled_code, namespace, namespace)
+```
+
+Using separate global and local dictionaries can prevent comprehensions from resolving constants created by the validation code.
+
+#### Interactive console and automated Bench execution are separate
+
+Use:
+
+```bash
+./bin/prod-console.sh
+```
+
+only for an attended interactive production Bench console.
+
+Do not use it for release automation, migration, evidence capture, piped execution, or SSH-fed scripts.
+
+Use:
+
+```bash
+./bin/prod-bench.sh --site <site-name> <bench-command>
+```
+
+for non-interactive and automation-safe Bench execution.
+
+#### Release tooling must remain portable
+
+Local release tooling must support the macOS BSD userland as well as the Linux production environment.
+
+Do not assume availability of:
+
+```text
+GNU find options such as -maxdepth
+GNU-only rsync options
+non-portable multiline awk syntax
+Linux-only checksum commands
+```
+
+Prefer:
+
+- Python `pathlib` for deterministic file discovery;
+- POSIX shell constructs;
+- explicit capability checks;
+- `shasum -a 256` on macOS;
+- `sha256sum` on Linux.
+
+#### Migration-time assets should become immutable inputs
+
+Helpdesk migration downloaded the following NLTK assets during release `20260722-514ce4c`:
+
+```text
+averaged_perceptron_tagger_eng
+punkt_tab
+brown
+```
+
+Investigate baking these assets into the immutable runtime image.
+
+The runtime-image build should verify that the expected NLTK data paths exist before the candidate is accepted, reducing production migration’s dependency on outbound network availability.
+
 ## Release classification
 
 Before touching production, classify the change.
