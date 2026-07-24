@@ -19,5 +19,15 @@
   "ref_doctype": "HD Ticket",
   "report_name": "My Tickets",
   "report_type": "Script Report",
-  "roles": []
+  "roles": [
+  {
+    "role": "Agent Manager"
+  },
+  {
+    "role": "Agent"
+  },
+  {
+    "role": "System Manager"
+  }
+]
 }

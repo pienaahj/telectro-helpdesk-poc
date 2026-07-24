@@ -16,14 +16,13 @@
  "name": "Coordinator Uplift History",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "User",
+ "ref_doctype": "HD Ticket",
  "report_name": "Coordinator Uplift History",
  "report_type": "Script Report",
  "roles": [
   {
    "role": "TELECTRO-POC Role - Supervisor Governance"
-  },
-  {}
+  }
  ],
  "timeout": 0
 }
