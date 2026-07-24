@@ -58,9 +58,15 @@ fixtures = [
     {
         "dt": "Custom HTML Block",
         "filters": [
-            ["name", "in", [
-                "Unclaimed Over1 Day Card",
-            ]],
+            [
+                "name",
+                "in",
+                [
+                    "Unclaimed more than 1 Day (Top 4)",
+                    "Current Coordinator Uplift",
+                    "Grant / Revoke Coordinator",
+                ],
+            ],
         ],
     },
 
@@ -160,7 +166,6 @@ fixtures = [
                 "Aging and At-Risk Tickets",
                 "Coordinator Uplift History",
                 "First Response Missed",
-                "My HD Tickets",
                 "Tickets Assigned to Partner",
                 "Partner Archived Tickets",
                 "Tickets Submitted by Partner",
@@ -171,7 +176,6 @@ fixtures = [
                 "Unclaimed Over 1 Day",
                 "TELECTRO Assignment Handoff Audit",
                 "TELECTRO Repeat Faults by Location",
-                "Partner Acceptance Review",
                 "Partner Acceptance Review Queue",
                 "Partner Acceptance Rework Queue",
                 "Partner Work Completion Review Queue",
@@ -255,6 +259,13 @@ workspace_visibility_after_migrate = (
 
 if workspace_visibility_after_migrate not in after_migrate:
     after_migrate.append(workspace_visibility_after_migrate)
+
+report_transport_cleanup_after_migrate = (
+    "telephony.setup.report_transport_cleanup.after_migrate"
+)
+
+if report_transport_cleanup_after_migrate not in after_migrate:
+    after_migrate.append(report_transport_cleanup_after_migrate)
 
 
 doc_events = dict(globals().get("doc_events") or {})
@@ -358,10 +369,6 @@ override_whitelisted_methods.update({
     "frappe.desk.form.assign_to.remove": "telephony.overrides.assign_to.remove",
     "frappe.desk.form.assign_to.remove_multiple": "telephony.overrides.assign_to.remove_multiple",
     "frappe.desk.form.assign_to.close_all_assignments": "telephony.overrides.assign_to.close_all_assignments",
-
-    # ✅ Report alias (stops disabled-report login loops)
-    "frappe.desk.query_report.get_script": "telephony.overrides.query_report.get_script",
-    "frappe.desk.query_report.run": "telephony.overrides.query_report.run",
     
     # ✅ Redis search override (stops search on subject type of Customer site)
     "helpdesk.api.article.search": "telephony.api.customer_article_search",

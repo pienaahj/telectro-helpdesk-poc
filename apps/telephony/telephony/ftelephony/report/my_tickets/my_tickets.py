@@ -1,35 +1,77 @@
+import frappe
+
+
 def execute(filters=None):
-    filters = filters or {}
-
-    # default to logged-in user when UI opens report with {}
-    user = filters.get("assigned_user") or frappe.session.user
-    pattern = '%"' + user + '"%'
-
-    team = filters.get("team")  # optional
-
     columns = [
-        {"label": "Ticket",  "fieldname": "name",       "fieldtype": "Link", "options": "HD Ticket", "width": 120},
-        {"label": "Subject", "fieldname": "subject",    "fieldtype": "Data", "width": 360},
-        {"label": "Status",  "fieldname": "status",     "fieldtype": "Data", "width": 100},
-        {"label": "Priority","fieldname": "priority",   "fieldtype": "Data", "width": 100},
-        {"label": "Team",    "fieldname": "agent_group","fieldtype": "Data", "width": 120},
-        {"label": "Modified","fieldname": "modified",   "fieldtype": "Datetime", "width": 160},
+        {
+            "label": "Ticket",
+            "fieldname": "ticket",
+            "fieldtype": "Link",
+            "options": "HD Ticket",
+            "width": 120,
+        },
+        {
+            "label": "Subject",
+            "fieldname": "subject",
+            "fieldtype": "Data",
+            "width": 360,
+        },
+        {
+            "label": "Status",
+            "fieldname": "status",
+            "fieldtype": "Data",
+            "width": 100,
+        },
+        {
+            "label": "Priority",
+            "fieldname": "priority",
+            "fieldtype": "Data",
+            "width": 100,
+        },
+        {
+            "label": "Team",
+            "fieldname": "team",
+            "fieldtype": "Data",
+            "width": 140,
+        },
+        {
+            "label": "Modified",
+            "fieldname": "modified",
+            "fieldtype": "Datetime",
+            "width": 170,
+        },
     ]
 
-    flt = [
-        ["HD Ticket", "_assign", "like", pattern],
-    ]
-    if team:
-        flt.append(["HD Ticket", "agent_group", "=", team])
+    user = (frappe.session.user or "").strip()
 
-    rows = frappe.get_all(
-        "HD Ticket",
-        fields=["name", "subject", "status", "priority", "agent_group", "modified"],
-        filters=flt,
-        order_by="modified desc",
-        limit_page_length=50,
+    if not user or user == "Guest":
+        return columns, []
+
+    rows = frappe.db.sql(
+        """
+        SELECT
+            ticket.name AS ticket,
+            ticket.subject,
+            ticket.status,
+            ticket.priority,
+            ticket.agent_group AS team,
+            ticket.modified
+        FROM `tabHD Ticket` ticket
+        WHERE EXISTS (
+            SELECT 1
+            FROM `tabToDo` assignment
+            WHERE assignment.reference_type = 'HD Ticket'
+              AND assignment.reference_name = ticket.name
+              AND assignment.allocated_to = %(user)s
+              AND assignment.status = 'Open'
+        )
+        ORDER BY ticket.modified DESC
+        LIMIT 200
+        """,
+        {
+            "user": user,
+        },
+        as_dict=True,
     )
 
     return columns, rows
-
-data = execute(filters)

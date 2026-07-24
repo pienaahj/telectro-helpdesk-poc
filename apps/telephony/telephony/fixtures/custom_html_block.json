@@ -2,9 +2,31 @@
  {
   "docstatus": 0,
   "doctype": "Custom HTML Block",
+  "html": "<div id=\"telectro-current-coordinator-widget\" data-telectro-widget=\"current-coordinator\"></div>",
+  "modified": "2026-04-14 13:12:27.790958",
+  "name": "Current Coordinator Uplift",
+  "private": 0,
+  "roles": [],
+  "script": "",
+  "style": null
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Custom HTML Block",
+  "html": "<div id=\"telectro-coordinator-manage-action\" style=\"padding-top: 8px;\">\n  <button class=\"btn btn-sm btn-primary\" onclick=\"window.openCoordinatorUpliftDialog && window.openCoordinatorUpliftDialog()\">\n    Manage Coordinator Uplift\n  </button>\n  <div class=\"text-muted\" style=\"margin-top: 8px; font-size: 12px; line-height: 1.3;\">\n    Grant or revoke coordinator uplift for technician users.\n  </div>\n</div>",
+  "modified": "2026-04-14 16:14:56.864557",
+  "name": "Grant / Revoke Coordinator",
+  "private": 0,
+  "roles": [],
+  "script": null,
+  "style": null
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Custom HTML Block",
   "html": "<div id=\"telectro-stale-unclaimed-widget\" data-telectro-widget=\"stale-unclaimed\"></div>",
-  "modified": "2026-03-30 19:41:31.680210",
-  "name": "Unclaimed Over1 Day Card",
+  "modified": "2026-03-31 12:52:58.762918",
+  "name": "Unclaimed more than 1 Day (Top 4)",
   "private": 0,
   "roles": [],
   "script": null,

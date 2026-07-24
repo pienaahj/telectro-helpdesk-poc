@@ -1,7 +1,28 @@
 import frappe
+from frappe import _
+
+
+SUPERVISOR_ROLE = "TELECTRO-POC Role - Supervisor Governance"
+
+
+def _require_access():
+    user = frappe.session.user
+
+    if user == "Administrator":
+        return
+
+    roles = set(frappe.get_roles(user) or [])
+
+    if SUPERVISOR_ROLE not in roles:
+        frappe.throw(
+            _("You are not allowed to view coordinator uplift history."),
+            frappe.PermissionError,
+        )
 
 
 def execute(filters=None):
+    _require_access()
+
     columns = [
         {
             "label": "Time",
@@ -38,8 +59,18 @@ def execute(filters=None):
             "comment_type": "Info",
         },
         or_filters=[
-            ["Comment", "content", "like", "Coordinator uplift granted%"],
-            ["Comment", "content", "like", "Coordinator uplift revoked%"],
+            [
+                "Comment",
+                "content",
+                "like",
+                "Coordinator uplift granted%",
+            ],
+            [
+                "Comment",
+                "content",
+                "like",
+                "Coordinator uplift revoked%",
+            ],
         ],
         fields=[
             "creation",
