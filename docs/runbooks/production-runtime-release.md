@@ -598,7 +598,37 @@ This applies especially to:
 - interactive-capable tools;
 - wrappers that ultimately call `exec`.
 
-Post-command validation must never be placed after a command that can consume the SSH script’s remaining standard input without first detaching that input.
+`bin/prod-bench.sh` enforces this isolation internally with:
+
+```bash
+exec </dev/null
+```
+
+Wrappers that delegate to `bin/prod-bench.sh`, including `bin/prod-migrate.sh`, inherit that protection. Their callers do not need to repeat `< /dev/null`.
+
+Other commands and wrappers that do not pass through this protected boundary must still detach standard input explicitly.
+
+Post-command validation must never be placed after a command that can consume the parent script’s remaining standard input unless:
+
+- the command detaches stdin internally;
+- the caller supplies `< /dev/null`; or
+- the command intentionally receives a separate, controlled input stream.
+
+The protected boundary is verified by:
+
+```bash
+./tests/bin/test-prod-bench-stdin-detachment.sh
+```
+
+The regression test requires all of these markers:
+
+```text
+MOCK_COMPOSE_STDIN_EOF=YES
+WRAPPER_STATUS=0
+POST_WRAPPER_MARKER
+TEST_STATUS=0
+PROD_BENCH_STDIN_DETACHMENT_REGRESSION=PASS
+```
 
 #### Migration evidence must be replay-safe
 

@@ -207,13 +207,27 @@ For non-interactive production Bench commands, continue to use:
 ./bin/prod-bench.sh --site <site-name> <bench-command>
 ```
 
-`bin/prod-bench.sh` intentionally uses `docker compose exec -T`, making it the correct boundary for scripted execution.
+`bin/prod-bench.sh` is the controlled boundary for scripted Bench execution. It:
 
-When a production wrapper is invoked from an SSH-fed script, detach its standard input unless the command deliberately receives a separate input stream:
+- uses `docker compose exec -T`;
+- internally detaches inherited standard input with `exec </dev/null`;
+- prevents the Compose or Bench process from consuming the remainder of an SSH-fed script, here-document, or parent input stream.
+
+Callers therefore do not need to append `< /dev/null` when they invoke `bin/prod-bench.sh`.
+
+This wrapper does not support intentional standard-input delivery. Use an explicitly designed alternative when a command genuinely needs piped input.
+
+The stdin-isolation contract is covered by:
 
 ```bash
-./bin/prod-bench.sh --site <site-name> <bench-command> < /dev/null
+./tests/bin/test-prod-bench-stdin-detachment.sh
 ```
+
+The regression test proves that:
+
+- the Compose boundary receives immediate EOF;
+- the Bench wrapper returns successfully;
+- the parent script continues to its post-wrapper marker.
 
 For production start/stop/restart/migrate operations, do not reuse local scripts blindly.
 

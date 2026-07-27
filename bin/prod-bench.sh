@@ -47,5 +47,13 @@ cd "$ROOT_DIR"
 log "Running production bench command in service: $BACKEND_SVC"
 log "Bench directory: $BENCH_DIR"
 
+# This wrapper is exclusively for non-interactive Bench execution.
+#
+# Detach inherited standard input before entering the Compose/Bench exec chain.
+# Docker Compose's `-T` disables pseudo-TTY allocation but does not close stdin.
+# Without this boundary, a nested command can consume the remainder of an
+# SSH-fed script, here-document, or other parent input stream.
+exec </dev/null
+
 exec ./bin/prod-compose.sh exec -T -u frappe "$BACKEND_SVC" \
   bash -lc 'cd "$1" && shift && exec bench "$@"' bash "$BENCH_DIR" "$@"
