@@ -11,6 +11,7 @@ USER root
 
 ENV CI=1
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV NLTK_DATA=/home/frappe/nltk_data
 
 RUN set -eux; \
     apt-get update; \
@@ -100,6 +101,151 @@ RUN set -eux; \
     ./env/bin/python -c "import frappe, erpnext, helpdesk, telephony; print('TOP_LEVEL_IMPORTS_OK')"; \
     echo "--- Helpdesk overlay proof ---"; \
     test -f apps/helpdesk/desk/src/pages/ticket/TicketCustomer.vue
+
+# Helpdesk's after_migrate hook checks these NLTK resources and downloads them
+# when absent. Bake and verify them during image construction so production
+# migration does not depend on outbound network access.
+RUN ./env/bin/python - <<'PY'
+from __future__ import annotations
+
+import hashlib
+import os
+from pathlib import Path
+
+import nltk
+from nltk import data
+from nltk.downloader import Downloader
+
+
+expected_nltk_version = "3.10.0"
+
+if nltk.__version__ != expected_nltk_version:
+    raise RuntimeError(
+        {
+            "expected_nltk_version": expected_nltk_version,
+            "actual_nltk_version": nltk.__version__,
+        }
+    )
+
+download_dir = Path(os.environ["NLTK_DATA"])
+
+required = [
+    {
+        "package": "averaged_perceptron_tagger_eng",
+        "lookup_path": "taggers/averaged_perceptron_tagger_eng.zip",
+        "size_bytes": 1539115,
+        "sha256": (
+            "6025f530624335c67d6547d44757b357"
+            "b4e79bae030a0383e9887a92c1718f0b"
+        ),
+    },
+    {
+        "package": "punkt_tab",
+        "lookup_path": "tokenizers/punkt_tab.zip",
+        "size_bytes": 4319076,
+        "sha256": (
+            "e57f64187974277726a3417ca6f181ec"
+            "5403676c717672eef6a748a7b20e0106"
+        ),
+    },
+    {
+        "package": "brown",
+        "lookup_path": "corpora/brown.zip",
+        "size_bytes": 3314357,
+        "sha256": (
+            "9b275f9b3b95d7bd66ccfb7cd259f445"
+            "a13bbe5d1f4107aba09fd3e8364bafa6"
+        ),
+    },
+]
+
+download_dir.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
+downloader = Downloader(
+    download_dir=str(download_dir)
+)
+
+for resource in required:
+    package = resource["package"]
+    lookup_path = resource["lookup_path"]
+
+    result = downloader.download(
+        package,
+        quiet=False,
+    )
+
+    if result is not True:
+        raise RuntimeError(
+            {
+                "package": package,
+                "download_result": result,
+            }
+        )
+
+    zip_path = download_dir / lookup_path
+
+    if not zip_path.is_file():
+        raise RuntimeError(
+            {
+                "package": package,
+                "expected_zip": str(zip_path),
+                "status": "MISSING",
+            }
+        )
+
+    actual_size = zip_path.stat().st_size
+    actual_sha256 = hashlib.sha256(
+        zip_path.read_bytes()
+    ).hexdigest()
+
+    if actual_size != resource["size_bytes"]:
+        raise RuntimeError(
+            {
+                "package": package,
+                "expected_size_bytes": resource["size_bytes"],
+                "actual_size_bytes": actual_size,
+            }
+        )
+
+    if actual_sha256 != resource["sha256"]:
+        raise RuntimeError(
+            {
+                "package": package,
+                "expected_sha256": resource["sha256"],
+                "actual_sha256": actual_sha256,
+            }
+        )
+
+    resolved = data.find(
+        lookup_path,
+        paths=[str(download_dir)],
+    )
+
+    print(
+        {
+            "package": package,
+            "lookup_path": lookup_path,
+            "size_bytes": actual_size,
+            "sha256": actual_sha256,
+            "resolved_location": str(resolved),
+            "result": "PASS",
+        }
+    )
+
+print(
+    {
+        "nltk_version": nltk.__version__,
+        "download_directory": str(download_dir),
+        "required_resource_count": len(required),
+        "runtime_nltk_assets": "PASS",
+    }
+)
+
+print("RUNTIME_NLTK_ASSETS_OK")
+PY
 
 RUN ./env/bin/python - <<'PY'
 from __future__ import annotations
