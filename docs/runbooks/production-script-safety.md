@@ -100,7 +100,7 @@ These scripts are intended for production-readiness proof.
 | `bin/prod-render-compose.sh` | Production-safe read-only Compose render check | Renders production Compose config and checks for app-owned public edge red flags.                                                                                                                                                                                                                                                                                                   |
 | `bin/prod-bench.sh`          | Production bench wrapper                       | Runs bench inside the production backend container through `bin/prod-compose.sh`; does not use `.env.local`, `.env`, `pwd.yml`, or `compose.override.yaml`.                                                                                                                                                                                                                   |
 | `bin/prod-console.sh`        | Interactive production Bench console helper   | Opens `bench --site <site> console` inside the production backend through `bin/prod-compose.sh`. It intentionally preserves the interactive terminal and defaults to `erp.telectro.co.za`. It is for attended operator use only and must not be called from release automation, piped execution, or an SSH-fed script.                                                     |
-| `bin/prod-migrate.sh`        | Production migration wrapper                   | Runs `bench --site <site> migrate` through `bin/prod-bench.sh`; requires explicit `SITE`.                                                                                                                                                                                                                                                                                             |
+| `bin/prod-migrate.sh` | Replay-safe production migration wrapper | Runs `bench --site <site> migrate` through `bin/prod-bench.sh`; requires explicit `SITE` and `RELEASE_ID`. Atomically claims the release-specific migration directory before writing the started record. Refuses execution when that directory already exists, even when empty. Writes started, completed, failed, output, and review-required evidence beneath the release evidence directory. |
 | `bin/prod-restart-core.sh`   | Guarded production restart wrapper             | Restarts core production services through `bin/prod-compose.sh`; requires `CONFIRM_PROD_RESTART=restart-core`.                                                                                                                                                                                                                                                                        |
 | `bin/prod-seed-assets.sh`    | Production asset handoff helper                | Copies built assets from the selected `ERPNEXT_IMAGE` into `${PRODUCTION_DATA_ROOT}/assets`, dereferencing app asset symlinks so the host bind mount receives real files. Requires `PROD_ENV_FILE`, `ERPNEXT_IMAGE`, and `PRODUCTION_DATA_ROOT`. Does not delete existing assets; it overlays image-built assets into the production assets bind mount and verifies manifest targets. |
 | `bin/prod-install-apps.sh`   | Guarded production app install wrapper         | Installs required apps into an existing production site through `bin/prod-bench.sh`; requires explicit `SITE` and `CONFIRM_PROD_INSTALL_APPS=install-apps`. Defaults to `helpdesk telephony`. Does not run migrate; migration remains a separate explicit step.                                                                                                                       |
@@ -161,7 +161,7 @@ Use these production-safe commands first:
 ./bin/prod-compose.sh ps
 ./bin/prod-bench.sh --site <site-name> list-apps
 ./bin/prod-console.sh
-SITE=<site-name> ./bin/prod-migrate.sh
+SITE=<site-name> RELEASE_ID=<release-id> ./bin/prod-migrate.sh
 CONFIRM_PROD_RESTART=restart-core ./bin/prod-restart-core.sh
 ```
 
@@ -207,13 +207,27 @@ For non-interactive production Bench commands, continue to use:
 ./bin/prod-bench.sh --site <site-name> <bench-command>
 ```
 
-`bin/prod-bench.sh` intentionally uses `docker compose exec -T`, making it the correct boundary for scripted execution.
+`bin/prod-bench.sh` is the controlled boundary for scripted Bench execution. It:
 
-When a production wrapper is invoked from an SSH-fed script, detach its standard input unless the command deliberately receives a separate input stream:
+- uses `docker compose exec -T`;
+- internally detaches inherited standard input with `exec </dev/null`;
+- prevents the Compose or Bench process from consuming the remainder of an SSH-fed script, here-document, or parent input stream.
+
+Callers therefore do not need to append `< /dev/null` when they invoke `bin/prod-bench.sh`.
+
+This wrapper does not support intentional standard-input delivery. Use an explicitly designed alternative when a command genuinely needs piped input.
+
+The stdin-isolation contract is covered by:
 
 ```bash
-./bin/prod-bench.sh --site <site-name> <bench-command> < /dev/null
+./tests/bin/test-prod-bench-stdin-detachment.sh
 ```
+
+The regression test proves that:
+
+- the Compose boundary receives immediate EOF;
+- the Bench wrapper returns successfully;
+- the parent script continues to its post-wrapper marker.
 
 For production start/stop/restart/migrate operations, do not reuse local scripts blindly.
 

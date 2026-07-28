@@ -598,7 +598,37 @@ This applies especially to:
 - interactive-capable tools;
 - wrappers that ultimately call `exec`.
 
-Post-command validation must never be placed after a command that can consume the SSH script’s remaining standard input without first detaching that input.
+`bin/prod-bench.sh` enforces this isolation internally with:
+
+```bash
+exec </dev/null
+```
+
+Wrappers that delegate to `bin/prod-bench.sh`, including `bin/prod-migrate.sh`, inherit that protection. Their callers do not need to repeat `< /dev/null`.
+
+Other commands and wrappers that do not pass through this protected boundary must still detach standard input explicitly.
+
+Post-command validation must never be placed after a command that can consume the parent script’s remaining standard input unless:
+
+- the command detaches stdin internally;
+- the caller supplies `< /dev/null`; or
+- the command intentionally receives a separate, controlled input stream.
+
+The protected boundary is verified by:
+
+```bash
+./tests/bin/test-prod-bench-stdin-detachment.sh
+```
+
+The regression test requires all of these markers:
+
+```text
+MOCK_COMPOSE_STDIN_EOF=YES
+WRAPPER_STATUS=0
+POST_WRAPPER_MARKER
+TEST_STATUS=0
+PROD_BENCH_STDIN_DETACHMENT_REGRESSION=PASS
+```
 
 #### Migration evidence must be replay-safe
 
@@ -610,8 +640,50 @@ Preserve separate evidence files for:
 migration-started.env
 migration-completed.env
 migration-failed.env
+migration-review-required.env
 migration-output.log
 ```
+
+The repository-controlled wrapper writes these records beneath:
+
+```text
+<evidence-dir>/releases/<release-id>/production-migration/
+```
+
+Normal terminal states use:
+
+```text
+migration-completed.env
+migration-failed.env
+```
+
+Ambiguous states use:
+
+```text
+migration-review-required.env
+```
+
+A review-required record is written when:
+
+- migration output cannot be captured reliably;
+- migration has executed but its finished UTC timestamp cannot be obtained;
+- migration completes but its completion record cannot be committed;
+- migration fails but its failure record cannot be committed.
+
+The review record preserves the migration command status, output-capture
+status, evidence path, available UTC timestamps, and an explicit review
+reason.
+
+When the post-action UTC timestamp cannot be obtained, the review record uses:
+
+```text
+MIGRATION_REVIEW_UTC=UNAVAILABLE
+MIGRATION_TIMESTAMP_STATUS=<timestamp-command-status>
+MIGRATION_REVIEW_REASON=FINISHED_TIMESTAMP_FAILED
+```
+
+This records the unavailable timestamp honestly while preserving the known
+migration and output-capture results.
 
 Once `migration-started.env` exists:
 
@@ -624,6 +696,39 @@ Once `migration-started.env` exists:
 Failure to capture completion evidence does not prove that migration failed.
 
 A later cache, routing, parser, validation, or evidence failure must not trigger migration replay.
+
+Before writing `migration-started.env`, `bin/prod-migrate.sh` atomically
+claims the release-specific `production-migration` directory.
+
+If that directory already exists, even when it is empty, the wrapper refuses
+to run migration. The existing directory represents either another active
+invocation or a previous attempt that requires operator review.
+
+If the started record cannot be written, the wrapper removes the empty claim
+directory only when it can prove that nothing was committed there. If that
+cleanup fails, the directory remains as the replay guard and the wrapper
+reports that review is required.
+
+The contract is verified without Docker or production access by:
+
+```bash
+./tests/bin/test-prod-migrate-evidence.sh
+```
+
+Required final markers:
+
+```text
+SUCCESS_MIGRATION_EVIDENCE=PASS
+FAILED_MIGRATION_EVIDENCE=PASS
+AUTOMATIC_REPLAY_PROTECTION=PASS
+ATOMIC_MIGRATION_START_CLAIM=PASS
+STARTED_RECORD_GATE=PASS
+OUTPUT_CAPTURE_FAILURE_CLASSIFICATION=PASS
+EVIDENCE_COMMIT_FAILURE_CLASSIFICATION=PASS
+FAILED_ACTION_EVIDENCE_COMMIT_FAILURE=PASS
+POST_ACTION_TIMESTAMP_FAILURE_CLASSIFICATION=PASS
+PROD_MIGRATE_EVIDENCE_REGRESSION=PASS
+```
 
 #### Preserve failed and recovery evidence
 
@@ -2392,6 +2497,7 @@ Use the repository-controlled migration wrapper:
 
 ```bash
 SITE=erp.telectro.co.za \
+RELEASE_ID=<release-id> \
   ./bin/prod-migrate.sh
 ```
 
