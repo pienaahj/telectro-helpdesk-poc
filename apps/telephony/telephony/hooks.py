@@ -49,6 +49,35 @@ fixtures = [
     },
 
     {
+        "dt": "Custom DocPerm",
+        "filters": [
+            [
+                "parent",
+                "in",
+                [
+                    "Customer",
+                    "Location",
+                ],
+            ],
+            [
+                "role",
+                "in",
+                [
+                    "TELECTRO-POC Role - Coordinator Ops",
+                    "TELECTRO-POC Role - Coordinator Workspace",
+                    "TELECTRO-POC Role - Faults Tech",
+                    "TELECTRO-POC Role - Ops Workspace",
+                    "TELECTRO-POC Role - PABX Tech",
+                    "TELECTRO-POC Role - Partner Creator",
+                    "TELECTRO-POC Role - Supervisor Governance",
+                    "TELECTRO-POC Role - Tech",
+                    "TELECTRO-POC Role - Tech Workspace",
+                ],
+            ],
+        ],
+    },
+
+    {
         "dt": "Workspace",
         "filters": [
             ["name", "in", ["TELECTRO-POC Tech", "TELECTRO-POC Ops", "TELECTRO-POC Coordinator", "TELECTRO-POC Partner"]],
