@@ -107,6 +107,13 @@ fixtures = [
     },
 
     {
+        "dt": "HD Ticket Priority",
+        "filters": [
+            ["name", "in", ["Urgent", "High", "Medium", "Low"]]
+        ],
+    },
+
+    {
         "dt": "HD Ticket Template",
         "filters": [
             ["name", "in", ["Default"]],
