@@ -87,7 +87,7 @@ RUN set -eux; \
 USER frappe
 
 RUN set -eux; \
-    ./env/bin/pip install --no-cache-dir -e ./apps/helpdesk -e ./apps/telephony; \
+    ./env/bin/pip install --no-cache-dir "nltk==3.10.0" -e ./apps/helpdesk -e ./apps/telephony; \
     mkdir -p sites; \
     ls -1 apps | sort > sites/apps.txt; \
     echo "--- apps.txt ---"; \
