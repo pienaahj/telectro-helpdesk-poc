@@ -1,16 +1,6 @@
 import frappe
 import json
 from telephony.telectro_routing_policy import resolve_ticket_routing_policy
-# Per-group round-robin pools
-POOLS = {
-    "Routing": ["tech.alfa@local.test", "tech.bravo@local.test"],
-    "PABX": ["tech.charlie@local.test"],
-    "SIM": ["tech.bravo@local.test"],
-    "Internet Connection": ["tech.alfa@local.test", "tech.bravo@local.test"],
-    "CCTV": ["tech.bravo@local.test"],
-}
-
-POOL_USER = "helpdesk@local.test"
 
 PARTNER_USER = "partner@local.test"  # TODO: set to your actual partner queue user
 
@@ -42,23 +32,6 @@ def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
             "description": (desc or "")[:140],
         }
     ).insert(ignore_permissions=True)
-
-def _seed_pool_if_unassigned(ticket: str, subject: str = "") -> None:
-    # If already has an Open ToDo, don't interfere
-    open_todos = _open_todos_for_ticket(ticket)
-    if open_todos:
-        return
-
-    # If _assign already set, don't interfere
-    assign_users = _parse_assign_users(frappe.db.get_value("HD Ticket", ticket, "_assign") or "")
-    if assign_users:
-        return
-
-    # True pool = no owner, no open ToDo, empty _assign
-    frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps([]), update_modified=False)
-
-def _get_group(doc) -> str:
-    return (doc.get("agent_group") or "").strip()
 
 def _parse_assign_users(assign_val) -> list[str]:
     """HD Ticket._assign is usually a JSON string like '["user@x"]'. Return list of users."""
@@ -94,54 +67,13 @@ def _open_todos_for_ticket(ticket: str):
         limit_page_length=200,
     )
 
-
-
-def _rr_group(group: str) -> str:
-    return (group or "").strip()
-
-def _rr_cursor_key(group: str) -> str:
-    g = _rr_group(group)
-    return f"telectro:rr:v1:idx:{g}"
-
-def _rr_lock_key(group: str) -> str:
-    g = _rr_group(group)
-    return f"telectro:rr:v1:lock:{g}"
-
-def _get_idx(group: str) -> int:
-    try:
-        v = frappe.cache().get_value(_rr_cursor_key(group))
-        return int(v) if v is not None else 0
-    except Exception:
-        return 0
-
-def _set_idx(group: str, idx: int) -> None:
-    try:
-        # If your cache supports expires_in_sec, you can add it; otherwise omit.
-        frappe.cache().set_value(_rr_cursor_key(group), int(idx))
-    except Exception:
-        pass
-
-def _next_assignee(group: str) -> str | None:
-    pool = POOLS.get(_rr_group(group)) or []
-    if not pool:
-        return None
-
-    with frappe.cache().lock(_rr_lock_key(group), timeout=10):
-        idx = _get_idx(group)
-        assignee = pool[idx % len(pool)]
-        _set_idx(group, idx + 1)
-        return assignee
-
-
 def assign_after_insert(doc, method=None):
     # doc_event hook
     ticket = str(getattr(doc, "name", "") or "").strip()
     if not ticket:
         return
-
-    group = _get_group(doc)
     
-    # ✅ NEW: Partner routing overrides RR + pool seeding
+    # Partner fulfilment overrides normal native team assignment.
     party = (doc.get("custom_fulfilment_party") or "").strip()
     if party == "Partner":
         # If already has an Open ToDo, don't interfere
@@ -212,7 +144,3 @@ def _todo_assignees(ticket_name: str) -> list[str]:
 def _mirror_assign_from_todo(doc) -> None:
     users = _todo_assignees(doc.name)
     doc.db_set("_assign", json.dumps(users), update_modified=False)
-
-def rr_reset(group: str) -> None:
-    """Reset RR cursor for a given group (testing)."""
-    frappe.cache().delete_value(_rr_cursor_key(group))
