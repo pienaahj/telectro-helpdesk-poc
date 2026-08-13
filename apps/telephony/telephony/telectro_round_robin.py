@@ -181,72 +181,13 @@ def assign_after_insert(doc, method=None):
                 _mirror_assign_from_todo(doc)
 
         return
-    # --- Seed pool for non-RR groups (e.g. Helpdesk Team) ---
-    if group not in POOLS:
-        _seed_pool_if_unassigned(ticket, subject=(doc.get("subject") or ""))
-        return
-
-    # --- Gate on canonical truth (ToDo), not on cache (_assign) ---
-    open_todos = _open_todos_for_ticket(ticket)
-    if open_todos:
-        # keep newest allocated_to (first non-empty), close rest
-        keep = None
-        for td in open_todos:
-            u = (td.get("allocated_to") or "").strip()
-            if u:
-                keep = u
-                break
-
-        if keep:
-            kept = False
-            for td in open_todos:
-                u = (td.get("allocated_to") or "").strip()
-                if (not kept) and u == keep:
-                    kept = True
-                    continue
-                frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
-
-        _mirror_assign_from_todo(doc)
-        return
-
-    assign_users = _parse_assign_users(doc.get("_assign"))
-    if assign_users:
-        # Drift repair: _assign exists but no Open ToDo → recreate ToDo then mirror
-        assignee = assign_users[0]
-        _ensure_open_todo(
-            ticket,
-            assignee,
-            desc=(doc.get("subject") or "Repair: recreate missing ToDo"),
-        )
-        _mirror_assign_from_todo(doc)
-        return
-
-    # --- Normal RR path (unassigned + no ToDo) ---
-    assignee = _next_assignee(group)
-    if not assignee:
-        return
-
-    assignee = str(assignee).strip()
-    if not assignee:
-        return
-
-    # Enforce exactly ONE Open ToDo for this ticket (owned by assignee)
-    open_todos = _open_todos_for_ticket(ticket)
-
-    kept = False
-    for td in open_todos or []:
-        allocated = (td.get("allocated_to") or "").strip()
-        if (not kept) and allocated == assignee:
-            kept = True
-            continue
-        frappe.db.set_value("ToDo", td["name"], "status", "Closed", update_modified=False)
-
-    if not kept:
-        _ensure_open_todo(ticket, assignee, desc=(doc.get("subject") or "Auto-assigned (round-robin)")[:140])
-
-    _mirror_assign_from_todo(doc)
-
-    # IMPORTANT: no frappe.db.commit() here
+    # 3) Normal internal team routing is handled by the native
+    # HD Team Assignment Rule.
+    #
+    # seed_ticket_routing() has already selected agent_group.
+    # Do not create a ToDo here. Frappe's normal on_update
+    # Assignment Rule processing will choose a member of that team.
+    return
 
 def _todo_assignees(ticket_name: str) -> list[str]:
     rows = frappe.get_all(
