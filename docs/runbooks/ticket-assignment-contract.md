@@ -188,7 +188,7 @@ This prevents partner-fulfilment tickets from being silently pulled into the nor
 
 ## Canonical truth model
 
-The pilot currently treats **open assignment `ToDo` state as canonical** for owned tickets.
+The pilot currently treats **open assignment `ToDo` state as canonical** for active owned tickets.
 
 That means:
 
@@ -199,14 +199,26 @@ That means:
 The current invariant is:
 
 ```text
-Owned ticket:
+Active owned ticket:
   exactly one Open assignment ToDo
   HD Ticket._assign = ["accountable.owner@local.test"]
 
 True pool ticket:
   no Open assignment ToDo
   HD Ticket._assign = []
+
+Terminal ticket (Resolved / Closed / Archived):
+  no Open assignment ToDo
+  HD Ticket._assign = []
 ```
+For assignment lifecycle purposes, `Resolved`, `Closed`, and `Archived` are terminal states.
+
+When a ticket becomes terminal:
+
+- any Open assignment `ToDo` rows are cancelled
+- `_assign` is cleared
+- terminal cleanup takes precedence over partner assignment enforcement and ordinary assignment repair
+- `_assign` must not recreate an assignment on a terminal ticket
 
 ### Why this matters
 
@@ -228,7 +240,8 @@ anchored to the same practical ownership model.
 
 ### Current rules
 
-- `_assign` should reflect open `ToDo` assignees
+- `_assign` should reflect open `ToDo` assignees for non-terminal tickets
+- terminal tickets must have `_assign = []` and no Open assignment `ToDo`
 - duplicate users should not be present
 - canonical ordering should be preserved where relevant
 - drift between `_assign` and `ToDo` should be repaired, not ignored
@@ -245,9 +258,11 @@ During validate:
 
 On update:
 
-- multiple open `ToDo` rows are collapsed
+- terminal tickets cancel Open assignment `ToDo` rows and clear `_assign`
+- terminal cleanup runs before partner assignment enforcement and ordinary assignment repair
+- multiple open `ToDo` rows on non-terminal tickets are collapsed
 - `_assign` is mirrored from canonical open `ToDo` state
-- missing `ToDo` can be recreated from `_assign` when appropriate
+- missing `ToDo` can be recreated from `_assign` only when appropriate for a non-terminal ticket
 
 #### Repair tooling exists
 
@@ -366,9 +381,11 @@ It does **not** currently try to provide:
 - assignment is currently app-owned
 - assignment means accountable ownership, not contributor participation
 - routing seed must happen before assignment is expected to behave predictably
-- open assignment `ToDo` state is canonical for owned tickets
+- open assignment `ToDo` state is canonical for active owned tickets
 - `_assign` mirrors canonical ownership state
 - true pool means `_assign = []` and no Open assignment `ToDo`
+- terminal (`Resolved` / `Closed` / `Archived`) means `_assign = []` and no Open assignment `ToDo`
+- terminal cleanup takes precedence over partner enforcement and assignment repair
 - Controlled Handoff is the approved supervisor/coordinator accountability-transfer path
 - Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
 - the audit trail is visible in `TELECTRO Assignment Handoff Audit`

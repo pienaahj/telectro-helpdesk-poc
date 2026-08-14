@@ -48,6 +48,23 @@ Reserved for real terminal operational use where applicable.
 
 Retained stale or non-operational historical pilot records.
 
+### Assignment lifecycle
+
+For assignment lifecycle purposes, `Resolved`, `Closed`, and `Archived` are terminal states.
+
+A terminal ticket must have:
+
+- no Open assignment `ToDo`
+- `_assign = []`
+
+Any previously Open assignment `ToDo` is cancelled when terminal state is synchronized.
+
+This assignment rule does not make the statuses operationally equivalent:
+
+- `Resolved` remains genuine completed operational work
+- `Closed` remains terminal operational use where applicable
+- `Archived` remains retained stale or non-operational history
+
 ### Important distinction
 
 `Archived` is intentionally separate from `Resolved`.

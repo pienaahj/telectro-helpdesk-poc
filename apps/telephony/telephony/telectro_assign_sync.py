@@ -4,6 +4,8 @@ from telephony.telectro_round_robin import PARTNER_USER
 
 DOCT = "HD Ticket"
 
+TERMINAL_TICKET_STATUSES = {"Resolved", "Closed", "Archived"}
+
 LINKS_AREAS_CATS = {"links", "areas"}
 
 # Ticket Types considered "fault-like" (strict validation)
@@ -280,24 +282,37 @@ def sync_ticket_assignments(doc, method=None, prefer_assign: int = 1) -> None:
     Canonicalize pilot assignment state after HD Ticket update.
 
     Pilot invariant:
-    - Owned ticket:
+    - Terminal ticket:
+        no Open ToDos
+        _assign = []
+    - Owned active ticket:
         exactly one Open ToDo
         _assign = ["owner"]
     - True pool:
         no Open ToDos
         _assign = []
 
-    Open ToDo is canonical. _assign is only used as a repair hint when there
-    are no Open ToDos.
+    Open ToDo is canonical for active ownership. _assign is only used as a
+    repair hint when there are no Open ToDos on a non-terminal ticket.
     """
+
     ticket = str(getattr(doc, "name", "") or "").strip()
     if not ticket:
+        return
+
+    status = (doc.get("status") or "").strip()
+
+    if status in TERMINAL_TICKET_STATUSES:
+        for todo in _open_todos(ticket):
+            _close_todo(todo["name"])
+
+        _mirror_assign(ticket, [])
         return
 
     if _is_partner_fulfilment(doc):
         _enforce_partner_assignment(ticket, doc=doc)
         return
-    
+
     todos = _open_todos(ticket)
 
     # A) If multiple Open ToDos exist, keep newest only.
@@ -345,7 +360,3 @@ def sync_ticket_assignments(doc, method=None, prefer_assign: int = 1) -> None:
 
     # C) Mirror final canonical owner into _assign.
     _mirror_assign(ticket, [owner] if owner else [])
-
-
-
-
