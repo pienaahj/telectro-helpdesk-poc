@@ -958,6 +958,39 @@ Do not skip directly to a later phase because an artifact or image from an earli
 
 Create the release identity before building or transferring anything.
 
+For the source-derived portion of a normal release identity, use the
+repository-controlled preflight helper:
+
+```bash
+RELEASE_DATE=YYYYMMDD \
+  ./bin/release-preflight.sh
+```
+
+`RELEASE_DATE` is an explicit operator input. Do not silently derive it from
+the current wall-clock date. This keeps historical replay deterministic: the
+same explicit release date and exact Git commit produce the same release ID.
+
+The helper proves the Phase 1 Git source conditions before emitting:
+
+```text
+RELEASE_DATE
+SOURCE_BRANCH
+FULL_COMMIT_SHA
+SHORT_COMMIT_SHA
+ORIGIN_MAIN_SHA
+AHEAD
+BEHIND
+RELEASE_ID
+SOURCE_ARTIFACT
+
+RELEASE_IDENTITY_DEFINED
+LOCAL_GIT_RELEASE_PREFLIGHT_OK
+```
+
+The helper does not determine operator-supplied release metadata such as the
+previous production image, candidate image, site name, migration decision, or
+changed production artifacts.
+
 Recommended release ID:
 
 ```text
@@ -988,6 +1021,7 @@ PREVIOUS_PRODUCTION_IMAGE
 CANDIDATE_IMAGE
 SITE_NAME
 SOURCE_ARTIFACT
+SOURCE_TAR_SHA256
 SOURCE_ARTIFACT_SHA256
 IMAGE_ARCHIVE
 IMAGE_ARCHIVE_SHA256
@@ -1012,6 +1046,10 @@ RELEASE_IDENTITY_DEFINED
 
 Prove the current branch, commit, working-tree state, and remote relationship.
 
+For a normal release, `bin/release-preflight.sh` is the executable form of
+this gate. The commands below document the underlying proof and remain useful
+for inspection and troubleshooting.
+
 ```bash
 git branch --show-current
 git rev-parse HEAD
@@ -1031,6 +1069,13 @@ For a normal production release, required conditions are:
 - the full commit SHA is recorded;
 - no uncommitted fixture exports or generated files remain.
 
+Local invalidity is rejected before remote access: a detached HEAD,
+non-`main` branch, or dirty working tree must fail before `git fetch origin`
+is attempted.
+
+The helper then fetches `origin` and requires local `main` to match
+`origin/main` exactly.
+
 Do not build a production release from:
 
 ```text
@@ -1047,6 +1092,13 @@ LOCAL_GIT_RELEASE_PREFLIGHT_OK
 ```
 
 ## Phase 2 — inspect and classify the change
+
+**Human review gate:** this phase is deliberately not automated by the
+Phase 0/1 or Phase 3 helpers.
+
+Automation may collect evidence for this decision, but migration relevance,
+production impact, and changed-artifact classification require explicit
+operator review.
 
 Compare the previous deployed commit with the candidate commit.
 
@@ -1171,6 +1223,41 @@ Recommended local artifact path:
 /tmp/telectro-app-<release-id>.tar.gz
 ```
 
+Create and validate the source artifact with:
+
+```bash
+RELEASE_ID=<release-id> \
+FULL_COMMIT_SHA=<full-commit-sha> \
+SOURCE_ARTIFACT=/tmp/telectro-app-<release-id>.tar.gz \
+  ./bin/release-source-artifact.sh
+```
+
+The helper creates the archive from the exact Git commit with an exact
+release-specific root prefix and deterministic gzip metadata:
+
+```text
+git archive
+    |
+gzip -n -9
+```
+
+The archive is first written to a temporary path. The final
+`SOURCE_ARTIFACT` filename is published only after validation succeeds.
+
+The helper proves:
+
+- `FULL_COMMIT_SHA` exists as a Git commit;
+- `RELEASE_ID` ends in the first seven characters of that commit;
+- the final destination does not already exist;
+- the embedded Git archive commit equals `FULL_COMMIT_SHA`;
+- every archive entry is under the expected release-specific prefix;
+- the AppleDouble count is zero;
+- the uncompressed Git tar SHA-256 is recorded;
+- the exact compressed artifact SHA-256 is recorded.
+
+A failed creation or validation must not leave an official-looking final
+source artifact.
+
 The artifact should contain the repository-controlled deployment source needed to:
 
 - build the runtime image;
@@ -1194,33 +1281,48 @@ editor caches
 macOS AppleDouble files
 ```
 
+### Source-artifact identity and integrity
+
+Record two distinct SHA-256 values:
+
+```text
+SOURCE_TAR_SHA256
+SOURCE_ARTIFACT_SHA256
+```
+
+`SOURCE_TAR_SHA256` hashes the uncompressed `git archive` tar stream. It is
+the reproducible source-archive identity tied to the exact Git commit and
+archive prefix.
+
+`SOURCE_ARTIFACT_SHA256` hashes the final `.tar.gz` file. It is the integrity
+checksum for the exact compressed artifact that is transferred, staged, or
+retained as evidence.
+
+Do not treat a historical compressed-artifact SHA-256 as the durable
+source-reproducibility contract. Compression implementation details can affect
+compressed bytes even when the underlying Git tar stream is identical.
+
+The repository-controlled builder uses `gzip -n -9` so repeated builds in the
+same controlled build environment do not embed variable gzip metadata.
+
 ### macOS artifact guard
 
-macOS can add AppleDouble files named:
+macOS AppleDouble files are named:
 
 ```text
 ._*
 ```
 
-The artifact must exclude them during creation where possible.
+The repository-controlled source artifact is built with `git archive`, not by
+archiving a Finder or extracted working-tree directory. The helper validates
+the completed archive and requires:
 
-After creating or extracting the artifact, prove the count is zero:
-
-```bash
-find <artifact-staging-directory> \
-  -type f \
-  -name '._*' \
-  -print
+```text
+APPLEDOUBLE_COUNT=0
+SOURCE_ARTIFACT_APPLEDOUBLE_FREE
 ```
 
-Any listed files must be removed before transfer or use.
-
-Record:
-
-```bash
-shasum -a 256 \
-  /tmp/telectro-app-<release-id>.tar.gz
-```
+Any non-zero AppleDouble count is a failed Phase 3 gate.
 
 Required markers:
 
