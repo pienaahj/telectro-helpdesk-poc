@@ -105,6 +105,38 @@ These scripts are intended for production-readiness proof.
 | `bin/prod-seed-assets.sh`    | Production asset handoff helper                | Copies built assets from the selected `ERPNEXT_IMAGE` into `${PRODUCTION_DATA_ROOT}/assets`, dereferencing app asset symlinks so the host bind mount receives real files. Requires `PROD_ENV_FILE`, `ERPNEXT_IMAGE`, and `PRODUCTION_DATA_ROOT`. Does not delete existing assets; it overlays image-built assets into the production assets bind mount and verifies manifest targets. |
 | `bin/prod-install-apps.sh`   | Guarded production app install wrapper         | Installs required apps into an existing production site through `bin/prod-bench.sh`; requires explicit `SITE` and `CONFIRM_PROD_INSTALL_APPS=install-apps`. Defaults to `helpdesk telephony`. Does not run migrate; migration remains a separate explicit step.                                                                                                                       |
 
+## Local release-construction helpers
+
+These scripts are repository-controlled parts of the production release
+procedure, but they execute on the trusted source/build machine before
+production access.
+
+They are not production-VM helpers and must not be copied to the production
+host as a substitute for the `prod-*` boundary.
+
+| Script | Classification | Notes |
+| --- | --- | --- |
+| `bin/release-preflight.sh` | Local release-source qualification | Requires an explicit `RELEASE_DATE`; rejects detached HEAD, non-`main`, dirty working trees, fetch failures, and any divergence from `origin/main`; emits deterministic release/source identity. It does not access or mutate production. |
+| `bin/release-source-artifact.sh` | Local deterministic source-artifact builder | Builds an exact Git source archive from `FULL_COMMIT_SHA` using deterministic gzip metadata, validates embedded commit, archive prefix and AppleDouble count, records source-tar and compressed-artifact SHA-256 values, and publishes the final filename only after successful validation. It does not access or mutate production. |
+
+Regression coverage:
+
+```bash
+./tests/bin/test-release-preflight.sh
+./tests/bin/test-release-source-artifact.sh
+```
+
+These helpers intentionally do not perform:
+
+```text
+production access
+VPN handling
+production mutation
+migration
+Docker image deployment
+browser verification
+```
+
 ## Local/development wrappers
 
 These scripts are useful locally but should not be used directly on the production VM.
