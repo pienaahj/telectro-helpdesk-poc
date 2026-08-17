@@ -1396,28 +1396,121 @@ edge
 
 ### Build execution
 
-Use a saved script or repository-controlled helper rather than a large interactive terminal paste.
-
-The build must:
-
-- change to the repository root;
-- accept an explicit image tag;
-- use the exact candidate commit;
-- target `linux/amd64`;
-- load or export the completed image;
-- retain the complete build log;
-- fail when any installation, import, asset, or build step fails;
-- avoid tag reuse.
-
-On the Mac, use a tested Buildx builder. Do not assume the default builder is suitable merely because it exists.
-
-Keep the Mac awake during a long build.
-
-Required marker:
+Use the repository-controlled helper:
 
 ```text
-CANDIDATE_RUNTIME_IMAGE_BUILD_OK
+bin/release-runtime-build.sh
 ```
+
+Required inputs:
+
+```text
+RELEASE_ID
+FULL_COMMIT_SHA
+SOURCE_ARTIFACT
+SOURCE_TAR_SHA256
+BUILDX_BUILDER
+```
+
+`BUILD_LOG` may be supplied explicitly. Otherwise the helper uses:
+
+```text
+/tmp/telectro-runtime-build-${RELEASE_ID}.log
+```
+
+The helper derives rather than accepts the production candidate tag:
+
+```text
+IMAGE_TAG=telectro/erpnext-runtime:prod-${RELEASE_ID}
+BUILD_PLATFORM=linux/amd64
+```
+
+Before Docker build execution, the helper must:
+
+- validate the release and source identities;
+- re-prove the Phase 3 source-tar SHA-256;
+- prove the Git commit embedded in the archive matches `FULL_COMMIT_SHA`;
+- prove the expected release archive prefix;
+- reject macOS AppleDouble entries;
+- extract into an isolated temporary build context;
+- prove the runtime Dockerfile and required application source are present;
+- prove the selected Buildx builder is available;
+- prove the builder advertises the exact `linux/amd64` platform token;
+- reject reuse of an existing candidate image tag;
+- reject reuse of an existing build-log path.
+
+The actual build is equivalent to:
+
+```text
+docker buildx build
+  --builder <explicit-builder>
+  --platform linux/amd64
+  --progress plain
+  --load
+  --file <isolated-context>/docker/telectro-runtime.Dockerfile
+  --tag telectro/erpnext-runtime:prod-<release-id>
+  <isolated-context>
+```
+
+The helper retains complete Buildx stdout/stderr in the build log and separately
+tracks the Docker-build and log-capture statuses. A successful log write must
+not hide a failed build, and a successful build must not hide a failed log
+capture.
+
+The success marker is emitted only after both operations succeed:
+
+```text
+CANDIDATE_RUNTIME_IMAGE_BUILD_OK=YES
+```
+
+Keep-the-Mac-awake handling remains outside the helper so the helper stays
+portable to a future Linux CI builder. For an attended Mac build, it may be
+invoked through `caffeinate`.
+
+Phase 4 proves construction and local loading of the immutable candidate image.
+Operating-system and architecture inspection, application/import/version proof,
+changed-artifact verification and semantic image validation remain Phase 5.
+
+### 2026-08-17 historical Phase 4 replay proof
+
+The repository-controlled helper was proved against the known-good manual
+2026-08-14 runtime build.
+
+Historical source commit:
+
+```text
+b946cbf7ae23b628a261ac0702577b5f7323c222
+```
+
+Manual candidate:
+
+```text
+telectro/erpnext-runtime:prod-20260814-b946cbf
+```
+
+Automated replay candidate:
+
+```text
+telectro/erpnext-runtime:prod-20260817-b946cbf
+```
+
+On the same Buildx environment, both tags resolved to the exact same Docker
+image identity:
+
+```text
+sha256:c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+```
+
+Recorded proof:
+
+```text
+HISTORICAL_REPLAY_IMAGE_IDENTITY=PASS
+```
+
+This historical replay proves equivalence to the known-good manual Phase 4
+procedure in the tested build environment. It does not claim byte-identical
+runtime-image reproducibility across arbitrary builders, caches, dependency
+registries or future network state.
 
 ## Phase 5 — validate the candidate image locally
 
