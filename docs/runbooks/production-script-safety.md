@@ -119,6 +119,7 @@ host as a substitute for the `prod-*` boundary.
 | `bin/release-preflight.sh` | Local release-source qualification | Requires an explicit `RELEASE_DATE`; rejects detached HEAD, non-`main`, dirty working trees, fetch failures, and any divergence from `origin/main`; emits deterministic release/source identity. It does not access or mutate production. |
 | `bin/release-source-artifact.sh` | Local deterministic source-artifact builder | Builds an exact Git source archive from `FULL_COMMIT_SHA` using deterministic gzip metadata, validates embedded commit, archive prefix and AppleDouble count, records source-tar and compressed-artifact SHA-256 values, and publishes the final filename only after successful validation. It does not access or mutate production. |
 | `bin/release-runtime-build.sh` | Local immutable runtime-image builder | Re-validates the Phase 3 source artifact and Git identity, extracts an isolated build context, requires an explicit Buildx builder with exact `linux/amd64` capability, rejects candidate-tag and build-log reuse, builds with `--load`, retains complete Buildx output, and emits success only when both the build and log capture succeed. It builds only on the trusted source/build machine and does not access or mutate production. |
+| `bin/release-runtime-validate.sh` | Local immutable runtime-image validator | Validates the completed candidate image locally before transfer: requires `linux/amd64`, proves all four application directories and Python imports, verifies exact application versions, hashes a release-relevant file inside the image, and runs a repository-controlled semantic validator read-only inside an isolated disposable container. It retains validation logs, rejects mismatched embedded content and semantic failures, and emits aggregate success only after all applicable Phase 5 layers pass. It does not access or mutate production. |
 
 Regression coverage:
 
@@ -126,6 +127,7 @@ Regression coverage:
 ./tests/bin/test-release-preflight.sh
 ./tests/bin/test-release-source-artifact.sh
 ./tests/bin/test-release-runtime-build.sh
+./tests/bin/test-release-runtime-validate.sh
 ```
 
 These helpers intentionally do not perform:
