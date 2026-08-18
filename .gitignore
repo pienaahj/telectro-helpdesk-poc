@@ -41,6 +41,10 @@ bld/
 !**/[Bb]in/
 !**/[Bb]in/**/*.sh
 
+# Allow release-specific validators beneath the repository bin directory
+!bin/release-validators/
+!bin/release-validators/*.sh
+
 # Add exception for keeping the pull-telephony-changes.sh script in the bin directory, as it is a utility script and not a build output
 !bin/pull-telephony-changes.sh
 

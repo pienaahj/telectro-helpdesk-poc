@@ -1516,44 +1516,113 @@ registries or future network state.
 
 Do not transfer the candidate merely because the image build returned status `0`.
 
-Prove at minimum:
+Use the repository-controlled helper:
 
 ```text
-expected immutable tag exists
-operating system is linux
-architecture is amd64
-all four required apps exist
-Python imports pass
-application versions match the release
-changed artifacts are embedded
+bin/release-runtime-validate.sh
 ```
 
-Inspect the image:
+The helper validates the completed immutable candidate image locally. It does not access or mutate production.
 
-```bash
-docker image inspect "$IMAGE_TAG"
+### Required inputs
+
+Provide:
+
+```text
+RELEASE_ID
+EXPECTED_FRAPPE_VERSION
+EXPECTED_ERPNEXT_VERSION
+EXPECTED_HELPDESK_VERSION
+EXPECTED_TELEPHONY_VERSION
+EMBEDDED_CHANGE_PATH
+EXPECTED_EMBEDDED_SHA256
+SEMANTIC_VALIDATOR
 ```
 
-Prove the platform:
+The helper derives the immutable image tag:
+
+```text
+telectro/erpnext-runtime:prod-<release-id>
+```
+
+`EMBEDDED_CHANGE_PATH` must identify a release-relevant file beneath `apps/`.
+
+`EXPECTED_EMBEDDED_SHA256` is the expected SHA-256 of that file as embedded in the completed candidate image.
+
+`SEMANTIC_VALIDATOR` is a repository-controlled Bash validator supplied by the release. The helper mounts it read-only into the isolated candidate container and executes it there. Release-specific semantic assertions therefore remain outside the generic runtime-validation helper.
+
+Example validator:
+
+```text
+bin/release-validators/validate-terminal-assignment.sh
+```
+
+### Validation-log contract
+
+By default the helper writes:
+
+```text
+/tmp/telectro-runtime-validation-<release-id>.log
+```
+
+`VALIDATION_LOG` may be supplied explicitly when a unique retained log path is required.
+
+The helper rejects reuse of an existing validation log.
+
+A failed candidate-container validation retains its log and reports the container exit status. Success markers must not be inferred merely from evidence text that was emitted before a later failure.
+
+### Candidate identity and platform proof
+
+The helper first proves that the expected immutable image exists and records:
+
+```text
+candidate image tag
+candidate image ID
+candidate image creation timestamp
+candidate image local size
+candidate image OS
+candidate image architecture
+validation log path
+```
+
+Required platform:
 
 ```text
 Os=linux
 Architecture=amd64
 ```
 
-Run candidate validation in an isolated container.
+Platform rejection occurs before candidate runtime validation and must not create a validation log.
 
-The validation should prove:
+### Isolated candidate-container proof
+
+Runtime validation executes in an isolated disposable container using:
 
 ```text
-frappe import succeeds
-erpnext import succeeds
-helpdesk import succeeds
-telephony import succeeds
+--rm
+--platform linux/amd64
+```
+
+The validation proves:
+
+```text
+frappe application directory exists
+erpnext application directory exists
+helpdesk application directory exists
+telephony application directory exists
+
+frappe Python import succeeds
+erpnext Python import succeeds
+helpdesk Python import succeeds
+telephony Python import succeeds
+
 bench command runs
 expected application versions are present
-changed fixture or source file exists
-changed fixture or source file has the expected hash
+
+changed release artifact exists inside the image
+changed release artifact has the expected SHA-256
+
+release-specific semantic validator passes inside the candidate image
 ```
 
 Expected application versions at the time this runbook was established:
@@ -1567,7 +1636,7 @@ telephony 0.0.1
 
 For fixture releases, validate the fixture **inside the image**, not only in the local checkout.
 
-Examples of semantic image validation include:
+Examples of release-specific semantic image validation include:
 
 - Workspace card count and names;
 - Workspace card widths;
@@ -1578,30 +1647,133 @@ Examples of semantic image validation include:
 - exact child-role list;
 - required query clauses;
 - no unintended report script;
-- no duplicate fixture records.
+- no duplicate fixture records;
+- release-specific source behaviour.
 
-Record:
+The generic helper must not hard-code release-specific semantic success output. That evidence must come from the supplied semantic validator executing against the candidate image.
 
-```text
-candidate image tag
-candidate image creation timestamp
-candidate image local size
-candidate image OS
-candidate image architecture
-embedded artifact SHA-256
-application versions
-validation log path
-```
+### Embedded-change proof
 
-Required markers:
+The candidate container calculates the SHA-256 of `EMBEDDED_CHANGE_PATH`.
+
+The retained log records:
 
 ```text
-CANDIDATE_RUNTIME_PLATFORM_OK
-CANDIDATE_RUNTIME_IMPORTS_OK
-CANDIDATE_RUNTIME_VERSIONS_OK
-CANDIDATE_EMBEDDED_CHANGE_OK
-CANDIDATE_RUNTIME_VALIDATION_OK
+EMBEDDED_CHANGE_FILE_PRESENT=YES
+EMBEDDED_SOURCE_SHA256=<sha256>
 ```
+
+The helper compares that observed SHA-256 with `EXPECTED_EMBEDDED_SHA256`.
+
+A mismatch rejects the candidate even when platform, imports and application versions are otherwise valid.
+
+### Semantic-validator proof
+
+The supplied validator executes only inside the candidate container.
+
+For release `20260814-b946cbf`, the terminal-assignment validator proved:
+
+```text
+TERMINAL_TICKET_STATUSES= ['Archived', 'Closed', 'Resolved']
+TERMINAL_ASSIGNMENT_CHANGE=PASS
+```
+
+These semantic proof lines are emitted by the release-specific validator, not by `release-runtime-validate.sh`.
+
+### Required success markers
+
+A successful Phase 5 validation emits:
+
+```text
+CANDIDATE_RUNTIME_PLATFORM_OK=YES
+CANDIDATE_RUNTIME_IMPORTS_OK=YES
+CANDIDATE_RUNTIME_VERSIONS_OK=YES
+CANDIDATE_EMBEDDED_CHANGE_OK=YES
+CANDIDATE_SEMANTIC_VALIDATION_OK=YES
+CANDIDATE_RUNTIME_VALIDATION_OK=YES
+```
+
+`CANDIDATE_RUNTIME_VALIDATION_OK=YES` is the aggregate success marker and must only be emitted after all applicable Phase 5 validation layers succeed.
+
+### Regression coverage
+
+Run:
+
+```bash
+./tests/bin/test-release-runtime-validate.sh
+```
+
+The regression proves at minimum:
+
+```text
+known-good candidate accepted
+runtime-container failure rejected and log retained
+wrong application version rejected
+wrong embedded SHA-256 rejected
+semantic-validator failure rejected and log retained
+arm64 candidate rejected
+non-linux candidate rejected
+success markers suppressed after applicable failures
+```
+
+For regression-wrapper use, require both:
+
+```text
+raw test status = 0
+RELEASE_RUNTIME_VALIDATE_REGRESSION=PASS
+```
+
+Do not treat a truncated test run as successful merely because an enclosing shell command reports status `0`.
+
+### Historical real-image replay proof
+
+The automated Phase 5 procedure was replayed against the original known-good candidate:
+
+```text
+RELEASE_ID=20260814-b946cbf
+IMAGE_TAG=telectro/erpnext-runtime:prod-20260814-b946cbf
+IMAGE_ID=sha256:c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+IMAGE_CREATED=2026-08-14T13:35:10.937000085Z
+IMAGE_OS=linux
+IMAGE_ARCHITECTURE=amd64
+```
+
+The replay reproduced:
+
+```text
+frappe 15.96.0
+erpnext 15.94.1
+helpdesk 1.18.1
+telephony 0.0.1
+
+EMBEDDED_SOURCE_SHA256=146ebd7b061d5a2b6436c31deb9283048b28128857cf7288bbb23d7d9b5300d6
+
+TERMINAL_TICKET_STATUSES= ['Archived', 'Closed', 'Resolved']
+TERMINAL_ASSIGNMENT_CHANGE=PASS
+```
+
+Semantic evidence occurrence counts were also proved:
+
+```text
+SEMANTIC_HEADING_COUNT=1
+TERMINAL_STATUS_COUNT=1
+TERMINAL_PASS_COUNT=1
+```
+
+Final historical replay result:
+
+```text
+RAW_REPLAY_STATUS=0
+IMAGE_ID_MATCH=YES
+REPLAY_EVIDENCE_COMPLETE=YES
+REPLAY_STATUS=0
+```
+
+This proves that the automated Phase 5 procedure reproduces the known-good manual candidate validation against the original immutable August 14 image.
+
+It does not modify the candidate image and does not cross the production boundary.
+
+Phase 6 begins only after `CANDIDATE_RUNTIME_VALIDATION_OK=YES` has been established.
 
 ## Phase 6 — create and prove the image archive
 
