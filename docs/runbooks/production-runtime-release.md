@@ -1777,6 +1777,208 @@ Phase 6 begins only after `CANDIDATE_RUNTIME_VALIDATION_OK=YES` has been establi
 
 ## Phase 6 — create and prove the image archive
 
+### Automated Phase 6 procedure
+
+**Execution context:** local trusted source/build Mac only.
+
+Phase 6 begins only after:
+
+```text
+CANDIDATE_RUNTIME_VALIDATION_OK=YES
+```
+
+has been established for the immutable candidate image.
+
+Use:
+
+```text
+bin/release-image-archive.sh
+```
+
+Required input:
+
+```text
+RELEASE_ID
+```
+
+Optional inputs:
+
+```text
+IMAGE_ARCHIVE
+DOCKER_BIN
+```
+
+The helper derives the immutable candidate tag as:
+
+```text
+telectro/erpnext-runtime:prod-<release-id>
+```
+
+When `IMAGE_ARCHIVE` is omitted, the default archive path is:
+
+```text
+/tmp/telectro-erpnext-runtime-prod-<release-id>.tar.gz
+```
+
+Example:
+
+```bash
+RELEASE_ID="<release-id>" \
+  ./bin/release-image-archive.sh
+```
+
+Or, when an explicit destination is required:
+
+```bash
+RELEASE_ID="<release-id>" \
+IMAGE_ARCHIVE="/tmp/telectro-erpnext-runtime-prod-<release-id>.tar.gz" \
+  ./bin/release-image-archive.sh
+```
+
+The helper is local-only. It does not transfer artifacts, access production, load the candidate on production, or change running production containers.
+
+#### Destination reuse protection
+
+The archive and its checksum sidecar form one release-artifact pair:
+
+```text
+<image-archive>.tar.gz
+<image-archive>.tar.gz.sha256
+```
+
+Before `docker save` begins, the helper refuses to overwrite either an existing archive or an existing checksum sidecar.
+
+A failed archive-creation or validation path removes an incomplete or rejected archive so that it cannot be mistaken for a valid release artifact.
+
+#### Automated archive proof
+
+The helper:
+
+1. validates the release ID and Docker command;
+2. proves that the exact immutable candidate tag exists;
+3. records the daemon-reported image ID;
+4. runs `docker save` for that immutable tag;
+5. compresses the stream with `gzip -1`;
+6. validates the resulting gzip stream with `gzip -t`;
+7. records the exact compressed archive byte size;
+8. records the archive SHA-256;
+9. reads `manifest.json`;
+10. requires exactly one manifest row for the expected immutable tag;
+11. resolves the config path from that row;
+12. extracts and hashes the actual config blob;
+13. proves that the actual config SHA-256 matches the digest declared by the config path;
+14. records the config digest separately from the daemon-reported image ID;
+15. emits aggregate Phase 6 validation success only after all required proof layers pass;
+16. creates a portable SHA-256 sidecar for Phase 7 transfer.
+
+Docker archives may use either supported config layout:
+
+```text
+<digest>.json
+```
+
+or:
+
+```text
+blobs/sha256/<digest>
+```
+
+The declared digest must be exactly 64 lowercase hexadecimal characters.
+
+The archive SHA-256 and Docker config digest are independent evidence values and must not be inferred from each other.
+
+Record:
+
+```text
+RELEASE_ID
+IMAGE_TAG
+IMAGE_ID
+IMAGE_ARCHIVE
+IMAGE_ARCHIVE_SIZE
+IMAGE_ARCHIVE_SHA256
+CONFIG_PATH
+DECLARED_CONFIG_DIGEST
+IMAGE_CONFIG_DIGEST
+ACTUAL_CONFIG_SHA256
+IMAGE_ARCHIVE_SHA256_FILE
+```
+
+Relevant status evidence includes:
+
+```text
+ARCHIVE_CREATE_STATUS=0
+GZIP_STATUS=0
+MANIFEST_STATUS=0
+CONFIG_PATH_STATUS=0
+CONFIG_EXTRACT_STATUS=0
+SHA256_SIDECAR_STATUS=0
+```
+
+Required Phase 6 markers:
+
+```text
+IMAGE_ARCHIVE_GZIP_OK=YES
+IMAGE_ARCHIVE_TAG_OK=YES
+IMAGE_ARCHIVE_SHA256_RECORDED=YES
+IMAGE_ARCHIVE_CONFIG_DIGEST_OK=YES
+IMAGE_ARCHIVE_VALIDATION_OK=YES
+```
+
+#### Portable SHA-256 sidecar
+
+After aggregate archive validation succeeds, the helper creates:
+
+```text
+${IMAGE_ARCHIVE}.sha256
+```
+
+with exactly:
+
+```text
+<archive-sha256>  <archive-basename>
+```
+
+followed by a newline.
+
+The sidecar deliberately records the archive basename rather than the Mac temporary-directory path. This keeps the checksum file portable when Phase 7 transfers the archive and sidecar together into production staging.
+
+#### Regression proof
+
+Run:
+
+```bash
+./tests/bin/test-release-image-archive.sh
+```
+
+The regression covers:
+
+```text
+missing release ID rejection
+unavailable Docker rejection
+unavailable candidate-image rejection
+empty candidate image-ID rejection before docker save
+default archive-path derivation
+existing archive rejection before docker save
+existing sidecar rejection before docker save
+docker-save failure status preservation and partial-archive cleanup
+gzip-validation failure status preservation and cleanup
+manifest-extraction failure status preservation and rejected-archive cleanup
+unique expected-tag resolution
+missing expected-tag rejection and cleanup
+ambiguous expected-tag rejection and cleanup
+archive size and SHA-256 recording
+blobs/sha256/<digest> config validation
+<digest>.json config validation
+config-digest mismatch rejection and cleanup
+aggregate Phase 6 validation
+portable SHA-256 sidecar creation
+synthetic default-path artifact-pair cleanup
+```
+
+### Manual reference procedure
+
+The following manual procedure is retained as reference for understanding and independently reproducing the archive proof. The automated helper above is the canonical Phase 6 release procedure.
+
 Save the candidate image to a compressed archive.
 
 Recommended path:
@@ -1856,6 +2058,51 @@ IMAGE_ARCHIVE_SHA256_RECORDED
 IMAGE_ARCHIVE_CONFIG_DIGEST_OK
 IMAGE_ARCHIVE_VALIDATION_OK
 ```
+
+These five markers prove the archive-validation layer.
+
+Phase 6 is complete only when the helper itself exits with status `0`, the checksum sidecar is published successfully with:
+
+```text
+SHA256_SIDECAR_STATUS=0
+```
+
+and `IMAGE_ARCHIVE_SHA256_FILE` records the resulting sidecar path.
+
+### Automated Phase 6 historical replay proof
+
+The automated Phase 6 procedure was replayed locally against the original immutable August 14 candidate:
+
+```text
+RELEASE_ID=20260814-b946cbf
+IMAGE_TAG=telectro/erpnext-runtime:prod-20260814-b946cbf
+IMAGE_ID=sha256:c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+```
+
+The replay produced and independently verified:
+
+```text
+IMAGE_ARCHIVE_SIZE=868464404
+IMAGE_ARCHIVE_SHA256=20234659d3191c88377f2616e773feeafe40855a7269c3b66d0b2751c3e5be17
+
+CONFIG_PATH=blobs/sha256/c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+IMAGE_CONFIG_DIGEST=sha256:c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+ACTUAL_CONFIG_SHA256=c405f1267b71728891810722d627c7e6cf14126609b44f5285fb729161f1c3aa
+
+SHA256_SIDECAR_STATUS=0
+INDEPENDENT_GZIP_STATUS=0
+HISTORICAL_IMAGE_ID_MATCH=YES
+HISTORICAL_CONFIG_DIGEST_MATCH=YES
+PHASE6_REAL_REPLAY_COMPLETE=YES
+```
+
+The independently calculated archive SHA-256, helper-reported archive SHA-256, and sidecar SHA-256 were identical for the replay.
+
+The final post-trap replay also reproduced the historical compressed byte size of `868464404`. The recorded archive SHA-256 above is evidence for that specific replay invocation; compressed archive SHA-256 values are not used as historical Docker-image identity.
+
+The replay archive SHA-256 was not required to equal the SHA-256 of the earlier manually created gzip archive. The newly created archive is instead proved against its own independently calculated SHA-256 and portable sidecar, while immutable Docker identity is proved separately through the image ID and config digest.
+
+The replay remained entirely local and did not cross the production boundary.
 
 ## Phase 7 — transfer the release artifacts
 
