@@ -1,5 +1,7 @@
 import frappe
 
+from telephony.permissions import get_partner_ticket_report_condition
+
 
 ACTIVE_EXCLUDED_STATUSES = ("Archived", "Resolved", "Closed")
 
@@ -77,8 +79,19 @@ def get_columns():
 
 
 def get_data():
+    partner_condition = get_partner_ticket_report_condition(
+        frappe.session.user,
+        side="request",
+    )
+
+    partner_scope_clause = (
+        f"and ({partner_condition})"
+        if partner_condition
+        else ""
+    )
+
     return frappe.db.sql(
-        """
+        f"""
         select
             t.name,
             t.subject,
@@ -93,6 +106,7 @@ def get_data():
         from `tabHD Ticket` t
         where coalesce(t.custom_request_source, '') = 'Partner'
           and coalesce(t.status, '') not in %s
+          {partner_scope_clause}
         order by t.modified desc
         """,
         (ACTIVE_EXCLUDED_STATUSES,),

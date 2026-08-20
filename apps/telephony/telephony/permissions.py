@@ -1,5 +1,7 @@
 import frappe
 
+from telephony.partner_identity import get_enabled_partner_names_for_user
+
 PARTNER_ROLES = {
     "TELECTRO-POC Role - Partner",
     "TELECTRO-POC Role - Partner Creator",
@@ -12,6 +14,20 @@ CUSTOMER_PORTAL_ROLES = {
 INTERNAL_BYPASS_ROLES = {
     "System Manager",
     "Pilot Admin",
+    "TELECTRO-POC Role - Supervisor Governance",
+    "TELECTRO-POC Role - Coordinator Ops",
+}
+
+INTERNAL_PARTNER_REPORT_ROLES = {
+    "System Manager",
+    "Pilot Admin",
+    "TELECTRO-POC Tech",
+    "TELECTRO-POC Ops Role",
+    "TELECTRO-POC Coordinator-Tech Role",
+    "TELECTRO-POC Coordinator Role",
+    "TELECTRO-POC Role - Tech",
+    "TELECTRO-POC Role - PABX Tech",
+    "TELECTRO-POC Role - Faults Tech",
     "TELECTRO-POC Role - Supervisor Governance",
     "TELECTRO-POC Role - Coordinator Ops",
 }
@@ -32,11 +48,106 @@ def _is_internal_bypass_user(user: str) -> bool:
     return bool(roles & INTERNAL_BYPASS_ROLES)
 
 
+def _is_internal_partner_report_user(
+    user: str,
+) -> bool:
+    if not user or user == "Guest":
+        return False
+
+    if user == "Administrator":
+        return True
+
+    roles = _get_roles(user)
+
+    return bool(
+        roles & INTERNAL_PARTNER_REPORT_ROLES
+    )
+
+
 def _is_partner_user(user: str) -> bool:
     if not user or user == "Guest":
         return False
     roles = _get_roles(user)
     return bool(roles & PARTNER_ROLES)
+
+
+def get_partner_ticket_report_condition(
+    user: str | None = None,
+    side: str = "either",
+) -> str:
+    """
+    Return the Partner tenant condition for Partner-facing HD Ticket reports.
+
+    Explicit internal Telectro users retain the report's existing
+    operational scope. Unrelated non-Partner users receive no rows.
+
+    Partner Creator only:
+        owner-only containment.
+
+    Full Partner:
+        request     -> matching Request Partner organisation;
+        fulfilment -> matching Fulfilment Partner organisation;
+        either      -> matching organisation on either legitimate Partner side.
+
+    A Partner user with no enabled organisation memberships receives no rows.
+    """
+    user = user or frappe.session.user
+
+    if side not in {
+        "request",
+        "fulfilment",
+        "either",
+    }:
+        raise ValueError(
+            f"Unsupported Partner report side: {side}"
+        )
+
+    if _is_internal_partner_report_user(user):
+        return ""
+
+    roles = _get_roles(user)
+
+    if not roles & PARTNER_ROLES:
+        return "1 = 0"
+
+    partner_role = "TELECTRO-POC Role - Partner"
+    creator_role = "TELECTRO-POC Role - Partner Creator"
+
+    if creator_role in roles and partner_role not in roles:
+        return (
+            f"t.owner = {frappe.db.escape(user)}"
+        )
+
+    partner_names = get_enabled_partner_names_for_user(user)
+
+    if not partner_names:
+        return "1 = 0"
+
+    escaped_partners = ", ".join(
+        frappe.db.escape(partner_name)
+        for partner_name in partner_names
+    )
+
+    request_condition = f"""(
+        coalesce(t.custom_request_source, '') = 'Partner'
+        and t.custom_request_partner in ({escaped_partners})
+    )"""
+
+    fulfilment_condition = f"""(
+        coalesce(t.custom_fulfilment_party, '') = 'Partner'
+        and t.custom_fulfilment_partner in ({escaped_partners})
+    )"""
+
+    if side == "request":
+        return request_condition
+
+    if side == "fulfilment":
+        return fulfilment_condition
+
+    return f"""(
+        {request_condition}
+        or {fulfilment_condition}
+    )"""
 
 
 def _is_customer_portal_user(user: str) -> bool:

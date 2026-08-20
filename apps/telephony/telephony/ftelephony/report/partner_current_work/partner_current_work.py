@@ -2,6 +2,7 @@ import frappe
 from datetime import datetime
 
 from telephony.partner_create import get_partner_note_summary
+from telephony.permissions import get_partner_ticket_report_condition
 
 
 ACTIVE_EXCLUDED_STATUSES = ("Closed", "Archived", "Resolved")
@@ -108,8 +109,19 @@ def get_columns():
 
 
 def get_data():
+    partner_condition = get_partner_ticket_report_condition(
+        frappe.session.user,
+        side="either",
+    )
+
+    partner_scope_clause = (
+        f"and ({partner_condition})"
+        if partner_condition
+        else ""
+    )
+
     rows = frappe.db.sql(
-        """
+        f"""
         select
             t.name,
             t.subject,
@@ -130,6 +142,7 @@ def get_data():
                 coalesce(t.custom_request_source, '') = 'Partner'
                 or coalesce(t.custom_fulfilment_party, '') = 'Partner'
               )
+          {partner_scope_clause}
         order by t.modified desc
         """,
         (ACTIVE_EXCLUDED_STATUSES,),
