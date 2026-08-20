@@ -1202,13 +1202,7 @@
     "parent": "New Partner Tickets",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
+    "role": "Pilot Admin"
    },
    {
     "parent": "New Partner Tickets",
@@ -1220,19 +1214,7 @@
     "parent": "New Partner Tickets",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
+    "role": "TELECTRO-POC Coordinator Role"
    },
    {
     "parent": "New Partner Tickets",
@@ -1244,79 +1226,13 @@
     "parent": "New Partner Tickets",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator-Tech Role"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator Role"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - PABX Tech"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Faults Tech"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
     "role": "TELECTRO-POC Role - Coordinator Ops"
    },
    {
     "parent": "New Partner Tickets",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech Workspace"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Coordinator Workspace"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Ops Workspace"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner Creator"
-   },
-   {
-    "parent": "New Partner Tickets",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Pilot Admin"
+    "role": "TELECTRO-POC Role - Supervisor Governance"
    }
   ],
   "timeout": 0
@@ -1500,13 +1416,7 @@
     "parent": "Partner Acceptance Rework Queue",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
+    "role": "Pilot Admin"
    },
    {
     "parent": "Partner Acceptance Rework Queue",
@@ -1518,19 +1428,7 @@
     "parent": "Partner Acceptance Rework Queue",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
+    "role": "TELECTRO-POC Coordinator Role"
    },
    {
     "parent": "Partner Acceptance Rework Queue",
@@ -1542,79 +1440,13 @@
     "parent": "Partner Acceptance Rework Queue",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator-Tech Role"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator Role"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - PABX Tech"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Faults Tech"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
     "role": "TELECTRO-POC Role - Coordinator Ops"
    },
    {
     "parent": "Partner Acceptance Rework Queue",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech Workspace"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Coordinator Workspace"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Ops Workspace"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner Creator"
-   },
-   {
-    "parent": "Partner Acceptance Rework Queue",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Pilot Admin"
+    "role": "TELECTRO-POC Role - Supervisor Governance"
    }
   ],
   "timeout": 0
@@ -1740,13 +1572,7 @@
     "parent": "Partner Workflow War Room",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "Agent Manager"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Agent"
+    "role": "Pilot Admin"
    },
    {
     "parent": "Partner Workflow War Room",
@@ -1758,19 +1584,7 @@
     "parent": "Partner Workflow War Room",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "All"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Tech"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Helpdesk Contact"
+    "role": "TELECTRO-POC Coordinator Role"
    },
    {
     "parent": "Partner Workflow War Room",
@@ -1782,79 +1596,13 @@
     "parent": "Partner Workflow War Room",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator-Tech Role"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Coordinator Role"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - PABX Tech"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Faults Tech"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Supervisor Governance"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
     "role": "TELECTRO-POC Role - Coordinator Ops"
    },
    {
     "parent": "Partner Workflow War Room",
     "parentfield": "roles",
     "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Tech Workspace"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Coordinator Workspace"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Ops Workspace"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "TELECTRO-POC Role - Partner Creator"
-   },
-   {
-    "parent": "Partner Workflow War Room",
-    "parentfield": "roles",
-    "parenttype": "Report",
-    "role": "Pilot Admin"
+    "role": "TELECTRO-POC Role - Supervisor Governance"
    }
   ],
   "timeout": 0

@@ -14,6 +14,14 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
         Capture what is needed for a Telectro request. Location-linked fields help identify the object of interest clearly.
       </div>
 
+      <div
+        id="pr-partner-context"
+        class="alert alert-light border mb-4"
+        style="display:none;"
+      >
+        <div id="pr-partner-context-content"></div>
+      </div>
+
       <div class="row">
         <div class="col-md-6">
           <div class="form-group mb-3">
@@ -125,6 +133,162 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
     custom_severity: "Sev3",
     custom_request_type: "General Assistance",
   };
+
+  let partnerRequestContext = null;
+
+  const $submit = $body.find("#pr-submit");
+  $submit.prop("disabled", true);
+
+  function getSelectedRequestPartner() {
+    if (!partnerRequestContext) {
+      return "";
+    }
+
+    if (partnerRequestContext.requires_selection) {
+      return (
+        $body.find("#pr-request-partner").val()
+        || ""
+      ).trim();
+    }
+
+    return (
+      partnerRequestContext.default_partner
+      || partnerRequestContext.partner_names?.[0]
+      || ""
+    ).trim();
+  }
+
+  async function loadPartnerRequestContext() {
+    const $context = $body.find("#pr-partner-context");
+    const $content = $body.find(
+      "#pr-partner-context-content",
+    );
+
+    page.set_indicator(
+      "Loading Partner organisation…",
+      "blue",
+    );
+
+    try {
+      const r = await frappe.call({
+        method:
+          "telephony.partner_create.get_partner_request_context",
+      });
+
+      const context = r.message || {};
+      const partnerNames = Array.isArray(
+        context.partner_names,
+      )
+        ? context.partner_names
+        : [];
+
+      if (!partnerNames.length) {
+        throw new Error(
+          "No enabled Partner organisation is available for this user.",
+        );
+      }
+
+      partnerRequestContext = {
+        partner_names: partnerNames,
+        requires_selection:
+          context.requires_selection === true,
+        default_partner:
+          context.default_partner || null,
+      };
+
+      $context
+        .removeClass("alert-danger")
+        .addClass("alert-light border");
+
+      $content.empty();
+
+      if (partnerRequestContext.requires_selection) {
+        const $label = $("<label>")
+          .addClass("control-label reqd")
+          .attr("for", "pr-request-partner")
+          .text(__("Partner Organisation"));
+
+        const $select = $("<select>")
+          .addClass("form-control")
+          .attr("id", "pr-request-partner");
+
+        $("<option>")
+          .attr("value", "")
+          .text("")
+          .appendTo($select);
+
+        for (
+          const partnerName
+          of partnerRequestContext.partner_names
+        ) {
+          $("<option>")
+            .attr("value", partnerName)
+            .text(partnerName)
+            .appendTo($select);
+        }
+
+        const $help = $("<div>")
+          .addClass("text-muted small mt-2")
+          .text(
+            __(
+              "Choose the Partner organisation represented by this request.",
+            ),
+          );
+
+        $content.append(
+          $label,
+          $select,
+          $help,
+        );
+      } else {
+        const partnerName =
+          getSelectedRequestPartner();
+
+        const $label = $("<div>")
+          .addClass("text-muted small mb-1")
+          .text(__("Partner Organisation"));
+
+        const $value = $("<strong>")
+          .text(partnerName);
+
+        $content.append(
+          $label,
+          $value,
+        );
+      }
+
+      $context.show();
+      $submit.prop("disabled", false);
+      page.set_indicator("");
+    } catch (e) {
+      console.error(
+        "Could not load Partner organisation context",
+        e,
+      );
+
+      partnerRequestContext = null;
+
+      $context
+        .removeClass("alert-light border")
+        .addClass("alert-danger")
+        .show();
+
+      $content
+        .empty()
+        .text(
+          e?.message
+          || __(
+            "Partner organisation context could not be loaded.",
+          ),
+        );
+
+      $submit.prop("disabled", true);
+      page.set_indicator(
+        "Partner organisation unavailable",
+        "red",
+      );
+    }
+  }
 
   function getSelectedEvidenceFiles() {
     const input = $body.find("#pr-evidence-files").get(0);
@@ -416,10 +580,31 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
   applyDefaults();
   setQueries();
   applyCampusLock();
+  loadPartnerRequestContext();
 
   $body.find("#pr-submit").on("click", async () => {
     const subject = ($body.find("#pr-subject").val() || "").trim();
     let summary = ($body.find("#pr-summary").val() || "").trim();
+
+    if (!partnerRequestContext) {
+      frappe.msgprint(
+        "Partner organisation context is not available.",
+      );
+      return;
+    }
+
+    const requestPartner =
+      getSelectedRequestPartner();
+
+    if (
+      partnerRequestContext.requires_selection
+      && !requestPartner
+    ) {
+      frappe.msgprint(
+        "Partner Organisation is required.",
+      );
+      return;
+    }
 
     if (!subject) {
       frappe.msgprint("Subject is required");
@@ -431,6 +616,7 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
     }
 
     const payload = {
+      custom_request_partner: requestPartner,
       custom_customer: getValue("custom_customer"),
       custom_site_group: getValue("custom_site_group"),
       custom_fault_category: $body.find("#pr-custom-fault-category").val(),
@@ -501,7 +687,7 @@ frappe.pages["partner-request"].on_page_load = function (wrapper) {
         7,
       );
 
-      frappe.set_route("query-report", "Partner Submitted Tickets");
+      frappe.set_route("query-report", "Tickets Submitted by Partner");
     } catch (e) {
       console.error(e);
       frappe.msgprint({

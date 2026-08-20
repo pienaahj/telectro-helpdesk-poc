@@ -5,6 +5,12 @@ import base64
 import mimetypes
 from pathlib import Path
 
+from telephony.partner_identity import (
+    get_enabled_partner_names_for_user,
+    resolve_partner_name_for_user,
+    user_has_partner_ticket_membership,
+)
+
 
 PARTNER_ROLE = "TELECTRO-POC Role - Partner"
 PARTNER_CREATOR_ROLE = "TELECTRO-POC Role - Partner Creator"
@@ -39,7 +45,9 @@ PARTNER_DETAIL_FIELDS = [
     "custom_service_area",
     "custom_severity",
     "custom_request_source",
+    "custom_request_partner",
     "custom_fulfilment_party",
+    "custom_fulfilment_partner",
     "custom_partner_acceptance_state",
     "custom_partner_accepted_on",
     "custom_partner_work_state",
@@ -637,6 +645,16 @@ def _assert_partner_ticket_access(ticket_name: str, user: str):
     if _is_partner_creator(user) and PARTNER_ROLE not in user_roles:
         if row.owner != user:
             frappe.throw("Not permitted", frappe.PermissionError)
+        return
+
+    # Full Partner capability is organisation-scoped.
+    # The authenticated user must be an enabled member of at least one
+    # enabled Partner organisation legitimately represented on the ticket.
+    if not user_has_partner_ticket_membership(
+        user,
+        ticket_name,
+    ):
+        frappe.throw("Not permitted", frappe.PermissionError)
 
 def _assert_internal_partner_acceptance_review_access(ticket_name: str, user: str):
     if not _is_internal_acceptance_reviewer(user):
@@ -804,6 +822,41 @@ def request_partner_acceptance(ticket_name: str, note: str | None = None):
     }
     
 @frappe.whitelist()
+def get_partner_request_context():
+    """
+    Return Partner organisation choices for the authenticated Partner Creator.
+
+    The authenticated session determines the user. The client cannot request
+    organisation memberships for another user.
+    """
+    user = frappe.session.user
+
+    if not _is_partner_creator(user):
+        frappe.throw(
+            "Not permitted",
+            frappe.PermissionError,
+        )
+
+    partner_names = get_enabled_partner_names_for_user(user)
+
+    if not partner_names:
+        frappe.throw(
+            "Your user is not an enabled member of a Partner organisation.",
+            frappe.PermissionError,
+        )
+
+    return {
+        "partner_names": partner_names,
+        "requires_selection": len(partner_names) > 1,
+        "default_partner": (
+            partner_names[0]
+            if len(partner_names) == 1
+            else None
+        ),
+    }
+
+
+@frappe.whitelist()
 def create_partner_ticket(
     custom_customer=None,
     custom_site_group=None,
@@ -818,10 +871,16 @@ def create_partner_ticket(
     ticket_type=None,
     custom_service_area=None,
     custom_severity=None,
+    custom_request_partner=None,
 ):
     user = frappe.session.user
     if not _is_partner_creator(user):
         frappe.throw("Not permitted", frappe.PermissionError)
+
+    request_partner = resolve_partner_name_for_user(
+        user,
+        custom_request_partner,
+    )
 
     if not summary and subject:
         summary = subject
@@ -841,6 +900,7 @@ def create_partner_ticket(
     doc.custom_severity = custom_severity
 
     doc.custom_request_source = "Partner"
+    doc.custom_request_partner = request_partner
     doc.custom_fulfilment_party = "Telectro"
     doc.ticket_type = ticket_type or SERVICE_REQUEST
 

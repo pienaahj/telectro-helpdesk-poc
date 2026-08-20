@@ -55,6 +55,34 @@ WAR_ROOM_URL = (
     "TELECTRO%20Unclaimed%20War%20Room"
 )
 
+PARTNER_ACCEPTANCE_REVIEW_REPORT = (
+    "Partner Acceptance Review Queue"
+)
+
+
+def _partner_acceptance_review_custom_roles(
+) -> list[dict[str, Any]]:
+    """Return Custom Role overrides for the canonical review report."""
+
+    if not frappe.db.exists(
+        "DocType",
+        "Custom Role",
+    ):
+        return []
+
+    return frappe.get_all(
+        "Custom Role",
+        filters={
+            "report": PARTNER_ACCEPTANCE_REVIEW_REPORT,
+        },
+        fields=[
+            "name",
+            "report",
+            "ref_doctype",
+        ],
+        order_by="creation asc",
+    )
+
 
 def _canonical_report_issues() -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
@@ -394,6 +422,9 @@ def verify_report_transport_cleanup() -> dict[str, Any]:
     workspace_issues = _tech_workspace_issues()
     references = _obsolete_report_references()
     identity_hits = _workspace_identity_hits()
+    custom_role_overrides = (
+        _partner_acceptance_review_custom_roles()
+    )
 
     issues: list[dict[str, Any]] = []
 
@@ -424,6 +455,15 @@ def verify_report_transport_cleanup() -> dict[str, Any]:
             }
         )
 
+    if custom_role_overrides:
+        issues.append(
+            {
+                "type": "partner_acceptance_review_custom_role_override",
+                "report": PARTNER_ACCEPTANCE_REVIEW_REPORT,
+                "overrides": custom_role_overrides,
+            }
+        )
+
     return {
         "ok": not issues,
         "site": frappe.local.site,
@@ -436,6 +476,12 @@ def verify_report_transport_cleanup() -> dict[str, Any]:
             references
         ),
         "workspace_identity_hits": identity_hits,
+        "partner_acceptance_review_custom_role_count": (
+            len(custom_role_overrides)
+        ),
+        "partner_acceptance_review_custom_roles": (
+            custom_role_overrides
+        ),
     }
 
 
@@ -674,7 +720,27 @@ def ensure_report_transport_cleanup() -> dict[str, Any]:
 
         deleted_reports.append(report_name)
 
-    if workspace_changes or deleted_reports:
+    deleted_custom_roles: list[str] = []
+
+    for override in (
+        _partner_acceptance_review_custom_roles()
+    ):
+        frappe.delete_doc(
+            "Custom Role",
+            override["name"],
+            force=1,
+            ignore_permissions=True,
+        )
+
+        deleted_custom_roles.append(
+            override["name"]
+        )
+
+    if (
+        workspace_changes
+        or deleted_reports
+        or deleted_custom_roles
+    ):
         frappe.clear_cache()
 
     verification = verify_report_transport_cleanup()
@@ -700,6 +766,12 @@ def ensure_report_transport_cleanup() -> dict[str, Any]:
             deleted_reports
         ),
         "deleted_reports": deleted_reports,
+        "deleted_custom_role_count": len(
+            deleted_custom_roles
+        ),
+        "deleted_custom_roles": (
+            deleted_custom_roles
+        ),
         "verification": verification,
     }
 
@@ -724,9 +796,11 @@ def after_migrate() -> dict[str, Any]:
     frappe.logger("telephony").info(
         "Report transport cleanup verified: "
         "%s Workspace change(s), "
-        "%s obsolete Report(s) deleted",
+        "%s obsolete Report(s) deleted, "
+        "%s stale Custom Role override(s) deleted",
         result["workspace_change_count"],
         result["deleted_report_count"],
+        result["deleted_custom_role_count"],
     )
 
     return result

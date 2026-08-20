@@ -1,0 +1,118 @@
+{
+  "actions": [],
+  "allow_rename": 1,
+  "autoname": "field:partner_name",
+  "creation": "2026-08-20 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Setup",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "partner_name",
+    "enabled",
+    "default_dispatch_user",
+    "members",
+    "notes"
+  ],
+  "fields": [
+    {
+      "fieldname": "partner_name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Partner Name",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "default": "1",
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "in_list_view": 1,
+      "label": "Enabled"
+    },
+    {
+      "fieldname": "default_dispatch_user",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Default Dispatch User",
+      "options": "User"
+    },
+    {
+      "fieldname": "members",
+      "fieldtype": "Table",
+      "label": "Members",
+      "options": "TELECTRO Partner Member"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "istable": 0,
+  "links": [],
+  "modified": "2026-08-20 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "FTelephony",
+  "name": "TELECTRO Partner",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Pilot Admin",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Supervisor Governance",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Coordinator Ops",
+      "share": 0,
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "search_fields": "partner_name",
+  "sort_field": "partner_name",
+  "sort_order": "ASC",
+  "states": [],
+  "title_field": "partner_name",
+  "track_changes": 1
+}
