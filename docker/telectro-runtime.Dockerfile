@@ -9,7 +9,6 @@ FROM --platform=linux/amd64 ${ERPNEXT_IMAGE} AS runtime
 
 USER root
 
-ENV CI=1
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ENV NLTK_DATA=/home/frappe/nltk_data
 

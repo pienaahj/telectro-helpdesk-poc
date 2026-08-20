@@ -174,7 +174,18 @@ set -euo pipefail
 
 cd /home/frappe/frappe-bench
 
-printf '%s\n' '=== Required app directories ==='
+printf '%s\n' '=== Runtime environment safety ==='
+
+if [ "${CI+x}" = x ]
+then
+  printf '%s\n' 'RUNTIME_CI_UNSET=NO'
+  printf 'RUNTIME_CI_VALUE=%s\n' "$CI"
+  exit 22
+fi
+
+printf '%s\n' 'RUNTIME_CI_UNSET=YES'
+
+printf '\n%s\n' '=== Required app directories ==='
 
 for app in frappe erpnext helpdesk telephony
 do
@@ -255,6 +266,7 @@ printf 'VALIDATION_LOG=%s\n' "$VALIDATION_LOG"
   fail "candidate runtime validation failed with status $VALIDATION_STATUS"
 
 for marker in \
+  'RUNTIME_CI_UNSET=YES' \
   'FRAPPE_APP_PRESENT=YES' \
   'ERPNEXT_APP_PRESENT=YES' \
   'HELPDESK_APP_PRESENT=YES' \
