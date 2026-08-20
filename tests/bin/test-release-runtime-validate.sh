@@ -79,7 +79,18 @@ if [ "$#" -ge 1 ] &&
    [ "$1" = "run" ]; then
   printf '%s\n' "$*" >"${MOCK_RUN_ARGS:?}"
 
-  printf '%s\n' '=== Required app directories ==='
+  printf '%s\n' '=== Runtime environment safety ==='
+
+  if [ "${MOCK_RUNTIME_CI_SET:-NO}" = "YES" ]
+  then
+    printf '%s\n' 'RUNTIME_CI_UNSET=NO'
+    printf 'RUNTIME_CI_VALUE=%s\n' "${MOCK_RUNTIME_CI_VALUE:-1}"
+    exit 22
+  fi
+
+  printf '%s\n' 'RUNTIME_CI_UNSET=YES'
+
+  printf '\n%s\n' '=== Required app directories ==='
   printf '%s\n' 'FRAPPE_APP_PRESENT=YES'
   printf '%s\n' 'ERPNEXT_APP_PRESENT=YES'
   printf '%s\n' 'HELPDESK_APP_PRESENT=YES'
@@ -195,6 +206,81 @@ grep -F \
   <<<"$OUTPUT" \
   >/dev/null ||
   fail "validation-log path was not emitted"
+
+grep -Fqx \
+  'RUNTIME_CI_UNSET=YES' \
+  "$VALIDATION_LOG" ||
+  fail "known-good candidate did not prove CI is unset"
+
+printf '%s\n' 'KNOWN_GOOD_RUNTIME_CI_UNSET=PASS'
+
+printf '\n%s\n' '=== Candidate runtime CI rejection ==='
+
+CI_PRESENT_LOG="${TMP_ROOT}/runtime-ci-present-validation.log"
+
+if CI_PRESENT_OUTPUT="$(
+  MOCK_RUNTIME_CI_SET=YES \
+  MOCK_RUNTIME_CI_VALUE=1 \
+  RELEASE_ID="$KNOWN_RELEASE_ID" \
+  EXPECTED_FRAPPE_VERSION="$KNOWN_FRAPPE_VERSION" \
+  EXPECTED_ERPNEXT_VERSION="$KNOWN_ERPNEXT_VERSION" \
+  EXPECTED_HELPDESK_VERSION="$KNOWN_HELPDESK_VERSION" \
+  EXPECTED_TELEPHONY_VERSION="$KNOWN_TELEPHONY_VERSION" \
+  EMBEDDED_CHANGE_PATH="$KNOWN_EMBEDDED_PATH" \
+  EXPECTED_EMBEDDED_SHA256="$KNOWN_EMBEDDED_SHA256" \
+  SEMANTIC_VALIDATOR="$KNOWN_SEMANTIC_VALIDATOR" \
+  VALIDATION_LOG="$CI_PRESENT_LOG" \
+  DOCKER_BIN="$MOCK_DOCKER" \
+    "$HELPER" \
+    2>&1
+)"; then
+  CI_PRESENT_STATUS=0
+else
+  CI_PRESENT_STATUS=$?
+fi
+
+printf '%s\n' "$CI_PRESENT_OUTPUT"
+printf 'CI_PRESENT_STATUS=%s\n' "$CI_PRESENT_STATUS"
+
+[ "$CI_PRESENT_STATUS" -ne 0 ] ||
+  fail "candidate runtime with CI set was accepted"
+
+test -f "$CI_PRESENT_LOG" ||
+  fail "CI-present validation log was not retained"
+
+grep -Fqx \
+  'RUNTIME_CI_UNSET=NO' \
+  "$CI_PRESENT_LOG" ||
+  fail "CI-present candidate did not emit rejection marker"
+
+grep -Fqx \
+  'RUNTIME_CI_VALUE=1' \
+  "$CI_PRESENT_LOG" ||
+  fail "CI-present candidate did not retain observed CI value"
+
+grep -F \
+  'VALIDATION_STATUS=22' \
+  <<<"$CI_PRESENT_OUTPUT" \
+  >/dev/null ||
+  fail "CI-present candidate rejection status was not reported"
+
+grep -F \
+  'candidate runtime validation failed with status 22' \
+  <<<"$CI_PRESENT_OUTPUT" \
+  >/dev/null ||
+  fail "CI-present candidate rejection reason was not reported"
+
+if grep -F \
+  'CANDIDATE_RUNTIME_IMPORTS_OK=YES' \
+  <<<"$CI_PRESENT_OUTPUT" \
+  >/dev/null
+then
+  fail "runtime-import success marker was emitted for CI-present candidate"
+fi
+
+printf '%s\n' 'CI_PRESENT_CANDIDATE_REJECTED=PASS'
+printf '%s\n' 'CI_PRESENT_LOG_RETAINED=PASS'
+printf '%s\n' 'CI_PRESENT_IMPORT_MARKER_SUPPRESSED=PASS'
 
 printf '\n%s\n' '=== Candidate runtime failure rejection ==='
 

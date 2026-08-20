@@ -15,7 +15,6 @@ services:
       MYSQL_ROOT_PASSWORD: admin
       MARIADB_ROOT_PASSWORD: admin
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
-      CI: "1"
       # Custom env var to enable debug mode in our customizations (e.g. to enable debug logging, or skip certain steps in scripts)
       TELECTRO_DEBUG: ${TELECTRO_DEBUG:-0}  
     healthcheck:
