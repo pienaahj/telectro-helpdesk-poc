@@ -58,7 +58,6 @@ def get_data():
                 WHEN _assign = '["tech.alfa@local.test"]' THEN 'tech.alfa'
                 WHEN _assign = '["tech.bravo@local.test"]' THEN 'tech.bravo'
                 WHEN _assign = '["tech.charlie@local.test"]' THEN 'tech.charlie'
-                WHEN _assign = '["partner@local.test"]' THEN 'Partner'
                 ELSE _assign
             END AS owner_bucket,
             response_by,

@@ -67,7 +67,9 @@ def get_data(include_partner: int, stale_hours: int):
     }
 
     if not include_partner:
-        conditions.append("td.allocated_to != 'partner@local.test'")
+        conditions.append(
+            "COALESCE(h.custom_fulfilment_party, '') != 'Partner'"
+        )
 
     extra_where = ""
     if conditions:

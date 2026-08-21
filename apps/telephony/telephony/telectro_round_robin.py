@@ -1,8 +1,8 @@
 import frappe
 import json
-from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 
-PARTNER_USER = "partner@local.test"  # TODO: set to your actual partner queue user
+from telephony.partner_identity import resolve_partner_dispatch_user
+from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 
 def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
     ticket_name = (ticket_name or "").strip()
@@ -75,19 +75,41 @@ def assign_after_insert(doc, method=None):
     
     # Partner fulfilment overrides normal native team assignment.
     party = (doc.get("custom_fulfilment_party") or "").strip()
+
     if party == "Partner":
-        # If already has an Open ToDo, don't interfere
+        partner_name = (
+            doc.get("custom_fulfilment_partner") or ""
+        ).strip()
+
+        partner_user = resolve_partner_dispatch_user(
+            partner_name
+        )
+
+        # If already has an Open ToDo, don't interfere.
         open_todos = _open_todos_for_ticket(ticket)
+
         if not open_todos:
-            # If _assign already set, don't interfere
-            assign_users = _parse_assign_users(frappe.db.get_value("HD Ticket", ticket, "_assign") or "")
+            # If _assign is already populated, don't interfere.
+            assign_users = _parse_assign_users(
+                frappe.db.get_value(
+                    "HD Ticket",
+                    ticket,
+                    "_assign",
+                )
+                or ""
+            )
+
             if not assign_users:
                 _ensure_open_todo(
                     ticket,
-                    PARTNER_USER,
-                    desc=(doc.get("subject") or "Partner")[:140],
+                    partner_user,
+                    desc=(
+                        doc.get("subject")
+                        or "Partner"
+                    )[:140],
                 )
                 _mirror_assign_from_todo(doc)
+
         return
      # 2) Pilot Campus/Site routing policy
     policy = resolve_ticket_routing_policy(doc)

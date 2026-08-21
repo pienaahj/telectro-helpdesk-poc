@@ -3,7 +3,7 @@ import json
 import frappe
 
 from telephony.telectro_claim import _normalize_assignment, _normalize_to_pool
-from telephony.telectro_round_robin import PARTNER_USER
+from telephony.partner_identity import resolve_partner_dispatch_user
 from telephony.telectro_ticket_routing import seed_ticket_routing
 from telephony.telectro_routing_policy import resolve_ticket_routing_policy
 
@@ -17,9 +17,9 @@ ROUTING_FIELDS = {
     "custom_fault_asset",
     "custom_service_area",
     "custom_fulfilment_party",
+    "custom_fulfilment_partner",
     "agent_group",
 }
-
 
 def _clean(val) -> str:
     if val is None:
@@ -178,7 +178,8 @@ def reassign_if_routing_changed(doc, method=None):
     Behavior:
     - Trigger on upstream or final routing field changes
     - Re-seed final routing state first (important for service-area edits)
-    - Partner overrides all and assigns to PARTNER_USER
+    - Partner overrides all and assigns to the selected Partner organisation's
+      Default Dispatch User
     - Campus/Site policy may assign a specific user directly
     - Ordinary team routing uses the current HD Team Assignment Rule
     - Keep the current assignee when still valid for that team
@@ -206,9 +207,17 @@ def reassign_if_routing_changed(doc, method=None):
 
     # 1) Partner override
     if party == "Partner":
+        partner_name = _clean(
+            doc.get("custom_fulfilment_partner")
+        )
+
+        partner_user = resolve_partner_dispatch_user(
+            partner_name
+        )
+
         _normalize_assignment(
             ticket,
-            PARTNER_USER,
+            partner_user,
             note=f"Routing change: reassigned to Partner fulfilment | {subject}",
         )
         return
