@@ -1,6 +1,6 @@
 import frappe
 import json
-from telephony.telectro_round_robin import PARTNER_USER
+from telephony.partner_identity import resolve_partner_dispatch_user
 
 DOCT = "HD Ticket"
 
@@ -180,26 +180,49 @@ def _mirror_assign(ticket: str, users: list[str]) -> None:
 def _is_partner_fulfilment(doc) -> bool:
     return (doc.get("custom_fulfilment_party") or "").strip() == "Partner"
 
+def _resolve_partner_assignment_user(doc) -> str:
+    partner_name = (
+        doc.get("custom_fulfilment_partner") or ""
+    ).strip()
+
+    if not partner_name:
+        frappe.throw(
+            "Fulfilment Partner is required when "
+            "Fulfilment Party is Partner."
+        )
+
+    return resolve_partner_dispatch_user(
+        partner_name
+    )
 
 def _enforce_partner_assignment(ticket: str, doc=None) -> None:
     """
     Partner fulfilment invariant.
 
     Partner fulfilment must replace accountable ownership, not append to it:
-      - exactly one Open ToDo for PARTNER_USER
+      - resolve the selected Partner organisation's Default Dispatch User
+      - exactly one Open ToDo for that dispatch User
       - no other Open ToDos
-      - _assign = [PARTNER_USER]
+      - _assign = [dispatch User]
     """
     ticket = (ticket or "").strip()
     if not ticket:
         return
-    
+
+    if doc is None:
+        doc = frappe.get_doc(DOCT, ticket)
+
+    partner_user = _resolve_partner_assignment_user(
+        doc
+    )
+
     # If called during validate for a new ticket, the name can exist in memory
     # before the HD Ticket row exists in the database. Creating a linked ToDo at
     # that point fails with "Could not find Reference Name".
     if not frappe.db.exists("HD Ticket", ticket):
-        if doc is not None:
-            doc._assign = json.dumps([PARTNER_USER])
+        doc._assign = json.dumps(
+            [partner_user]
+        )
         return
 
     todos = _open_todos(ticket)
@@ -207,9 +230,14 @@ def _enforce_partner_assignment(ticket: str, doc=None) -> None:
     keep_partner_todo = None
 
     for td in todos:
-        user = (td.get("allocated_to") or "").strip()
+        user = (
+            td.get("allocated_to") or ""
+        ).strip()
 
-        if user == PARTNER_USER and keep_partner_todo is None:
+        if (
+            user == partner_user
+            and keep_partner_todo is None
+        ):
             keep_partner_todo = td["name"]
             continue
 
@@ -218,11 +246,13 @@ def _enforce_partner_assignment(ticket: str, doc=None) -> None:
     if keep_partner_todo is None:
         _ensure_open_todo(
             ticket,
-            PARTNER_USER,
+            partner_user,
             desc="Assigned via TELECTRO pilot action",
         )
 
-    assign_json = json.dumps([PARTNER_USER])
+    assign_json = json.dumps(
+        [partner_user]
+    )
 
     if doc is not None:
         doc._assign = assign_json
@@ -234,7 +264,7 @@ def _enforce_partner_assignment(ticket: str, doc=None) -> None:
         assign_json,
         update_modified=False,
     )  
-  
+
 def dedupe_assign_field(doc, method=None) -> None:
     """
     Runs at validate time.
@@ -246,7 +276,8 @@ def dedupe_assign_field(doc, method=None) -> None:
     - If no Open ToDo exists, collapse _assign to at most one user.
 
     Partner fulfilment exception:
-    - Partner fulfilment always normalizes ownership to PARTNER_USER.
+    - Partner fulfilment always normalizes ownership to the selected
+      Partner organisation's Default Dispatch User.
     - This prevents generic Fulfilment Party edits from appending Partner while
       leaving the previous owner active.
     """
@@ -258,7 +289,12 @@ def dedupe_assign_field(doc, method=None) -> None:
         # Validate can run before a new HD Ticket row exists in the DB.
         # Do not create linked ToDos here for new docs.
         if doc.is_new():
-            doc._assign = json.dumps([PARTNER_USER])
+            partner_user = _resolve_partner_assignment_user(
+                doc
+            )
+            doc._assign = json.dumps(
+                [partner_user]
+            )
             return
 
         _enforce_partner_assignment(ticket, doc=doc)

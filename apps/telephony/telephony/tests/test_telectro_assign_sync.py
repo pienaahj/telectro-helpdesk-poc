@@ -124,3 +124,63 @@ class TestTerminalAssignmentCleanup(unittest.TestCase):
             "TEST-ACTIVE",
             ["owner@example.com"],
         )
+
+class TestPartnerFulfilmentAssignment(unittest.TestCase):
+    def test_partner_fulfilment_uses_partner_default_dispatch_user(self):
+        doc = _TicketDoc(
+            name="TEST-PARTNER-FULFILMENT",
+            status="Open",
+            custom_fulfilment_party="Partner",
+            custom_fulfilment_partner="CN Services",
+            _assign="[]",
+        )
+
+        with (
+            patch.object(
+                assign_sync,
+                "resolve_partner_dispatch_user",
+                return_value="partner.test@local.test",
+            ) as resolve_dispatch_user,
+            patch.object(
+                assign_sync,
+                "frappe",
+            ) as frappe_mock,
+            patch.object(
+                assign_sync,
+                "_open_todos",
+                return_value=[],
+            ),
+            patch.object(
+                assign_sync,
+                "_ensure_open_todo",
+            ) as ensure_open_todo,
+        ):
+            frappe_mock.db.exists.return_value = True
+
+            assign_sync._enforce_partner_assignment(
+                "TEST-PARTNER-FULFILMENT",
+                doc=doc,
+            )
+
+        resolve_dispatch_user.assert_called_once_with(
+            "CN Services"
+        )
+
+        ensure_open_todo.assert_called_once_with(
+            "TEST-PARTNER-FULFILMENT",
+            "partner.test@local.test",
+            desc="Assigned via TELECTRO pilot action",
+        )
+
+        self.assertEqual(
+            doc._assign,
+            '["partner.test@local.test"]',
+        )
+
+        frappe_mock.db.set_value.assert_called_once_with(
+            "HD Ticket",
+            "TEST-PARTNER-FULFILMENT",
+            "_assign",
+            '["partner.test@local.test"]',
+            update_modified=False,
+        )
