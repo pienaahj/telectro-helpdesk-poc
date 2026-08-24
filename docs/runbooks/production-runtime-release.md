@@ -3506,6 +3506,12 @@ or:
 proven bench execute target
 ```
 
+When `bench execute` is used, do not treat non-empty stdout as the execution contract.
+
+Frappe may produce no returned-value output for falsey Python results such as `[]`, `False`, or `None`.
+
+A release-proof `bench execute` target must therefore emit or return an explicit positive proof marker, and the caller must verify that marker together with the command exit status.
+
 Required markers:
 
 ```text
