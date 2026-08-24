@@ -486,18 +486,22 @@ Ops work is done when:
 
 ## Main purpose
 
-The Partner workflow gives partner users a contained way to interact with Telectro.
+The Partner workflow gives Partner users a contained way to interact with Telectro on behalf of an authorised Partner organisation.
 
 Partners can:
 
-- log service requests;
-- view their submitted tickets;
-- view active partner-related tickets;
-- accept partner work when requested;
-- submit work done when Partner-side work is complete;
-- view archived Partner tickets.
+- log service requests for a Partner organisation they are permitted to represent;
+- view submitted tickets available to that Partner organisation;
+- view active Partner-related tickets available to that Partner organisation;
+- respond to Partner acceptance requests where Telectro handled a Partner-originated request;
+- submit work done where Telectro assigned fulfilment work to the Partner;
+- view archived Partner tickets available to that Partner organisation.
 
 Partner access is intentionally limited. Partner users should not use internal Telectro workspaces, Desk reports, or internal ticket forms.
+
+Partner ticket visibility is organisation-scoped. A Partner User should only see tickets legitimately associated with an enabled Partner organisation the User is permitted to represent.
+
+See `docs/runbooks/partner-operating-model.md` for the canonical Partner organisation, membership, containment, and workflow model.
 
 ---
 
@@ -513,12 +517,12 @@ Partner users should use:
 
 1. Log in as a Partner user.
 2. Open the Partner Workspace.
-3. Use `Log Ticket` to create a new service request for Telectro.
-4. Review submitted tickets.
-5. Review active tickets.
-6. If Telectro requests Partner acceptance, review and accept/reject as appropriate.
-7. If work is assigned to the Partner, complete the work outside the system.
-8. Use `Submit Work Done` when Partner-side work is complete.
+3. Use `Log Ticket` to create a new service request for Telectro under the correct Partner organisation.
+4. Review submitted tickets available to that Partner organisation.
+5. Review active tickets available to that Partner organisation.
+6. If Telectro requests Partner acceptance on a Partner-originated request, accept it or request rework as appropriate.
+7. If Telectro assigns fulfilment work to the Partner, complete the work outside the system.
+8. Use `Submit Work Done` when assigned Partner fulfilment work is complete.
 9. Review archived tickets where needed.
 
 ---
@@ -565,8 +569,8 @@ Partner users should use:
 - Log clear service requests.
 - Provide enough detail for Telectro to understand the request.
 - Review active Partner tickets regularly.
-- Respond to Partner acceptance requests when asked.
-- Submit work done only when the Partner-side work is complete.
+- Respond to Partner acceptance requests only for Partner-originated requests where Telectro handled the work.
+- Submit work done only for fulfilment work that Telectro assigned to the Partner.
 
 ---
 
@@ -583,11 +587,13 @@ Partner users should use:
 
 ## What done looks like for a Partner
 
-Partner work is done when:
+A Partner action is complete when the applicable workflow step has been completed:
 
-- a new request has been submitted to Telectro; or
-- requested Partner acceptance has been completed; or
-- assigned Partner work has been completed and submitted for Telectro review.
+- a new Partner-originated request has been submitted to Telectro; or
+- requested Partner acceptance has been accepted or rework has been requested; or
+- Partner fulfilment work has been completed and submitted for Telectro review.
+
+Partner acceptance and Partner fulfilment work are separate workflow trains.
 
 ---
 
@@ -761,9 +767,9 @@ The Customer portal should show useful progress and resolution information, but 
 
 Partner workflows are separate from Customer workflows.
 
-Partner users are contained to Partner pages and Partner actions.
+Partner users are contained to Partner pages, Partner actions, and tickets legitimately associated with Partner organisations they are permitted to represent.
 
-Partner users should not access internal Telectro reports or Customer portal workflows.
+Partner users should not access unrelated Partner organisation tickets, internal Telectro reports, or Customer portal workflows.
 
 ## Internal Telectro work
 
@@ -887,10 +893,10 @@ These can be used later as shorter handouts.
 ## Partner quick start
 
 1. Open `TELECTRO-POC Partner Workspace`.
-2. Log new requests from the Partner page.
-3. Review active Partner tickets.
-4. Respond to Partner acceptance requests.
-5. Submit work done when Partner-side work is complete.
+2. Log new requests under the correct Partner organisation.
+3. Review Partner tickets available to that organisation.
+4. Respond to Partner acceptance requests where Telectro handled a Partner-originated request.
+5. Submit work done where Telectro assigned fulfilment work to the Partner.
 
 ## Customer quick start
 
@@ -900,4 +906,3 @@ These can be used later as shorter handouts.
 4. Add subject, description, and photos if useful.
 5. Submit the request.
 6. Reopen the ticket later to view progress or add information.
-

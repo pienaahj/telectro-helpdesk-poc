@@ -3472,6 +3472,17 @@ For UI and report proof:
 - remove or archive that record according to the agreed production data rule;
 - never reuse a smoke-test record as normal operational history.
 
+For Partner production proof:
+
+- do not add a Telectro-controlled test User to a real Partner organisation merely to obtain browser or workflow evidence;
+- when a Partner test identity is required, use a dedicated clearly labelled synthetic Partner organisation;
+- use the synthetic Partner organisation for any Partner smoke ticket required by end-to-end proof;
+- do not create Partner smoke tickets merely to make Partner reports or queues non-empty;
+- accept a valid empty state where that proves the intended behavior;
+- disable or otherwise retire the synthetic Partner organisation after proof when it is no longer required.
+
+See `docs/runbooks/partner-operating-model.md` for the canonical Partner organisation, membership, dispatch, and synthetic-test policy.
+
 ### Console execution caution
 
 When Bench console is used:
@@ -3730,6 +3741,48 @@ restricted coordinator
 ```
 
 when the purpose is to prove role containment.
+
+For Partner proof, a Partner role alone is not sufficient evidence.
+
+The production test identity must also have the intended Partner organisation context.
+
+Before Partner browser proof, verify as applicable:
+
+- Partner organisation exists;
+- Partner organisation enablement is deliberate;
+- Partner User exists and is enabled;
+- Partner capability / Role Profile is correct;
+- Partner User has enabled membership in the intended Partner organisation;
+- Default Dispatch User is valid when Partner fulfilment dispatch is being tested.
+
+For a Telectro-controlled Partner test identity:
+
+- use a dedicated synthetic Partner organisation;
+- do not attach the test User to a real Partner organisation for convenience;
+- use a clearly labelled synthetic organisation such as `[PILOT TEST] Partner`.
+
+Use a fresh private/incognito session for the Partner account.
+
+Positive Partner proof should verify the applicable intended behavior, for example:
+
+- Partner Workspace opens;
+- Partner-originated requests use the correct Partner organisation;
+- intended Partner tickets are visible;
+- Partner acceptance actions work where applicable;
+- Partner fulfilment work actions work where applicable.
+
+Containment proof should verify, where a suitable negative case exists:
+
+- tickets belonging only to an unrelated Partner organisation are not accessible;
+- internal Telectro workspaces are not accessible;
+- internal reports are not accessible;
+- raw/internal HD Ticket surfaces remain unavailable outside the approved Partner interface.
+
+Do not claim negative Partner containment proof when no suitable restricted or unrelated test identity exists.
+
+Record such proof as `deferred`, `blocked by test-user availability`, or `not verified` rather than assuming it passed.
+
+See `docs/runbooks/partner-operating-model.md` for the canonical Partner identity and production-test model.
 
 ### Screenshot evidence
 

@@ -59,6 +59,12 @@ Seeds routing/team context before assignment runs.
 
 Handles the first ownership decision after insert.
 
+### Partner organisation / dispatch identity
+
+- `telephony.partner_identity.resolve_partner_dispatch_user`
+
+Resolves the deterministic dispatch User for Partner fulfilment from the selected Partner organisation and validates that the organisation, membership, User, and Partner capability are eligible for dispatch.
+
 ### Assignment synchronization / hygiene
 
 - `telephony.telectro_assign_sync.dedupe_assign_field`
@@ -102,6 +108,7 @@ After insert, `assign_after_insert()` determines what to do based on:
 
 - `agent_group`
 - `custom_fulfilment_party`
+- `custom_fulfilment_partner` when Partner fulfilment applies
 - existing open `ToDo`
 - existing `_assign`
 
@@ -167,22 +174,59 @@ no Open assignment ToDo
 
 ---
 
-### Partner override
+### Partner fulfilment override
 
-There is a special override path for tickets where:
+There is a special organisation-aware assignment path for tickets where:
 
 - `custom_fulfilment_party = "Partner"`
+- `custom_fulfilment_partner` identifies the Partner organisation responsible for fulfilment
 
-In that case:
+Partner fulfilment does not use a hard-coded Partner User.
 
-- round-robin and normal pool seeding are bypassed
-- the ticket is seeded to the partner-user path if it is still effectively unassigned
+Instead, `assign_after_insert()` passes `custom_fulfilment_partner` to:
 
-Current partner user constant:
+- `telephony.partner_identity.resolve_partner_dispatch_user`
 
-- `partner@local.test`
+The resolver requires:
 
-This prevents partner-fulfilment tickets from being silently pulled into the normal internal RR/pool flow.
+- the Partner organisation to exist
+- the Partner organisation to be enabled
+- a Default Dispatch User to be configured
+- the Default Dispatch User to be an enabled member of that Partner organisation
+- the Frappe User to exist and be enabled
+- the User to have at least one Partner capability role
+
+If any of those conditions fail, Partner dispatch fails closed with a validation error. The ticket does not silently fall through into normal internal round-robin or pool assignment.
+
+Once the dispatch User has been resolved:
+
+- normal internal round-robin and pool assignment are bypassed
+- an existing open assignment `ToDo` is not overwritten
+- an existing `_assign` owner is not overwritten
+- if the ticket is still effectively unassigned, one open assignment `ToDo` is ensured for the resolved Default Dispatch User
+- `_assign` is then mirrored from canonical open `ToDo` state
+
+The important identity distinction is:
+
+```text
+Partner organisation
+    != Partner User
+    != assignment ownership
+
+TELECTRO Partner
+    -> identifies the Partner organisation
+
+TELECTRO Partner Member
+    -> associates authorised Users with that organisation
+
+Default Dispatch User
+    -> identifies the deterministic operational recipient for Partner fulfilment
+
+Open assignment ToDo / _assign
+    -> represents current accountable ticket ownership
+```
+
+This prevents Partner-fulfilment tickets from being silently pulled into the normal internal round-robin/pool flow while keeping Partner organisation identity separate from operational assignment ownership.
 
 ---
 
@@ -217,7 +261,7 @@ When a ticket becomes terminal:
 
 - any Open assignment `ToDo` rows are cancelled
 - `_assign` is cleared
-- terminal cleanup takes precedence over partner assignment enforcement and ordinary assignment repair
+- terminal cleanup takes precedence over Partner fulfilment assignment enforcement and ordinary assignment repair
 - `_assign` must not recreate an assignment on a terminal ticket
 
 ### Why this matters
@@ -259,7 +303,7 @@ During validate:
 On update:
 
 - terminal tickets cancel Open assignment `ToDo` rows and clear `_assign`
-- terminal cleanup runs before partner assignment enforcement and ordinary assignment repair
+- terminal cleanup runs before Partner fulfilment assignment enforcement and ordinary assignment repair
 - multiple open `ToDo` rows on non-terminal tickets are collapsed
 - `_assign` is mirrored from canonical open `ToDo` state
 - missing `ToDo` can be recreated from `_assign` only when appropriate for a non-terminal ticket
@@ -385,11 +429,11 @@ It does **not** currently try to provide:
 - `_assign` mirrors canonical ownership state
 - true pool means `_assign = []` and no Open assignment `ToDo`
 - terminal (`Resolved` / `Closed` / `Archived`) means `_assign = []` and no Open assignment `ToDo`
-- terminal cleanup takes precedence over partner enforcement and assignment repair
+- terminal cleanup takes precedence over Partner fulfilment assignment enforcement and assignment repair
 - Controlled Handoff is the approved supervisor/coordinator accountability-transfer path
 - Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
 - the audit trail is visible in `TELECTRO Assignment Handoff Audit`
-- partner fulfilment is explicitly overridden
+- Partner fulfilment uses an explicit organisation-aware dispatch override and does not enter normal internal round-robin/pool assignment
 - generic direct assign/unassign is intentionally guarded
 - disabled Assignment Rules are not the live runtime mechanism
 
@@ -417,7 +461,7 @@ When proving or debugging assignment behavior, use this order:
 5. inspect post-insert assignment expectations
    - RR group?
    - pool fallback?
-   - partner override?
+   - Partner fulfilment override?
 
 6. use repair/proof tooling if drift is suspected
 
@@ -459,7 +503,7 @@ Revisit this runbook if any of the following change:
 
 - round-robin pools
 - pool user
-- partner user
+- Partner organisation / membership / dispatch rules
 - routing seed mappings
 - `_assign` / `ToDo` source-of-truth model
 - claim/handoff UX rules

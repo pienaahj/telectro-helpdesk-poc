@@ -199,7 +199,7 @@ Current behavior includes:
 
 - round-robin assignment for known configured groups
 - pool-user fallback for non-round-robin groups
-- partner override handling
+- Partner fulfilment organisation-aware dispatch handling
 - `_assign` and open `ToDo` normalization
 
 ### Assignment owner
