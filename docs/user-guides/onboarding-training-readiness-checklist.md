@@ -304,9 +304,18 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ---
 
-## 2.4 Partner user
+## 2.4 Partner organisation and user
 
 ### Required documents
+
+* `docs/runbooks/partner-operating-model.md`
+
+  * Partner organisation / tenant identity
+  * Partner membership
+  * Partner capability roles
+  * Default Dispatch User
+  * Partner acceptance versus Partner work-completion trains
+  * Partner production-test containment policy
 
 * `docs/user-guides/pilot-welcome-guides.md`
 
@@ -320,6 +329,18 @@ The main risk is starting onboarding before the complete path has been proven:
 ### Still needed
 
 * Partner screenshot pack
+
+### Organisation and user setup to verify
+
+* Correct `TELECTRO Partner` organisation exists.
+* Organisation enablement is deliberate.
+* Intended Partner User exists.
+* Required Partner Role Profile / capability is assigned.
+* User is an enabled member of the correct Partner organisation.
+* Default Dispatch User is configured when Partner fulfilment dispatch is required.
+* Default Dispatch User is an enabled member of the same Partner organisation.
+* Real Partner organisations do not contain Telectro-controlled synthetic test Users.
+* Multi-organisation membership is handled deliberately where applicable.
 
 ### Required screenshots
 
@@ -335,24 +356,30 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Training actions to demonstrate
 
-* Open Partner Workspace
-* Log a Partner service request
-* Review submitted tickets
-* Review active Partner tickets
-* Accept or reject requested Partner work
-* Submit work done
-* Respond to Partner rework and resubmit work done
-* Understand that Telectro reviews Partner completion
-* Understand that Partner users do not close Telectro-owned review steps
-* Understand that Partner users do not access internal Telectro workspaces or reports
+* Open Partner Workspace.
+* Log a Partner service request under the correct Partner organisation.
+* Review submitted tickets.
+* Review active Partner tickets.
+* Respond to a Partner acceptance request where Telectro handled a Partner-originated request.
+* Submit work done where Telectro assigned fulfilment work to the Partner.
+* Respond to Partner work rework and resubmit work done.
+* Understand that Partner acceptance and Partner work completion are separate workflow trains.
+* Understand that Telectro reviews Partner acceptance and completed Partner work.
+* Understand that Partner users do not close Telectro-owned review steps.
+* Understand that Partner users do not access internal Telectro workspaces or reports.
 
 ### Onboarding proof required
 
-* Partner user can log in.
+* Partner organisation identity is configured correctly.
+* Partner User has the intended Partner capability.
+* Partner User has enabled membership in the intended Partner organisation.
+* Partner User can log in.
 * Partner lands on or can access the Partner Workspace.
-* Partner can log a ticket.
-* Partner can view only intended Partner tickets.
+* Partner can log a ticket against an organisation the User is permitted to represent.
+* Partner can view only tickets legitimately associated with an enabled Partner organisation the User represents.
 * Partner can use Partner actions where applicable.
+* Partner fulfilment dispatch resolves correctly where fulfilment dispatch is part of the onboarding proof.
+* Partner cannot access unrelated Partner organisation tickets.
 * Partner cannot access internal Telectro workspaces, reports, or HD Ticket forms outside the intended Partner surfaces.
 
 ---
@@ -595,6 +622,10 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Coordinator role profile tested.
 * [ ] Supervisor role profile tested.
 * [ ] Partner role profile tested.
+* [ ] Partner organisation exists and is configured deliberately.
+* [ ] Partner User has enabled membership in the intended Partner organisation.
+* [ ] Partner organisation containment has been tested.
+* [ ] Default Dispatch User has been verified where Partner fulfilment dispatch is required.
 * [ ] Customer portal user tested.
 * [ ] Technician lands on or can access Tech Workspace.
 * [ ] Coordinator lands on or can access Coordinator Workspace.
@@ -602,6 +633,7 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Partner lands on or can access Partner Workspace.
 * [ ] Customer lands on or can access Support Requests.
 * [ ] Partner cannot access internal Telectro workspaces/reports.
+* [ ] Partner cannot access tickets belonging only to an unrelated Partner organisation.
 * [ ] Customer cannot access internal Telectro workspaces/reports.
 * [ ] Customer cannot see internal notes.
 
@@ -619,10 +651,12 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Evidence can be selected in Customer-visible update.
 * [ ] Customer can download Customer-visible evidence.
 * [ ] Technician can claim/release/handoff where applicable.
-* [ ] Partner can log a Partner request.
-* [ ] Partner acceptance flow works where applicable.
-* [ ] Partner submit work done flow works where applicable.
-* [ ] Telectro can review Partner work.
+* [ ] Partner can log a Partner-originated request under the correct Partner organisation.
+* [ ] Partner acceptance flow works for a Partner-originated / non-Partner-fulfilled ticket where applicable.
+* [ ] Partner fulfilment dispatch resolves to the configured Default Dispatch User where applicable.
+* [ ] Partner submit work done flow works for a non-Partner-originated / Partner-fulfilled ticket where applicable.
+* [ ] Telectro can review Partner acceptance.
+* [ ] Telectro can review Partner completed work.
 * [ ] Customer ticket can be resolved after Telectro confirms the work outcome.
 
 ## Training pack readiness
@@ -730,9 +764,20 @@ Reason:
 * Customer and Partner activity creates tickets that Telectro must be ready to handle;
 * supervisors/coordinators need to know how to monitor early risk.
 
-## Phase 2 — Partner user
+## Phase 2 — Partner organisation and user
 
-Onboard Partner users after internal Telectro users can handle Partner-side review queues.
+Onboard Partner organisations and their Users after internal Telectro users can handle Partner-side review queues.
+
+Partner onboarding is organisation-first.
+
+Before inviting a Partner User, confirm:
+
+* the correct Partner organisation exists;
+* organisation enablement is deliberate;
+* the intended User has the required Partner capability;
+* the User has enabled membership in the correct Partner organisation;
+* Default Dispatch User is configured when Partner fulfilment dispatch is required;
+* tenant containment has been verified.
 
 Do not onboard Partner users until Telectro can:
 
@@ -740,7 +785,11 @@ Do not onboard Partner users until Telectro can:
 * review Partner acceptance;
 * review Partner submitted work;
 * send rework back where needed;
-* keep Partner access contained.
+* keep Partner access contained by organisation membership.
+
+For controlled production testing, use a dedicated synthetic Partner organisation for Telectro-controlled test identities. Do not add synthetic test Users to real Partner organisations merely to obtain browser or workflow proof.
+
+See `docs/runbooks/partner-operating-model.md` for the canonical Partner organisation, membership, dispatch, and production-test model.
 
 ## Phase 3 — Customer portal user
 

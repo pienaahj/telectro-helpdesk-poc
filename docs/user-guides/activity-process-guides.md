@@ -3715,9 +3715,19 @@ Use the Customer resolved outcome process for Customer-facing resolution review.
 
 ### Partner-originated ticket
 
-A Partner-originated ticket is a ticket logged by a Partner where the request source is `Partner`.
+A Partner-originated ticket is a ticket logged under an authorised Partner organisation where the request source is `Partner`.
 
-In this train, the Partner asks Telectro for help, and Telectro works the ticket.
+The requesting Partner organisation is recorded separately from the authenticated User.
+
+In this train:
+
+```text
+Request Source = Partner
+Request Partner = the requesting Partner organisation
+Fulfilment Party != Partner
+```
+
+The Partner asks Telectro for help, and Telectro works the ticket.
 
 ### Partner acceptance request
 
@@ -3781,11 +3791,12 @@ These are separate Partner workflow trains.
 
 Before responding to a Partner acceptance request, the Partner should confirm:
 
-* they are logged in as the correct Partner user;
+* they are logged in as the correct Partner user and are acting for the intended Partner organisation;
 * they have opened the correct Partner ticket;
 * the ticket is not `Resolved`, `Closed`, or `Archived`;
 * the ticket shows the correct subject and summary;
 * the ticket is a Partner-originated request;
+* the ticket belongs to a Partner organisation the User is permitted to represent;
 * the Partner Acceptance Requested note is visible, if one was provided;
 * the visible ticket information is enough to decide whether to accept or request rework.
 
@@ -4135,6 +4146,7 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/runbooks/service-coverage-model.md`
 * `docs/runbooks/customer-ticket-lifecycle-v1.md`
 * `docs/user-guides/activity-process-guides.md#9-customer-checks-resolved-ticket-outcome`
+* `docs/runbooks/partner-operating-model.md`
 
 # 11. Partner submits work done
 
@@ -4225,13 +4237,14 @@ Use the Customer resolved outcome process for Customer-facing resolution review.
 
 ### Telectro-assigned Partner work
 
-Telectro-assigned Partner work is a ticket where Telectro has asked the Partner to perform fulfilment work.
+Telectro-assigned Partner work is a ticket where Telectro has asked a specific Partner organisation to perform fulfilment work.
 
 In this train:
 
 ```text
 Request Source is not Partner
 Fulfilment Party is Partner
+Fulfilment Partner = the Partner organisation responsible for the work
 ```
 
 The Partner completes the work and then submits a work-done note.
@@ -4316,9 +4329,10 @@ The Partner does not resolve or close the ticket directly.
 
 Before submitting work done, the Partner should confirm:
 
-* they are logged in as the correct Partner user;
+* they are logged in as the correct Partner user and are acting for the Partner organisation assigned the work;
 * they have opened the correct Partner ticket;
 * the ticket is assigned to Partner fulfilment;
+* the fulfilling Partner organisation is one the User is permitted to represent;
 * the ticket is not `Resolved`, `Closed`, or `Archived`;
 * the work has actually been completed;
 * any required evidence has been uploaded;
@@ -4675,6 +4689,7 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
 * `docs/runbooks/notification-v1-operating-model.md`
 * `docs/runbooks/service-coverage-model.md`
+* `docs/runbooks/partner-operating-model.md`
 
 # 12. Review Partner acceptance
 

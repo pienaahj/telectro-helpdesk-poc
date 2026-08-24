@@ -63,6 +63,7 @@ If you are re-entering the project after time away, read in this order:
    - **Mail Health Runbook**
    - **Manual Ticket Intake Runbook**
    - **Ticket Assignment Contract**
+   - **Partner Operating Model**
    - **Ticket Status and Workspace Baseline**
 
 5. **Email Reference**
@@ -253,13 +254,11 @@ This runbook describes **current pilot behavior**. It should not be used as the 
 
 **Use for:**
 
-**Use for:**
-
 - current app-owned assignment model
 - routing -> assignment -> sync flow
 - round-robin groups
 - true pool fallback
-- partner override
+- Partner fulfilment organisation-aware dispatch assignment
 - `ToDo` vs `_assign` source-of-truth model
 - claim/handoff restrictions
 - true pool vs owned-ticket assignment invariant
@@ -277,7 +276,7 @@ This runbook describes **current pilot behavior**. It should not be used as the 
 **Do not duplicate elsewhere:**
 
 - assignment architecture explanation
-- round-robin / pool / partner logic
+- round-robin / pool / Partner fulfilment assignment logic
 - `_assign` vs `ToDo` truth model
 - claim/handoff contract
 
@@ -285,7 +284,49 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
-### 8) Ticket status baseline / workspace baseline
+### 8) Partner organisation / identity / workflow model
+
+**Canonical source:** `docs/runbooks/partner-operating-model.md`
+
+**Use for:**
+
+- Partner organisation / tenant identity
+- `TELECTRO Partner` and `TELECTRO Partner Member`
+- Partner capability roles versus organisation membership
+- User-to-Partner organisation resolution
+- request-side `custom_request_partner` identity
+- fulfilment-side `custom_fulfilment_partner` identity
+- Partner ticket containment
+- Default Dispatch User semantics and dispatch readiness
+- Partner-originated / Telectro-fulfilled acceptance train
+- non-Partner-originated / Partner-fulfilled work-completion train
+- Partner organisation-first onboarding and staging
+- synthetic Partner production-test policy
+
+**Read this when:**
+
+- configuring or onboarding a Partner organisation
+- explaining which Partner organisation a User represents
+- proving Partner ticket containment
+- checking Partner request-side versus fulfilment-side identity
+- validating Partner fulfilment dispatch readiness
+- explaining the two Partner workflow trains
+- preparing controlled Partner production browser/workflow proof
+
+**Do not duplicate elsewhere:**
+
+- Partner tenant identity theory
+- organisation / membership / capability distinction
+- Default Dispatch User identity model
+- Partner ticket containment rules
+- Partner train definitions
+- synthetic Partner production-test policy
+
+Other runbooks and user guides should link to this document rather than redefining the Partner identity model.
+
+---
+
+### 9) Ticket status baseline / workspace baseline
 
 **Canonical source:** `docs/runbooks/ticket-status-and-workspace-baseline.md`
 
@@ -312,7 +353,7 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
-### 9) Supervisor monitoring and intervention model
+### 10) Supervisor monitoring and intervention model
 
 **Canonical source:** `docs/runbooks/supervisor-operating-model.md`
 
@@ -336,7 +377,7 @@ Other docs should reference this rather than restating assignment theory.
 
 ---
 
-### 10) Production runtime releases
+### 11) Production runtime releases
 
 **Canonical source:** `docs/runbooks/production-runtime-release.md`
 
@@ -377,7 +418,7 @@ Use `docs/runbooks/production-deployment.md` for the broader production architec
 
 ---
 
-### 11) Phase 2 Pilot Enhancements
+### 12) Phase 2 Pilot Enhancements
 
 - [Pilot Phase 2 Enhancements](pilot-phase-2-enhancements.md)
   - Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
@@ -389,6 +430,7 @@ Use `docs/runbooks/production-deployment.md` for the broader production architec
 - **“How should an email-created ticket behave?”** — Read: **Email Ticket Intake Runbook**
 - **“How should a manual ticket behave?”** — Read: **Manual Ticket Intake Runbook**
 - **“Why did this ticket assign this way?”** — Read: **Ticket Assignment Contract**
+- **“How does Partner organisation identity, membership, containment, dispatch, or Partner workflow work?”** — Read: **Partner Operating Model**
 - **“Why is this old ticket not trustworthy?”** — Read: **Ticket Status and Workspace Baseline**
 - **“What are the actual mail commands / container checks again?”** — Read: **Email Reference**
 - **“How do I stand this repo up and work in it?”** — Read: **README.md**
@@ -445,6 +487,8 @@ Try not to repeat these in multiple places:
 - full mail-shell command sets
 - proof philosophy / staleness rules
 - assignment model theory
+- Partner organisation / membership / capability identity theory
+- Partner containment and Default Dispatch User semantics
 - mailbox-to-routing contract
 - `ToDo` vs `_assign` source-of-truth explanation
 - archive/trust-boundary rationale
@@ -523,7 +567,8 @@ At the moment, the doc set has a good emerging split:
 - **Mail Health Runbook** = mail-path health
 - **Email Ticket Intake Runbook** = inbound email contract
 - **Manual Ticket Intake Runbook** = manual capture contract
-- **Ticket Assignment Contract** = ownership model, true-pool invariant, Controlled Handoff, and handoff audit trail
+- **Ticket Assignment Contract** = ownership model, round-robin / true-pool behavior, Partner fulfilment assignment, Controlled Handoff, and handoff audit trail
+- **Partner Operating Model** = canonical Partner organisation, membership, capability, containment, dispatch, workflow-train, onboarding, and synthetic production-test model
 - **Ticket Status and Workspace Baseline** = operational trust boundary and archive policy
 - **Supervisor Operating Model** = supervisor monitoring, intervention model, and handoff audit usage
 - **SLA and Supervisor Risk Signals** = where Helpdesk SLA timing is configured, how `response_by` / `resolution_by` are derived, and how supervisor risk signals should interpret those fields
