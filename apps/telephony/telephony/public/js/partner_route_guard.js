@@ -71,6 +71,31 @@
     return BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   }
 
+  function isRawHdTicketPath(pathname) {
+    if (
+      pathname === "/app/hd-ticket" ||
+      pathname === "/app/hd-ticket/"
+    ) {
+      return true;
+    }
+
+    if (
+      pathname === "/app/hd-ticket/view" ||
+      pathname.startsWith("/app/hd-ticket/view/")
+    ) {
+      return true;
+    }
+
+    if (
+      pathname === "/app/hd-ticket/new-hd-ticket" ||
+      pathname.startsWith("/app/hd-ticket/new-hd-ticket-")
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   function getPartnerHdTicketRouteName() {
     const path = window.location.pathname || "";
     const pathMatch = path.match(/^\/app\/hd-ticket\/([^/?#]+)/);
@@ -222,6 +247,11 @@
     const path = window.location.pathname || "";
 
     if (!isPartnerUser()) return;
+
+    if (isRawHdTicketPath(path)) {
+      redirectAway();
+      return;
+    }
 
     const partnerTicketName = getPartnerHdTicketRouteName();
     if (partnerTicketName) {
