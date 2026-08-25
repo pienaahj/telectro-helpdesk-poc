@@ -222,7 +222,19 @@ Production proof on 2026-08-25 established the native Helpdesk identity and rout
 
 Ticket `14` was created through the native Helpdesk `/helpdesk` Create path solely as a controlled identity and routing proof. That route is not a canonical pilot ticket-intake path and does not prove the normal ERPNext HD Ticket creation form, pilot field rules, defaults, field order, or normal intake workflow.
 
-A final Technician onboarding acceptance proof must therefore repeat the assignment/access smoke test using a canonical pilot ticket-intake path.
+Canonical production follow-up proof was completed with Ticket `16`, `[PILOT TEST][ONB-03] Canonical PABX onboarding routing proof`:
+
+* the ticket was created through the normal ERPNext / Desk HD Ticket creation path;
+* `PABX` was confirmed before save and remained `PABX` after save;
+* routing seeded `agent_group=PABX`;
+* creator take-ownership was not selected and no dedicated-Campus override applied;
+* native Assignment Rule `PABX - Support Rotation-13` assigned the ticket to `christo@telectro.co.za`;
+* `_assign` contained only `christo@telectro.co.za`;
+* exactly one open ToDo existed, allocated to Christo with native Assignment Rule provenance;
+* Ticket `16` appeared under `My Current Work` as `Assigned to me`;
+* Christo could access the resulting ticket.
+
+The Technician assignment/access smoke test through a canonical pilot ticket-intake path is therefore proven.
 
 ---
 
@@ -698,7 +710,7 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Customer can download Customer-visible evidence.
 * [x] Controlled native Helpdesk round-robin assignment produces matching `_assign` and exactly one open ToDo for the assigned internal user.
 * [x] Controlled assigned work appears in `My Current Work` and the assigned internal user can open the ticket.
-* [ ] Technician assignment/access smoke test has been repeated using a canonical pilot ticket-intake path.
+* [x] Technician assignment/access smoke test has been repeated using a canonical pilot ticket-intake path.
 * [ ] Technician can claim/release/handoff where applicable.
 * [ ] Partner can log a Partner-originated request under the correct Partner organisation.
 * [ ] Partner acceptance flow works for a Partner-originated / non-Partner-fulfilled ticket where applicable.
