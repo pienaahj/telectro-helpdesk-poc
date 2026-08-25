@@ -197,13 +197,32 @@ The main risk is starting onboarding before the complete user acceptance path ha
 
 ### Onboarding proof required
 
-* Technician user can log in.
+* Technician User exists, is enabled, and has the intended Role Profile.
+* Technician has a native active `HD Agent` identity for the Helpdesk agent experience.
+* Technician can access the native Helpdesk agent application.
 * Technician lands on or can access the Tech Workspace.
 * Technician can open My Current Work.
 * Technician can open assigned tickets.
 * Technician can see Customer Request and Fault Location context.
 * Technician can use intended ticket actions.
+* Technician has deliberate membership in the required HD Team or Teams.
+* HD Team membership is reflected in the linked native Assignment Rule.
+* The linked Assignment Rule is enabled when the Team has one or more members.
+* A ticket routed through a canonical pilot ticket-intake path can be assigned to the Technician and produces matching `_assign` and open ToDo state.
 * Technician does not rely on Partner or Customer portal workflows.
+
+Production proof on 2026-08-25 established the native Helpdesk identity and routing mechanics using `christo@telectro.co.za`:
+
+* native `HD Agent` creation through Helpdesk `get_agent()` was proven;
+* creating the `HD Agent` did not add Team or Assignment Rule membership;
+* adding Christo to `PABX` automatically added him to `PABX - Support Rotation-13` and enabled the rule;
+* controlled Ticket `14` was natively assigned to Christo with matching `_assign`, one open ToDo, and Assignment Rule `last_user`;
+* Ticket `14` appeared under `My Current Work` as `Assigned to me`;
+* Christo could open Ticket `14` successfully.
+
+Ticket `14` was created through the native Helpdesk `/helpdesk` Create path solely as a controlled identity and routing proof. That route is not a canonical pilot ticket-intake path and does not prove the normal ERPNext HD Ticket creation form, pilot field rules, defaults, field order, or normal intake workflow.
+
+A final Technician onboarding acceptance proof must therefore repeat the assignment/access smoke test using a canonical pilot ticket-intake path.
 
 ---
 
@@ -643,6 +662,9 @@ Do not invite real users until these checks are complete or explicitly accepted 
 ## Role and workspace access
 
 * [ ] Technician role profile tested.
+* [x] Native Helpdesk `HD Agent` identity creation has been proven with a controlled production internal user.
+* [x] `HD Agent` identity has been proven independent of HD Team and Assignment Rule membership.
+* [x] HD Team membership has been proven to synchronise to the linked native Assignment Rule and enable the rule when the first Team member is added.
 * [ ] Coordinator role profile tested.
 * [ ] Supervisor role profile tested.
 * [ ] Partner role profile tested.
@@ -674,6 +696,9 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Evidence can be attached to a ticket.
 * [ ] Evidence can be selected in Customer-visible update.
 * [ ] Customer can download Customer-visible evidence.
+* [x] Controlled native Helpdesk round-robin assignment produces matching `_assign` and exactly one open ToDo for the assigned internal user.
+* [x] Controlled assigned work appears in `My Current Work` and the assigned internal user can open the ticket.
+* [ ] Technician assignment/access smoke test has been repeated using a canonical pilot ticket-intake path.
 * [ ] Technician can claim/release/handoff where applicable.
 * [ ] Partner can log a Partner-originated request under the correct Partner organisation.
 * [ ] Partner acceptance flow works for a Partner-originated / non-Partner-fulfilled ticket where applicable.
@@ -787,6 +812,23 @@ Reason:
 * internal users must understand the process before external users are invited;
 * Customer and Partner activity creates tickets that Telectro must be ready to handle;
 * supervisors/coordinators need to know how to monitor early risk.
+
+For each internal Helpdesk user, complete the operational onboarding layers separately:
+
+1. create or verify the enabled Frappe User;
+2. apply and verify the intended Role Profile;
+3. establish the native active `HD Agent` identity;
+4. verify access to the native Helpdesk agent application and intended role workspace;
+5. add deliberate membership to the required HD Team or Teams;
+6. verify that Helpdesk synchronises the same user into each linked native Assignment Rule;
+7. verify that the Assignment Rule enables when the Team becomes populated;
+8. create a controlled ticket through a canonical pilot ticket-intake path;
+9. verify routing to the intended Team, matching `_assign`, and exactly one open ToDo;
+10. verify that the assigned ticket appears in `My Current Work` and opens successfully for the user.
+
+`HD Agent` identity and HD Team membership are separate onboarding controls. Creating or obtaining an `HD Agent` must not be treated as making the user routable.
+
+The native Helpdesk `/helpdesk` Create Ticket route may be used for isolated Helpdesk mechanism testing, but it is not a canonical pilot ticket-intake path and must not be used as evidence for the normal ERPNext ticket creation form or pilot field-validation behaviour.
 
 ## Phase 2 — Partner organisation and user
 
