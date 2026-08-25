@@ -83,41 +83,62 @@ Ready now:
 * Partner acceptance, work-done, and Telectro review processes;
 * Coordinator / Supervisor operational review processes;
 * role-specific quick-start sections;
-* screenshot checklist placeholders.
+* screenshot checklist placeholders;
+* production outgoing Email Account configuration;
+* production outgoing Email Queue processing to `Sent` without recipient errors;
+* production Welcome email generation for synthetic Customer and Partner users;
+* production Welcome email generation using the public `https://erp.telectro.co.za` host and `/update-password` setup route.
 
 Still needed:
 
+* controlled real-inbox receipt proof for the onboarding email path;
+* successful password setup through the public HTTPS setup link;
+* first login after password setup;
+* role-specific landing and access proof after first login;
+* failed or expired setup-link behaviour proof;
 * production screenshots;
-* first-user invitation and password setup proof;
 * final training pack assembly;
 * production screenshot follow-up pass for guides that currently use screenshot placeholders.
 
-Blocked by production setup:
+Production onboarding acceptance proof still required:
 
 * production admin login proof;
-* outgoing email proof;
-* welcome/reset/setup email proof;
-* real public HTTPS password setup link proof;
+* controlled real-inbox receipt of a test / onboarding email;
+* successful public HTTPS password setup in a browser;
+* first production role login after password setup;
 * first production user onboarding screenshots;
 * production Customer portal screenshots;
 * production Partner workspace screenshots;
 * production Telectro workspace screenshots.
 
+The production email path should no longer be described as blocked by unproven SMTP configuration, Email Queue processing, Welcome-email generation, or public setup-link generation; those application-side layers are now proven.
+
+Production inspection on 2026-08-25 established:
+
+* one enabled default outgoing Email Account, `ERP Admin Outgoing`;
+* the default outgoing account configured for SMTP submission through `mail.telectro.co.za:587` with TLS;
+* recent Email Queue and recipient rows reaching `Sent` with no recorded errors;
+* production `Welcome to Telectro` messages generated for synthetic Customer and Partner users;
+* Welcome messages containing the public `https://erp.telectro.co.za/update-password` setup route.
+
+Those checks prove application-side configuration, queue processing, Welcome-email generation, and public setup-link generation. They do not by themselves prove that a human received the message in a real mailbox, opened the setup link successfully, set a password, or completed the subsequent role login.
+
 ## Current risk
 
 The main risk is not the absence of role guides.
 
-The main risk is starting onboarding before the complete path has been proven:
+The main risk is starting onboarding before the complete user acceptance path has been proven:
 
 1. user account created;
 2. role profile applied;
-3. welcome/setup email sent;
-4. user opens public HTTPS setup link;
-5. user sets password;
-6. user logs in;
-7. user lands in the expected workspace or portal;
-8. user can perform only the actions intended for that role;
-9. user has a simple guide for what to do next.
+3. welcome/setup email generated and delivered;
+4. user receives the message in the intended mailbox;
+5. user opens the public HTTPS setup link;
+6. user sets password;
+7. user logs in;
+8. user lands in the expected workspace or portal;
+9. user can perform only the actions intended for that role;
+10. user has a simple guide for what to do next.
 
 ---
 
@@ -525,7 +546,7 @@ Use these labels while assembling the training pack:
 
 * `Ready from local proof`
 * `Needs production retake`
-* `Blocked by production setup`
+* `Blocked by production onboarding proof`
 * `Optional`
 * `Do not use`
 
@@ -608,10 +629,13 @@ Do not invite real users until these checks are complete or explicitly accepted 
 
 ## Email and password setup
 
-* [ ] Outgoing email is configured.
-* [ ] Test email sends successfully.
-* [ ] Welcome/setup email sends successfully.
-* [ ] Password setup/reset link uses public HTTPS URL.
+* [x] Outgoing email is configured.
+* [x] Production Email Queue processing reaches `Sent` without recipient errors.
+* [ ] Controlled test email receipt is confirmed in a real inbox.
+* [x] Welcome/setup email is generated and queued successfully.
+* [ ] Welcome/setup email receipt is confirmed in a controlled real inbox.
+* [x] Generated password setup/reset link uses the public `https://erp.telectro.co.za` URL.
+* [ ] Test user can open the public HTTPS setup link successfully.
 * [ ] Test user can set password.
 * [ ] Test user can log in after setting password.
 * [ ] Failed or expired setup-link behaviour is understood.
@@ -841,18 +865,27 @@ Do not onboard Customer users until Telectro can:
 
 # 8. Known pending items
 
-These items are expected to remain pending until Telectro production setup is unblocked.
+These items remain pending until production onboarding acceptance proof is complete.
 
-* Production admin email/account confirmation.
-* ERPNext setup wizard completion.
-* Outgoing email verification.
-* First-user welcome/setup email proof.
-* Public HTTPS password setup proof.
-* First production role login proof.
-* Production screenshots.
-* Final Customer/Partner onboarding screenshots.
+Already production-proven:
 
-Until these are proven, the training package can be prepared but should not claim that the production onboarding path has been verified.
+* outgoing Email Account configuration;
+* Email Queue / recipient processing to `Sent` without recorded errors;
+* Welcome-email generation for synthetic Customer and Partner users;
+* generation of the public `https://erp.telectro.co.za/update-password` setup route.
+
+Still pending:
+
+* production admin login proof;
+* controlled real-inbox receipt of an onboarding email;
+* successful browser opening of the public HTTPS setup link;
+* successful password setup by the test user;
+* first production role login after password setup;
+* failed or expired setup-link behaviour proof;
+* production screenshots;
+* final Customer/Partner onboarding screenshots.
+
+Until the remaining acceptance checks are proven, the training package can be prepared but should not claim that the complete first-user production onboarding path has been verified.
 
 ---
 
