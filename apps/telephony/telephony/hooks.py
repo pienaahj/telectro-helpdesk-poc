@@ -327,6 +327,12 @@ report_transport_cleanup_after_migrate = (
 if report_transport_cleanup_after_migrate not in after_migrate:
     after_migrate.append(report_transport_cleanup_after_migrate)
 
+helpdesk_folder_after_migrate = (
+    "telephony.setup.helpdesk_folder.after_migrate"
+)
+
+if helpdesk_folder_after_migrate not in after_migrate:
+    after_migrate.append(helpdesk_folder_after_migrate)
 
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
