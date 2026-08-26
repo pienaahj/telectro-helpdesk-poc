@@ -260,24 +260,6 @@ fixtures = [
     },
 
     {
-        "dt": "HD Team",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    "PABX",
-                    "Routing",
-                    "SIM",
-                    "CCTV",
-                    "Internet Connection",
-                    "Helpdesk Team",
-                ],
-            ],
-        ],
-    },
-    
-    {
         "dt": "HD View",
         "filters": [
             ["name", "in", [
@@ -333,6 +315,13 @@ helpdesk_folder_after_migrate = (
 
 if helpdesk_folder_after_migrate not in after_migrate:
     after_migrate.append(helpdesk_folder_after_migrate)
+
+hd_team_durability_after_migrate = (
+    "telephony.setup.hd_team_durability.after_migrate"
+)
+
+if hd_team_durability_after_migrate not in after_migrate:
+    after_migrate.append(hd_team_durability_after_migrate)
 
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
