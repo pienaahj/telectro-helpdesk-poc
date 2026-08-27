@@ -374,6 +374,22 @@ _append_hook(doc_events["HD Ticket"], "on_update", "telephony.docshare_guard.hd_
 if TELECTRO_DEBUG:
     _append_hook(doc_events["DocShare"], "before_insert", "telephony.debug_docshare.log_pool_hd_ticket_docshare")
 
+# Customer Website Users enter the contained Helpdesk customer portal.
+get_website_user_home_page = (
+    "telephony.customer_portal_landing.get_website_user_home_page"
+)
+
+# Protect the Customer login landing from stale browser navigation state.
+web_include_js = list(globals().get("web_include_js") or [])
+
+customer_login_landing_js = (
+    "/assets/telephony/js/customer_login_landing.js"
+    "?v=2026-08-27-1"
+)
+
+if customer_login_landing_js not in web_include_js:
+    web_include_js.append(customer_login_landing_js)
+
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
 for p in [
