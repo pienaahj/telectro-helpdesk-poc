@@ -227,9 +227,6 @@ def populate_from_email(doc, method=None):
     if getattr(doc, "is_new", None) and not doc.is_new():
         return
 
-    # ✅ mark source so validation can treat email intake differently
-    doc.custom_request_source = doc.custom_request_source or "Email"
-    
     # 1) Customer from sender email
     if not doc.get("custom_customer"):
         sender = _sender_email(doc)

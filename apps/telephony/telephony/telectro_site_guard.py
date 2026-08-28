@@ -23,23 +23,16 @@ ASSET_ONLY_CATS = {CAT_LINKS, CAT_AREAS}
 FAULT_TICKET_TYPES = {"Faults", "Incident"}
 
 def _is_email_intake(doc) -> bool:
-    # 1) Explicit source wins
-    src = (doc.get("custom_request_source") or "").strip().lower()
-    if src in ("email", "mail", "inbound email"):
-        return True
+    """
+    Return whether this ticket was created through inbound email.
 
-    # 2) Email-created tickets: raised_by/contact_email commonly set by Frappe
-    raised_by = (doc.get("raised_by") or "").strip().lower()
-    contact_email = (doc.get("contact_email") or "").strip().lower()
-
-    # If it looks like an email address, treat as email intake
-    def looks_like_email(s: str) -> bool:
-        return ("@" in s) and (" " not in s) and (len(s) >= 5)
-
-    if looks_like_email(raised_by) or looks_like_email(contact_email):
-        return True
-
-    return False
+    email_account is populated by Frappe on the HD Ticket before insert for
+    inbound mail. raised_by identifies the requester and must not be used as
+    an email-channel signal because Customer portal users also have email
+    addresses.
+    """
+    email_account = (doc.get("email_account") or "").strip()
+    return bool(email_account)
 
 def _apply_customer_default_campus(doc) -> None:
     """
