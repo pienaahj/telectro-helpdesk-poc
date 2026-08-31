@@ -18,7 +18,7 @@ Use this runbook when:
 This runbook reflects behavior recently proven from:
 
 - routing seed logic
-- post-insert assignment behavior
+- routing and assignment lifecycle behavior
 - `_assign` / `ToDo` synchronization
 - repair tooling
 - real ticket outcomes from both email and manual intake paths
@@ -29,17 +29,35 @@ The assignment model is intentionally practical and bounded.
 
 ## High-level assignment model
 
-The pilot currently uses an **app-owned assignment model**.
+The pilot currently uses a **hybrid routing and assignment model**.
 
-Assignment is not primarily driven by active Assignment Rules.
+TELECTRO application code decides **where** a ticket should be routed and handles explicit ownership exceptions.
+
+For ordinary internal team routing, native Frappe / Helpdesk **Assignment Rules** decide **which member of the selected HD Team** becomes the accountable owner.
 
 The current working path is:
 
-1. ticket is created
-2. routing/team context is seeded
-3. post-insert assignment logic runs
-4. open `ToDo` and `_assign` state are normalized
-5. user-facing claim/handoff operates on top of that normalized state
+1. ticket routing context is seeded
+2. explicit Partner or Campus/Site ownership policy is evaluated
+3. ordinary internal tickets retain the selected `agent_group`
+4. the native Assignment Rule linked to that `HD Team` selects the accountable team member
+5. TELECTRO assignment synchronization keeps open `ToDo` and `_assign` state consistent with the pilot single-owner invariant
+6. user-facing Claim, Release, and Controlled Handoff operate on top of that canonical ownership state
+
+The important separation is:
+
+```text
+TELECTRO routing policy
+    -> decides team / exceptional direct owner
+
+Native HD Team Assignment Rule
+    -> chooses the member of an ordinary internal team
+
+TELECTRO ownership controls
+    -> enforce one accountable owner
+    -> synchronize ToDo / _assign
+    -> provide Claim / Release / Controlled Handoff
+```
 
 ---
 
@@ -49,42 +67,116 @@ The current assignment contract is split across these live components.
 
 ### Routing seed
 
-- `telephony.telectro_ticket_routing.seed_ticket_routing`
+* `telephony.telectro_ticket_routing.seed_ticket_routing`
 
-Seeds routing/team context before assignment runs.
+Seeds routing context, including the final `agent_group`, before assignment is evaluated.
 
-### Initial assignment
+### Initial assignment policy
 
-- `telephony.telectro_round_robin.assign_after_insert`
+* `telephony.telectro_round_robin.assign_after_insert`
 
-Handles the first ownership decision after insert.
+Despite the historical module name, ordinary internal round-robin selection is no longer performed here.
+
+The current `assign_after_insert()` behavior is:
+
+* Partner fulfilment -> resolve and assign the Partner organisation's deterministic Default Dispatch User
+* Campus/Site routing policy with an explicit `target_user` -> assign that user directly
+* ordinary internal team routing -> create no assignment itself and allow the native HD Team Assignment Rule to assign a team member
+
+### Routing-change ownership
+
+* `telephony.telectro_reassign_on_update.reassign_if_routing_changed`
+
+Re-evaluates ownership when routing-relevant fields change.
+
+Its current behavior is:
+
+* Partner fulfilment -> normalize ownership to the selected Partner organisation's Default Dispatch User
+* Campus/Site routing policy -> normalize ownership to the explicit target User
+* ordinary internal team routing:
+
+  * preserve the current accountable owner when that User remains valid in the newly selected HD Team
+  * otherwise retire stale assignment state so the native Assignment Rule for the current HD Team can select the replacement owner
+
+### Native internal team assignment
+
+Ordinary internal team ownership is selected through the native Frappe Assignment Rule linked from:
+
+```text
+HD Team.assignment_rule
+```
+
+The active pilot HD Team rules use native `Round Robin` assignment.
+
+The Assignment Rule evaluates after the TELECTRO `HD Ticket` `on_update` hooks, so routing and stale-owner cleanup are completed before native team assignment is applied.
 
 ### Partner organisation / dispatch identity
 
-- `telephony.partner_identity.resolve_partner_dispatch_user`
+* `telephony.partner_identity.resolve_partner_dispatch_user`
 
 Resolves the deterministic dispatch User for Partner fulfilment from the selected Partner organisation and validates that the organisation, membership, User, and Partner capability are eligible for dispatch.
 
 ### Assignment synchronization / hygiene
 
-- `telephony.telectro_assign_sync.dedupe_assign_field`
-- `telephony.telectro_assign_sync.sync_ticket_assignments`
+* `telephony.telectro_assign_sync.dedupe_assign_field`
+* `telephony.telectro_assign_sync.sync_ticket_assignments`
 
-Keep `_assign` and open `ToDo` state consistent and collapse drift.
+These enforce the pilot ownership invariant after assignment:
+
+* open assignment `ToDo` is canonical for active ownership
+* `_assign` is its mirrored/cache representation
+* an active owned ticket has one accountable owner
+* duplicate ownership state is collapsed
+* terminal tickets have no active assignment
+* Partner fulfilment is normalized to its deterministic dispatch User
+
+### Claim / Release / Controlled Handoff
+
+* `telephony.telectro_claim.*`
+
+Implements the pilot-safe operational ownership actions:
+
+* **Claim** — atomically take accountable ownership of a true-pool ticket
+* **Release** — return accountable ownership to the pool with a reason
+* **Controlled Handoff** — transfer accountability to one new User with audit evidence
 
 ### Assign UI / API guardrails
 
-- `telephony.overrides.assign_to.*`
+* `telephony.overrides.assign_to.*`
 
-Enforce pilot-safe assignment behavior and block direct assign/unassign for pilot tech users.
+Restrict generic Frappe Assign/Unassign behavior where it would violate the pilot's single-accountable-owner model.
 
 ---
 
 ## Important current truth
 
-The live assignment mechanism is **app-owned**.
+The live assignment architecture is **not an app-owned round-robin implementation**.
 
-Existing Assignment Rules in the environment are currently historical or dormant config and are **not** the primary active runtime assignment path.
+The current responsibility split is:
+
+```text
+Routing / policy:
+    TELECTRO application code
+
+Ordinary team-member selection:
+    native HD Team Assignment Rule
+
+Exceptional direct ownership:
+    TELECTRO Partner / Campus-Site policy
+
+Canonical active ownership:
+    open assignment ToDo
+
+Compatibility / mirrored assignment state:
+    HD Ticket._assign
+
+Operational ownership actions:
+    Claim / Release / Controlled Handoff
+```
+
+The former hard-coded TELECTRO round-robin pool implementation is no longer the live mechanism for ordinary internal team assignment.
+
+Native Assignment Rules are therefore active operational runtime state, not merely historical or dormant configuration.
 
 ---
 
@@ -92,85 +184,168 @@ Existing Assignment Rules in the environment are currently historical or dormant
 
 ### 1) Routing/team context is seeded first
 
-Before assignment runs, the ticket must have enough routing context to determine which assignment path applies.
+Before ordinary team assignment runs, the ticket must have enough routing context to determine which ownership path applies.
 
 Examples:
 
-- email-created ticket from `PABX` mailbox -> `agent_group = PABX`
-- manual ticket with `custom_service_area = PABX` -> `agent_group = PABX`
-- blank/manual fallback path -> `agent_group = Helpdesk Team`
+* email-created ticket from the `PABX` mailbox -> `agent_group = PABX`
+* manual ticket with `custom_service_area = PABX` -> `agent_group = PABX`
+* ordinary fallback routing -> `agent_group = Helpdesk Team`
 
-Assignment only becomes predictable once this routing seed step has happened.
+Routing determines the destination team. It does not itself choose a member of that team.
 
-### 2) Post-insert assignment decides the initial owner/path
+### 2) Explicit direct-owner policies are evaluated
 
-After insert, `assign_after_insert()` determines what to do based on:
+After insert, `assign_after_insert()` handles ownership paths that deliberately bypass ordinary team-member selection.
 
-- `agent_group`
-- `custom_fulfilment_party`
-- `custom_fulfilment_partner` when Partner fulfilment applies
-- existing open `ToDo`
-- existing `_assign`
+Current direct-owner paths include:
 
-### 3) Synchronization makes the state canonical
+* Partner fulfilment -> selected Partner organisation's Default Dispatch User
+* Campus/Site routing policy -> explicit `target_user`
 
-After insert/update, assignment sync logic ensures:
+When one of these policies applies, TELECTRO code establishes the accountable owner directly.
 
-- duplicate assignees are removed
-- duplicate open `ToDo` rows are collapsed
-- `_assign` mirrors canonical open `ToDo` state
+### 3) Native HD Team assignment handles ordinary internal routing
+
+If no direct-owner policy applies, `assign_after_insert()` deliberately creates no assignment.
+
+The selected `agent_group` identifies the `HD Team`.
+
+That team's linked native Frappe Assignment Rule then evaluates during `on_update`.
+
+For the active pilot teams, these rules use native `Round Robin` assignment to select a User from the team's Assignment Rule membership.
+
+The ordinary internal path is therefore:
+
+```text
+routing fields
+    -> seed_ticket_routing()
+    -> agent_group / HD Team
+    -> HD Team.assignment_rule
+    -> native Frappe Assignment Rule
+    -> accountable team member
+```
+
+### 4) TELECTRO synchronization canonicalizes ownership state
+
+After assignment activity, the TELECTRO synchronization layer preserves the pilot ownership invariant:
+
+```text
+Owned active ticket:
+  exactly one Open assignment ToDo
+  _assign = ["accountable.owner@example"]
+
+True pool ticket:
+  no Open assignment ToDo
+  _assign = []
+```
 
 ---
 
 ## Current assignment paths
 
-### Round-robin groups
+### Native round-robin HD Teams
 
-The current app-owned round-robin pools are:
+Ordinary internal team-member selection is now driven by the native Assignment Rule linked from each operational `HD Team`.
 
-- `Routing`
-  - `tech.alfa@local.test`
-  - `tech.bravo@local.test`
+The current enabled DEV pilot configuration includes:
 
-- `PABX`
-  - `tech.charlie@local.test`
+* `Routing`
 
-- `SIM`
-  - `tech.bravo@local.test`
+  * native `Round Robin`
+  * `tech.alfa@local.test`
+  * `tech.bravo@local.test`
 
-These groups are treated as round-robin groups by `assign_after_insert()`.
+* `PABX`
 
-#### Round-robin behavior
+  * native `Round Robin`
+  * `tech.charlie@local.test`
 
-For a round-robin group:
+* `SIM`
 
-- the group-specific cursor is read from cache
-- the next assignee is selected
-- the cursor advances
-- exactly one open `ToDo` is ensured for the chosen user
-- `_assign` is mirrored from the resulting open `ToDo`
+  * native `Round Robin`
+  * `tech.bravo@local.test`
 
-Round-robin assignment is app-owned and cache-backed. It is not currently driven by active Assignment Rule execution.
+* `Internet Connection`
+
+  * native `Round Robin`
+  * `tech.alfa@local.test`
+  * `tech.bravo@local.test`
+
+* `CCTV`
+
+  * native `Round Robin`
+  * `tech.bravo@local.test`
+
+* `Helpdesk Team`
+
+  * native `Round Robin`
+  * `hendrik@local.test`
+
+The individual rule document names may change as configuration is recreated or reconciled. The durable contract is the link:
+
+```text
+HD Team
+    -> assignment_rule
+    -> enabled native Assignment Rule
+    -> eligible team Users
+```
+
+Do not encode Assignment Rule document suffixes as operational policy.
+
+#### Native round-robin behavior
+
+For an ordinary internal team ticket:
+
+* routing first establishes the final `agent_group`
+* TELECTRO does not choose a team member from a Python `POOLS` map
+* the enabled Assignment Rule linked to the selected `HD Team` evaluates
+* native Frappe `Round Robin` chooses an eligible User
+* Frappe creates the assignment `ToDo`
+* TELECTRO synchronization preserves the single-accountable-owner invariant and mirrored `_assign` state
+
+The former hard-coded TELECTRO round-robin pool and cursor implementation has been removed from the live ordinary team-assignment path.
 
 ---
 
-### True pool fallback groups
+### True pool / unclaimed state
 
-For groups that are **not** in the round-robin pool map:
+A true-pool ticket is an active ticket for which there is currently **no accountable owner**.
 
-- no RR user is chosen
-- the ticket remains in the true pool path instead
-
-The current pilot pool is a **true pool**, not a fake user assignment.
-
-#### True pool behavior
-
-A true pool ticket has:
+Its canonical ownership state is:
 
 ```text
 HD Ticket._assign = []
 no Open assignment ToDo
 ```
+
+A ticket can remain in this state when assignment has not produced an accountable owner.
+
+True pool is therefore an ownership state, not a synthetic pool User and not the old fallback for a team missing from a Python round-robin map.
+
+#### Claim from true pool
+
+The pilot **Claim** action allows a User to take accountability for a true-pool ticket.
+
+Claim is first-claim-wins and normalizes the resulting state to:
+
+```text
+exactly one Open assignment ToDo
+_assign = ["claiming.user@example"]
+```
+
+#### Release to pool
+
+The pilot **Release** action allows the current accountable owner to return the ticket to the pool with a required reason.
+
+The intended resulting ownership state is:
+
+```text
+no Open assignment ToDo
+_assign = []
+```
+
+Release is an explicit operational ownership action. It is separate from the native team's initial assignment decision.
 
 ---
 
@@ -270,7 +445,7 @@ This avoids relying on stale or drifted `_assign` alone.
 
 It also keeps:
 
-- post-insert assignment
+- routing / assignment lifecycle
 - claim/handoff behavior
 - repair scripts
 
@@ -367,43 +542,145 @@ source
 
 ### Example A — inbound `PABX`
 
-A proven inbound `PABX` ticket currently lands with:
+A proven inbound `PABX` path establishes:
 
-- `email_account = PABX`
-- `custom_service_area = PABX`
-- `agent_group = PABX`
-- `_assign = ["tech.charlie@local.test"]`
-- exactly one open `ToDo` for Charlie
+```text
+email_account = PABX
+custom_service_area = PABX
+agent_group = PABX
+```
+
+For ordinary Telectro fulfilment, the enabled native Assignment Rule linked to the `PABX` HD Team selects an eligible team member.
+
+In the current DEV pilot configuration this results in:
+
+```text
+accountable owner = tech.charlie@local.test
+exactly one Open assignment ToDo
+_assign = ["tech.charlie@local.test"]
+```
+
+The important contract is not the individual DEV User. It is:
+
+```text
+PABX routing
+    -> agent_group = PABX
+    -> PABX HD Team
+    -> linked enabled Assignment Rule
+    -> eligible team member
+```
 
 ### Example B — inbound `Routing`
 
-A proven inbound `Routing` ticket currently lands with:
+A proven inbound `Routing` path establishes:
 
-- `email_account = Routing`
-- `custom_service_area = Routing`
-- `agent_group = Routing`
-- `_assign = ["tech.alfa@local.test"]`
-- exactly one open `ToDo` for Alfa
+```text
+email_account = Routing
+custom_service_area = Routing
+agent_group = Routing
+```
+
+The native Assignment Rule linked to the `Routing` HD Team performs ordinary team-member selection.
+
+The current DEV pilot membership contains Alfa and Bravo.
+
+The resulting owned-ticket invariant remains:
+
+```text
+exactly one Open assignment ToDo
+_assign = ["selected.accountable.owner"]
+```
 
 ### Example C — manual `PABX`
 
-A proven manual `PABX` ticket currently lands with:
+A manual ticket routed through:
 
-- `email_account = None`
-- `custom_service_area = PABX`
-- `agent_group = PABX`
-- `_assign = ["tech.charlie@local.test"]`
-- exactly one open `ToDo` for Charlie
+```text
+custom_service_area = PABX
+agent_group = PABX
+```
 
-### Example D — fallback/manual unclaimed path
+uses the same native HD Team Assignment Rule path as an inbound email ticket.
 
-If the ticket lands in a non-round-robin/default path:
+The intake mechanism may differ, but once final routing has selected `PABX`, ordinary internal team-member selection follows the same assignment contract.
 
-- the ticket remains in the true pool
-- `_assign = []`
-- no Open assignment `ToDo` exists
+### Example D — ordinary fallback team routing
 
-This is the intended safe fallback / unclaimed path.
+An ordinary ticket that does not map to one of the more specific operational teams may route to:
+
+```text
+agent_group = Helpdesk Team
+```
+
+`Helpdesk Team` is itself an operational HD Team and may have an enabled native Assignment Rule.
+
+It must therefore not be treated as synonymous with the true pool.
+
+The normal path is:
+
+```text
+fallback routing
+    -> agent_group = Helpdesk Team
+    -> Helpdesk Team.assignment_rule
+    -> native Assignment Rule
+    -> accountable team member
+```
+
+### Example E — true pool
+
+A true-pool ticket is one for which no accountable owner is currently established.
+
+Its ownership state is:
+
+```text
+no Open assignment ToDo
+_assign = []
+```
+
+It remains visible as unclaimed operational work until an ownership action establishes an accountable owner.
+
+Claim is the normal pilot action for taking ownership of such a ticket.
+
+### Example F — routing change where current owner becomes invalid
+
+A routing change from one internal team to another re-evaluates ownership.
+
+A proven example is conceptually:
+
+```text
+Routing / Alfa
+    -> routing changes to PABX
+    -> Alfa is not eligible for PABX
+    -> stale assignment is retired
+    -> native PABX Assignment Rule evaluates
+    -> eligible PABX owner is selected
+```
+
+The critical contract is:
+
+```text
+invalid owner in destination team
+    -> do not preserve stale ownership
+    -> allow destination HD Team Assignment Rule to select a replacement
+```
+
+### Example G — routing change where current owner remains valid
+
+If the current accountable owner is also eligible for the destination HD Team, ownership is deliberately preserved.
+
+A proven example is conceptually:
+
+```text
+Routing / Alfa
+    -> routing changes to Internet Connection
+    -> Alfa is eligible for Internet Connection
+    -> existing accountable ownership retained
+    -> no assignment churn
+```
+
+The `agent_group` represents the current routing destination.
+
+An existing assignment `ToDo` may still record the Assignment Rule that originally created that ownership. That historical `assignment_rule` value on the `ToDo` does not override the ticket's current routing state.
 
 ---
 
@@ -411,31 +688,56 @@ This is the intended safe fallback / unclaimed path.
 
 The current pilot assignment contract is intentionally bounded.
 
+It currently provides:
+
+* routing-driven HD Team selection
+* native Frappe Assignment Rule team-member selection
+* explicit Partner dispatch ownership
+* explicit Campus/Site direct-owner policy
+* one accountable ticket owner
+* true-pool / unclaimed state
+* Claim
+* Release
+* Controlled Handoff
+* `ToDo` / `_assign` synchronization and drift repair
+
 It does **not** currently try to provide:
 
-- semantic/business-level duplicate suppression
-- Assignment-Rule-driven runtime ownership as the primary live source
-- complex multi-owner assignment semantics
-- highly dynamic workload balancing beyond the current RR/pool model
+* semantic/business-level duplicate suppression
+* multiple parallel accountable HD Ticket owners
+* contributor/subtask semantics inside HD Ticket assignment
+* highly dynamic workload balancing beyond configured native Assignment Rule behavior
+* a second custom Python round-robin membership model alongside HD Team configuration
+
+If explicit multi-person work tracking becomes necessary, it should be modelled separately from accountable HD Ticket ownership rather than by adding parallel assignment owners.
 
 ---
 
 ## Important operational truths
 
-- assignment is currently app-owned
-- assignment means accountable ownership, not contributor participation
-- routing seed must happen before assignment is expected to behave predictably
-- open assignment `ToDo` state is canonical for active owned tickets
-- `_assign` mirrors canonical ownership state
-- true pool means `_assign = []` and no Open assignment `ToDo`
-- terminal (`Resolved` / `Closed` / `Archived`) means `_assign = []` and no Open assignment `ToDo`
-- terminal cleanup takes precedence over Partner fulfilment assignment enforcement and assignment repair
-- Controlled Handoff is the approved supervisor/coordinator accountability-transfer path
-- Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
-- the audit trail is visible in `TELECTRO Assignment Handoff Audit`
-- Partner fulfilment uses an explicit organisation-aware dispatch override and does not enter normal internal round-robin/pool assignment
-- generic direct assign/unassign is intentionally guarded
-- disabled Assignment Rules are not the live runtime mechanism
+* routing policy and assignment are separate responsibilities
+* TELECTRO routing logic determines the destination team or an exceptional direct owner
+* ordinary internal team-member selection is performed by the native Assignment Rule linked to the selected `HD Team`
+* native Assignment Rules are active runtime configuration
+* hard-coded Python `POOLS` are not the live ordinary team-assignment mechanism
+* assignment represents accountable ownership, not contributor participation
+* routing seed must establish the final `agent_group` before ordinary team assignment is expected to behave predictably
+* the current accountable owner may be retained across a routing change when that User is valid in the destination HD Team
+* stale ownership is retired when the current owner is not valid for the destination HD Team, allowing the destination native Assignment Rule to select a replacement
+* open assignment `ToDo` state is canonical for active owned tickets
+* `_assign` is a mirrored/cache representation of accountable ownership
+* true pool means `_assign = []` and no Open assignment `ToDo`
+* `Helpdesk Team` is an HD Team routing destination and is not synonymous with true pool
+* terminal (`Resolved` / `Closed` / `Archived`) means `_assign = []` and no Open assignment `ToDo`
+* terminal cleanup takes precedence over Partner fulfilment assignment enforcement and ordinary assignment repair
+* Claim establishes accountable ownership from true pool
+* Release returns accountable ownership to the pool with a required reason
+* Controlled Handoff is the approved supervisor/coordinator accountability-transfer path
+* Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
+* the audit trail is visible in `TELECTRO Assignment Handoff Audit`
+* Partner fulfilment uses an explicit organisation-aware dispatch override and bypasses ordinary internal team-member selection
+* Campus/Site policy may establish an explicit direct owner and bypass ordinary internal team-member selection
+* generic direct Assign/Unassign remains intentionally guarded where it would violate the pilot ownership model
 
 ---
 
@@ -443,37 +745,78 @@ It does **not** currently try to provide:
 
 When proving or debugging assignment behavior, use this order:
 
-1. confirm routing seed fields
-   - `email_account`
-   - `custom_service_area`
-   - `agent_group`
+1. confirm routing inputs and final routing state
 
-2. confirm ticket creation path
-   - email vs manual
+   * `email_account`
+   * `custom_service_area`
+   * `agent_group`
+   * relevant Partner / Campus-Site policy fields
 
-3. inspect open `ToDo`
-   - count
-   - assignee(s)
-   - status
+2. determine which ownership path applies
 
-4. inspect `_assign`
+   * Partner direct-owner path?
+   * Campus/Site direct-owner path?
+   * ordinary internal HD Team assignment?
+   * existing true-pool state?
 
-5. inspect post-insert assignment expectations
-   - RR group?
-   - pool fallback?
-   - Partner fulfilment override?
+3. for ordinary internal routing, inspect the selected HD Team
 
-6. use repair/proof tooling if drift is suspected
+   * `HD Team.assignment_rule`
+   * linked Assignment Rule exists
+   * rule is enabled
+   * rule applies to `HD Ticket`
+   * rule condition matches the ticket
+   * eligible Assignment Rule Users exist
+
+4. inspect assignment `ToDo` state
+
+   * all relevant `ToDo` rows, not only Open rows when diagnosing native Assignment Rule behavior
+   * current Open assignment count
+   * accountable User
+   * `assignment_rule`
+   * status
+
+5. inspect `_assign`
+
+   * confirm it mirrors current accountable ownership
+   * do not treat `_assign` alone as canonical proof
+
+6. if routing changed, establish whether the current owner remains valid
+
+   * valid member of destination HD Team -> ownership may be preserved
+   * invalid for destination HD Team -> stale ownership should be retired before native reassignment
+
+7. inspect explicit ownership controls when relevant
+
+   * Claim
+   * Release
+   * Controlled Handoff
+   * Partner dispatch normalization
+   * Campus/Site direct-owner policy
+
+8. use assignment repair/proof tooling only when drift or inconsistent historical state is suspected
 
 ### Why this order matters
 
-It prevents misleading conclusions based on `_assign` alone or on stale UI assumptions.
+Routing and accountable ownership are related but separate concerns.
 
-The most reliable operational ownership proof is:
+The normal internal path is:
 
-- routing context
-- then open `ToDo`
-- then mirrored `_assign`
+```text
+routing inputs
+    -> final agent_group
+    -> HD Team
+    -> native Assignment Rule
+    -> accountable User
+    -> assignment ToDo
+    -> mirrored _assign
+```
+
+Exceptional Partner or Campus/Site policy may deliberately bypass ordinary team-member selection.
+
+The most reliable operational proof therefore starts with routing context and the applicable ownership path, then examines canonical assignment `ToDo` state, and only then uses `_assign` as the mirrored representation.
+
+When native Assignment Rule behavior itself is under investigation, inspect non-Open historical `ToDo` rows as well because Frappe may treat statuses other than `Cancelled` as existing assignment state.
 
 ---
 
@@ -481,19 +824,55 @@ The most reliable operational ownership proof is:
 
 The assignment contract is currently supported by repo-backed code and helpers including:
 
-- routing seed app code
-- round-robin / pool assignment app code
-- assignment sync logic
-- assign override guard
-- assignment proof helper
-- assignment repair helper
-- manual ticket intake runbook
-- email ticket intake runbook
-- bench verification runbook
+* routing seed logic
+
+  * `telephony.telectro_ticket_routing.seed_ticket_routing`
+
+* routing policy
+
+  * `telephony.telectro_routing_policy.resolve_ticket_routing_policy`
+
+* initial ownership policy
+
+  * `telephony.telectro_round_robin.assign_after_insert`
+  * historical module name retained; ordinary team-member round-robin is native
+
+* routing-change ownership logic
+
+  * `telephony.telectro_reassign_on_update.reassign_if_routing_changed`
+
+* Partner dispatch identity
+
+  * `telephony.partner_identity.resolve_partner_dispatch_user`
+
+* assignment synchronization
+
+  * `telephony.telectro_assign_sync.dedupe_assign_field`
+  * `telephony.telectro_assign_sync.sync_ticket_assignments`
+
+* pilot ownership actions
+
+  * `telephony.telectro_claim.*`
+
+* generic Assign/Unassign guardrails
+
+  * `telephony.overrides.assign_to.*`
+
+* assignment proof / repair helpers
+
+* HD Team durability validation
+
+  * `telephony.setup.hd_team_durability`
+
+* manual ticket intake runbook
+
+* email ticket intake runbook
+
+* bench verification runbook
 
 ### Related
 
-- `docs/runbooks/ticket-status-and-workspace-baseline.md`
+* `docs/runbooks/ticket-status-and-workspace-baseline.md`
 
 ---
 
@@ -501,12 +880,21 @@ The assignment contract is currently supported by repo-backed code and helpers i
 
 Revisit this runbook if any of the following change:
 
-- round-robin pools
-- pool user
-- Partner organisation / membership / dispatch rules
-- routing seed mappings
-- `_assign` / `ToDo` source-of-truth model
-- claim/handoff UX rules
-- assignment override restrictions
-- decision to re-activate or rely on Assignment Rules
-- pilot move toward more complex ownership/dispatch models
+* routing seed mappings
+* routing policy / exceptional direct-owner rules
+* HD Team membership
+* `HD Team.assignment_rule` relationships
+* native Assignment Rule method or conditions
+* Assignment Rule User membership
+* Partner organisation / membership / Default Dispatch User rules
+* Campus/Site direct-owner policy
+* `_assign` / `ToDo` source-of-truth model
+* true-pool semantics
+* Claim / Release behavior
+* Controlled Handoff behavior
+* assignment override restrictions
+* routing-change owner-preservation rules
+* terminal assignment cleanup
+* pilot move toward contributor/subtask or more complex ownership models
+
+Do not reintroduce a second hard-coded Python membership / round-robin model alongside native HD Team assignment without an explicit architectural decision and corresponding update to this contract.
