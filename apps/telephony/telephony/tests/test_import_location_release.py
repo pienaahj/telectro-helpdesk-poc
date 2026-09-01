@@ -1023,5 +1023,183 @@ class TestLocationReleaseInsertPrimitive(
         frappe_mock.db.commit.assert_not_called()
         frappe_mock.db.rollback.assert_not_called()
 
+class TestLocationReleaseStoredRowVerification(
+    unittest.TestCase
+):
+    def _row(self):
+        return import_location_release.LocationReleaseRow(
+            name="kmz123",
+            location_name="Buildings: Office",
+            parent_location="Boschendal - Buildings",
+            is_container=0,
+            is_group=0,
+            latitude=-33.900001,
+            longitude=18.900001,
+            area_uom=None,
+            location=(
+                '{"type":"FeatureCollection",'
+                '"features":[]}'
+            ),
+            custom_kmz_source="boschendal.kmz",
+            custom_kmz_folder_path=(
+                "Boschendal / Buildings"
+            ),
+            custom_kmz_geometry_type="Point",
+            custom_kmz_description="Office",
+            custom_kmz_metadata_json=(
+                '{"pts_count":1}'
+            ),
+        )
+
+    def _stored(self):
+        return {
+            "location_name": "Buildings: Office",
+            "parent_location": "Boschendal - Buildings",
+            "is_container": 0,
+            "is_group": 0,
+            "latitude": -33.900001,
+            "longitude": 18.900001,
+            "area_uom": None,
+            "location": (
+                '{"type":"FeatureCollection",'
+                '"features":[]}'
+            ),
+            "custom_kmz_source": "boschendal.kmz",
+            "custom_kmz_folder_path": (
+                "Boschendal / Buildings"
+            ),
+            "custom_kmz_geometry_type": "Point",
+            "custom_kmz_description": "Office",
+            "custom_kmz_metadata_json": (
+                '{"pts_count":1}'
+            ),
+        }
+
+    def _frappe(self):
+        patcher = mock.patch.object(
+            import_location_release,
+            "frappe",
+        )
+
+        frappe_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        return frappe_mock
+
+    def test_verify_accepts_exact_stored_row(self):
+        frappe_mock = self._frappe()
+
+        frappe_mock.db.get_value.return_value = (
+            self._stored()
+        )
+
+        result = (
+            import_location_release
+            .verify_release_row(
+                self._row()
+            )
+        )
+
+        self.assertIsNone(result)
+
+        frappe_mock.db.get_value.assert_called_once_with(
+            "Location",
+            "kmz123",
+            [
+                "location_name",
+                "parent_location",
+                "is_container",
+                "is_group",
+                "latitude",
+                "longitude",
+                "area_uom",
+                "location",
+                "custom_kmz_source",
+                "custom_kmz_folder_path",
+                "custom_kmz_geometry_type",
+                "custom_kmz_description",
+                "custom_kmz_metadata_json",
+            ],
+            as_dict=True,
+        )
+
+    def test_verify_rejects_missing_stored_row(self):
+        frappe_mock = self._frappe()
+
+        frappe_mock.db.get_value.return_value = None
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Missing stored Location",
+        ):
+            (
+                import_location_release
+                .verify_release_row(
+                    self._row()
+                )
+            )
+
+    def test_verify_rejects_authoritative_field_mismatch(
+        self,
+    ):
+        mismatches = {
+            "location_name": "Wrong Label",
+            "parent_location": "Wrong Parent",
+            "is_container": 1,
+            "is_group": 1,
+            "latitude": -33.8,
+            "longitude": 18.8,
+            "area_uom": "Square Meter",
+            "location": "{}",
+            "custom_kmz_source": "wrong.kmz",
+            "custom_kmz_folder_path": "Wrong / Path",
+            "custom_kmz_geometry_type": "Polygon",
+            "custom_kmz_description": "Wrong",
+            "custom_kmz_metadata_json": "{}",
+        }
+
+        for fieldname, wrong_value in (
+            mismatches.items()
+        ):
+            with self.subTest(fieldname=fieldname):
+                frappe_mock = self._frappe()
+
+                stored = self._stored()
+                stored[fieldname] = wrong_value
+
+                frappe_mock.db.get_value.return_value = (
+                    stored
+                )
+
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "mismatch",
+                ):
+                    (
+                        import_location_release
+                        .verify_release_row(
+                            self._row()
+                        )
+                    )
+
+    def test_verify_is_read_only(self):
+        frappe_mock = self._frappe()
+
+        frappe_mock.db.get_value.return_value = (
+            self._stored()
+        )
+
+        (
+            import_location_release
+            .verify_release_row(
+                self._row()
+            )
+        )
+
+        frappe_mock.get_doc.assert_not_called()
+        frappe_mock.db.set_value.assert_not_called()
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

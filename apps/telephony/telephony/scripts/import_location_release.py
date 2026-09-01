@@ -328,6 +328,95 @@ def insert_release_row(row):
 
     return row.name
 
+def verify_release_row(row):
+    fields = [
+        "location_name",
+        "parent_location",
+        "is_container",
+        "is_group",
+        "latitude",
+        "longitude",
+        "area_uom",
+        "location",
+        "custom_kmz_source",
+        "custom_kmz_folder_path",
+        "custom_kmz_geometry_type",
+        "custom_kmz_description",
+        "custom_kmz_metadata_json",
+    ]
+
+    stored = frappe.db.get_value(
+        "Location",
+        row.name,
+        fields,
+        as_dict=True,
+    )
+
+    if not stored:
+        raise ValueError(
+            "Missing stored Location after release insert: "
+            f"{row.name}"
+        )
+
+    expected = {
+        "location_name": row.location_name,
+        "parent_location": row.parent_location,
+        "is_container": row.is_container,
+        "is_group": row.is_group,
+        "latitude": row.latitude,
+        "longitude": row.longitude,
+        "area_uom": row.area_uom,
+        "location": row.location,
+        "custom_kmz_source":
+            row.custom_kmz_source,
+        "custom_kmz_folder_path":
+            row.custom_kmz_folder_path,
+        "custom_kmz_geometry_type":
+            row.custom_kmz_geometry_type,
+        "custom_kmz_description":
+            row.custom_kmz_description,
+        "custom_kmz_metadata_json":
+            row.custom_kmz_metadata_json,
+    }
+
+    for fieldname in fields:
+        actual = stored.get(fieldname)
+        wanted = expected[fieldname]
+
+        if fieldname in {
+            "is_container",
+            "is_group",
+        }:
+            actual = int(actual or 0)
+            wanted = int(wanted or 0)
+
+        if fieldname in {
+            "latitude",
+            "longitude",
+        }:
+            actual = (
+                None
+                if actual is None
+                else float(actual)
+            )
+
+            wanted = (
+                None
+                if wanted is None
+                else float(wanted)
+            )
+
+        if actual != wanted:
+            raise ValueError(
+                "Stored Location authoritative field "
+                "mismatch: "
+                f"{row.name} {fieldname} "
+                f"actual={actual!r} "
+                f"expected={wanted!r}"
+            )
+
+    return None
+
 def validate_target_preflight(
     stages,
     external_prerequisites,
