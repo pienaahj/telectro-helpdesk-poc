@@ -1201,5 +1201,335 @@ class TestLocationReleaseStoredRowVerification(
         frappe_mock.db.commit.assert_not_called()
         frappe_mock.db.rollback.assert_not_called()
 
+class TestLocationReleaseStageApplication(
+    unittest.TestCase
+):
+    def _row(
+        self,
+        name,
+        location_name=None,
+        parent_location="Pilot Sites",
+    ):
+        return import_location_release.LocationReleaseRow(
+            name=name,
+            location_name=(
+                location_name
+                or name
+            ),
+            parent_location=parent_location,
+            is_container=0,
+            is_group=1,
+            latitude=0.0,
+            longitude=0.0,
+            area_uom=None,
+            location=None,
+            custom_kmz_source=None,
+            custom_kmz_folder_path=None,
+            custom_kmz_geometry_type="Point",
+            custom_kmz_description=None,
+            custom_kmz_metadata_json=None,
+        )
+
+    def _frappe(self, site="location-roundtrip"):
+        patcher = mock.patch.object(
+            import_location_release,
+            "frappe",
+        )
+
+        frappe_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        frappe_mock.local.site = site
+
+        return frappe_mock
+
+    def test_apply_runs_preflights_before_rows(self):
+        self._frappe()
+
+        row = self._row(
+            "Boschendal",
+        )
+
+        calls = []
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+                side_effect=lambda *args, **kwargs:
+                    calls.append("release-preflight"),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+                side_effect=lambda *args, **kwargs:
+                    calls.append("target-preflight"),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "insert_release_row",
+                side_effect=lambda value:
+                    calls.append(
+                        f"insert:{value.name}"
+                    ),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+                side_effect=lambda value:
+                    calls.append(
+                        f"verify:{value.name}"
+                    ),
+            ),
+        ):
+            import_location_release.apply_release_stages(
+                [[row]],
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                "release-preflight",
+                "target-preflight",
+                "insert:Boschendal",
+                "verify:Boschendal",
+            ],
+        )
+
+    def test_apply_preserves_stage_and_row_order(self):
+        self._frappe()
+
+        root = self._row(
+            "Boschendal",
+        )
+
+        group = self._row(
+            "Boschendal - Buildings",
+            parent_location="Boschendal",
+        )
+
+        leaf = self._row(
+            "kmz123",
+            location_name="Buildings: Office",
+            parent_location="Boschendal - Buildings",
+        )
+
+        inserted = []
+        verified = []
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "insert_release_row",
+                side_effect=lambda row:
+                    inserted.append(row.name),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+                side_effect=lambda row:
+                    verified.append(row.name),
+            ),
+        ):
+            result = (
+                import_location_release
+                .apply_release_stages(
+                    [
+                        [root],
+                        [group],
+                        [leaf],
+                    ],
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                    expected_site="location-roundtrip",
+                )
+            )
+
+        self.assertEqual(
+            inserted,
+            [
+                "Boschendal",
+                "Boschendal - Buildings",
+                "kmz123",
+            ],
+        )
+
+        self.assertEqual(
+            verified,
+            inserted,
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "inserted_count": 3,
+                "stage_counts": [1, 1, 1],
+            },
+        )
+
+    def test_apply_refuses_wrong_site_before_preflight_or_write(
+        self,
+    ):
+        frappe_mock = self._frappe(
+            site="frontend",
+        )
+
+        row = self._row(
+            "Boschendal",
+        )
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ) as release_preflight,
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+            ) as target_preflight,
+            mock.patch.object(
+                import_location_release,
+                "insert_release_row",
+            ) as insert_row,
+            self.assertRaisesRegex(
+                ValueError,
+                "site",
+            ),
+        ):
+            (
+                import_location_release
+                .apply_release_stages(
+                    [[row]],
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                    expected_site="location-roundtrip",
+                )
+            )
+
+        release_preflight.assert_not_called()
+        target_preflight.assert_not_called()
+        insert_row.assert_not_called()
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
+    def test_apply_stops_immediately_on_verification_failure(
+        self,
+    ):
+        frappe_mock = self._frappe()
+
+        first = self._row(
+            "Boschendal",
+        )
+
+        second = self._row(
+            "Boschendal - Buildings",
+            parent_location="Boschendal",
+        )
+
+        inserted = []
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "insert_release_row",
+                side_effect=lambda row:
+                    inserted.append(row.name),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+                side_effect=ValueError(
+                    "stored row mismatch"
+                ),
+            ),
+            self.assertRaisesRegex(
+                ValueError,
+                "stored row mismatch",
+            ),
+        ):
+            (
+                import_location_release
+                .apply_release_stages(
+                    [
+                        [first],
+                        [second],
+                    ],
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                    expected_site="location-roundtrip",
+                )
+            )
+
+        self.assertEqual(
+            inserted,
+            ["Boschendal"],
+        )
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
+    def test_apply_does_not_manage_transaction(self):
+        frappe_mock = self._frappe()
+
+        row = self._row(
+            "Boschendal",
+        )
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "insert_release_row",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+            ),
+        ):
+            (
+                import_location_release
+                .apply_release_stages(
+                    [[row]],
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                    expected_site="location-roundtrip",
+                )
+            )
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

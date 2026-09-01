@@ -417,6 +417,53 @@ def verify_release_row(row):
 
     return None
 
+def apply_release_stages(
+    stages,
+    *,
+    external_prerequisites,
+    expected_site,
+):
+    if frappe.local.site != expected_site:
+        raise ValueError(
+            "Location release target site mismatch: "
+            f"actual={frappe.local.site!r} "
+            f"expected={expected_site!r}"
+        )
+
+    stages = [
+        list(stage)
+        for stage in stages
+    ]
+
+    validate_release_stages(
+        stages,
+        external_prerequisites=external_prerequisites,
+    )
+
+    validate_target_preflight(
+        stages,
+        external_prerequisites=external_prerequisites,
+    )
+
+    stage_counts = []
+    inserted_count = 0
+
+    for stage in stages:
+        stage_counts.append(
+            len(stage)
+        )
+
+        for row in stage:
+            insert_release_row(row)
+            verify_release_row(row)
+
+            inserted_count += 1
+
+    return {
+        "inserted_count": inserted_count,
+        "stage_counts": stage_counts,
+    }
+
 def validate_target_preflight(
     stages,
     external_prerequisites,
