@@ -3233,6 +3233,7 @@ migrate
 → database semantic verification
 → functional execution
 → health proof
+→ asset publication
 → browser proof
 ```
 
@@ -3651,6 +3652,162 @@ POST_MIGRATION_FRONTEND_ROUTE_OK
 POST_MIGRATION_EXTERNAL_HTTPS_OK
 POST_MIGRATION_RUNTIME_HEALTH_OK
 ```
+
+## Phase 20A — publish and verify production assets
+
+After post-migration runtime and HTTP health has passed, publish the built assets from the selected immutable runtime image into the persistent production assets bind mount.
+
+This phase is required because production bind-mounts:
+
+```text
+${PRODUCTION_DATA_ROOT}/assets
+```
+
+over the runtime image's built `sites/assets` directory.
+
+Changing `ERPNEXT_IMAGE` and recreating the runtime services does not by itself update the persistent production asset tree.
+
+Browser verification must not begin until this phase passes.
+
+### Confirm the selected runtime image
+
+Before seeding, prove that `.env.production` still selects the candidate runtime image:
+
+```bash
+grep -n '^ERPNEXT_IMAGE=' \
+  .env.production
+```
+
+The selected image must match the immutable candidate image already proven by the release.
+
+Do not seed assets from an arbitrary image tag or from a locally rebuilt image.
+
+### Seed the persistent production assets
+
+Use the repository-controlled production helper:
+
+```bash
+PROD_ENV_FILE=.env.production \
+  ./bin/prod-seed-assets.sh
+```
+
+The helper:
+
+```text
+reads ERPNEXT_IMAGE from the production environment
+reads PRODUCTION_DATA_ROOT from the production environment
+copies the built sites/assets tree from the selected runtime image
+dereferences app asset symlinks
+writes real files into the persistent production assets bind mount
+verifies assets.json exists
+verifies assets-rtl.json exists
+verifies every /assets/... target referenced by assets.json exists
+```
+
+Do not replace this with an ad-hoc copy from a running container.
+
+Required helper marker:
+
+```text
+ASSET_MANIFEST_TARGETS_OK
+```
+
+A successful command exit without this marker is not sufficient production asset-publication evidence.
+
+### Prove a published asset is served
+
+Manifest existence proves the persistent asset tree was populated, but it does not by itself prove the production HTTP path is serving that tree.
+
+Select an asset URL from the active `assets.json` manifest and verify it through the public production route.
+
+The selected path must:
+
+```text
+begin with /assets/
+exist in the active assets.json manifest
+refer to a concrete published asset
+```
+
+Request it through:
+
+```text
+https://erp.telectro.co.za
+```
+
+Required result:
+
+```text
+HTTP 200
+```
+
+Record:
+
+```text
+selected manifest asset URL
+HTTP status
+```
+
+The HTTP proof must explicitly record the selected manifest URL and require the request command to exit successfully with status `200`.
+
+Only after that proof succeeds may evidence record:
+
+```text
+PRODUCTION_ASSET_PUBLIC_HTTP_OK
+```
+
+The aggregate asset-publication marker may be recorded only when all of these agree:
+
+```text
+.env.production selects the immutable candidate ERPNEXT_IMAGE
+prod-seed-assets.sh exits successfully
+ASSET_MANIFEST_TARGETS_OK is present in the helper output
+the selected manifest asset URL returns HTTP 200 through the public production route
+```
+
+Required aggregate marker:
+
+```text
+PRODUCTION_ASSET_PUBLICATION_OK
+```
+
+Do not rely only on `/api/method/ping` for this proof.
+
+The application ping proves the backend route. It does not prove that the persistent frontend asset tree matches the candidate release.
+
+### Asset-publication failure rule
+
+Do not proceed to browser verification when:
+
+```text
+prod-seed-assets.sh fails
+assets.json is missing
+assets-rtl.json is missing
+a manifest target is missing
+the selected published asset does not return HTTP 200
+the selected ERPNEXT_IMAGE does not match the candidate image
+```
+
+An asset-publication failure occurs after migration.
+
+Do not rerun migration automatically to resolve it.
+
+Diagnose the asset publication or serving path separately.
+
+Required markers:
+
+```text
+ASSET_MANIFEST_TARGETS_OK
+PRODUCTION_ASSET_PUBLIC_HTTP_OK
+PRODUCTION_ASSET_PUBLICATION_OK
+```
+
+Only after:
+
+```text
+PRODUCTION_ASSET_PUBLICATION_OK
+```
+
+may Phase 21 browser-level verification begin.
 
 ## Phase 21 — perform browser-level verification
 
