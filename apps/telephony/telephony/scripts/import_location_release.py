@@ -285,6 +285,49 @@ def validate_release_stages(
 
     return None
 
+def insert_release_row(row):
+    doc = frappe.get_doc(
+        {
+            "doctype": "Location",
+            "location_name": row.location_name,
+            "parent_location": row.parent_location,
+            "is_container": row.is_container,
+            "is_group": row.is_group,
+            "latitude": row.latitude,
+            "longitude": row.longitude,
+            "area_uom": row.area_uom,
+            "location": row.location,
+            "custom_kmz_source":
+                row.custom_kmz_source,
+            "custom_kmz_folder_path":
+                row.custom_kmz_folder_path,
+            "custom_kmz_geometry_type":
+                row.custom_kmz_geometry_type,
+            "custom_kmz_description":
+                row.custom_kmz_description,
+            "custom_kmz_metadata_json":
+                row.custom_kmz_metadata_json,
+        }
+    )
+
+    doc.insert(
+        ignore_permissions=True,
+        set_name=row.name,
+    )
+
+    frappe.db.set_value(
+        "Location",
+        row.name,
+        {
+            "location_name": row.location_name,
+            "latitude": row.latitude,
+            "longitude": row.longitude,
+        },
+        update_modified=False,
+    )
+
+    return row.name
+
 def validate_target_preflight(
     stages,
     external_prerequisites,

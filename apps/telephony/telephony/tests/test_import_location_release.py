@@ -891,5 +891,137 @@ class TestLocationReleaseTargetPreflight(
                 )
             )
 
+class TestLocationReleaseInsertPrimitive(
+    unittest.TestCase
+):
+    def _row(self):
+        return import_location_release.LocationReleaseRow(
+            name="kmz123",
+            location_name="Buildings: Office",
+            parent_location="Boschendal - Buildings",
+            is_container=0,
+            is_group=0,
+            latitude=-33.900001,
+            longitude=18.900001,
+            area_uom=None,
+            location=(
+                '{"type":"FeatureCollection",'
+                '"features":[]}'
+            ),
+            custom_kmz_source="boschendal.kmz",
+            custom_kmz_folder_path=(
+                "Boschendal / Buildings"
+            ),
+            custom_kmz_geometry_type="Point",
+            custom_kmz_description="Office",
+            custom_kmz_metadata_json=(
+                '{"pts_count":1}'
+            ),
+        )
+
+    def _frappe(self):
+        patcher = mock.patch.object(
+            import_location_release,
+            "frappe",
+        )
+
+        frappe_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        doc_mock = mock.Mock()
+        frappe_mock.get_doc.return_value = doc_mock
+
+        return frappe_mock, doc_mock
+
+    def test_insert_uses_canonical_id_and_release_fields(
+        self,
+    ):
+        frappe_mock, doc_mock = self._frappe()
+
+        row = self._row()
+
+        result = (
+            import_location_release
+            .insert_release_row(row)
+        )
+
+        frappe_mock.get_doc.assert_called_once_with(
+            {
+                "doctype": "Location",
+                "location_name": "Buildings: Office",
+                "parent_location":
+                    "Boschendal - Buildings",
+                "is_container": 0,
+                "is_group": 0,
+                "latitude": -33.900001,
+                "longitude": 18.900001,
+                "area_uom": None,
+                "location": (
+                    '{"type":"FeatureCollection",'
+                    '"features":[]}'
+                ),
+                "custom_kmz_source":
+                    "boschendal.kmz",
+                "custom_kmz_folder_path":
+                    "Boschendal / Buildings",
+                "custom_kmz_geometry_type":
+                    "Point",
+                "custom_kmz_description":
+                    "Office",
+                "custom_kmz_metadata_json":
+                    '{"pts_count":1}',
+            }
+        )
+
+        doc_mock.insert.assert_called_once_with(
+            ignore_permissions=True,
+            set_name="kmz123",
+        )
+
+        self.assertEqual(
+            result,
+            "kmz123",
+        )
+
+    def test_insert_restores_authoritative_fields_after_insert(
+        self,
+    ):
+        frappe_mock, doc_mock = self._frappe()
+
+        row = self._row()
+
+        (
+            import_location_release
+            .insert_release_row(row)
+        )
+
+        doc_mock.insert.assert_called_once()
+
+        frappe_mock.db.set_value.assert_called_once_with(
+            "Location",
+            "kmz123",
+            {
+                "location_name": "Buildings: Office",
+                "latitude": -33.900001,
+                "longitude": 18.900001,
+            },
+            update_modified=False,
+        )
+
+    def test_insert_does_not_manage_transaction(
+        self,
+    ):
+        frappe_mock, _ = self._frappe()
+
+        (
+            import_location_release
+            .insert_release_row(
+                self._row()
+            )
+        )
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
