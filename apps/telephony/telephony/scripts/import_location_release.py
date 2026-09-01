@@ -1,6 +1,7 @@
 import csv
 from dataclasses import dataclass
 from pathlib import Path
+import frappe
 
 
 V1_HEADER = (
@@ -221,6 +222,7 @@ def validate_release_stages(
 
     for stage_number, rows in enumerate(stages):
         stage_ids = set()
+        stage_location_names = set()
 
         for row in rows:
             if row.name in seen_ids:
@@ -233,6 +235,22 @@ def validate_release_stages(
                 raise ValueError(
                     "duplicate ID within release stage: "
                     f"{row.name}"
+                )
+
+            if (
+                row.name != row.location_name
+                and (
+                    row.name in seen_location_names
+                    or row.name in stage_location_names
+                    or row.location_name in seen_ids
+                    or row.location_name in stage_ids
+                )
+            ):
+                raise ValueError(
+                    "Location ID / Location Name collision "
+                    "across release rows: "
+                    f"{row.name!r} / "
+                    f"{row.location_name!r}"
                 )
 
             if row.location_name in seen_location_names:
@@ -255,12 +273,86 @@ def validate_release_stages(
                 )
 
             stage_ids.add(row.name)
+            stage_location_names.add(
+                row.location_name
+            )
 
         seen_ids.update(stage_ids)
         available_parents.update(stage_ids)
         seen_location_names.update(
-            row.location_name
-            for row in rows
+            stage_location_names
         )
+
+    return None
+
+def validate_target_preflight(
+    stages,
+    external_prerequisites,
+):
+    prerequisites = set(
+        external_prerequisites or set()
+    )
+
+    for prerequisite in sorted(prerequisites):
+        if not frappe.db.exists(
+            "Location",
+            prerequisite,
+        ):
+            raise ValueError(
+                "Missing target Location prerequisite: "
+                f"{prerequisite}"
+            )
+
+        is_group = frappe.db.get_value(
+            "Location",
+            prerequisite,
+            "is_group",
+        )
+
+        if not int(is_group or 0):
+            raise ValueError(
+                "Target Location prerequisite must be "
+                f"a group: {prerequisite}"
+            )
+
+    for rows in stages:
+        for row in rows:
+            if frappe.db.exists(
+                "Location",
+                row.name,
+            ):
+                raise ValueError(
+                    "Location ID collision on target: "
+                    f"{row.name}"
+                )
+
+            existing_label = frappe.db.get_value(
+                "Location",
+                {
+                    "location_name":
+                        row.location_name,
+                },
+                "name",
+            )
+
+            if existing_label:
+                raise ValueError(
+                    "Location Name collision on target: "
+                    f"{row.location_name}"
+                )
+
+            existing_autoname = frappe.db.get_value(
+                "Location",
+                {
+                    "location_name": row.name,
+                },
+                "name",
+            )
+
+            if existing_autoname:
+                raise ValueError(
+                    "Location autoname collision on "
+                    f"target: {row.name}"
+                )
 
     return None
