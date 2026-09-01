@@ -464,6 +464,122 @@ def apply_release_stages(
         "stage_counts": stage_counts,
     }
 
+def verify_release_postflight(
+    stages,
+    *,
+    external_prerequisites,
+):
+    stages = [
+        list(stage)
+        for stage in stages
+    ]
+
+    validate_release_stages(
+        stages,
+        external_prerequisites=external_prerequisites,
+    )
+
+    tree_fields = [
+        "parent_location",
+        "lft",
+        "rgt",
+    ]
+
+    stored_tree = {}
+    stage_counts = []
+    verified_count = 0
+
+    for stage in stages:
+        stage_counts.append(
+            len(stage)
+        )
+
+        for row in stage:
+            verify_release_row(row)
+
+            stored = frappe.db.get_value(
+                "Location",
+                row.name,
+                tree_fields,
+                as_dict=True,
+            )
+
+            if not stored:
+                raise ValueError(
+                    "Missing stored Location during "
+                    "release postflight: "
+                    f"{row.name}"
+                )
+
+            stored_tree[row.name] = stored
+            verified_count += 1
+
+    for stage in stages:
+        for row in stage:
+            child = stored_tree[row.name]
+            parent_name = row.parent_location
+
+            if not parent_name:
+                continue
+
+            parent = stored_tree.get(
+                parent_name
+            )
+
+            if parent is None:
+                parent = frappe.db.get_value(
+                    "Location",
+                    parent_name,
+                    tree_fields,
+                    as_dict=True,
+                )
+
+            if not parent:
+                raise ValueError(
+                    "Missing stored Location parent "
+                    "during release postflight: "
+                    f"{parent_name}"
+                )
+
+            child_lft = child.get("lft")
+            child_rgt = child.get("rgt")
+            parent_lft = parent.get("lft")
+            parent_rgt = parent.get("rgt")
+
+            if (
+                child_lft is None
+                or child_rgt is None
+                or parent_lft is None
+                or parent_rgt is None
+            ):
+                raise ValueError(
+                    "Location nested-set bounds "
+                    "missing during release postflight: "
+                    f"child={row.name} "
+                    f"parent={parent_name}"
+                )
+
+            if not (
+                parent_lft
+                < child_lft
+                < child_rgt
+                < parent_rgt
+            ):
+                raise ValueError(
+                    "Location nested-set edge mismatch: "
+                    f"child={row.name} "
+                    f"parent={parent_name} "
+                    f"child_bounds="
+                    f"{child_lft}..{child_rgt} "
+                    f"parent_bounds="
+                    f"{parent_lft}..{parent_rgt}"
+                )
+
+    return {
+        "verified_count": verified_count,
+        "stage_counts": stage_counts,
+    }
+
 def validate_target_preflight(
     stages,
     external_prerequisites,

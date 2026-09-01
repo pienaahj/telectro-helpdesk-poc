@@ -1531,5 +1531,277 @@ class TestLocationReleaseStageApplication(
         frappe_mock.db.commit.assert_not_called()
         frappe_mock.db.rollback.assert_not_called()
 
+class TestLocationReleasePostflight(
+    unittest.TestCase
+):
+    def _row(
+        self,
+        name,
+        *,
+        location_name=None,
+        parent_location="Pilot Sites",
+    ):
+        return import_location_release.LocationReleaseRow(
+            name=name,
+            location_name=location_name or name,
+            parent_location=parent_location,
+            is_container=0,
+            is_group=1,
+            latitude=0.0,
+            longitude=0.0,
+            area_uom=None,
+            location=None,
+            custom_kmz_source=None,
+            custom_kmz_folder_path=None,
+            custom_kmz_geometry_type="Point",
+            custom_kmz_description=None,
+            custom_kmz_metadata_json=None,
+        )
+
+    def _frappe(self, tree):
+        patcher = mock.patch.object(
+            import_location_release,
+            "frappe",
+        )
+
+        frappe_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        def get_value(
+            doctype,
+            name,
+            fields,
+            as_dict=False,
+        ):
+            self.assertEqual(
+                doctype,
+                "Location",
+            )
+            self.assertEqual(
+                fields,
+                [
+                    "parent_location",
+                    "lft",
+                    "rgt",
+                ],
+            )
+            self.assertTrue(as_dict)
+
+            value = tree.get(name)
+
+            if value is None:
+                return None
+
+            return dict(value)
+
+        frappe_mock.db.get_value.side_effect = (
+            get_value
+        )
+
+        return frappe_mock
+
+    def _tree(self):
+        return {
+            "Pilot Sites": {
+                "parent_location": None,
+                "lft": 1,
+                "rgt": 8,
+            },
+            "Boschendal": {
+                "parent_location": "Pilot Sites",
+                "lft": 2,
+                "rgt": 7,
+            },
+            "Boschendal - Buildings": {
+                "parent_location": "Boschendal",
+                "lft": 3,
+                "rgt": 6,
+            },
+            "kmz123": {
+                "parent_location":
+                    "Boschendal - Buildings",
+                "lft": 4,
+                "rgt": 5,
+            },
+        }
+
+    def _stages(self):
+        root = self._row(
+            "Boschendal",
+        )
+
+        group = self._row(
+            "Boschendal - Buildings",
+            parent_location="Boschendal",
+        )
+
+        leaf = self._row(
+            "kmz123",
+            location_name="Buildings: Office",
+            parent_location="Boschendal - Buildings",
+        )
+
+        return [
+            [root],
+            [group],
+            [leaf],
+        ]
+
+    def test_postflight_reverifies_all_rows(
+        self,
+    ):
+        self._frappe(
+            self._tree()
+        )
+
+        stages = self._stages()
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ) as validate,
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+            ) as verify,
+        ):
+            result = (
+                import_location_release
+                .verify_release_postflight(
+                    stages,
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                )
+            )
+
+        validate.assert_called_once_with(
+            stages,
+            external_prerequisites={
+                "Pilot Sites",
+            },
+        )
+
+        self.assertEqual(
+            [
+                call.args[0].name
+                for call in verify.call_args_list
+            ],
+            [
+                "Boschendal",
+                "Boschendal - Buildings",
+                "kmz123",
+            ],
+        )
+
+        self.assertEqual(
+            result,
+            {
+                "verified_count": 3,
+                "stage_counts": [1, 1, 1],
+            },
+        )
+
+    def test_postflight_rejects_broken_nested_set_edge(
+        self,
+    ):
+        tree = self._tree()
+
+        tree["kmz123"] = {
+            "parent_location":
+                "Boschendal - Buildings",
+            "lft": 8,
+            "rgt": 9,
+        }
+
+        self._frappe(tree)
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+            ),
+            self.assertRaisesRegex(
+                ValueError,
+                "nested-set",
+            ),
+        ):
+            (
+                import_location_release
+                .verify_release_postflight(
+                    self._stages(),
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                )
+            )
+
+    def test_postflight_rejects_missing_tree_row(
+        self,
+    ):
+        tree = self._tree()
+        del tree["kmz123"]
+
+        self._frappe(tree)
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+            ),
+            self.assertRaisesRegex(
+                ValueError,
+                "Missing stored Location",
+            ),
+        ):
+            (
+                import_location_release
+                .verify_release_postflight(
+                    self._stages(),
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                )
+            )
+
+    def test_postflight_is_read_only(self):
+        frappe_mock = self._frappe(
+            self._tree()
+        )
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_row",
+            ),
+        ):
+            (
+                import_location_release
+                .verify_release_postflight(
+                    self._stages(),
+                    external_prerequisites={
+                        "Pilot Sites",
+                    },
+                )
+            )
+
+        frappe_mock.get_doc.assert_not_called()
+        frappe_mock.db.set_value.assert_not_called()
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
