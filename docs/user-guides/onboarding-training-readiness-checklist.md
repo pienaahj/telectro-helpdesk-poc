@@ -673,7 +673,7 @@ Do not invite real users until these checks are complete or explicitly accepted 
 
 ## Role and workspace access
 
-* [ ] Technician role profile tested.
+* [x] Technician role profile tested.
 * [x] Native Helpdesk `HD Agent` identity creation has been proven with a controlled production internal user.
 * [x] `HD Agent` identity has been proven independent of HD Team and Assignment Rule membership.
 * [x] HD Team membership has been proven to synchronise to the linked native Assignment Rule and enable the rule when the first Team member is added.
@@ -685,7 +685,9 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Partner organisation containment has been tested.
 * [ ] Default Dispatch User has been verified where Partner fulfilment dispatch is required.
 * [ ] Customer portal user tested.
-* [ ] Technician lands on or can access Tech Workspace.
+* [x] Technician lands on or can access Tech Workspace.
+* [x] Pure Technician access to Coordinator and Ops workspace routes redirects to the Tech Workspace.
+* [x] Pure Technician with an active `HD Agent` can access the native Helpdesk agent application without HD Team membership.
 * [ ] Coordinator lands on or can access Coordinator Workspace.
 * [ ] Supervisor lands on or can access Ops Workspace.
 * [ ] Partner lands on or can access Partner Workspace.
@@ -840,6 +842,8 @@ For each internal Helpdesk user, complete the operational onboarding layers sepa
 
 `HD Agent` identity and HD Team membership are separate onboarding controls. Creating or obtaining an `HD Agent` must not be treated as making the user routable.
 
+HD Team membership is operational runtime state rather than repository fixture-owned data. The previous `HD Team` fixture ownership problem was corrected on 2026-08-26: repository fixture ownership of HD Team membership was removed, required Teams are now verified/created through `telephony.setup.hd_team_durability.after_migrate`, and existing Team membership and linked Assignment Rule state are deliberately left untouched. Dedicated unit coverage and the runtime durability validator protect this contract.
+
 The native Helpdesk `/helpdesk` Create Ticket route may be used for isolated Helpdesk mechanism testing, but it is not a canonical pilot ticket-intake path and must not be used as evidence for the normal ERPNext ticket creation form or pilot field-validation behaviour.
 
 ## Phase 2 — Partner organisation and user
@@ -926,7 +930,13 @@ Already production-proven:
 * outgoing Email Account configuration;
 * Email Queue / recipient processing to `Sent` without recorded errors;
 * Welcome-email generation for synthetic Customer and Partner users;
-* generation of the public `https://erp.telectro.co.za/update-password` setup route.
+* generation of the public `https://erp.telectro.co.za/update-password` setup route;
+* pure Technician Role Profile parity using a temporary controlled production role transition;
+* pure Technician Tech Workspace access and Coordinator/Ops workspace containment;
+* pure Technician native Helpdesk agent access with an active `HD Agent`;
+* successful restoration of the controlled production user to the original Supervisor Role Profile;
+* HD Team membership synchronisation to the linked native Assignment Rule;
+* canonical ERPNext / Desk PABX routing and native Assignment Rule assignment.
 
 Still pending:
 
