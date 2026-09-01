@@ -83,41 +83,62 @@ Ready now:
 * Partner acceptance, work-done, and Telectro review processes;
 * Coordinator / Supervisor operational review processes;
 * role-specific quick-start sections;
-* screenshot checklist placeholders.
+* screenshot checklist placeholders;
+* production outgoing Email Account configuration;
+* production outgoing Email Queue processing to `Sent` without recipient errors;
+* production Welcome email generation for synthetic Customer and Partner users;
+* production Welcome email generation using the public `https://erp.telectro.co.za` host and `/update-password` setup route.
 
 Still needed:
 
+* controlled real-inbox receipt proof for the onboarding email path;
+* successful password setup through the public HTTPS setup link;
+* first login after password setup;
+* role-specific landing and access proof after first login;
+* failed or expired setup-link behaviour proof;
 * production screenshots;
-* first-user invitation and password setup proof;
 * final training pack assembly;
 * production screenshot follow-up pass for guides that currently use screenshot placeholders.
 
-Blocked by production setup:
+Production onboarding acceptance proof still required:
 
 * production admin login proof;
-* outgoing email proof;
-* welcome/reset/setup email proof;
-* real public HTTPS password setup link proof;
+* controlled real-inbox receipt of a test / onboarding email;
+* successful public HTTPS password setup in a browser;
+* first production role login after password setup;
 * first production user onboarding screenshots;
 * production Customer portal screenshots;
 * production Partner workspace screenshots;
 * production Telectro workspace screenshots.
 
+The production email path should no longer be described as blocked by unproven SMTP configuration, Email Queue processing, Welcome-email generation, or public setup-link generation; those application-side layers are now proven.
+
+Production inspection on 2026-08-25 established:
+
+* one enabled default outgoing Email Account, `ERP Admin Outgoing`;
+* the default outgoing account configured for SMTP submission through `mail.telectro.co.za:587` with TLS;
+* recent Email Queue and recipient rows reaching `Sent` with no recorded errors;
+* production `Welcome to Telectro` messages generated for synthetic Customer and Partner users;
+* Welcome messages containing the public `https://erp.telectro.co.za/update-password` setup route.
+
+Those checks prove application-side configuration, queue processing, Welcome-email generation, and public setup-link generation. They do not by themselves prove that a human received the message in a real mailbox, opened the setup link successfully, set a password, or completed the subsequent role login.
+
 ## Current risk
 
 The main risk is not the absence of role guides.
 
-The main risk is starting onboarding before the complete path has been proven:
+The main risk is starting onboarding before the complete user acceptance path has been proven:
 
 1. user account created;
 2. role profile applied;
-3. welcome/setup email sent;
-4. user opens public HTTPS setup link;
-5. user sets password;
-6. user logs in;
-7. user lands in the expected workspace or portal;
-8. user can perform only the actions intended for that role;
-9. user has a simple guide for what to do next.
+3. welcome/setup email generated and delivered;
+4. user receives the message in the intended mailbox;
+5. user opens the public HTTPS setup link;
+6. user sets password;
+7. user logs in;
+8. user lands in the expected workspace or portal;
+9. user can perform only the actions intended for that role;
+10. user has a simple guide for what to do next.
 
 ---
 
@@ -176,13 +197,44 @@ The main risk is starting onboarding before the complete path has been proven:
 
 ### Onboarding proof required
 
-* Technician user can log in.
+* Technician User exists, is enabled, and has the intended Role Profile.
+* Technician has a native active `HD Agent` identity for the Helpdesk agent experience.
+* Technician can access the native Helpdesk agent application.
 * Technician lands on or can access the Tech Workspace.
 * Technician can open My Current Work.
 * Technician can open assigned tickets.
 * Technician can see Customer Request and Fault Location context.
 * Technician can use intended ticket actions.
+* Technician has deliberate membership in the required HD Team or Teams.
+* HD Team membership is reflected in the linked native Assignment Rule.
+* The linked Assignment Rule is enabled when the Team has one or more members.
+* A ticket routed through a canonical pilot ticket-intake path can be assigned to the Technician and produces matching `_assign` and open ToDo state.
 * Technician does not rely on Partner or Customer portal workflows.
+
+Production proof on 2026-08-25 established the native Helpdesk identity and routing mechanics using `christo@telectro.co.za`:
+
+* native `HD Agent` creation through Helpdesk `get_agent()` was proven;
+* creating the `HD Agent` did not add Team or Assignment Rule membership;
+* adding Christo to `PABX` automatically added him to `PABX - Support Rotation-13` and enabled the rule;
+* controlled Ticket `14` was natively assigned to Christo with matching `_assign`, one open ToDo, and Assignment Rule `last_user`;
+* Ticket `14` appeared under `My Current Work` as `Assigned to me`;
+* Christo could open Ticket `14` successfully.
+
+Ticket `14` was created through the native Helpdesk `/helpdesk` Create path solely as a controlled identity and routing proof. That route is not a canonical pilot ticket-intake path and does not prove the normal ERPNext HD Ticket creation form, pilot field rules, defaults, field order, or normal intake workflow.
+
+Canonical production follow-up proof was completed with Ticket `16`, `[PILOT TEST][ONB-03] Canonical PABX onboarding routing proof`:
+
+* the ticket was created through the normal ERPNext / Desk HD Ticket creation path;
+* `PABX` was confirmed before save and remained `PABX` after save;
+* routing seeded `agent_group=PABX`;
+* creator take-ownership was not selected and no dedicated-Campus override applied;
+* native Assignment Rule `PABX - Support Rotation-13` assigned the ticket to `christo@telectro.co.za`;
+* `_assign` contained only `christo@telectro.co.za`;
+* exactly one open ToDo existed, allocated to Christo with native Assignment Rule provenance;
+* Ticket `16` appeared under `My Current Work` as `Assigned to me`;
+* Christo could access the resulting ticket.
+
+The Technician assignment/access smoke test through a canonical pilot ticket-intake path is therefore proven.
 
 ---
 
@@ -525,7 +577,7 @@ Use these labels while assembling the training pack:
 
 * `Ready from local proof`
 * `Needs production retake`
-* `Blocked by production setup`
+* `Blocked by production onboarding proof`
 * `Optional`
 * `Do not use`
 
@@ -608,17 +660,23 @@ Do not invite real users until these checks are complete or explicitly accepted 
 
 ## Email and password setup
 
-* [ ] Outgoing email is configured.
-* [ ] Test email sends successfully.
-* [ ] Welcome/setup email sends successfully.
-* [ ] Password setup/reset link uses public HTTPS URL.
+* [x] Outgoing email is configured.
+* [x] Production Email Queue processing reaches `Sent` without recipient errors.
+* [ ] Controlled test email receipt is confirmed in a real inbox.
+* [x] Welcome/setup email is generated and queued successfully.
+* [ ] Welcome/setup email receipt is confirmed in a controlled real inbox.
+* [x] Generated password setup/reset link uses the public `https://erp.telectro.co.za` URL.
+* [ ] Test user can open the public HTTPS setup link successfully.
 * [ ] Test user can set password.
 * [ ] Test user can log in after setting password.
 * [ ] Failed or expired setup-link behaviour is understood.
 
 ## Role and workspace access
 
-* [ ] Technician role profile tested.
+* [x] Technician role profile tested.
+* [x] Native Helpdesk `HD Agent` identity creation has been proven with a controlled production internal user.
+* [x] `HD Agent` identity has been proven independent of HD Team and Assignment Rule membership.
+* [x] HD Team membership has been proven to synchronise to the linked native Assignment Rule and enable the rule when the first Team member is added.
 * [ ] Coordinator role profile tested.
 * [ ] Supervisor role profile tested.
 * [ ] Partner role profile tested.
@@ -627,7 +685,9 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Partner organisation containment has been tested.
 * [ ] Default Dispatch User has been verified where Partner fulfilment dispatch is required.
 * [ ] Customer portal user tested.
-* [ ] Technician lands on or can access Tech Workspace.
+* [x] Technician lands on or can access Tech Workspace.
+* [x] Pure Technician access to Coordinator and Ops workspace routes redirects to the Tech Workspace.
+* [x] Pure Technician with an active `HD Agent` can access the native Helpdesk agent application without HD Team membership.
 * [ ] Coordinator lands on or can access Coordinator Workspace.
 * [ ] Supervisor lands on or can access Ops Workspace.
 * [ ] Partner lands on or can access Partner Workspace.
@@ -650,6 +710,9 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Evidence can be attached to a ticket.
 * [ ] Evidence can be selected in Customer-visible update.
 * [ ] Customer can download Customer-visible evidence.
+* [x] Controlled native Helpdesk round-robin assignment produces matching `_assign` and exactly one open ToDo for the assigned internal user.
+* [x] Controlled assigned work appears in `My Current Work` and the assigned internal user can open the ticket.
+* [x] Technician assignment/access smoke test has been repeated using a canonical pilot ticket-intake path.
 * [ ] Technician can claim/release/handoff where applicable.
 * [ ] Partner can log a Partner-originated request under the correct Partner organisation.
 * [ ] Partner acceptance flow works for a Partner-originated / non-Partner-fulfilled ticket where applicable.
@@ -764,6 +827,25 @@ Reason:
 * Customer and Partner activity creates tickets that Telectro must be ready to handle;
 * supervisors/coordinators need to know how to monitor early risk.
 
+For each internal Helpdesk user, complete the operational onboarding layers separately:
+
+1. create or verify the enabled Frappe User;
+2. apply and verify the intended Role Profile;
+3. establish the native active `HD Agent` identity;
+4. verify access to the native Helpdesk agent application and intended role workspace;
+5. add deliberate membership to the required HD Team or Teams;
+6. verify that Helpdesk synchronises the same user into each linked native Assignment Rule;
+7. verify that the Assignment Rule enables when the Team becomes populated;
+8. create a controlled ticket through a canonical pilot ticket-intake path;
+9. verify routing to the intended Team, matching `_assign`, and exactly one open ToDo;
+10. verify that the assigned ticket appears in `My Current Work` and opens successfully for the user.
+
+`HD Agent` identity and HD Team membership are separate onboarding controls. Creating or obtaining an `HD Agent` must not be treated as making the user routable.
+
+HD Team membership is operational runtime state rather than repository fixture-owned data. The previous `HD Team` fixture ownership problem was corrected on 2026-08-26: repository fixture ownership of HD Team membership was removed, required Teams are now verified/created through `telephony.setup.hd_team_durability.after_migrate`, and existing Team membership and linked Assignment Rule state are deliberately left untouched. Dedicated unit coverage and the runtime durability validator protect this contract.
+
+The native Helpdesk `/helpdesk` Create Ticket route may be used for isolated Helpdesk mechanism testing, but it is not a canonical pilot ticket-intake path and must not be used as evidence for the normal ERPNext ticket creation form or pilot field-validation behaviour.
+
 ## Phase 2 — Partner organisation and user
 
 Onboard Partner organisations and their Users after internal Telectro users can handle Partner-side review queues.
@@ -841,18 +923,33 @@ Do not onboard Customer users until Telectro can:
 
 # 8. Known pending items
 
-These items are expected to remain pending until Telectro production setup is unblocked.
+These items remain pending until production onboarding acceptance proof is complete.
 
-* Production admin email/account confirmation.
-* ERPNext setup wizard completion.
-* Outgoing email verification.
-* First-user welcome/setup email proof.
-* Public HTTPS password setup proof.
-* First production role login proof.
-* Production screenshots.
-* Final Customer/Partner onboarding screenshots.
+Already production-proven:
 
-Until these are proven, the training package can be prepared but should not claim that the production onboarding path has been verified.
+* outgoing Email Account configuration;
+* Email Queue / recipient processing to `Sent` without recorded errors;
+* Welcome-email generation for synthetic Customer and Partner users;
+* generation of the public `https://erp.telectro.co.za/update-password` setup route;
+* pure Technician Role Profile parity using a temporary controlled production role transition;
+* pure Technician Tech Workspace access and Coordinator/Ops workspace containment;
+* pure Technician native Helpdesk agent access with an active `HD Agent`;
+* successful restoration of the controlled production user to the original Supervisor Role Profile;
+* HD Team membership synchronisation to the linked native Assignment Rule;
+* canonical ERPNext / Desk PABX routing and native Assignment Rule assignment.
+
+Still pending:
+
+* production admin login proof;
+* controlled real-inbox receipt of an onboarding email;
+* successful browser opening of the public HTTPS setup link;
+* successful password setup by the test user;
+* first production role login after password setup;
+* failed or expired setup-link behaviour proof;
+* production screenshots;
+* final Customer/Partner onboarding screenshots.
+
+Until the remaining acceptance checks are proven, the training package can be prepared but should not claim that the complete first-user production onboarding path has been verified.
 
 ---
 
