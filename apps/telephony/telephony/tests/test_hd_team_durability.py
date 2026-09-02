@@ -164,6 +164,151 @@ class TestHDTeamVerification(unittest.TestCase):
             result["issues"],
         )
 
+
+class TestHDAssignmentRuleOwnership(unittest.TestCase):
+    def test_structural_orphan_rule_detection_ignores_rule_names(self):
+        def get_all(
+            doctype,
+            fields=None,
+            filters=None,
+            order_by=None,
+            limit_page_length=None,
+        ):
+            if doctype == "HD Team":
+                return [
+                    {
+                        "assignment_rule": (
+                            "PABX - Current Rule"
+                        )
+                    }
+                ]
+
+            if doctype == "Assignment Rule":
+                condition = (
+                    filters.get("assign_condition")
+                    if filters
+                    else None
+                )
+
+                if condition == (
+                    "status == 'Open' and "
+                    "agent_group == 'PABX'"
+                ):
+                    return [
+                        {
+                            "name": (
+                                "PABX - Old Arbitrary Name"
+                            )
+                        },
+                        {
+                            "name": (
+                                "PABX - Current Rule"
+                            )
+                        },
+                    ]
+
+                return []
+
+            return []
+
+        with mock.patch.object(
+            hd_team_durability.frappe,
+            "get_all",
+            side_effect=get_all,
+        ):
+            result = (
+                hd_team_durability
+                ._get_enabled_orphan_assignment_rules()
+            )
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "team": "PABX",
+                    "assignment_rule": (
+                        "PABX - Old Arbitrary Name"
+                    ),
+                }
+            ],
+        )
+
+    def test_enabled_orphan_rules_are_reported(self):
+        def get_team(team_name):
+            return {
+                "name": team_name,
+                "team_name": team_name,
+                "assignment_rule": (
+                    f"{team_name} - Current Rule"
+                ),
+            }
+
+        with (
+            mock.patch.object(
+                hd_team_durability,
+                "_get_team_state",
+                side_effect=get_team,
+            ),
+            mock.patch.object(
+                hd_team_durability,
+                "_get_enabled_orphan_assignment_rules",
+                return_value=[
+                    {
+                        "team": "PABX",
+                        "assignment_rule": (
+                            "PABX - Old Rule"
+                        ),
+                    }
+                ],
+            ),
+            mock.patch.object(
+                hd_team_durability,
+                "frappe",
+            ) as frappe_mock,
+        ):
+            frappe_mock.local.site = "frontend"
+            frappe_mock.db.exists.return_value = True
+
+            result = (
+                hd_team_durability.verify_hd_teams()
+            )
+
+        self.assertFalse(result["ok"])
+
+        self.assertEqual(
+            result["issue_count"],
+            1,
+        )
+
+        self.assertEqual(
+            result["issues"],
+            [
+                {
+                    "type": (
+                        "enabled_orphan_assignment_rules"
+                    ),
+                    "team": "PABX",
+                    "assignment_rules": [
+                        "PABX - Old Rule"
+                    ],
+                }
+            ],
+        )
+
+        self.assertIn(
+            {
+                "type": (
+                    "enabled_orphan_assignment_rules"
+                ),
+                "team": "PABX",
+                "assignment_rules": [
+                    "PABX - Old Rule"
+                ],
+            },
+            result["issues"],
+        )
+
+
 class TestHDTeamReconciliation(unittest.TestCase):
     def test_existing_teams_are_not_rewritten(self):
         verification = {
@@ -314,6 +459,106 @@ class TestHDTeamReconciliation(unittest.TestCase):
 
         frappe_mock.new_doc.assert_not_called()
 
+    def test_enabled_orphan_rule_is_disabled(self):
+        before = {
+            "ok": False,
+            "site": "frontend",
+            "required_teams": list(
+                hd_team_durability.REQUIRED_HD_TEAMS
+            ),
+            "teams": [],
+            "issue_count": 1,
+            "issues": [
+                {
+                    "type": (
+                        "enabled_orphan_assignment_rules"
+                    ),
+                    "team": "PABX",
+                    "assignment_rules": [
+                        "PABX - Old Rule"
+                    ],
+                }
+            ],
+        }
+
+        after = {
+            "ok": True,
+            "site": "frontend",
+            "required_teams": list(
+                hd_team_durability.REQUIRED_HD_TEAMS
+            ),
+            "teams": [],
+            "issue_count": 0,
+            "issues": [],
+        }
+
+        rule_doc = mock.Mock()
+        rule_doc.disabled = False
+
+        with (
+            mock.patch.object(
+                hd_team_durability,
+                "verify_hd_teams",
+                side_effect=[
+                    before,
+                    after,
+                ],
+            ),
+            mock.patch.object(
+                hd_team_durability,
+                "_get_enabled_orphan_assignment_rules",
+                return_value=[
+                    {
+                        "team": "PABX",
+                        "assignment_rule": (
+                            "PABX - Old Rule"
+                        ),
+                    }
+                ],
+            ) as get_orphan_rules,
+            mock.patch.object(
+                hd_team_durability,
+                "frappe",
+            ) as frappe_mock,
+        ):
+            frappe_mock.db.exists.return_value = True
+            frappe_mock.get_doc.return_value = (
+                rule_doc
+            )
+
+            result = (
+                hd_team_durability.ensure_hd_teams()
+            )
+
+        get_orphan_rules.assert_called_once_with()
+
+        frappe_mock.new_doc.assert_not_called()
+
+        frappe_mock.get_doc.assert_called_once_with(
+            "Assignment Rule",
+            "PABX - Old Rule",
+        )
+
+        self.assertTrue(rule_doc.disabled)
+
+        rule_doc.save.assert_called_once_with(
+            ignore_permissions=True
+        )
+
+        self.assertEqual(
+            result["changed"],
+            [
+                {
+                    "action": (
+                        "disable_orphan_assignment_rule"
+                    ),
+                    "team": "PABX",
+                    "assignment_rule": (
+                        "PABX - Old Rule"
+                    ),
+                }
+            ],
+        )
 
 class TestHDTeamLifecycle(unittest.TestCase):
     def test_after_migrate_uses_idempotent_ensure(self):
