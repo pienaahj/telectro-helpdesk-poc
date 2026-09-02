@@ -38,17 +38,25 @@ For ordinary internal team routing, native Frappe / Helpdesk **Assignment Rules*
 The current working path is:
 
 1. ticket routing context is seeded
-2. explicit Partner or Campus/Site ownership policy is evaluated
-3. ordinary internal tickets retain the selected `agent_group`
-4. the native Assignment Rule linked to that `HD Team` selects the accountable team member
-5. TELECTRO assignment synchronization keeps open `ToDo` and `_assign` state consistent with the pilot single-owner invariant
-6. user-facing Claim, Release, and Controlled Handoff operate on top of that canonical ownership state
+2. explicit ownership exceptions are evaluated
+3. Partner fulfilment may establish the Partner organisation's deterministic Default Dispatch User
+4. an eligible internal creator may explicitly choose Take Ownership
+5. ordinary internal tickets retain the selected `agent_group`
+6. the native Assignment Rule linked to that `HD Team` selects the accountable team member
+7. TELECTRO assignment synchronization keeps open `ToDo` and `_assign` state consistent with the pilot single-owner invariant
+8. user-facing Claim, Release, and Controlled Handoff operate on top of that canonical ownership state
 
 The important separation is:
 
 ```text
 TELECTRO routing policy
     -> decides team / exceptional direct owner
+
+Partner fulfilment
+    -> resolves the Partner organisation's deterministic dispatch owner
+
+Explicit internal Take Ownership
+    -> may establish the eligible internal ticket creator as owner
 
 Native HD Team Assignment Rule
     -> chooses the member of an ordinary internal team
@@ -58,6 +66,8 @@ TELECTRO ownership controls
     -> synchronize ToDo / _assign
     -> provide Claim / Release / Controlled Handoff
 ```
+
+Campus / Site context does not itself establish a direct owner. In particular, Boschendal tickets continue through their Service Area / HD Team routing path unless another explicit ownership exception applies.
 
 ---
 
@@ -80,8 +90,10 @@ Despite the historical module name, ordinary internal round-robin selection is n
 The current `assign_after_insert()` behavior is:
 
 * Partner fulfilment -> resolve and assign the Partner organisation's deterministic Default Dispatch User
-* Campus/Site routing policy with an explicit `target_user` -> assign that user directly
+* explicit internal direct-owner policy -> assign the returned `target_user`; the current internal exception is an eligible ticket creator who explicitly selected Take Ownership
 * ordinary internal team routing -> create no assignment itself and allow the native HD Team Assignment Rule to assign a team member
+
+Campus / Site is not an initial direct-owner policy. Boschendal and other ordinary internal tickets remain on the Service Area -> HD Team -> native Assignment Rule path.
 
 ### Routing-change ownership
 
@@ -92,7 +104,7 @@ Re-evaluates ownership when routing-relevant fields change.
 Its current behavior is:
 
 * Partner fulfilment -> normalize ownership to the selected Partner organisation's Default Dispatch User
-* Campus/Site routing policy -> normalize ownership to the explicit target User
+* explicit internal direct-owner policy with a `target_user` -> normalize ownership to that User
 * ordinary internal team routing:
 
   * preserve the current accountable owner when that User remains valid in the newly selected HD Team
@@ -161,8 +173,11 @@ Routing / policy:
 Ordinary team-member selection:
     native HD Team Assignment Rule
 
-Exceptional direct ownership:
-    TELECTRO Partner / Campus-Site policy
+Partner fulfilment ownership:
+    Partner organisation Default Dispatch User
+
+Exceptional internal direct ownership:
+    explicit creator Take Ownership
 
 Canonical active ownership:
     open assignment ToDo
@@ -177,6 +192,8 @@ Operational ownership actions:
 The former hard-coded TELECTRO round-robin pool implementation is no longer the live mechanism for ordinary internal team assignment.
 
 Native Assignment Rules are therefore active operational runtime state, not merely historical or dormant configuration.
+
+Campus / Site does not itself establish accountable ownership. It remains routing context and must not bypass the selected HD Team's normal assignment path merely because a ticket belongs to a particular campus.
 
 ---
 
@@ -194,16 +211,22 @@ Examples:
 
 Routing determines the destination team. It does not itself choose a member of that team.
 
-### 2) Explicit direct-owner policies are evaluated
+### 2) Explicit ownership exceptions are evaluated
 
 After insert, `assign_after_insert()` handles ownership paths that deliberately bypass ordinary team-member selection.
 
-Current direct-owner paths include:
+Current explicit ownership paths include:
 
 * Partner fulfilment -> selected Partner organisation's Default Dispatch User
-* Campus/Site routing policy -> explicit `target_user`
+* eligible internal creator with explicit Take Ownership -> ticket creator
 
-When one of these policies applies, TELECTRO code establishes the accountable owner directly.
+The internal Take Ownership path is opt-in. It applies only when the creator selected the Take Ownership field and qualifies as an eligible internal technician-like User.
+
+Partner-originated and Partner-fulfilled tickets are excluded from the internal creator Take Ownership path.
+
+Campus / Site is not a direct-owner exception. A Boschendal ticket, for example, continues through its Service Area -> HD Team -> native Assignment Rule path unless another explicit ownership exception applies.
+
+When an explicit ownership exception applies, TELECTRO code establishes the accountable owner directly.
 
 ### 3) Native HD Team assignment handles ordinary internal routing
 
@@ -693,7 +716,7 @@ It currently provides:
 * routing-driven HD Team selection
 * native Frappe Assignment Rule team-member selection
 * explicit Partner dispatch ownership
-* explicit Campus/Site direct-owner policy
+* explicit eligible internal creator Take Ownership
 * one accountable ticket owner
 * true-pool / unclaimed state
 * Claim
@@ -736,7 +759,7 @@ If explicit multi-person work tracking becomes necessary, it should be modelled 
 * Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
 * the audit trail is visible in `TELECTRO Assignment Handoff Audit`
 * Partner fulfilment uses an explicit organisation-aware dispatch override and bypasses ordinary internal team-member selection
-* Campus/Site policy may establish an explicit direct owner and bypass ordinary internal team-member selection
+* Campus / Site context does not by itself establish a direct owner; ordinary Boschendal tickets continue through Service Area -> HD Team -> native Assignment Rule assignment
 * generic direct Assign/Unassign remains intentionally guarded where it would violate the pilot ownership model
 
 ---
@@ -749,13 +772,15 @@ When proving or debugging assignment behavior, use this order:
 
    * `email_account`
    * `custom_service_area`
+   * `custom_site_group` / other relevant routing context
    * `agent_group`
-   * relevant Partner / Campus-Site policy fields
+   * relevant Partner ownership fields
+   * `custom_take_ownership_on_create` when explicit creator ownership is in question
 
 2. determine which ownership path applies
 
-   * Partner direct-owner path?
-   * Campus/Site direct-owner path?
+   * Partner fulfilment / dispatch path?
+   * explicit eligible internal creator Take Ownership path?
    * ordinary internal HD Team assignment?
    * existing true-pool state?
 
@@ -767,6 +792,7 @@ When proving or debugging assignment behavior, use this order:
    * rule applies to `HD Ticket`
    * rule condition matches the ticket
    * eligible Assignment Rule Users exist
+   * no enabled structural orphan Assignment Rule is competing with the currently linked HD Team rule
 
 4. inspect assignment `ToDo` state
 
@@ -792,7 +818,7 @@ When proving or debugging assignment behavior, use this order:
    * Release
    * Controlled Handoff
    * Partner dispatch normalization
-   * Campus/Site direct-owner policy
+   * eligible internal creator Take Ownership
 
 8. use assignment repair/proof tooling only when drift or inconsistent historical state is suspected
 
@@ -806,13 +832,15 @@ The normal internal path is:
 routing inputs
     -> final agent_group
     -> HD Team
-    -> native Assignment Rule
+    -> current linked native Assignment Rule
     -> accountable User
     -> assignment ToDo
     -> mirrored _assign
 ```
 
-Exceptional Partner or Campus/Site policy may deliberately bypass ordinary team-member selection.
+Partner fulfilment or explicit eligible internal creator Take Ownership may deliberately bypass ordinary team-member selection.
+
+Campus / Site context alone does not bypass ordinary team-member selection.
 
 The most reliable operational proof therefore starts with routing context and the applicable ownership path, then examines canonical assignment `ToDo` state, and only then uses `_assign` as the mirrored representation.
 
@@ -887,7 +915,7 @@ Revisit this runbook if any of the following change:
 * native Assignment Rule method or conditions
 * Assignment Rule User membership
 * Partner organisation / membership / Default Dispatch User rules
-* Campus/Site direct-owner policy
+* explicit internal creator Take Ownership policy
 * `_assign` / `ToDo` source-of-truth model
 * true-pool semantics
 * Claim / Release behavior
