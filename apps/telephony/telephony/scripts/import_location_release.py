@@ -580,6 +580,101 @@ def verify_release_postflight(
         "stage_counts": stage_counts,
     }
 
+def run(
+    stages,
+    *,
+    external_prerequisites,
+    expected_site,
+    dry_run=1,
+    commit=0,
+):
+    dry_run = bool(int(dry_run))
+    commit = bool(int(commit))
+
+    if commit:
+        dry_run = False
+
+    if not dry_run and not commit:
+        raise ValueError(
+            "Refusing uncommitted write mode. "
+            "Use dry_run=1,commit=0 or commit=1."
+        )
+
+    if frappe.local.site != expected_site:
+        raise ValueError(
+            "Location release target site mismatch: "
+            f"actual={frappe.local.site!r} "
+            f"expected={expected_site!r}"
+        )
+
+    stages = [
+        list(stage)
+        for stage in stages
+    ]
+
+    stage_counts = [
+        len(stage)
+        for stage in stages
+    ]
+
+    row_count = sum(stage_counts)
+
+    if dry_run:
+        validate_release_stages(
+            stages,
+            external_prerequisites=(
+                external_prerequisites
+            ),
+        )
+
+        validate_target_preflight(
+            stages,
+            external_prerequisites=(
+                external_prerequisites
+            ),
+        )
+
+        return {
+            "ok": True,
+            "dry_run": True,
+            "row_count": row_count,
+            "stage_counts": stage_counts,
+        }
+
+    try:
+        applied = apply_release_stages(
+            stages,
+            external_prerequisites=(
+                external_prerequisites
+            ),
+            expected_site=expected_site,
+        )
+
+        verified = verify_release_postflight(
+            stages,
+            external_prerequisites=(
+                external_prerequisites
+            ),
+        )
+
+        frappe.db.commit()
+
+        return {
+            "ok": True,
+            "committed": True,
+            "inserted_count": (
+                applied["inserted_count"]
+            ),
+            "verified_count": (
+                verified["verified_count"]
+            ),
+            "stage_counts": stage_counts,
+        }
+
+    except Exception:
+        frappe.db.rollback()
+        raise
+
 def validate_target_preflight(
     stages,
     external_prerequisites,

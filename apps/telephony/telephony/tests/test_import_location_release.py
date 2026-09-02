@@ -1803,5 +1803,308 @@ class TestLocationReleasePostflight(
         frappe_mock.db.commit.assert_not_called()
         frappe_mock.db.rollback.assert_not_called()
 
+class TestLocationReleaseRun(
+    unittest.TestCase
+):
+    def _row(self):
+        return import_location_release.LocationReleaseRow(
+            name="Boschendal",
+            location_name="Boschendal",
+            parent_location="Pilot Sites",
+            is_container=0,
+            is_group=1,
+            latitude=0.0,
+            longitude=0.0,
+            area_uom=None,
+            location=None,
+            custom_kmz_source=None,
+            custom_kmz_folder_path=None,
+            custom_kmz_geometry_type="Point",
+            custom_kmz_description=None,
+            custom_kmz_metadata_json=None,
+        )
+
+    def _frappe(self, site="location-roundtrip"):
+        patcher = mock.patch.object(
+            import_location_release,
+            "frappe",
+        )
+
+        frappe_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        frappe_mock.local.site = site
+
+        return frappe_mock
+
+    def test_run_refuses_uncommitted_write_mode(self):
+        frappe_mock = self._frappe()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Refusing uncommitted write mode",
+        ):
+            import_location_release.run(
+                [[self._row()]],
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                dry_run=0,
+                commit=0,
+            )
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
+    def test_run_refuses_wrong_site_before_preflight(
+        self,
+    ):
+        frappe_mock = self._frappe(
+            site="frontend",
+        )
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+            ) as release_preflight,
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+            ) as target_preflight,
+            mock.patch.object(
+                import_location_release,
+                "apply_release_stages",
+            ) as apply_stages,
+            self.assertRaisesRegex(
+                ValueError,
+                "site",
+            ),
+        ):
+            import_location_release.run(
+                [[self._row()]],
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                dry_run=1,
+                commit=0,
+            )
+
+        release_preflight.assert_not_called()
+        target_preflight.assert_not_called()
+        apply_stages.assert_not_called()
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
+    def test_run_dry_run_is_read_only(self):
+        frappe_mock = self._frappe()
+
+        row = self._row()
+        stages = [[row]]
+
+        calls = []
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "validate_release_stages",
+                side_effect=lambda *args, **kwargs:
+                    calls.append("release-preflight"),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "validate_target_preflight",
+                side_effect=lambda *args, **kwargs:
+                    calls.append("target-preflight"),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "apply_release_stages",
+            ) as apply_stages,
+            mock.patch.object(
+                import_location_release,
+                "verify_release_postflight",
+            ) as postflight,
+        ):
+            result = import_location_release.run(
+                stages,
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                dry_run=1,
+                commit=0,
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                "release-preflight",
+                "target-preflight",
+            ],
+        )
+
+        apply_stages.assert_not_called()
+        postflight.assert_not_called()
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_not_called()
+
+        self.assertEqual(
+            result,
+            {
+                "ok": True,
+                "dry_run": True,
+                "row_count": 1,
+                "stage_counts": [1],
+            },
+        )
+
+    def test_run_commit_applies_postflights_then_commits(
+        self,
+    ):
+        frappe_mock = self._frappe()
+
+        row = self._row()
+        stages = [[row]]
+
+        calls = []
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "apply_release_stages",
+                side_effect=lambda *args, **kwargs: (
+                    calls.append("apply")
+                    or {
+                        "inserted_count": 1,
+                        "stage_counts": [1],
+                    }
+                ),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_postflight",
+                side_effect=lambda *args, **kwargs: (
+                    calls.append("postflight")
+                    or {
+                        "verified_count": 1,
+                        "stage_counts": [1],
+                    }
+                ),
+            ),
+        ):
+            frappe_mock.db.commit.side_effect = (
+                lambda:
+                    calls.append("commit")
+            )
+
+            result = import_location_release.run(
+                stages,
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                dry_run=1,
+                commit=1,
+            )
+
+        self.assertEqual(
+            calls,
+            [
+                "apply",
+                "postflight",
+                "commit",
+            ],
+        )
+
+        frappe_mock.db.rollback.assert_not_called()
+
+        self.assertEqual(
+            result,
+            {
+                "ok": True,
+                "committed": True,
+                "inserted_count": 1,
+                "verified_count": 1,
+                "stage_counts": [1],
+            },
+        )
+
+    def test_run_rolls_back_on_apply_failure(self):
+        frappe_mock = self._frappe()
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "apply_release_stages",
+                side_effect=ValueError(
+                    "apply failed"
+                ),
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_postflight",
+            ) as postflight,
+            self.assertRaisesRegex(
+                ValueError,
+                "apply failed",
+            ),
+        ):
+            import_location_release.run(
+                [[self._row()]],
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                commit=1,
+            )
+
+        postflight.assert_not_called()
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_called_once_with()
+
+    def test_run_rolls_back_on_postflight_failure(
+        self,
+    ):
+        frappe_mock = self._frappe()
+
+        with (
+            mock.patch.object(
+                import_location_release,
+                "apply_release_stages",
+                return_value={
+                    "inserted_count": 1,
+                    "stage_counts": [1],
+                },
+            ),
+            mock.patch.object(
+                import_location_release,
+                "verify_release_postflight",
+                side_effect=ValueError(
+                    "postflight failed"
+                ),
+            ),
+            self.assertRaisesRegex(
+                ValueError,
+                "postflight failed",
+            ),
+        ):
+            import_location_release.run(
+                [[self._row()]],
+                external_prerequisites={
+                    "Pilot Sites",
+                },
+                expected_site="location-roundtrip",
+                commit=1,
+            )
+
+        frappe_mock.db.commit.assert_not_called()
+        frappe_mock.db.rollback.assert_called_once_with()
+
 if __name__ == "__main__":
     unittest.main()
