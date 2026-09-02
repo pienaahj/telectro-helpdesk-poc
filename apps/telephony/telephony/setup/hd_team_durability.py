@@ -28,6 +28,70 @@ def _get_team_state(team_name: str) -> dict[str, Any] | None:
     )
 
 
+def _expected_assignment_condition(team_name: str) -> str:
+    return (
+        "status == 'Open' and "
+        f"agent_group == '{team_name}'"
+    )
+
+
+def _get_enabled_orphan_assignment_rules() -> list[dict[str, str]]:
+    """
+    Return enabled HD Ticket Assignment Rules that represent one of the
+    required HD Teams but are not linked from any current HD Team.
+
+    Rule names are deliberately ignored. Ownership is determined from:
+    - document_type
+    - exact native HD Team assignment condition
+    - absence of any HD Team.assignment_rule link
+    """
+    linked_rules = {
+        row.get("assignment_rule")
+        for row in frappe.get_all(
+            "HD Team",
+            fields=["assignment_rule"],
+            limit_page_length=500,
+        )
+        if row.get("assignment_rule")
+    }
+
+    orphan_rules: list[dict[str, str]] = []
+
+    for team_name in REQUIRED_HD_TEAMS:
+        rules = frappe.get_all(
+            "Assignment Rule",
+            filters={
+                "document_type": "HD Ticket",
+                "assign_condition": (
+                    _expected_assignment_condition(
+                        team_name
+                    )
+                ),
+                "disabled": 0,
+            },
+            fields=["name"],
+            order_by="creation asc",
+            limit_page_length=500,
+        )
+
+        for row in rules:
+            rule_name = row.get("name")
+
+            if not rule_name:
+                continue
+
+            if rule_name in linked_rules:
+                continue
+
+            orphan_rules.append(
+                {
+                    "team": team_name,
+                    "assignment_rule": rule_name,
+                }
+            )
+
+    return orphan_rules
+
 def verify_hd_teams() -> dict[str, Any]:
     """Return a read-only verification of required Telectro HD Teams."""
 
@@ -100,6 +164,28 @@ def verify_hd_teams() -> dict[str, Any]:
                 }
             )
 
+    orphan_rules = (
+        _get_enabled_orphan_assignment_rules()
+    )
+
+    for team_name in REQUIRED_HD_TEAMS:
+        team_orphans = [
+            orphan["assignment_rule"]
+            for orphan in orphan_rules
+            if orphan["team"] == team_name
+        ]
+
+        if team_orphans:
+            issues.append(
+                {
+                    "type": (
+                        "enabled_orphan_assignment_rules"
+                    ),
+                    "team": team_name,
+                    "assignment_rules": team_orphans,
+                }
+            )
+
     return {
         "ok": not issues,
         "site": frappe.local.site,
@@ -121,10 +207,16 @@ def ensure_hd_teams() -> dict[str, Any]:
 
     before = verify_hd_teams()
 
+    reconcilable_issue_types = {
+        "missing_hd_team",
+        "enabled_orphan_assignment_rules",
+    }
+
     unexpected_issues = [
         issue
         for issue in before["issues"]
-        if issue["type"] != "missing_hd_team"
+        if issue["type"]
+        not in reconcilable_issue_types
     ]
 
     if unexpected_issues:
@@ -149,6 +241,35 @@ def ensure_hd_teams() -> dict[str, Any]:
             {
                 "action": "create",
                 "team": team_name,
+            }
+        )
+
+    orphan_rules = (
+        _get_enabled_orphan_assignment_rules()
+    )
+
+    for orphan in orphan_rules:
+        team_name = orphan["team"]
+        rule_name = orphan["assignment_rule"]
+
+        rule = frappe.get_doc(
+            "Assignment Rule",
+            rule_name,
+        )
+
+        if rule.disabled:
+            continue
+
+        rule.disabled = True
+        rule.save(ignore_permissions=True)
+
+        changed.append(
+            {
+                "action": (
+                    "disable_orphan_assignment_rule"
+                ),
+                "team": team_name,
+                "assignment_rule": rule_name,
             }
         )
 

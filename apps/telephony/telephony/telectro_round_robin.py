@@ -111,7 +111,7 @@ def assign_after_insert(doc, method=None):
                 _mirror_assign_from_todo(doc)
 
         return
-     # 2) Pilot Campus/Site routing policy
+    # 2) Explicit internal direct-owner routing policy.
     policy = resolve_ticket_routing_policy(doc)
     if policy and policy.get("target_user"):
         target_user = str(policy.get("target_user") or "").strip()
@@ -129,7 +129,7 @@ def assign_after_insert(doc, method=None):
                     desc=(
                         policy.get("reason")
                         or doc.get("subject")
-                        or "Campus routing policy"
+                        or "Direct-owner routing policy"
                     )[:140],
                 )
                 _mirror_assign_from_todo(doc)

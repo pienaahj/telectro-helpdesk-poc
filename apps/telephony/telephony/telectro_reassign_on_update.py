@@ -180,7 +180,7 @@ def reassign_if_routing_changed(doc, method=None):
     - Re-seed final routing state first (important for service-area edits)
     - Partner overrides all and assigns to the selected Partner organisation's
       Default Dispatch User
-    - Campus/Site policy may assign a specific user directly
+    - Explicit internal direct-owner policy may assign a specific user directly
     - Ordinary team routing uses the current HD Team Assignment Rule
     - Keep the current assignee when still valid for that team
     - Otherwise release ownership so native Assignment Rule processing can reassign
@@ -221,7 +221,7 @@ def reassign_if_routing_changed(doc, method=None):
             note=f"Routing change: reassigned to Partner fulfilment | {subject}",
         )
         return
-    # 2) Pilot Campus/Site routing policy
+    # 2) Explicit internal direct-owner routing policy
     policy = resolve_ticket_routing_policy(doc)
     if policy and policy.get("target_user"):
         target_user = _clean(policy.get("target_user"))
@@ -231,7 +231,7 @@ def reassign_if_routing_changed(doc, method=None):
                 target_user,
                 note=(
                     f"Routing change: reassigned via "
-                    f"{policy.get('reason') or 'Campus routing policy'} | {subject}"
+                    f"{policy.get('reason') or 'Direct-owner routing policy'} | {subject}"
                 ),
             )
         return

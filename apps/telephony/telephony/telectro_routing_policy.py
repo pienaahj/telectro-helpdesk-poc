@@ -1,31 +1,28 @@
 import frappe
 
 
-# Pilot-only hardcoded policy.
-# Keep isolated so it can later become a DocType-backed routing policy.
+# Pilot-specific direct-owner routing policy.
 #
-# Primary routing anchor is Campus / custom_site_group.
-# telectro_site_guard.py already applies Customer.custom_default_campus
-# before after_insert assignment runs.
+# Keep exceptional ownership decisions isolated from normal team routing.
 #
-# Current pilot proof:
-# - Customer B.custom_default_campus = Boschendal
-# - Boschendal is the exact Location / custom_site_group value.
+# Normal internal routing remains:
 #
-# Replace this user when Telectro confirms the real Boschendal technician.
-CAMPUS_DEDICATED_USERS = {
-    "boschendal": "hendrik@local.test",
-}
+#     Service Area
+#         -> agent_group / HD Team
+#         -> native HD Team Assignment Rule
+#         -> one accountable team member
+#
+# Current direct-owner exception:
+# - an internal technician may explicitly choose Take Ownership on creation
+#
+# Boschendal is not a direct-owner exception. Boschendal tickets must continue
+# through their Service Area / HD Team assignment path.
 
 
 def _clean(val) -> str:
     if val is None:
         return ""
     return str(val).strip()
-
-
-def _norm_key(val) -> str:
-    return _clean(val).casefold()
 
 
 def _as_bool(val) -> bool:
@@ -89,7 +86,7 @@ def _resolve_creator_take_ownership_policy(doc) -> dict | None:
     Normal behaviour:
     - email-created tickets route as normal
     - manual internal tickets route as normal
-    - campus/service-area/RR/pool routing remains intact
+    - service-area / HD Team routing remains intact
 
     Opt-in behaviour:
     - if custom_take_ownership_on_create is checked
@@ -127,7 +124,7 @@ def _resolve_creator_take_ownership_policy(doc) -> dict | None:
 
 def resolve_ticket_routing_policy(doc) -> dict | None:
     """
-    Resolve pilot-specific ownership routing for an HD Ticket.
+    Resolve pilot-specific exceptional direct-owner routing for an HD Ticket.
 
     Read-only decision function:
     - does not mutate the ticket
@@ -136,10 +133,10 @@ def resolve_ticket_routing_policy(doc) -> dict | None:
 
     Priority context:
     - Partner fulfilment override is handled before this function.
-    - Partner-originated tickets are excluded for now to preserve the
-      Partner -> Telectro workflow semantics.
+    - Partner-originated tickets are excluded to preserve Partner workflow.
     - Explicit creator take-ownership applies only when selected.
-    - Campus policy applies before Service Area RR/fallback.
+    - All other internal tickets return None so normal Service Area -> HD Team
+      -> native Assignment Rule routing can proceed.
     """
     fulfilment_party = _clean(doc.get("custom_fulfilment_party"))
     if fulfilment_party == "Partner":
@@ -153,28 +150,4 @@ def resolve_ticket_routing_policy(doc) -> dict | None:
     if creator_policy:
         return creator_policy
 
-    campus = _clean(doc.get("custom_site_group"))
-    campus_key = _norm_key(campus)
-
-    if not campus_key:
-        return None
-
-    target_user = _clean(CAMPUS_DEDICATED_USERS.get(campus_key))
-    if not target_user:
-        return None
-
-    if not _user_exists(target_user):
-        frappe.log_error(
-            message=(
-                f"Campus routing policy matched campus={campus!r}, "
-                f"but user {target_user!r} does not exist."
-            ),
-            title="TELECTRO routing policy user missing",
-        )
-        return None
-
-    return {
-        "target_user": target_user,
-        "reason": f"Campus routing policy matched Campus '{campus}'",
-        "policy_key": f"campus:{campus_key}",
-    }
+    return None

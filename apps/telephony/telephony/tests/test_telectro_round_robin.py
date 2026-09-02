@@ -61,3 +61,38 @@ class TestPartnerFulfilmentAfterInsert(unittest.TestCase):
         )
 
         mirror_assign.assert_called_once_with(doc)
+
+class TestNativeTeamAfterInsert(unittest.TestCase):
+    def test_normal_internal_ticket_falls_through_to_native_team_assignment(self):
+        doc = _TicketDoc(
+            name="TEST-NATIVE-PABX-INSERT",
+            subject="Boschendal PABX native routing proof",
+            custom_fulfilment_party="Telectro",
+            custom_request_source="Telectro",
+            custom_site_group="Boschendal",
+            custom_service_area="PABX",
+            agent_group="PABX",
+        )
+
+        with (
+            mock.patch.object(
+                round_robin,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ) as resolve_policy,
+            mock.patch.object(
+                round_robin,
+                "_ensure_open_todo",
+            ) as ensure_open_todo,
+            mock.patch.object(
+                round_robin,
+                "_mirror_assign_from_todo",
+            ) as mirror_assign,
+        ):
+            result = round_robin.assign_after_insert(doc)
+
+        self.assertIsNone(result)
+
+        resolve_policy.assert_called_once_with(doc)
+        ensure_open_todo.assert_not_called()
+        mirror_assign.assert_not_called()
