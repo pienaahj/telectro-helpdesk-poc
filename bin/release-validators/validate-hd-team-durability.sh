@@ -238,6 +238,123 @@ print("HD_TEAM_ASSIGNMENT_RULE_INTEGRITY_CONTRACT=PASS")
 
 
 print()
+print("=== HD Team orphan Assignment Rule contract ===")
+
+expected_condition = (
+    "status == 'Open' and "
+    "agent_group == 'PABX'"
+)
+
+observed_condition = (
+    hd_team_durability
+    ._expected_assignment_condition("PABX")
+)
+
+require(
+    observed_condition == expected_condition,
+    (
+        "native HD Team Assignment Rule condition changed: "
+        f"{observed_condition!r}"
+    ),
+)
+
+orphan_source = inspect.getsource(
+    hd_team_durability
+    ._get_enabled_orphan_assignment_rules
+)
+
+require(
+    '"document_type": "HD Ticket"'
+    in orphan_source,
+    "orphan classifier must be limited to HD Ticket rules",
+)
+
+require(
+    '"disabled": 0'
+    in orphan_source,
+    "orphan classifier must inspect enabled rules only",
+)
+
+require(
+    "_expected_assignment_condition"
+    in orphan_source,
+    "orphan classifier must use the exact native team condition",
+)
+
+require(
+    "linked_rules"
+    in orphan_source,
+    "orphan classifier must exclude rules linked from HD Teams",
+)
+
+require(
+    "rule_name in linked_rules"
+    in orphan_source,
+    "linked Assignment Rules must not be classified as orphans",
+)
+
+require(
+    "enabled_orphan_assignment_rules"
+    in verify_source,
+    "enabled orphan Assignment Rules must be reported",
+)
+
+ensure_source = inspect.getsource(
+    hd_team_durability.ensure_hd_teams
+)
+
+require(
+    '"enabled_orphan_assignment_rules"'
+    in ensure_source,
+    "enabled orphan rules must be reconcilable state",
+)
+
+require(
+    "_get_enabled_orphan_assignment_rules"
+    in ensure_source,
+    "reconciliation must obtain structural orphan rules",
+)
+
+require(
+    'frappe.get_doc(\n            "Assignment Rule",'
+    in ensure_source,
+    "reconciliation must load the orphan Assignment Rule document",
+)
+
+require(
+    "rule.disabled = True"
+    in ensure_source,
+    "orphan Assignment Rules must be disabled",
+)
+
+require(
+    "rule.save(ignore_permissions=True)"
+    in ensure_source,
+    "disabled orphan Assignment Rules must be saved explicitly",
+)
+
+require(
+    '"disable_orphan_assignment_rule"'
+    in ensure_source,
+    "orphan-rule reconciliation action marker is missing",
+)
+
+require(
+    "frappe.delete_doc"
+    not in ensure_source,
+    "orphan Assignment Rules must not be deleted",
+)
+
+print(
+    "HD_TEAM_ORPHAN_ASSIGNMENT_RULE_CONDITION=",
+    observed_condition,
+)
+
+print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_CLASSIFIER=PASS")
+print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_RECONCILIATION=PASS")
+print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_DISABLE_NOT_DELETE=PASS")
+
+print()
 print("=== HD Team regression-test contract ===")
 
 require(
@@ -270,6 +387,9 @@ expected_tests = {
     "test_apply_commits_successful_reconciliation",
     "test_apply_rolls_back_failed_reconciliation",
     "test_hd_team_fixture_ownership_is_removed",
+    "test_structural_orphan_rule_detection_ignores_rule_names",
+    "test_enabled_orphan_rules_are_reported",
+    "test_enabled_orphan_rule_is_disabled",
 }
 
 print(
