@@ -73,3 +73,72 @@ class TestPartnerFulfilmentReassignment(unittest.TestCase):
                 "Partner reassignment proof"
             ),
         )
+
+class TestNativeTeamReassignment(unittest.TestCase):
+    def test_boschendal_routing_change_falls_through_to_native_team(self):
+        doc = _TicketDoc(
+            name="TEST-BOSCHENDAL-PABX-REASSIGN",
+            subject="Boschendal PABX reassignment proof",
+            custom_fulfilment_party="Telectro",
+            custom_fulfilment_partner="",
+            custom_site_group="Boschendal",
+            custom_service_area="PABX",
+            agent_group="PABX",
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ) as seed_ticket_routing,
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ) as resolve_policy,
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value="hendrik@local.test",
+            ),
+            mock.patch.object(
+                reassign,
+                "_native_team_users",
+                return_value=["tech.charlie@local.test"],
+            ) as native_team_users,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize_assignment,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_for_native_team,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        seed_ticket_routing.assert_called_once_with(
+            doc,
+            method=None,
+        )
+
+        resolve_policy.assert_called_once_with(doc)
+
+        native_team_users.assert_called_once_with("PABX")
+
+        normalize_assignment.assert_not_called()
+
+        release_for_native_team.assert_called_once()
+
+        args, kwargs = release_for_native_team.call_args
+
+        self.assertIs(args[0], doc)
+        self.assertEqual(
+            args[1],
+            "TEST-BOSCHENDAL-PABX-REASSIGN",
+        )
+
+        self.assertIn(
+            "group=PABX",
+            kwargs["note"],
+        )
