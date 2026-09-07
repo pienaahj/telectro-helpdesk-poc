@@ -165,6 +165,7 @@ fixtures = [
         "dt": "Number Card",
         "filters": [
             ["name", "in", [
+                "UNASSIGNED NOW",
                 "TELECTRO Ops — Unassigned",
                 "TELECTRO Ops — Unassigned above 60m",
                 "TELECTRO Ops — Unclaimed above 4 hours",
