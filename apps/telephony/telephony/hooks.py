@@ -213,6 +213,8 @@ fixtures = [
                     "HD Ticket-summary-label",
                     "HD Ticket-summary-placeholder",
                     "HD Ticket-ticket_type-default",
+                    "Location-main-title_field",
+                    "Location-main-show_title_field_in_link",
                 ],
             ],
         ],

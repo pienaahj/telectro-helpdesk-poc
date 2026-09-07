@@ -394,6 +394,22 @@ expected_property_setters = {
         "property_type": "Text",
         "value": "Faults",
     },
+    "Location-main-title_field": {
+        "doc_type": "Location",
+        "doctype_or_field": "DocType",
+        "field_name": None,
+        "property": "title_field",
+        "property_type": "Data",
+        "value": "location_name",
+    },
+    "Location-main-show_title_field_in_link": {
+        "doc_type": "Location",
+        "doctype_or_field": "DocType",
+        "field_name": None,
+        "property": "show_title_field_in_link",
+        "property_type": "Check",
+        "value": "1",
+    },
 }
 
 
