@@ -460,7 +460,7 @@
     "parent": "TELECTRO-POC Coordinator",
     "parentfield": "quick_lists",
     "parenttype": "Workspace",
-    "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]"
+    "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"in\",[\"Open\",\"Replied\"],false]]"
    }
   ],
   "restrict_to_domain": null,
@@ -487,7 +487,7 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "restrict_to_domain": null,
-    "stats_filter": "[[\"HD Ticket\",\"_assign\",\"!=\",\",[]\",false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]",
+    "stats_filter": "[[\"HD Ticket\",\"_assign\",\"!=\",\",[]\",false],[\"HD Ticket\",\"status\",\"in\",[\"Open\",\"Replied\"],false]]",
     "type": "DocType",
     "url": null
    },
@@ -1058,7 +1058,7 @@
     "parent": "TELECTRO-POC Ops",
     "parentfield": "quick_lists",
     "parenttype": "Workspace",
-    "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"not in\",[\"Resolved\",\"Archived\"],false]]"
+    "quick_list_filter": "[[\"HD Ticket\",\"_assign\",\"in\",[null,\"[]\"],false],[\"HD Ticket\",\"status\",\"in\",[\"Open\",\"Replied\"],false]]"
    }
   ],
   "restrict_to_domain": null,
@@ -1119,7 +1119,7 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "restrict_to_domain": null,
-    "stats_filter": "[[\"HD Ticket\",\"status\",\"!=\",\"Archived\",false]]",
+    "stats_filter": "[[\"HD Ticket\",\"status\",\"in\",[\"Open\",\"Replied\"],false]]",
     "type": "DocType",
     "url": null
    }
