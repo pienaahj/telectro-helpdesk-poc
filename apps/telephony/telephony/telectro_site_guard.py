@@ -136,11 +136,41 @@ def _require_site_within_campus(doc) -> None:
             f"Selected site parent is '{parent}'."
         )
 
-def _require_fault_point_for_faults(doc) -> None:
+def _require_fault_location_for_faults(doc) -> None:
+    """
+    Require the location field appropriate to the selected Fault Category.
+
+    Point categories use Fault Point as the dispatch anchor.
+
+    Links and Areas are asset-driven geometries. For those categories,
+    Fault Asset is the terminal location and Fault Point is intentionally
+    left blank.
+
+    Inbound email remains triage-first and may omit both fields initially.
+    """
     if _is_email_intake(doc):
         return
-    if _is_fault_ticket(doc):
-        _require(doc, "custom_site", "Fault Point")
+
+    if not _is_fault_ticket(doc):
+        return
+
+    cat_norm = _norm_lower(
+        doc.get("custom_fault_category")
+    )
+
+    if cat_norm in ASSET_ONLY_CATS:
+        _require(
+            doc,
+            "custom_fault_asset",
+            "Fault Asset",
+        )
+        return
+
+    _require(
+        doc,
+        "custom_site",
+        "Fault Point",
+    )
 
 def _ticket_type(doc) -> str:
     return (doc.get("ticket_type") or "").strip()
@@ -207,8 +237,8 @@ def validate_site_fields(doc, method=None):
     _apply_customer_default_campus(doc)
     _require_campus(doc)
 
-    # Fault-like: require fault point early (so we don't silently skip)
-    _require_fault_point_for_faults(doc)
+    # Fault-like: require the category-appropriate location anchor early.
+    _require_fault_location_for_faults(doc)
 
     site_group = _norm(doc.get("custom_site_group"))
     site = _norm(doc.get("custom_site"))
