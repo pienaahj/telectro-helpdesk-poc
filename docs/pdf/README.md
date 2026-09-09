@@ -53,6 +53,58 @@ must not be edited directly.
 Customer-facing process changes must be made in the canonical Activity Process
 Guides first and then regenerated through the Customer extraction process.
 
+### Partner Activity Process Guide
+
+The Partner Activity Process Guide is a derived publication generated from
+three Partner-facing activities in:
+
+```text
+../user-guides/activity-process-guides.md
+```
+
+The Partner publication uses this deliberate operational ordering:
+
+```text
+Canonical Activity 21 -> Partner Activity 1
+Canonical Activity 10 -> Partner Activity 2
+Canonical Activity 11 -> Partner Activity 3
+```
+
+This produces:
+
+```text
+1. Partner logs a Partner-originated service request
+2. Partner responds to an acceptance request
+3. Partner submits work done
+```
+
+The order is intentional.
+
+It presents the Partner-originated request and Partner Acceptance workflow
+before the separate Telectro-assigned Partner Work Completion workflow.
+
+Generated intermediate Markdown:
+
+```text
+dist/partner-activity-process-guide.md
+```
+
+Generated PDF:
+
+```text
+dist/partner-activity-process-guide.pdf
+```
+
+The generated Partner Markdown is not a second canonical process source and
+must not be edited directly.
+
+Partner-facing process changes must be made in the canonical Activity Process
+Guides first and then regenerated through the Partner extraction process.
+
+The Partner extractor permits no publication-only activity-body transforms.
+After removal of the canonical H1 and `Related docs` section, each generated
+Partner activity body must remain identical to its canonical source body.
+
 The generated `dist/` directory is intentionally excluded from Git.
 
 ## Requirements
@@ -185,6 +237,82 @@ The current verified Customer Activity Process Guide publication contains:
 45 pages
 ```
 
+## Partner publication
+
+### Extract the Partner guide
+
+Run:
+
+```bash
+npm run partner:extract
+```
+
+This:
+
+* reads canonical Activities 21, 10, and 11 from
+  `../user-guides/activity-process-guides.md`;
+* validates each activity against its exact canonical H1 and closing boundary;
+* publishes the activities in the deliberate order 21 -> 10 -> 11;
+* renumbers them as Partner Activities 1–3;
+* removes publication-inappropriate `Related docs` sections;
+* rejects stale numbered `Activity N` references;
+* verifies exact body parity against the canonical source;
+* permits no Partner publication-only body transforms;
+* fails rather than guessing if the expected canonical structure changes;
+* writes the generated Partner Markdown to
+  `dist/partner-activity-process-guide.md`.
+
+The publication mapping is:
+
+```text
+Canonical 21 -> Partner 1
+Canonical 10 -> Partner 2
+Canonical 11 -> Partner 3
+```
+
+### Preview the Partner guide
+
+Run:
+
+```bash
+npm run partner:preview
+```
+
+This regenerates the Partner Markdown before starting the authoritative
+Vivliostyle preview.
+
+Use the full preview to verify:
+
+* final Partner page count;
+* the three-entry Partner contents page;
+* resolved contents page references;
+* activity page breaks;
+* running headers and footers;
+* final pagination;
+* absence of clipping or broken layout;
+* clear separation between Partner Acceptance and Partner Work Completion.
+
+### Build the Partner PDF
+
+Run:
+
+```bash
+npm run partner:build
+```
+
+This regenerates the Partner Markdown first and then builds:
+
+```text
+dist/partner-activity-process-guide.pdf
+```
+
+The current verified Partner Activity Process Guide publication contains:
+
+```text
+3 numbered activities
+33 pages
+```
+
 ## Current publication rules
 
 The publications currently use:
@@ -203,6 +331,16 @@ top-level guides.
 
 The Customer publication contains five numbered Customer activities derived
 from canonical Activities 5–9.
+
+The Partner publication contains three numbered Partner activities derived
+from canonical Activities 21, 10, and 11.
+
+The Partner publication deliberately presents canonical Activity 21 first so
+that Partner request creation appears before the later Partner Acceptance
+response process.
+
+Partner Acceptance and Partner Work Completion remain separate workflow trains
+throughout the Partner publication.
 
 The canonical source Markdown remains:
 
@@ -228,13 +366,25 @@ The Customer publication structure and output settings belong in:
 vivliostyle.customer.config.js
 ```
 
+The Partner publication structure and output settings belong in:
+
+```text
+vivliostyle.partner.config.js
+```
+
 The Customer extraction contract belongs in:
 
 ```text
 extract-customer-activity-guide.mjs
 ```
 
-The master and Customer publications currently share the same proven
+The Partner extraction contract belongs in:
+
+```text
+extract-partner-activity-guide.mjs
+```
+
+The master, Customer, and Partner publications currently share the same proven
 stylesheet.
 
 ## Final verification
@@ -258,6 +408,20 @@ For the Customer publication, also verify:
 4. no stale numbered reference such as `Activity 6` or `Activity 9` remains;
 5. the Customer publication remains derived from canonical Activities 5–9.
 
+For the Partner publication, also verify:
+
+1. the contents page contains exactly three numbered Partner activities;
+2. Partner Activities 1–3 each begin on their own page;
+3. the publication mapping is exactly
+   `21 -> 1`, `10 -> 2`, and `11 -> 3`;
+4. no `Related docs` section appears in the generated Partner guide;
+5. no stale numbered `Activity N` reference remains;
+6. canonical Activity 12 does not leak into the Partner publication;
+7. canonical Activity 22 does not leak into the Partner publication;
+8. the three Partner activity bodies retain exact canonical body parity;
+9. Partner Acceptance and Partner Work Completion remain clearly separate
+   workflow trains.
+
 ## Verified publication baselines
 
 Current verified canonical master:
@@ -272,6 +436,13 @@ Current verified Customer publication:
 ```text
 5 numbered activities
 45 pages
+```
+
+Current verified Partner publication:
+
+```text
+3 numbered activities
+33 pages
 ```
 
 Page counts may change when the canonical source document or shared stylesheet
