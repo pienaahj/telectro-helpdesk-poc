@@ -90,7 +90,7 @@ The publication currently uses:
 
 - A4 pages;
 - top-level Activity Process Guides starting on new pages;
-- a generated contents page containing the 22 numbered top-level guides;
+- a generated contents page containing the 23 numbered top-level guides;
 - clickable contents links;
 - PDF bookmarks;
 - running document and activity headings;

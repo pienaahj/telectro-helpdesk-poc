@@ -32,11 +32,24 @@ Related documents:
 
 Avoid duplicating those documents here.
 
-This guide should describe what the user must do in the UI and what they must verify afterwards.
+This guide should describe what the user must do, the decisions that matter, and what the user must verify afterwards.
+
+The Activity Process Guides are intentionally text-first. They are the canonical process reference and should not become a click-by-click screenshot manual.
+
+Selected screenshots may be published separately in an Activity Process Guides Visual Supplement where a visual example materially improves understanding. The visual supplement is explanatory and does not replace the canonical process instructions in this document.
+
+Visual guidance should be used selectively, especially for:
+
+* non-obvious workflows;
+* important workflow state changes;
+* unfamiliar UI concepts;
+* evidence or attachment handling where the system behaviour is not intuitive.
+
+Routine dialogs and actions do not need visual walkthroughs when the process is already clear from the text.
 
 ## Process guide format
 
-Each activity should use this structure:
+Each activity should use this structure where applicable:
 
 1. Purpose
 2. Audience
@@ -45,7 +58,7 @@ Each activity should use this structure:
 5. Step-by-step process
 6. Verification
 7. Common mistakes
-8. Screenshot checklist
+8. Do / Do not
 9. Related docs
 
 ---
@@ -56,12 +69,15 @@ Each activity should use this structure:
 
 Use this process when Telectro needs to send a Customer-visible ticket update and include supporting evidence such as a photo, PDF, quote, worksheet, or other document.
 
-This is a deliberately controlled two-step process:
+The important rule is:
 
-1. attach the evidence to the HD Ticket first;
-2. then select that already-attached evidence inside the Customer-visible update dialog.
+> **Attach the file to the HD Ticket first. Then select that already-attached file when sending the Customer-visible communication.**
 
-This is important because attaching a file to the ticket and sending a Customer-visible update are not the same action.
+The attachment selector in the Customer-visible update does not upload a new file. It lets Telectro deliberately choose from files already attached to the current HD Ticket.
+
+This same attachment-first principle also applies when completion evidence is selected while resolving a Customer ticket.
+
+Attaching evidence to the ticket and making that evidence Customer-visible are therefore two separate actions.
 
 ## Audience
 
@@ -108,9 +124,11 @@ Confirm the following before sending anything Customer-visible:
 
 Important:
 
+- Attach the file to the HD Ticket before opening the Customer-visible update if an attachment must be sent.
 - Do not assume that every file attached to the ticket is Customer-visible.
-- Do not assume that attaching a file to the ticket automatically sends it to the Customer.
-- The Customer-visible update must deliberately select the correct already-attached file.
+- Attaching a file to the ticket does not automatically send it to the Customer.
+- Customer visibility happens only when Telectro deliberately selects the already-attached file for the Customer-visible communication.
+- If the required file does not appear in the attachment selector, close the dialog and confirm that the file is attached to the correct HD Ticket.
 
 ## Step-by-step process
 
@@ -129,19 +147,18 @@ Before continuing, confirm that the ticket number, subject, Customer/account, an
 
 ### Step 2 — Attach the evidence to the ticket first
 
-Use the ticket evidence / attachment area to add the file to the HD Ticket.
+Before opening the Customer-visible update, attach the required file to the HD Ticket.
 
-Depending on the available UI surface, this may be done by:
+Use the available Ticket Evidence / attachment action to:
 
-- uploading a supported file;
-- taking a photo through the ticket evidence dialog;
-- attaching an existing document to the ticket.
+- upload a supported file; or
+- take a photo where the Ticket Evidence photo action is available.
 
-After upload, confirm that the file appears as ticket evidence or as an attached file on the ticket.
+After upload, confirm that the file appears on the correct HD Ticket.
 
-This step only attaches the evidence to the ticket.
+This step stores the evidence on the ticket.
 
-It does not, by itself, send the evidence to the Customer.
+**It does not make the evidence Customer-visible.**
 
 ### Step 3 — Confirm the uploaded evidence is the correct file
 
@@ -185,16 +202,19 @@ Example wording style:
 
 ### Step 6 — Select the already-attached evidence file
 
-Inside the Customer-visible update dialog, select the evidence file that was attached to the ticket in Step 2.
+In the `Add Customer Update` dialog, use `Customer-visible update attachment` to select the file that was attached to this HD Ticket earlier.
 
-This is the non-obvious part of the workflow:
+The selector shows ticket attachments; it is not an upload control.
 
-- first attach the file to the ticket;
-- then select that attached file inside the Customer-visible update dialog.
+If the required file is missing from the selector:
 
-The dialog should not be treated as the original upload point.
+1. close the Customer-visible update dialog;
+2. confirm that the file was attached to the correct HD Ticket;
+3. upload it to the ticket if necessary;
+4. reopen `Add Customer Update`;
+5. select the file.
 
-It is the point where Telectro deliberately chooses which ticket evidence is included with this Customer-visible communication.
+This deliberate second selection is what makes that particular ticket attachment part of the Customer-visible communication.
 
 ### Step 7 — Submit the update
 
@@ -323,24 +343,6 @@ Correct approach:
 - Do not skip timeline verification.
 - Do not use Customer-visible updates for Telectro-only coordination.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. HD Ticket opened with ticket number and context visible.
-2. Ticket evidence / attachment area before upload.
-3. Evidence upload or Take Photo action.
-4. Uploaded evidence visible on the ticket.
-5. Customer-visible update dialog opened.
-6. Evidence selector inside the Customer-visible update dialog.
-7. Correct evidence selected.
-8. Ticket timeline after submission.
-9. Customer portal view showing the update/evidence, when applicable.
-
-Avoid duplicating these screenshots in every Welcome Guide.
-
-The Welcome Guides should link to this process instead of carrying all these steps.
-
 ## Related docs
 
 - `docs/runbooks/ticket-evidence-v1.md`
@@ -423,13 +425,19 @@ Shared tickets are useful when:
 - you are preparing to take over work;
 - a coordinator/supervisor wants you to see the ticket context.
 
-If you must become the accountable owner, use the correct controlled ownership action rather than treating visibility as ownership.
+Sharing ticket context does not change accountable ownership.
+
+If someone only needs to assist, review, or see the ticket, use `Share Ticket Context` where appropriate.
+
+If accountability must actually move to that person, use the correct controlled ownership action instead.
 
 ### True pool / unclaimed work
 
 A true pool ticket has no accountable individual owner.
 
-This is operationally useful only when the ticket is genuinely waiting to be claimed or routed.
+In the pilot, the true pool is a real unassigned state. It is not a shared “pool user” or another assignee.
+
+A ticket in the true pool is available for the correct user to claim, or for a coordinator/supervisor to move deliberately to a known owner through Controlled Handoff.
 
 Unclaimed work should not be ignored.
 
@@ -439,13 +447,21 @@ Coordinators and supervisors should monitor unclaimed work because it can become
 
 Controlled Handoff is the approved way for a coordinator or supervisor to move accountability to a specific new owner.
 
-Controlled Handoff should:
+It can transfer accountability from the current owner or from the unassigned pool.
 
-- move the ticket to one accountable owner;
-- avoid adding a second assignee;
-- require a reason;
-- leave an audit trail;
-- make the next owner/action clear.
+Controlled Handoff:
+
+- moves the ticket to one accountable owner;
+- does not add a second assignee;
+- requires a reason;
+- records the handoff on the ticket;
+- creates a durable handoff audit record;
+- notifies the receiving user;
+- makes the next accountable owner clear.
+
+Controlled Handoff is for internal Telectro ownership.
+
+Partner-fulfilment tickets stay on the Partner workflow and are not reassigned through this action.
 
 ## Process A — Claim a ticket
 
@@ -767,22 +783,6 @@ Correct approach:
 - Do not leave urgent released work without appropriate operational escalation.
 - Do not treat `Shared with me` as the same as `Assigned to me`.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `My Current Work` showing assigned and shared tickets.
-2. Unclaimed/pool ticket list or report.
-3. Ticket detail showing current owner/assignment context.
-4. Claim action.
-5. Ticket after Claim showing the new owner/current work state.
-6. Release action with reason field.
-7. Ticket after Release showing it is no longer assigned to the releasing user.
-8. Controlled Handoff action.
-9. Controlled Handoff new owner and reason fields.
-10. Ticket after handoff showing the new accountable owner.
-11. Handoff timeline/audit evidence where available.
-
 ## Related docs
 
 - `docs/runbooks/ticket-assignment-contract.md`
@@ -1022,11 +1022,13 @@ Correct approach:
 
 ### Purpose
 
-Add a Customer-visible update when Telectro needs to communicate ticket progress, clarification, or outcome to the Customer, and no supporting file needs to be sent.
+Add a Customer-visible update when Telectro needs to communicate progress, clarification, or a next step to the Customer without changing the ticket's lifecycle state as part of that action.
 
 This is the normal Customer-facing progress update process.
 
-Use the evidence process only when a Customer-visible file/photo/document must be included.
+Use the evidence process when a Customer-visible file, photo, or document must be included.
+
+If the ticket is ready to move to `Resolved`, use the separate `Resolve Customer Ticket` process instead. `Add Customer Update` sends Customer-facing communication; it does not replace the resolution action.
 
 ### When to use a Customer-visible update
 
@@ -1036,10 +1038,10 @@ Use a Customer-visible update when:
 - the Customer needs a progress update;
 - Telectro needs more information from the Customer;
 - Telectro has identified the likely cause;
-- Telectro has completed a step;
+- Telectro has completed a step but the ticket should remain in its current lifecycle state;
 - Telectro needs to explain the next action;
 - the ticket is waiting on Customer input;
-- Telectro is resolving the ticket and needs a clear Customer-facing outcome note.
+- a Customer-facing follow-up is required without resolving the ticket as part of this action.
 
 ### Before you send a Customer-visible update
 
@@ -1062,7 +1064,7 @@ If evidence is required, use the Customer-visible evidence update process instea
 2. Read the Customer Request and latest activity.
 3. Decide that the Customer should see this update.
 4. Confirm that no evidence file is required.
-5. Open the Customer-visible update action/dialog.
+5. Open `Add Customer Update`.
 6. Write the message in clear Customer-safe wording.
 7. Review the message before submitting.
 8. Submit/send the update.
@@ -1192,21 +1194,7 @@ Only deliberately selected Customer-visible evidence should be exposed to the Cu
 - Do not send unclear one-word updates.
 - Do not attach evidence unless it has been deliberately selected for Customer visibility.
 - Do not assume that every timeline entry is visible to the Customer.
-
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Ticket detail showing Customer Request and activity.
-2. Internal note/comment action.
-3. Internal note being written.
-4. Internal ticket timeline after internal note submission.
-5. Customer-visible update action/dialog.
-6. Customer-visible update being written.
-7. Ticket timeline after Customer-visible update submission.
-8. Customer portal Latest update card.
-9. Customer portal activity/timeline showing the Customer-visible update.
-10. Example contrast between internal note and Customer-visible update, if safe to show in training data.
+- Do not use `Add Customer Update` as a substitute for `Resolve Customer Ticket` when the ticket is actually ready to be resolved.
 
 ## Related docs
 
@@ -1294,13 +1282,20 @@ The Customer portal shows useful progress and resolved outcome information, but 
 
 Telectro should confirm the work outcome through the normal direct Customer service process and then resolve the ticket internally.
 
-### Partner completion review
+`Resolved` is the normal Customer-facing completion state for the pilot.
 
-Partner completion is different.
+`Closed` remains an internal/administrative state and is not controlled by the Customer.
 
-Partner work may require Partner acceptance, Partner work submission, Telectro review, and possible rework.
+### Partner workflows are different
 
-Do not copy the Partner acceptance/rework process onto Customer tickets.
+Partner workflows use separate controlled trains that should not be copied onto Customer tickets.
+
+- Partner Acceptance applies to the Partner-originated request / acceptance workflow.
+- Partner Work Completion applies when work has been assigned to a Partner for fulfilment and Telectro must review the Partner's completed work.
+
+These are separate workflows and should not be conflated with each other or with Customer resolution.
+
+Do not copy Partner acceptance, work-completion, or rework controls onto Customer tickets.
 
 Customer tickets should have:
 
@@ -1498,7 +1493,7 @@ Confirm that the Customer can see:
 - the attached completion evidence, if selected;
 - the evidence download/open behaviour, if applicable.
 
-This is especially important during pilot onboarding and screenshot collection.
+This is especially important when completion evidence was shared or when the Customer-facing outcome needs explicit verification.
 
 ## Verification checklist
 
@@ -1615,25 +1610,6 @@ Correct approach:
 - Do not assume the resolution dialog uploads the evidence file.
 - Do not skip verification for completion evidence.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Customer ticket opened with ticket number and context visible.
-2. Customer Request card before resolution.
-3. Fault Location card before resolution.
-4. Completion evidence attached to the HD Ticket, if applicable.
-5. `Resolve Customer Ticket` action.
-6. `Resolve Customer Ticket` dialog.
-7. `Customer-visible resolution update` field.
-8. `Completion evidence file` selector.
-9. `Send update and resolve` primary action.
-10. Ticket after resolution showing `Resolved` status.
-11. Ticket activity/timeline showing the Customer-visible resolution communication.
-12. Customer portal showing resolved status.
-13. Customer portal showing the resolution update.
-14. Customer portal showing completion evidence/download, if applicable.
-
 ## Related docs
 
 - `docs/runbooks/customer-ticket-lifecycle-v1.md`
@@ -1728,11 +1704,25 @@ Use it to:
 
 Use it only when a new issue needs to be reported.
 
+### Service Area
+
+`Service Area` identifies the type of support work the Customer needs.
+
+It is a required field in the Customer portal and helps Telectro route the request to the correct operational team.
+
+Choose the Service Area that best matches the issue.
+
+The Customer does not need to diagnose the technical cause. Choose the closest practical service category based on what is affected.
+
 ### Fault Point
 
 `Fault Point` helps Telectro understand where the issue is located.
 
 In the current Customer portal flow, Fault Point is optional.
+
+The available Fault Point and Fault Asset results are limited to the Customer's allowed organisation and Campus.
+
+The Customer does not need to select or manage the Campus separately.
 
 Customers should choose the closest recognised point, asset, link, or area when they can.
 
@@ -1831,7 +1821,17 @@ This opens the new support request page.
 
 The page may show Customer branding and a short instruction such as telling Telectro what needs attention and where it is located.
 
-### Step 3 — Choose a Fault Point category, if useful
+### Step 3 — Choose the affected Service Area
+
+Select the `Service Area` that best matches the request.
+
+This field is required and is used by Telectro's routing process.
+
+Choose based on the affected service or type of work, not on who you think should receive the ticket.
+
+If you are unsure, choose the closest appropriate Service Area and explain the issue clearly in the detailed explanation.
+
+### Step 4 — Choose a Fault Point category, if useful
 
 In the `Fault Point` area, review the selected Category.
 
@@ -1847,7 +1847,7 @@ Examples:
 
 If unsure, choose the closest likely category and explain the uncertainty in the detailed explanation.
 
-### Step 4 — Search for the closest affected location
+### Step 5 — Search for the closest affected location
 
 Use the Search field to find the closest affected location, point, asset, link, or area.
 
@@ -1862,7 +1862,7 @@ If no matching result appears:
 
 Fault Point is helpful, but it should not prevent the Customer from submitting a valid request.
 
-### Step 5 — Confirm the selected Fault Point or Fault Asset
+### Step 6 — Confirm the selected Fault Point or Fault Asset
 
 If a result is selected, check the selected summary before submitting.
 
@@ -1875,7 +1875,7 @@ Confirm:
 
 If the wrong point was selected, clear it and search again.
 
-### Step 6 — Add a short subject
+### Step 7 — Add a short subject
 
 Enter a short, clear subject.
 
@@ -1897,7 +1897,7 @@ Poor examples:
 
 The subject should help Telectro identify the request quickly from a list.
 
-### Step 7 — Add a detailed explanation
+### Step 8 — Add a detailed explanation
 
 Enter a clear detailed explanation.
 
@@ -1923,7 +1923,7 @@ Good example when the Fault Point is unknown:
 We could not find the exact fault point in the list. The issue is at the small office behind the tasting room. The nearest known location is the reception area. I have attached a photo of the room and the equipment label.
 ```
 
-### Step 8 — Attach photos or evidence, if helpful
+### Step 9 — Attach photos or evidence, if helpful
 
 Attach photos or evidence when it will help Telectro understand the request.
 
@@ -1938,7 +1938,7 @@ Useful examples:
 
 Before submitting, confirm the attachment is relevant and safe to share.
 
-### Step 9 — Submit the request
+### Step 10 — Submit the request
 
 Review the request before submitting.
 
@@ -1951,7 +1951,7 @@ Confirm:
 
 Select `Submit`.
 
-### Step 10 — Verify the submitted ticket
+### Step 11 — Verify the submitted ticket
 
 After submission, the portal should open the new ticket detail page.
 
@@ -1972,6 +1972,7 @@ The process is complete when:
 
 - The Customer checked that the issue was not already logged.
 - `Log a Support Request` was used for a new issue.
+- A Service Area was selected.
 - The subject is clear.
 - The detailed explanation is useful.
 - A Fault Point or Fault Asset was selected when one was known.
@@ -2057,6 +2058,7 @@ Correct approach:
 - Give enough detail for Telectro to start.
 - Attach photos or evidence where helpful.
 - Use `Add information` on the existing ticket for follow-up details.
+- Choose the Service Area that best matches the issue.
 
 ## Do not
 
@@ -2066,27 +2068,6 @@ Correct approach:
 - Do not use one-word subjects such as “Help” or “Broken”.
 - Do not attach passwords, unrelated documents, or private information that is not needed for the request.
 - Do not expect Customer portal sign-off or closure actions as part of the normal Customer workflow.
-
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `Support Requests` list.
-2. `Log a Support Request` button.
-3. New support request page header.
-4. `Fault Point` area.
-5. Category selector.
-6. Search field.
-7. Fault Point search results.
-8. Selected Fault Point or Selected Fault Asset summary.
-9. Map link, if available.
-10. Subject field.
-11. Detailed explanation editor.
-12. Attachment upload in the editor.
-13. `Submit` button.
-14. New ticket detail page after submission.
-15. Ticket visible in `Support Requests`.
-16. `Add information` action on an existing ticket, as the alternative to duplicate creation.
 
 ## Related docs
 
@@ -2169,6 +2150,14 @@ Use `Add information` for follow-up on an existing issue.
 
 Use it to open the relevant ticket before adding more information.
 
+### Customer organisation access
+
+A support request may be visible to more than one authorised Customer user from the same Customer organisation.
+
+The follow-up does not have to come from the person who originally logged the request.
+
+Each Customer user should use their own login so that the ticket activity keeps the correct individual identity.
+
 ### Add information
 
 `Add information` opens the Customer follow-up editor on the ticket detail page.
@@ -2184,6 +2173,22 @@ This is the area where the Customer can enter a follow-up message.
 ### Attachments
 
 Customers can attach photos or evidence when adding information.
+
+The Customer follow-up editor allows the file to be attached while composing the follow-up.
+
+This is different from the Telectro Customer-visible evidence workflow in Activity 1, where Telectro first attaches evidence to the HD Ticket and then deliberately selects that existing file for Customer visibility.
+
+The current Helpdesk Customer portal supports these attachment file types:
+
+- HEIC
+- JPG
+- PNG
+- DOC
+- XLSX
+- CSV
+- PDF
+
+Plain-text `.txt` files are not currently supported.
 
 Useful attachments include:
 
@@ -2203,17 +2208,17 @@ Attachments should be relevant to the existing ticket.
 
 The follow-up is stored on the ticket and should appear in the ticket activity.
 
-### Active and resolved tickets
+### Active, Resolved, and Closed tickets
 
-Customer follow-up is intended for active or resolved ticket communication.
+Customer follow-up is available on active and `Resolved` tickets.
 
-If the Customer still has a concern after Telectro has resolved the ticket, they can add follow-up information on the existing ticket while the ticket remains available.
+If the Customer still has a concern after Telectro has resolved the ticket, they can add follow-up information on that existing ticket while it remains available for follow-up.
 
-Telectro can then decide whether to follow up, reopen, or link/create a new ticket if the issue is new or materially different.
+Telectro can then decide whether to continue the work, reopen the ticket where appropriate, or link/create a new ticket if the issue is new or materially different.
 
-The Customer portal is not a formal approval/rejection workflow.
+A `Closed` ticket no longer provides the normal Customer follow-up editor.
 
-The Customer should not close the ticket directly as part of the normal V1 process.
+The Customer portal is not a formal approval/rejection workflow, and the Customer does not close the ticket directly as part of the normal pilot process.
 
 ## Before you start
 
@@ -2488,22 +2493,6 @@ Correct approach:
 - Do not expect to close the ticket from the Customer portal.
 - Do not use this process for Partner workflow actions.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `Support Requests` list with an existing ticket.
-2. Customer ticket detail page.
-3. Latest update card or visible activity before follow-up.
-4. `Add information` action.
-5. `Add more information` editor area.
-6. Editor placeholder showing photos/labels/access/location guidance.
-7. Attachment added to the editor.
-8. `Send` button.
-9. Ticket activity after follow-up submission.
-10. Attachment visible in the ticket activity, if applicable.
-11. Existing ticket after follow-up, showing why a duplicate request was not needed.
-
 ## Related docs
 
 - `docs/runbooks/customer-ticket-lifecycle-v1.md`
@@ -2514,7 +2503,7 @@ Recommended screenshots for the Obsidian/training version:
 
 ## Purpose
 
-Use this process when a Customer user wants to check what Telectro has said or done on an existing support request.
+Use this process when a Customer user wants to check the latest Customer-visible activity on an existing support request and understand whether Telectro has responded or whether further Customer action is needed.
 
 The `Latest update` card gives the Customer a quick view of the most recent Customer-visible update on the ticket.
 
@@ -2523,7 +2512,8 @@ This helps Customers see progress without needing to understand Telectro’s int
 The goal is to help the Customer answer:
 
 * Has Telectro responded?
-* What is the latest Customer-visible update?
+* What is the latest Customer-visible communication?
+* Who sent the latest communication?
 * What should I do next?
 * Do I need to add more information?
 * Has the ticket been resolved?
@@ -2599,11 +2589,19 @@ It helps the Customer compare the latest update against what was originally repo
 
 ### Latest update
 
-`Latest update` shows the most recent Customer-visible update from the ticket activity.
+`Latest update` shows the most recent Customer-visible communication after the original Customer request.
 
-It is intended to show the newest Customer-facing communication after the original request.
+This may be:
 
-If there has not yet been a later Customer-visible update, the `Latest update` card may not appear.
+- a Telectro Customer-visible progress update;
+- a Telectro Customer-visible resolution update; or
+- a Customer follow-up sent through `Add information`.
+
+The card therefore does not necessarily mean that Telectro has replied since the Customer’s last message.
+
+Check who sent the update and review the visible activity when more context is needed.
+
+If there has not yet been any later Customer-visible communication after the original request, the `Latest update` card may not appear.
 
 ### Customer-visible activity
 
@@ -2699,7 +2697,11 @@ Find the `Latest update` card.
 
 Read the update carefully.
 
-The latest update may include:
+Check who sent the update.
+
+A Customer follow-up may itself be the latest visible communication. Do not assume that the presence of the `Latest update` card means Telectro has responded since that follow-up.
+
+A Telectro update may include:
 
 * acknowledgement of the request;
 * progress information;
@@ -2709,6 +2711,8 @@ The latest update may include:
 * resolution wording;
 * completion outcome;
 * reference to Customer-visible evidence.
+
+If the latest communication was sent by the Customer, review the visible activity to check whether a later Telectro response exists.
 
 If the `Latest update` card is not visible, it may mean there is no later Customer-visible update after the original request yet.
 
@@ -2781,6 +2785,17 @@ The process is complete when:
 * No duplicate support request was created for the same issue.
 
 ## Common mistakes
+
+### Mistake: Assuming Latest update always came from Telectro
+
+Problem:
+
+* The newest Customer-visible communication may be the Customer’s own follow-up.
+
+Correct approach:
+
+* Check who sent the latest update.
+* Review the visible activity when you need to confirm whether Telectro has responded afterwards.
 
 ### Mistake: Expecting to see internal Telectro notes
 
@@ -2866,21 +2881,6 @@ Correct approach:
 * Do not assume the full internal work history is visible.
 * Do not use this process to submit new issue details; use `Log a Support Request` for a genuinely new issue.
 * Do not close tickets as part of the normal Customer V1 workflow.
-
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `Support Requests` list.
-2. Customer ticket detail page.
-3. Ticket status area.
-4. `Request details` card.
-5. `Latest update` card.
-6. Visible activity/timeline.
-7. Example Customer-visible Telectro update.
-8. Example resolved ticket outcome.
-9. `Add information` action as the response path.
-10. Example where no later `Latest update` is shown yet, if useful for training.
 
 ## Related docs
 
@@ -3006,13 +3006,29 @@ Examples include:
 * private operational files;
 * documents containing unrelated Customer or Telectro information.
 
-### Controlled download
+### Evidence access paths
 
-Customer-facing evidence should be opened or downloaded through the Customer portal’s intended controlled access path.
+Customer evidence can reach the portal through two related but different paths.
+
+**Customer-submitted attachments**
+
+These are files the Customer uploaded when creating the request or through `Add information`.
+
+They use the normal Customer portal attachment path.
+
+**Telectro-shared evidence**
+
+These are files that Telectro deliberately selected for a Customer-visible update or Customer resolution communication.
+
+They use the controlled Customer-facing evidence path rather than exposing the raw private file URL.
 
 The Customer should not rely on raw `/private/files/...` links as the access model.
 
-The correct behaviour is that the portal only exposes evidence that belongs to the relevant Customer ticket and has been shared through a Customer-facing communication or allowed Customer portal attachment path.
+Important current limitation:
+
+A Customer user may be authorised to view a ticket because they belong to the same Customer organisation, while the controlled Telectro-shared evidence download still checks the Customer user who originally raised the ticket.
+
+If another authorised Customer user can see the ticket but cannot open Telectro-shared evidence, use `Add information` or the agreed support channel so Telectro can assist.
 
 ## Before you start
 
@@ -3079,6 +3095,10 @@ If more than one file is visible, use the update wording and file name to choose
 
 Open or download the visible evidence file.
 
+If the ticket is being viewed by another authorised user from the same Customer organisation, Telectro-shared evidence may still be restricted to the Customer user who originally raised the ticket.
+
+If access is refused, do not try to obtain the raw private file URL. Ask Telectro for assistance through the existing ticket.
+
 Depending on the browser and file type, the file may:
 
 * open in the browser;
@@ -3100,9 +3120,9 @@ After opening or downloading the file, confirm:
 
 If the wrong file was downloaded, return to the ticket and check the visible update and filename again.
 
-### Step 7 — If the expected evidence is missing
+### Step 7 — If the expected evidence is missing or cannot be opened
 
-If the Customer expected evidence but cannot see it, do not create a duplicate support request.
+If the Customer expected evidence but cannot see it or cannot open it, do not create a duplicate support request.
 
 Use `Add information` on the same ticket and ask Telectro for help.
 
@@ -3198,6 +3218,17 @@ Correct approach:
 * Read the resolution update.
 * Download evidence only when evidence was actually shared.
 
+### Mistake: Assuming ticket access always means evidence-download access
+
+Problem:
+
+* Another authorised Customer user from the same organisation may be able to open the ticket but still be unable to download Telectro-shared evidence under the current controlled access model.
+
+Correct approach:
+
+* Use the existing ticket to ask Telectro for assistance.
+* Do not bypass the controlled path by requesting or sharing raw private file URLs.
+
 ## Do
 
 * Open the correct ticket from `Support Requests`.
@@ -3217,21 +3248,6 @@ Correct approach:
 * Do not create a duplicate ticket just because evidence is missing.
 * Do not forward downloaded evidence outside the intended business context unless appropriate.
 * Do not use this process to upload new evidence; use `Add information` for that.
-
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `Support Requests` list.
-2. Customer ticket detail page.
-3. `Latest update` card mentioning evidence.
-4. Visible activity/timeline showing Customer-visible evidence.
-5. Evidence filename/link in the Customer portal.
-6. Browser download/open behaviour.
-7. Downloaded/opened evidence file.
-8. Example resolved ticket with completion evidence.
-9. Example Customer-submitted attachment visible in activity.
-10. `Add information` action for asking Telectro when expected evidence is missing.
 
 ## Related docs
 
@@ -3327,7 +3343,7 @@ It should normally be accompanied by a Customer-visible resolution update that e
 
 ### Resolution update
 
-The resolution update is the Customer-visible message that explains the work outcome.
+The resolution update is the Customer-visible Telectro message that explains the work outcome when the ticket is resolved.
 
 It should help the Customer understand:
 
@@ -3335,6 +3351,10 @@ It should help the Customer understand:
 * what was restored or completed;
 * whether any evidence is attached;
 * what to do if the issue continues.
+
+The resolution update may not remain the `Latest update` if the Customer later sends follow-up information.
+
+When necessary, review the visible ticket activity to find the Telectro resolution communication.
 
 ### Completion evidence
 
@@ -3416,11 +3436,13 @@ Status is important, but it is not the whole outcome.
 
 Always read the latest Customer-visible update as well.
 
-### Step 4 — Read the resolution update
+### Step 4 — Find and read the resolution update
 
-Read the `Latest update` card or the visible ticket activity.
+Review the `Latest update` card and the visible ticket activity.
 
-Look for the Customer-visible resolution update.
+Find the Customer-visible Telectro resolution update that records the resolved outcome.
+
+If `Latest update` was sent by the Customer, do not treat that Customer follow-up as the resolution message. Review the visible activity and find the earlier Telectro resolution communication.
 
 A useful resolution update should explain the outcome in plain language.
 
@@ -3591,6 +3613,17 @@ Correct approach:
 
 * Confirm the ticket number, subject, location, and visible activity before sending follow-up.
 
+### Mistake: Assuming Latest update is always the resolution update
+
+Problem:
+
+* A Customer follow-up sent after resolution may become the newest Customer-visible communication.
+
+Correct approach:
+
+* Check who sent the latest update.
+* Review the visible activity and find the Telectro resolution communication when the latest item is a Customer follow-up.
+
 ## Do
 
 * Open the correct ticket from `Support Requests`.
@@ -3611,21 +3644,6 @@ Correct approach:
 * Do not create a duplicate request for the same unresolved issue.
 * Do not expect internal Telectro notes to be visible.
 * Do not expect every resolved ticket to have completion evidence.
-
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. `Support Requests` list with a resolved ticket.
-2. Customer ticket detail page.
-3. Status area showing `Resolved`.
-4. `Latest update` card showing the resolution update.
-5. Visible activity/timeline showing the resolution communication.
-6. Completion evidence visible/downloadable, if present.
-7. `Add information` action on a resolved ticket.
-8. Example follow-up message after resolution.
-9. Example where no formal Customer approval/sign-off action is shown.
-10. Example of when to log a new support request for a different issue.
 
 ## Related docs
 
@@ -3755,6 +3773,8 @@ Accepted by Partner
 
 The ticket then waits for Telectro review.
 
+Accepted Partner responses appear in the Partner Acceptance Review Queue for Telectro review.
+
 ### Request Rework
 
 `Request Rework` is the Partner action used when the Partner believes Telectro still needs to correct, clarify, or complete something.
@@ -3767,7 +3787,13 @@ After submission, the Partner Acceptance State becomes:
 Rework Required
 ```
 
-Telectro must then review the rework reason, correct or clarify the issue, and request Partner acceptance again when ready.
+Telectro must then review the rework reason through the Partner Acceptance Rework Queue, correct or clarify the issue, and request Partner acceptance again when ready.
+
+When Telectro requests acceptance again, the Partner Acceptance State returns to:
+
+```text
+Pending Partner Acceptance
+```
 
 ### Acceptance is not completion work
 
@@ -4120,25 +4146,6 @@ Correct approach:
 * Do not expect Partner users to resolve or close the ticket directly.
 * Do not assume acceptance is complete until Telectro has reviewed it.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Partner workspace.
-2. Partner ticket list showing a ticket awaiting acceptance.
-3. Partner ticket detail page.
-4. `Partner Acceptance Requested` note.
-5. `Submit Acceptance Note` button.
-6. `Submit Acceptance Note` dialog.
-7. Completed acceptance note visible on the Partner ticket.
-8. Partner Acceptance State showing `Accepted by Partner`.
-9. `Request Rework` button.
-10. `Request Rework` dialog.
-11. Rework reason visible on the Partner ticket.
-12. Partner Acceptance State showing `Rework Required`.
-13. Telectro-side `Review Partner Acceptance` action.
-14. Telectro-side `Request Partner Acceptance Again` action after rework.
-
 ## Related docs
 
 * `docs/user-guides/pilot-welcome-guides.md`
@@ -4278,6 +4285,8 @@ Work Completed by Partner
 
 The ticket then waits for Telectro work review.
 
+Completed Partner work appears in the `Partner Work Completion Review Queue` for Telectro review.
+
 ### Work Done Note
 
 The Work Done Note should explain what the Partner did.
@@ -4311,6 +4320,21 @@ Evidence upload is separate from `Submit Work Done`.
 
 If evidence is required, upload the evidence before submitting the work-done note.
 
+The current Partner ticket page accepts these uploaded file types:
+
+- JPG / JPEG
+- PNG
+- PDF
+- DOC / DOCX
+- XLS / XLSX
+- TXT
+
+The maximum uploaded file size is 10 MB.
+
+The `Take Photo` action captures and stores the photo as PNG evidence.
+
+Do not assume that the Customer portal and Partner portal support exactly the same attachment types.
+
 ### Telectro review
 
 After the Partner submits work done, Telectro reviews the completed work.
@@ -4322,6 +4346,22 @@ Telectro may:
 * request rework;
 * resolve the ticket;
 * close the ticket.
+
+If Telectro requests rework, the Partner Work State becomes:
+
+```text
+Rework Required
+```
+
+The Partner should read the `Partner Work Rework Required` note, complete the requested correction, and use `Submit Work Done` again when the rework is complete.
+
+After resubmission, the Partner Work State returns to:
+
+```text
+Work Completed by Partner
+```
+
+and the ticket returns to Telectro work review.
 
 The Partner does not resolve or close the ticket directly.
 
@@ -4663,26 +4703,6 @@ Correct approach:
 * Do not expect Partner users to resolve or close the ticket directly.
 * Do not ignore rework requested by Telectro.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Partner workspace.
-2. Partner current work / assigned tickets list.
-3. Partner ticket detail page.
-4. Ticket showing Partner Work State `Assigned to Partner`.
-5. `Upload Attachment` action.
-6. Upload Attachment dialog.
-7. Evidence list showing uploaded file.
-8. `Submit Work Done` button.
-9. `Submit Work Done` dialog.
-10. Completed Work Done Note example.
-11. Ticket showing Partner Work State `Work Completed by Partner`.
-12. Ticket showing Partner Work Completed date.
-13. Partner Work Done Note visible on the ticket.
-14. Telectro-side `Review Partner Work` action.
-15. Rework case showing Partner Work State `Rework Required`.
-
 ## Related docs
 
 * `docs/user-guides/pilot-welcome-guides.md`
@@ -4804,7 +4824,9 @@ In the current implementation, `Review only` does not change the Partner Accepta
 
 Use `Review only` when Telectro needs to record a review note but is not ready to finalise the ticket.
 
-Because this does not finalise the ticket, the ticket may still need a later resolve or close action.
+Because the Partner Acceptance State remains `Accepted by Partner`, the ticket continues to qualify for Partner acceptance review until Telectro applies a finalising outcome.
+
+`Review only` should therefore not be treated as clearing the Partner Acceptance Review Queue.
 
 ### Resolve ticket
 
@@ -5172,26 +5194,6 @@ Correct approach:
 * Do not ignore unclear or conditional Partner acceptance.
 * Do not expect Partner users to perform this Telectro review step.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Telectro workspace showing Partner review access.
-2. `Partner Acceptance Review Queue`.
-3. Queue row showing Partner Acceptance State `Accepted by Partner`.
-4. Queue row showing Partner Acceptance Note preview.
-5. Full Partner Acceptance Note popup or expanded view.
-6. HD Ticket showing Partner Acceptance State `Accepted by Partner`.
-7. `Review Partner Acceptance` button.
-8. `Review Partner Acceptance` dialog.
-9. Outcome dropdown showing `Review only`, `Resolve ticket`, and `Close ticket`.
-10. Example review note.
-11. Ticket after `Review only`.
-12. Ticket after `Resolve ticket`, showing status `Resolved`.
-13. Ticket after `Close ticket`, showing status `Closed`.
-14. Partner Acceptance State showing `Reviewed by Telectro` after terminal review.
-15. Review comment in ticket activity/history.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
@@ -5339,6 +5341,10 @@ Close ticket
 
 `Review only` records a Partner work review comment.
 
+Because the Partner Work State remains `Work Completed by Partner`, the ticket continues to qualify for Partner work review.
+
+`Review only` should therefore not be treated as clearing the Partner Work Completion Review Queue.
+
 It does not accept, rework, resolve, or close the ticket.
 
 In the current implementation, `Review only` does not change the Partner Work State.
@@ -5419,7 +5425,7 @@ Use `Request Rework` when the Partner must correct, clarify, or complete somethi
 
 Open the relevant Telectro workspace.
 
-Open `My Current Work` and find the `Partner work review needed` bucket, or open the relevant Partner workflow oversight report.
+Open the `Partner Work Completion Review Queue`, or open `My Current Work` and find the `Partner work review needed` bucket.
 
 The review list should show Telectro-assigned Partner fulfilment tickets where the Partner Work State is `Work Completed by Partner`.
 
@@ -5847,27 +5853,6 @@ Correct approach:
 * Do not treat Partner work review as Customer sign-off.
 * Do not expect Partner users to perform this Telectro review step.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Telectro workspace showing Partner work review access.
-2. `My Current Work` bucket showing `Partner work review needed`.
-3. Partner workflow oversight report showing completed Partner work.
-4. HD Ticket showing Partner Work State `Work Completed by Partner`.
-5. Partner Work Done Note visible on the ticket.
-6. Uploaded Partner evidence visible on the ticket.
-7. `Review Partner Work` button.
-8. `Review Partner Work` dialog.
-9. Outcome dropdown showing `Review only`, `Accept work`, `Request Rework`, `Resolve ticket`, and `Close ticket`.
-10. Example `Accept work` review note.
-11. Example `Request Rework` reason.
-12. Ticket after `Accept work`, showing Partner Work State `Reviewed by Telectro`.
-13. Ticket after `Request Rework`, showing Partner Work State `Rework Required`.
-14. Ticket after `Resolve ticket`, showing status `Resolved`.
-15. Ticket after `Close ticket`, showing status `Closed`.
-16. Review or rework comment in ticket activity/history.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#11-partner-submits-work-done`
@@ -5946,6 +5931,17 @@ The report excludes terminal tickets:
 Resolved
 Closed
 Archived
+```
+
+`My Current Work` uses its own current-work boundary: it includes tickets that are not `Resolved`, `Closed`, or `Archived`.
+
+Do not treat this report boundary as the definition of an `Active` ticket.
+
+For the pilot’s Active-ticket views, `Active` means exactly:
+
+```text
+Open
+Replied
 ```
 
 ### Assigned to me
@@ -6038,6 +6034,10 @@ Partner work currently with Partner
 Do not treat all buckets the same.
 
 The bucket tells you what kind of action is expected.
+
+A ticket can satisfy more than one current-work condition.
+
+If a ticket appears under a general bucket such as `Assigned to me` or `Shared with me`, but its Partner Acceptance or Partner Work state shows that a Partner review or rework action is pending, open the ticket and follow the Partner workflow state and ticket context before deciding what to do.
 
 ### Step 3 — Read the next action
 
@@ -6306,23 +6306,6 @@ Correct approach:
 * Do not leave tickets with unclear next action.
 * Do not use informal comments as a substitute for claim, release, handoff, or review actions.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Telectro workspace showing `My Current Work`.
-2. `My Current Work` report open.
-3. Bucket column showing `Assigned to me`.
-4. Bucket column showing `Shared with me`.
-5. Bucket column showing Partner acceptance review item, if available.
-6. Bucket column showing Partner work review item, if available.
-7. Next Action column.
-8. Ticket opened from `My Current Work`.
-9. Example assigned ticket.
-10. Example shared ticket.
-11. Example Partner review ticket.
-12. Refreshed report after an item is resolved, closed, accepted, or moved to rework.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
@@ -6420,7 +6403,11 @@ HD Ticket._assign = []
 No open assignment ToDo
 ```
 
-Some reports and quick lists may also treat blank `_assign` as unclaimed.
+This is the canonical ownership condition for a true pool ticket.
+
+Some unclaimed reports and quick lists use blank or empty `_assign` as a screening filter. Appearing in one of those views is therefore an attention signal, not by itself proof of the complete true-pool ownership state.
+
+Open the ticket and confirm its ownership context before claiming, handing off, or escalating it.
 
 ### Unclaimed is not the same as shared
 
@@ -6519,19 +6506,22 @@ Check:
 
 ### Step 4 — Confirm it is active work
 
-Confirm the ticket is not terminal.
+Confirm that the ticket belongs to the current active-work scope of the unclaimed view you are using.
 
-Unclaimed monitoring is for active tickets, not completed history.
-
-Terminal statuses include:
+For the pilot’s normal Active-ticket views, `Active` means exactly:
 
 ```text
-Resolved
-Closed
-Archived
+Open
+Replied
 ```
 
-If the ticket is terminal, it should not normally need unclaimed ownership intervention.
+`Unclaimed Active Tickets` and `Unclaimed Over 1 Day` use this `Open` + `Replied` active-ticket contract.
+
+`TELECTRO Unclaimed War Room` is currently narrower and shows `Open` tickets only.
+
+Do not assume every unclaimed view has exactly the same status filter.
+
+Resolved, Closed, and Archived tickets should not require normal unclaimed ownership intervention.
 
 ### Step 5 — Decide why it is unclaimed
 
@@ -6776,24 +6766,6 @@ Correct approach:
 * Do not use generic Assign/Unassign as the normal pilot path.
 * Do not leave stale unclaimed work without a deliberate decision.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Coordinator or Ops workspace showing unclaimed count / quick list.
-2. `Unclaimed Active Tickets` quick list.
-3. `Unclaimed more than 1 Day` widget or card.
-4. `Unclaimed Over 1 Day` report.
-5. Tech workspace `Unclaimed (War Room)` shortcut.
-6. `TELECTRO Unclaimed War Room` report.
-7. Example unclaimed ticket before review.
-8. Claim action on an unclaimed ticket.
-9. Controlled Handoff action for a known-owner unclaimed ticket.
-10. Internal note explaining routing uncertainty.
-11. Ticket after Claim showing assigned owner.
-12. Ticket after Controlled Handoff showing named accountable owner.
-13. Refreshed unclaimed view showing ticket removed from the pool.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
@@ -6806,9 +6778,11 @@ Recommended screenshots for the Obsidian/training version:
 
 ## Purpose
 
-Use this process to review active owned tickets that may be aging, stale, or at risk of drifting without visible progress.
+Use this process to review owned tickets that have not been modified for 24 hours or more and may need supervisor or coordinator attention.
 
-`Aging and At-Risk Tickets` is a supervisor/coordinator attention list. It helps Telectro identify assigned tickets that may need intervention, follow-up, coaching, handoff, or a clearer next action.
+`Aging and At-Risk Tickets` is a supervisor/coordinator attention list. It helps Telectro identify stale assigned work that may need intervention, follow-up, coaching, handoff, or a clearer next action.
+
+Do not treat this report as the canonical definition of an `Active` ticket.
 
 This guide focuses on aging and stale owned work.
 
@@ -6880,7 +6854,7 @@ Use:
 
 ### Aging ticket
 
-An aging ticket is an active ticket that has not been modified recently.
+In this report, an aging ticket is an owned ticket that has not been modified for at least 24 hours.
 
 In the current pilot report, aging is based on the ticket `modified` timestamp.
 
@@ -6888,6 +6862,12 @@ This means the report is asking:
 
 ```text
 How long has it been since this ticket last changed?
+```
+
+The report has its own operational scope and should not be confused with the pilot's normal Active-ticket definition:
+
+```text
+Active = Open + Replied
 ```
 
 It is not a full SLA calculation.
@@ -6912,14 +6892,16 @@ Higher stale hours mean the ticket may need earlier supervisor attention.
 
 `Attention Band` gives a practical intervention signal.
 
-Current pilot bands include:
+The underlying attention bands are:
 
 ```text
+Fresh    = less than 4 hours since last modification
+Watch    = 4 hours or more since last modification
 At Risk  = 24 hours or more since last modification
 Critical = 72 hours or more since last modification
 ```
 
-The report is currently filtered to show tickets at 24 hours or more, so it is mainly an `At Risk` and `Critical` attention list.
+`Aging and At-Risk Tickets` is currently filtered to tickets stale for 24 hours or more, so this report normally shows only `At Risk` and `Critical`.
 
 ### At risk is not the same as SLA breach
 
@@ -7007,6 +6989,10 @@ These tickets should be reviewed to confirm that they have a valid next action.
 Open the HD Ticket before deciding what to do.
 
 Do not act from the report row alone.
+
+Confirm that the ticket still represents work requiring operational attention.
+
+If a terminal or otherwise completed ticket appears unexpectedly, do not treat it as active work merely because it appears in this report. Treat that as a report/data-hygiene issue and verify the ticket state before intervening.
 
 Check:
 
@@ -7283,24 +7269,6 @@ Correct approach:
 * Do not leave completed tickets active just because nobody closed them.
 * Do not expose internal SLA/governance detail in Customer-visible updates.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Coordinator or Ops workspace showing `Aging / At-Risk Tickets`.
-2. `Aging and At-Risk Tickets` report open.
-3. Ticket row showing `Stale Hours`.
-4. Ticket row showing `Attention Band`.
-5. Example `At Risk` ticket.
-6. Example `Critical` ticket, if available.
-7. Ticket opened from the aging report.
-8. Latest activity/internal notes showing missing or present next action.
-9. Controlled Handoff action where ownership must change.
-10. Internal note recording supervisor/coordinator review.
-11. Customer-visible update where progress visibility is needed.
-12. Ticket resolved or updated after review.
-13. Refreshed aging report after intervention.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
@@ -7470,10 +7438,19 @@ This is the primary prevention report for Customer first-response risk.
 
 It is intended to show Customer-originated tickets where:
 
-* the ticket is active;
+* Request Source is `Customer`;
+* the ticket is not `Resolved`, `Closed`, or `Archived`;
 * the first response has not yet been recorded;
 * the first-response target exists;
-* the first-response target is still in the future.
+* the first-response target has not yet passed.
+
+This report uses its own prevention scope. Do not treat its non-terminal status boundary as the canonical definition of an `Active` ticket.
+
+For the pilot's normal Active-ticket views:
+
+```text
+Active = Open + Replied
+```
 
 ### Step 2 — Review the First Response Risk column
 
@@ -7634,21 +7611,33 @@ If the ticket remains listed after a Customer-visible response, check the ticket
 
 ### Step 8 — Check already-missed first responses
 
-After prevention work, review already-missed first responses if needed.
+After prevention work, review already-missed first-response targets where needed.
 
-Open:
+Two reports provide different views of this risk.
+
+`First Response Missed` is an operational missed-target list for tickets that are still Active:
+
+```text
+Open
+Replied
+```
+and whose `response_by` target is already in the past.
+
+Because this report is based on the missed target, a ticket may still appear even if a response was recorded later. Open the ticket and verify the current Customer-visible history before deciding what recovery action is still required.
+
+`Customer SLA Breach Oversight` is broader Customer SLA oversight. It shows non-terminal Customer-related tickets with a currently outstanding first-response breach, resolution breach, or both.
+
+For first-response breach specifically, it requires the first response still to be unrecorded.
+
+Use:
 
 ```text
 First Response Missed
-```
+→ identify Active tickets whose first-response target was missed
 
-or:
-
-```text
 Customer SLA Breach Oversight
+→ review currently outstanding Customer first-response and/or resolution breaches
 ```
-
-Use these reports for tickets where the first-response target has already passed.
 
 For already-missed first responses:
 
@@ -7762,24 +7751,6 @@ Correct approach:
 * Do not treat already-missed first responses as irrelevant.
 * Do not confuse first-response risk with general aging or resolution risk.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Ops or Coordinator workspace showing Customer SLA / oversight area.
-2. `Customer Ticket Oversight` report open.
-3. `First Response Risk` column.
-4. `Due < 15m` row, if available.
-5. `Due < 1h` row, if available.
-6. `First Response By` and `Time Left` columns.
-7. Ticket opened from Customer Ticket Oversight.
-8. Ticket activity showing no Customer-visible response yet.
-9. Customer-visible update dialog.
-10. Example safe first-response wording.
-11. Refreshed Customer Ticket Oversight after response.
-12. `First Response Missed` report.
-13. `Customer SLA Breach Oversight` row showing first-response breach, if available.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#3-internal-notes-and-customer-visible-updates`
@@ -7882,6 +7853,17 @@ Examples:
 * Use `Review Partner completed work` when Partner work has been submitted for review.
 
 ## Important concepts
+
+### Active-ticket boundary
+
+When this guide refers to an `Active` ticket or active-ticket queue, the pilot's canonical Active definition is:
+
+```text
+Open
+Replied
+```
+
+Some monitoring reports used to identify stale or blocked work have their own operational scope. Always verify the actual ticket status after opening the ticket rather than assuming that appearing in a monitoring report proves it is Active.
 
 ### Intervention
 
@@ -8034,6 +8016,15 @@ Next action:
 #### Case E — Waiting on Partner
 
 The ticket is waiting on Partner action, Partner acceptance, Partner work done, or Partner rework.
+
+First identify which Partner workflow train controls the next action:
+
+* Partner Acceptance; or
+* Partner Work Completion.
+
+Do not mix the two trains.
+
+Use the Partner workflow state and its dedicated action rather than treating Partner dependency as a normal ownership problem.
 
 Next action:
 
@@ -8378,25 +8369,6 @@ Correct approach:
 * Do not ignore Partner workflow state.
 * Do not leave completed work active.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Ticket identified from `Aging and At-Risk Tickets`.
-2. Ticket identified from `My Current Work`.
-3. Ticket identified from `Customer Ticket Oversight`.
-4. Ticket opened from report or workspace.
-5. Ticket activity showing stale or missing next action.
-6. Internal notes area before intervention.
-7. Internal note recording blocker or supervisor review.
-8. Customer-visible update dialog for progress communication.
-9. Controlled Handoff action.
-10. Controlled Handoff reason field.
-11. Ticket after Controlled Handoff showing new accountable owner.
-12. Partner state area where Partner review/rework is relevant.
-13. Ticket after intervention showing clear next action.
-14. Refreshed report or queue after intervention.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#2-claim-release-and-handoff-ticket-ownership`
@@ -8487,7 +8459,7 @@ Use:
 * `Review Partner acceptance` for the detailed ticket action;
 * `Review Partner completed work` for Telectro-to-Partner work completion review;
 * `Intervene on a stale or blocked ticket` when the issue is a general blocker rather than Partner acceptance review;
-* Partner rework/follow-up process when the Partner acceptance was rejected or needs correction.
+* Partner acceptance rework/follow-up process when the Partner requested rework or Telectro must complete a correction before requesting acceptance again.
 
 ## Important concepts
 
@@ -8526,6 +8498,14 @@ Resolved
 Closed
 Archived
 ```
+
+The queue is a discovery surface. Before applying the ticket-level review, confirm that the ticket belongs to the Partner Acceptance train:
+
+* Request Source is `Partner`;
+* Fulfilment Party is not `Partner`;
+* Partner Acceptance State is `Accepted by Partner`.
+
+If the ticket is actually Partner fulfilment work, do not process it through Partner Acceptance review.
 
 ### Partner Acceptance Note
 
@@ -8694,6 +8674,10 @@ Examples:
 * another Telectro action is required before terminal status.
 
 Remember: in the current implementation, `Review only` does not change the Partner Acceptance State to `Reviewed by Telectro`.
+
+Because the state remains `Accepted by Partner`, the ticket continues to qualify for the `Partner Acceptance Review Queue`.
+
+`Review only` should therefore leave a clear next action rather than being treated as clearing the queue item.
 
 #### Option B — Resolve ticket
 
@@ -8891,27 +8875,6 @@ Correct approach:
 * Do not leave old accepted Partner-originated tickets sitting in the queue without a next action.
 * Do not bypass the ticket-level `Review Partner Acceptance` action.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Coordinator/Ops workspace showing `Partner Acceptance Review Queue`.
-2. `Partner Acceptance Review Queue` report open.
-3. Queue row showing Partner Acceptance State `Accepted by Partner`.
-4. Queue row showing Partner Accepted On.
-5. Partner Acceptance Note preview.
-6. `View full` Partner Acceptance Note, if available.
-7. HD Ticket opened from the queue.
-8. HD Ticket showing Partner Acceptance State `Accepted by Partner`.
-9. `Review Partner Acceptance` button.
-10. `Review Partner Acceptance` dialog.
-11. Outcome options: `Review only`, `Resolve ticket`, `Close ticket`.
-12. Review note field.
-13. Ticket after `Review only`, showing clear next action.
-14. Ticket after `Resolve ticket` or `Close ticket`.
-15. Partner Acceptance State showing `Reviewed by Telectro` after terminal review.
-16. Refreshed queue after completed review.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
@@ -9050,6 +9013,14 @@ The same review need may also appear in:
 * `Partner Workflow War Room` as `Partner Work Completed / Telectro Review Needed`.
 
 These views all point to the same business condition: Partner Work State is `Work Completed by Partner`, and Telectro must open the HD Ticket and use `Review Partner Work`.
+
+The queue is a discovery surface. Before applying the ticket-level review, confirm that the ticket belongs to the Partner Work Completion train:
+
+* Request Source is not `Partner`;
+* Fulfilment Party is `Partner`;
+* Partner Work State is `Work Completed by Partner`.
+
+If the ticket is actually a Partner-originated acceptance case, do not process it through Partner Work review.
 
 ### Review Partner Work action
 
@@ -9223,6 +9194,12 @@ Examples:
 * the Partner work note has been reviewed, but Telectro still needs Customer confirmation;
 * the Partner work appears complete, but evidence must still be checked;
 * internal confirmation is required before final acceptance.
+
+`Review only` does not change the Partner Work State.
+
+Because the state remains `Work Completed by Partner`, the ticket continues to qualify for Partner work completion review.
+
+`Review only` should therefore leave a clear next action rather than being treated as clearing the review queue.
 
 #### Option B — Accept work
 
@@ -9485,29 +9462,6 @@ Correct approach:
 * Do not expose internal Partner review detail unnecessarily to the Customer.
 * Do not leave old Partner work completion items sitting without a next action.
 
-## Screenshot checklist
-
-Recommended screenshots for the Obsidian/training version:
-
-1. Partner Work Area showing `Work Completion Review Queue`.
-2. `Work Completion Review Queue` opened.
-3. `My Current Work` bucket showing `Partner work review needed`.
-4. `Partner Current Work` showing `Waiting for Telectro work review`.
-5. `Partner Workflow War Room` showing `Partner Work Completed / Telectro Review Needed`.
-6. Queue/bucket row showing Partner Work State `Work Completed by Partner`.
-7. HD Ticket opened from the queue or bucket.
-8. HD Ticket showing Partner Work State `Work Completed by Partner`.
-9. Partner Work Done Note.
-10. `Review Partner Work` button.
-11. `Review Partner Work` dialog.
-12. Outcome options: `Review only`, `Accept work`, `Request Rework`, `Resolve ticket`, `Close ticket`.
-13. Review note / rework reason field.
-14. Ticket after `Accept work`, showing Partner Work State `Reviewed by Telectro`.
-15. Ticket after `Request Rework`, showing Partner Work State `Rework Required`.
-16. Ticket after `Resolve ticket` or `Close ticket`.
-17. Customer-visible update or resolution action, where appropriate.
-18. Refreshed queue/bucket after completed review.
-
 ## Related docs
 
 * `docs/user-guides/activity-process-guides.md#11-partner-submits-work-done`
@@ -9518,32 +9472,525 @@ Recommended screenshots for the Obsidian/training version:
 * `docs/user-guides/pilot-welcome-guides.md`
 * `docs/runbooks/partner-workflow-v1.md`
 
-# 21. Activity Process Guide backlog
+# 21. Partner logs a Partner-originated service request
 
-The following follow-up items remain for this document as the pilot training pack matures.
+## Purpose
 
-## Internal Telectro ticket execution
+Use this process when a Partner needs to log a new service request for Telectro.
 
-Follow-up items:
+The request is created through the Partner-safe `Partner Request` page and is recorded as a Partner-originated request for Telectro to handle.
 
-- Extend internal note / Customer-visible update guide after production screenshots are captured
-- Extend Customer-visible evidence update guide after production screenshots are captured
+This is different from Partner fulfilment work.
 
-## Partner collaboration
+The workflow starts as:
 
-Terminal status note:
+```text
+Partner organisation
+→ Partner user logs request
+→ Request Source = Partner
+→ Request Partner = represented Partner organisation
+→ Fulfilment Party = Telectro
+→ Telectro receives and handles the request
+```
+
+Later, if Telectro asks the Partner to accept Telectro’s handling of the request, the ticket enters the separate Partner Acceptance workflow.
+
+## Audience
+
+Primary users:
+
+* Partner users who are allowed to create Partner requests.
+
+Telectro internal users do not normally use this Partner request page to create internal tickets.
+
+Customer portal users use the Customer support-request process instead.
+
+## When to use this process
+
+Use this process when:
+
+* the Partner needs Telectro to investigate or assist with a service issue;
+* the Partner needs to log a fault or service request;
+* the request originates from the Partner rather than from a Customer or Telectro;
+* supporting photos, documents, quotes, or other evidence should be attached when the request is created.
+
+Typical examples:
+
+* “The Partner needs Telectro to investigate a site issue.”
+* “The Partner needs assistance with equipment or connectivity.”
+* “The Partner needs to request follow-up from Telectro.”
+* “The Partner has a photo or document that should be attached to the request.”
+
+## When not to use this process
+
+Do not use this process when:
+
+* Telectro has already assigned fulfilment work to the Partner;
+* the Partner needs to submit work done;
+* the Partner is responding to a Partner Acceptance request;
+* the Partner is responding to a rework request;
+* the request should be logged through the Customer portal instead.
+
+Use:
+
+* `Partner responds to an acceptance request` for Partner Acceptance;
+* `Partner submits work done` for Telectro-assigned Partner fulfilment work;
+* the Customer support-request process for Customer-originated requests.
+
+## Important concepts
+
+### Partner organisation
+
+Partner requests belong to the Partner organisation represented by the authenticated Partner user.
+
+When the user belongs to one enabled Partner organisation, that organisation is selected automatically.
+
+When the user belongs to more than one enabled Partner organisation, the user must choose the `Partner Organisation` represented by the request.
+
+If the user is not an enabled member of a Partner organisation, the request cannot be submitted.
+
+The organisation is the business identity for the request.
+
+The individual logged-in Partner user is the authenticated member acting for that organisation.
+
+### Partner-originated request
+
+A Partner-originated request uses this workflow contract:
+
+```text
+Request Source = Partner
+Request Partner = represented Partner organisation
+Fulfilment Party = Telectro
+Ticket Type = Service Request
+```
+
+This distinguishes it from the Partner Work Completion train, where Telectro assigns fulfilment work to a Partner.
+
+### Request context
+
+The `Partner Request` page allows the Partner to provide context such as:
+
+* Account;
+* Campus;
+* Fault Category;
+* Fault Asset;
+* Fault Point;
+* Ownership;
+* Request Type;
+* Due Date;
+* Subject;
+* Summary.
+
+Not every context field is required for every request.
+
+Provide the most useful information available rather than guessing.
+
+### Request defaults
+
+The current Partner Request page provides these defaults:
+
+```text
+Fault Category = Buildings
+Request Type = General Assistance
+Service Area = Other
+Severity = Sev3
+Ticket Type = Service Request
+```
+
+Change visible request context where the request requires something more specific.
+
+Do not treat hidden/default routing values as fields the Partner must manually manage.
+
+### Subject and Summary
+
+`Subject` is required.
+
+Write a short subject that identifies the issue clearly.
+
+Example:
+
+```text
+Boschendal – Camera offline – Villa
+```
+
+`Summary` provides the fuller request description.
+
+If Summary is left blank, the system uses the Subject as the summary.
+
+A useful Summary should explain:
+
+* what is wrong or needed;
+* where it applies;
+* the observed impact;
+* useful troubleshooting or background information.
+
+### Evidence at request creation
+
+The Partner may add supporting photos or files while creating the request.
+
+This upload path is part of request creation and is different from the internal Customer-visible evidence process.
+
+Supported V1 file types include:
+
+```text
+JPG / JPEG
+PNG
+PDF
+DOC / DOCX
+XLS / XLSX
+TXT
+```
+
+Maximum size:
+
+```text
+10 MB per file
+```
+
+Multiple files may be selected.
+
+Files are stored privately against the created HD Ticket.
+
+## Before you start
+
+Before creating the request, confirm:
+
+* you are logged in as the correct Partner user;
+* the correct Partner organisation is shown or available for selection;
+* you know what assistance or service is required;
+* you have enough Account/location information to identify the affected context where applicable;
+* supporting evidence is ready if it will help Telectro understand the request.
+
+## Step-by-step process
+
+### Step 1 — Open Partner Request
+
+From the Partner workspace, open:
+
+```text
+Partner Request
+```
+
+The Partner-safe request page opens.
+
+Do not use the normal internal HD Ticket creation form.
+
+### Step 2 — Confirm the Partner Organisation
+
+Check the Partner organisation shown near the top of the request page.
+
+If one organisation is available, it is shown automatically.
+
+If more than one organisation is available, select the organisation represented by this request.
+
+Do not continue under the wrong Partner organisation.
+
+If no enabled Partner organisation is available, the request cannot be submitted and the Partner organisation membership must be corrected first.
+
+### Step 3 — Add Account and location context
+
+Where applicable, select the relevant:
+
+* Account;
+* Campus;
+* Fault Category;
+* Fault Asset;
+* Fault Point.
+
+If an Account maps to a default Campus, the page may set the Campus automatically.
+
+Use the available location hierarchy to identify the affected object or area as accurately as possible.
+
+Do not invent a location merely to fill a field.
+
+### Step 4 — Add request context
+
+Review and complete the other request fields where useful:
+
+* Ownership;
+* Request Type;
+* Due Date.
+
+Keep the default `Request Type = General Assistance` when it accurately describes the request.
+
+Choose a more specific request type when appropriate.
+
+### Step 5 — Enter the Subject
+
+Enter a clear Subject.
+
+The Subject is required.
+
+Prefer a short description that helps Telectro recognise the issue from a list.
+
+Good example:
+
+```text
+Boschendal – Network link unavailable – Cellar
+```
+
+Poor example:
+
+```text
+Problem
+```
+
+### Step 6 — Enter the Summary
+
+Describe the request in the Summary.
+
+Include useful information such as:
+
+* what was observed;
+* when it started;
+* how users or services are affected;
+* what has already been checked;
+* what Telectro is being asked to do.
+
+If no additional description is needed, the request can still be submitted without a separate Summary; the Subject will be used as the summary.
+
+### Step 7 — Add photos or files where useful
+
+Use `Add Photo or File` when supporting evidence will help Telectro understand the request.
+
+Select one or more supported files.
+
+Before submitting, check that:
+
+* the correct files are selected;
+* each file is 10 MB or smaller;
+* the files relate to the request;
+* no inappropriate or unrelated information is included.
+
+Evidence is optional.
+
+Do not delay a necessary service request merely because evidence is not available yet.
+
+### Step 8 — Submit the request
+
+Review the request before sending it.
+
+Confirm especially:
+
+* Partner Organisation;
+* Account/location context where applicable;
+* Subject;
+* Summary;
+* selected evidence.
+
+Select:
+
+```text
+Submit Request
+```
+
+The system creates the HD Ticket first.
+
+If evidence was selected, the system then uploads the files against the created ticket.
+
+### Step 9 — Confirm the created Partner Ticket
+
+After successful creation, the request should open through the Partner-safe ticket view.
+
+Confirm:
+
+* a ticket ID was created;
+* the Subject is correct;
+* the request belongs to the intended Partner organisation;
+* the request details are visible;
+* any successfully uploaded evidence is attached to the ticket.
+
+The created ticket should follow this contract:
+
+```text
+Request Source = Partner
+Request Partner = represented Partner organisation
+Fulfilment Party = Telectro
+Ticket Type = Service Request
+```
+
+The Partner does not need to set these workflow fields manually.
+
+### Step 10 — Handle an evidence-upload failure correctly
+
+Ticket creation and evidence upload are separate steps.
+
+The HD Ticket is created before the selected evidence files are uploaded.
+
+If the request is created but one or more evidence files fail to upload:
+
+* do not submit a duplicate request;
+* note the ticket ID;
+* open the created Partner Ticket;
+* add the missing evidence from the ticket;
+* verify the files are attached successfully.
+
+An evidence-upload failure does not mean the request itself failed to be created.
+
+## Verification checklist
+
+The Partner request process is complete when:
+
+* `Partner Request` was opened.
+* The correct Partner Organisation was confirmed or selected.
+* Subject was entered.
+* Relevant Account/location/request context was added where available.
+* Summary described the request where additional explanation was useful.
+* Supporting evidence was selected where appropriate.
+* `Submit Request` completed.
+* A ticket ID was created.
+* The created ticket opened through the Partner-safe ticket view.
+* The request belongs to the correct Partner organisation.
+* The request is a Partner-originated / Telectro-fulfilled request.
+* Evidence is attached where it was successfully uploaded.
+* No duplicate ticket was created merely because an evidence upload failed.
+
+## Common mistakes
+
+### Mistake: Selecting the wrong Partner Organisation
+
+Problem:
+
+* The request is associated with the wrong organisation.
+
+Correct approach:
+
+* Confirm the represented Partner organisation before submitting.
+
+### Mistake: Confusing Partner request creation with Partner fulfilment work
+
+Problem:
+
+* The Partner-originated request and Partner Work Completion trains become mixed.
+
+Correct approach:
+
+* A Partner-originated request asks Telectro for service.
+* Partner Work Completion is used only when Telectro assigned work to the Partner.
+
+### Mistake: Using a vague Subject
+
+Problem:
+
+* Telectro cannot quickly identify the request from lists or reports.
+
+Correct approach:
+
+* Use a concise subject that identifies the issue and context.
+
+### Mistake: Guessing location information
+
+Problem:
+
+* Incorrect Account, Campus, or Fault Point data can misdirect investigation.
+
+Correct approach:
+
+* Enter known context and leave uncertain optional information blank rather than guessing.
+
+### Mistake: Assuming an evidence-upload failure means the request failed
+
+Problem:
+
+* The Partner may create an unnecessary duplicate ticket.
+
+Correct approach:
+
+* Check whether the ticket was created.
+* If it exists, open that Partner Ticket and upload the missing evidence there.
+
+### Mistake: Treating evidence as mandatory
+
+Problem:
+
+* A necessary request may be delayed while waiting for a photo or document.
+
+Correct approach:
+
+* Submit the service request when needed and add evidence later if necessary.
+
+## Do
+
+* Confirm the correct Partner Organisation.
+* Use a clear Subject.
+* Add useful Account and location context.
+* Describe the request clearly.
+* Add relevant evidence where useful.
+* Verify the created Partner Ticket.
+* Reuse the created ticket if evidence upload must be retried.
+* Keep Partner-originated requests separate from Partner fulfilment work.
+
+## Do not
+
+* Do not create a request for the wrong Partner organisation.
+* Do not guess optional location information.
+* Do not use vague Subjects such as `Problem` or `Help`.
+* Do not treat Partner request creation as Partner Work Completion.
+* Do not submit duplicate requests because an attachment failed.
+* Do not delay an urgent request only because evidence is unavailable.
+* Do not use internal HD Ticket creation routes as the normal Partner path.
+
+## Related docs
+
+* `docs/user-guides/activity-process-guides.md#10-partner-responds-to-an-acceptance-request`
+* `docs/user-guides/activity-process-guides.md#11-partner-submits-work-done`
+* `docs/user-guides/activity-process-guides.md#19-review-partner-acceptance-queue`
+* `docs/user-guides/pilot-welcome-guides.md`
+* `docs/runbooks/partner-operating-model.md`
+* `docs/runbooks/partner-workflow-v1.md`
+
+# 22. Activity Process Guide backlog
+
+The canonical operational activities above are the current master process reference.
+
+The following documentation work remains after this reconciliation pass.
+
+## Canonical process coverage
+
+No confirmed missing canonical Activity Process Guide workflow remains in the current pilot scope.
+
+Any future activity should be added only when a real user-facing process is introduced or an existing process develops a materially different workflow.
+
+## Audience-specific publication follow-up
+
+After the canonical master is frozen:
+
+* derive a Customer Activity Process Guide from the Customer-facing activities;
+* derive a Partner Activity Process Guide from the Partner-facing activities;
+* keep the canonical master as the full end-to-end reference supplied to Telectro.
+
+These audience editions must be derived from the canonical master rather than maintained as independent duplicate process sources.
+
+## Visual Supplement follow-up
+
+The canonical Activity Process Guide remains text-first.
+
+Selected screenshots and explanatory visuals should be maintained separately in the Activity Process Guides Visual Supplement.
+
+The Visual Supplement should focus on workflows where visual recognition materially helps understanding, especially:
+
+* Customer-visible evidence attachment and selection;
+* Claim, Release, Controlled Handoff, and shared-context distinctions;
+* Partner Acceptance state transitions;
+* Partner Work Completion and rework state transitions.
+
+Do not extend canonical activities merely because more screenshots become available.
+
+## Deferred Partner terminal-status distinction
 
 Partner-side archive/history visibility is not currently a separate Activity Process Guide.
 
-In V1, Partner-related tickets that are `Resolved`, `Closed`, or `Archived` are treated as terminal/history items for reporting and Partner History visibility. The pilot does not yet define a separate operational difference between `Resolved`, `Closed`, and `Archived` for Partner-side work beyond their terminal/reporting behaviour.
+In V1, Partner-related tickets that are `Resolved`, `Closed`, or `Archived` are treated as terminal/history items for reporting and Partner History visibility.
 
-Closing a Partner-related ticket after review remains a Telectro staff decision and is covered by `Review Partner completed work`.
+The pilot does not currently define a separate Partner-side operational meaning for each of `Resolved`, `Closed`, and `Archived` beyond their terminal/reporting behaviour.
 
-Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be defined after the pilot if Telectro identifies a real operational or reporting need.
+Closing a Partner-related ticket after review remains a Telectro staff decision and is covered by the appropriate Telectro review process.
+
+Any stricter distinction between `Resolved`, `Closed`, and `Archived` should be defined only if Telectro identifies a real operational or reporting requirement.
 
 ---
 
-# 22. Maintenance rule
+# 23. Maintenance rule
 
 Keep Activity Process Guides practical.
 
@@ -9554,4 +10001,8 @@ When updating this document:
 - link back to canonical runbooks for implementation detail;
 - avoid duplicating technical contracts from runbooks;
 - avoid turning Welcome Guides into long process manuals;
-- keep screenshots in Obsidian unless they are deliberately added to the repo.
+- keep the canonical Activity Process Guides text-first;
+- maintain screenshots separately from the canonical process instructions;
+- use a separate visual supplement for selected explanatory screenshots;
+- add screenshots only where they materially improve understanding of a workflow, state transition, or non-obvious interaction;
+- do not turn routine UI actions into click-by-click screenshot instructions.
