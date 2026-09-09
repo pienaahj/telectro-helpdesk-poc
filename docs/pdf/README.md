@@ -3,9 +3,11 @@
 This directory contains the reproducible Vivliostyle publishing setup for the
 Telectro ERPNext / Helpdesk pilot documentation.
 
-## Current publication
+## Publications
 
-Source:
+### Canonical Activity Process Guides
+
+Canonical source:
 
 ```text
 ../user-guides/activity-process-guides.md
@@ -16,6 +18,40 @@ Generated output:
 ```text
 dist/activity-process-guides.pdf
 ```
+
+This is the canonical master Activity Process Guide publication.
+
+The current verified master publication contains 23 numbered top-level
+activities.
+
+### Customer Activity Process Guide
+
+The Customer Activity Process Guide is a derived publication generated from
+canonical Activities 5–9 in:
+
+```text
+../user-guides/activity-process-guides.md
+```
+
+The Customer edition renumbers those activities from 1–5 for publication.
+
+Generated intermediate Markdown:
+
+```text
+dist/customer-activity-process-guide.md
+```
+
+Generated PDF:
+
+```text
+dist/customer-activity-process-guide.pdf
+```
+
+The generated Customer Markdown is not a second canonical process source and
+must not be edited directly.
+
+Customer-facing process changes must be made in the canonical Activity Process
+Guides first and then regenerated through the Customer extraction process.
 
 The generated `dist/` directory is intentionally excluded from Git.
 
@@ -36,7 +72,7 @@ Install the locked dependencies from this directory:
 npm ci
 ```
 
-## Preview
+## Canonical master preview
 
 Run the authoritative paginated preview:
 
@@ -46,11 +82,11 @@ npm run preview
 
 This renders all pages and should be used when checking:
 
-- final page count;
-- table-of-contents page references;
-- chapter page breaks;
-- running headers and footers;
-- final pagination.
+* final page count;
+* table-of-contents page references;
+* chapter page breaks;
+* running headers and footers;
+* final pagination.
 
 Run the quicker development preview:
 
@@ -70,7 +106,7 @@ Stop either preview with:
 Ctrl+C
 ```
 
-## Build the PDF
+## Build the canonical master PDF
 
 Run:
 
@@ -84,31 +120,122 @@ The generated PDF is written to:
 dist/activity-process-guides.pdf
 ```
 
+## Customer publication
+
+### Extract the Customer guide
+
+Run:
+
+```bash
+npm run customer:extract
+```
+
+This:
+
+* reads canonical Activities 5–9 from
+  `../user-guides/activity-process-guides.md`;
+* validates the expected canonical section structure;
+* removes publication-inappropriate `Related docs` sections;
+* renumbers the five Customer activities from 1–5;
+* applies the controlled publication-only Customer wording transform;
+* verifies body parity against the canonical source;
+* fails rather than guessing if the expected source structure changes;
+* writes the generated Customer Markdown to
+  `dist/customer-activity-process-guide.md`.
+
+### Preview the Customer guide
+
+Run:
+
+```bash
+npm run customer:preview
+```
+
+This regenerates the Customer Markdown before starting the authoritative
+Vivliostyle preview.
+
+Use the full preview to verify:
+
+* final Customer page count;
+* the five-entry Customer contents page;
+* resolved contents page references;
+* activity page breaks;
+* running headers and footers;
+* final pagination;
+* absence of clipping or broken layout.
+
+### Build the Customer PDF
+
+Run:
+
+```bash
+npm run customer:build
+```
+
+This regenerates the Customer Markdown first and then builds:
+
+```text
+dist/customer-activity-process-guide.pdf
+```
+
+The current verified Customer Activity Process Guide publication contains:
+
+```text
+5 numbered activities
+45 pages
+```
+
 ## Current publication rules
 
-The publication currently uses:
+The publications currently use:
 
-- A4 pages;
-- top-level Activity Process Guides starting on new pages;
-- a generated contents page containing the 23 numbered top-level guides;
-- clickable contents links;
-- PDF bookmarks;
-- running document and activity headings;
-- numbered page footers;
-- controlled heading, paragraph, list, code-block, and table pagination.
+* A4 pages;
+* top-level Activity Process Guides starting on new pages;
+* generated contents pages;
+* clickable contents links;
+* PDF bookmarks;
+* running document and activity headings;
+* numbered page footers;
+* controlled heading, paragraph, list, code-block, and table pagination.
 
-The source Markdown remains the canonical document. Pagination and publication
-layout belong in:
+The canonical Activity Process Guides publication contains 23 numbered
+top-level guides.
+
+The Customer publication contains five numbered Customer activities derived
+from canonical Activities 5–9.
+
+The canonical source Markdown remains:
+
+```text
+../user-guides/activity-process-guides.md
+```
+
+Pagination and publication layout belong in:
 
 ```text
 activity-process-guides.css
 ```
 
-Publication structure and output settings belong in:
+The canonical master publication structure and output settings belong in:
 
 ```text
 vivliostyle.config.js
 ```
+
+The Customer publication structure and output settings belong in:
+
+```text
+vivliostyle.customer.config.js
+```
+
+The Customer extraction contract belongs in:
+
+```text
+extract-customer-activity-guide.mjs
+```
+
+The master and Customer publications currently share the same proven
+stylesheet.
 
 ## Final verification
 
@@ -121,7 +248,32 @@ Before distributing a generated PDF, verify:
 5. representative early, middle, and late pages have no clipped content;
 6. the final printed page number matches the PDF page count;
 7. full-text search works;
-8. the generated PDF does not appear in `git status`.
+8. the generated Markdown and PDF do not appear in `git status`.
 
-The initial verified Activity Process Guides publication contained 203 pages.
-The page count may change when the source document or stylesheet changes.
+For the Customer publication, also verify:
+
+1. the contents page contains exactly five numbered Customer activities;
+2. Customer Activities 1–5 each begin on their own page;
+3. no `Related docs` section appears in the generated Customer guide;
+4. no stale numbered reference such as `Activity 6` or `Activity 9` remains;
+5. the Customer publication remains derived from canonical Activities 5–9.
+
+## Verified publication baselines
+
+Current verified canonical master:
+
+```text
+23 numbered activities
+209 pages
+```
+
+Current verified Customer publication:
+
+```text
+5 numbered activities
+45 pages
+```
+
+Page counts may change when the canonical source document or shared stylesheet
+changes. Any changed publication should be rebuilt and reverified before
+distribution.

@@ -7,7 +7,10 @@
   "scripts": {
     "preview": "vivliostyle preview",
     "preview:quick": "vivliostyle preview --quick",
-    "build": "vivliostyle build"
+    "build": "vivliostyle build",
+    "customer:extract": "node extract-customer-activity-guide.mjs",
+    "customer:preview": "npm run customer:extract && vivliostyle preview -c vivliostyle.customer.config.js",
+    "customer:build": "npm run customer:extract && vivliostyle build -c vivliostyle.customer.config.js"
   },
   "devDependencies": {
     "@vivliostyle/cli": "11.1.0"
