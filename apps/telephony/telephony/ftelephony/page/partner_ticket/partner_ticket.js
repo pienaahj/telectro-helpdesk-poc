@@ -700,10 +700,19 @@ frappe.pages["partner-ticket"].on_page_load = function (wrapper) {
         setText("#pt-fulfilment-party", d.custom_fulfilment_party);
 
         setText("#pt-customer", d.custom_customer);
-        setText("#pt-site-group", d.custom_site_group);
+        setText(
+          "#pt-site-group",
+          d.custom_site_group_display || d.custom_site_group,
+        );
         setText("#pt-fault-category", d.custom_fault_category);
-        setText("#pt-fault-asset", d.custom_fault_asset);
-        setText("#pt-site", d.custom_site);
+        setText(
+          "#pt-fault-asset",
+          d.custom_fault_asset_display || d.custom_fault_asset,
+        );
+        setText(
+          "#pt-site",
+          d.custom_site_display || d.custom_site,
+        );
         setText("#pt-ownership-model", d.custom_ownership_model);
         setText("#pt-service-area", d.custom_service_area);
         setText("#pt-severity", d.custom_severity);

@@ -54,6 +54,25 @@ PARTNER_DETAIL_FIELDS = [
     "custom_partner_work_completed",
 ]
 
+
+def _get_location_display_name(location):
+    location = str(location or "").strip()
+
+    if not location:
+        return ""
+
+    if not frappe.db.exists("Location", location):
+        return location
+
+    location_name = frappe.db.get_value(
+        "Location",
+        location,
+        "location_name",
+    )
+
+    return location_name or location
+
+
 _COMMENT_TAG_RE = re.compile(r"<[^>]+>")
 
 TICKET_EVIDENCE_MAX_BYTES = 10 * 1024 * 1024
@@ -920,7 +939,25 @@ def get_partner_ticket_detail(ticket_name: str):
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
-    detail = {field: doc.get(field) for field in PARTNER_DETAIL_FIELDS}
+    detail = {
+        field: doc.get(field)
+        for field in PARTNER_DETAIL_FIELDS
+    }
+
+    detail.update(
+        {
+            "custom_site_group_display": _get_location_display_name(
+                doc.get("custom_site_group")
+            ),
+            "custom_fault_asset_display": _get_location_display_name(
+                doc.get("custom_fault_asset")
+            ),
+            "custom_site_display": _get_location_display_name(
+                doc.get("custom_site")
+            ),
+        }
+    )
+
     detail.update(get_partner_note_summary(ticket_name))
 
     return detail
