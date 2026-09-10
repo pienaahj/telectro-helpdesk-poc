@@ -105,6 +105,121 @@ The Partner extractor permits no publication-only activity-body transforms.
 After removal of the canonical H1 and `Related docs` section, each generated
 Partner activity body must remain identical to its canonical source body.
 
+### Activity Process Guides Visual Supplement
+
+Canonical visual source:
+
+```text
+../user-guides/activity-process-guides-visual-supplement.md
+```
+
+Shared controlled screenshot library:
+
+```text
+../user-guides/activity-process-guides-visuals/
+```
+
+Generated PDF:
+
+```text
+dist/activity-process-guides-visual-supplement.pdf
+```
+
+The Master Visual Supplement is explanatory rather than canonical process text.
+
+The canonical Activity Process Guides remain the process source of truth. The
+Visual Supplement provides selected Production screenshots only where visual
+recognition materially improves understanding.
+
+The current verified Master Visual Supplement contains:
+
+```text
+29 controlled screenshot assets
+28 screenshots used in the Master publication
+22 pages
+```
+
+`visual-22-partner-work-request-rework-dialog.png` remains in the controlled
+asset library but is deliberately not repeated in the Master publication
+because the current DOC-05 visual covers the same interaction.
+
+### Customer Activity Process Guides Visual Supplement
+
+The Customer Visual Supplement is derived from selected Customer-safe visuals
+in the Master Visual Supplement.
+
+Generated intermediate Markdown:
+
+```text
+dist/customer-activity-process-guides-visual-supplement.md
+```
+
+Generated PDF:
+
+```text
+dist/customer-activity-process-guides-visual-supplement.pdf
+```
+
+The generated Customer Markdown is not a second visual source and must not be
+edited directly.
+
+The Customer extractor:
+
+* validates the expected Master Customer chapter boundary;
+* proves each selected Master image and source caption exists exactly once;
+* selects only the two Customer-safe visuals required by the publication;
+* excludes internal Telectro ticket and evidence-management controls;
+* rewrites image paths only for the generated `dist/` publication context;
+* fails rather than guessing if the expected Master structure changes.
+
+The current verified Customer Visual Supplement contains:
+
+```text
+2 selected screenshots
+2 numbered visual chapters
+4 pages
+```
+
+### Partner Activity Process Guides Visual Supplement
+
+The Partner Visual Supplement is derived from selected Partner-safe visuals in
+Master chapters 3 and 4.
+
+Generated intermediate Markdown:
+
+```text
+dist/partner-activity-process-guides-visual-supplement.md
+```
+
+Generated PDF:
+
+```text
+dist/partner-activity-process-guides-visual-supplement.pdf
+```
+
+The generated Partner Markdown is not a second visual source and must not be
+edited directly.
+
+The Partner extractor:
+
+* validates the Master Partner Acceptance, Partner Work Completion, and
+  maintenance chapter boundaries;
+* proves each selected Master image and source caption exists exactly once;
+* preserves the separation between Partner Acceptance and Partner Work
+  Completion;
+* selects six Partner Acceptance visuals and two Partner Work visuals;
+* excludes Telectro-only review dialogs, queues, and final-review screens;
+* rewrites image paths only for the generated `dist/` publication context;
+* fails rather than guessing if the expected Master structure changes.
+
+The current verified Partner Visual Supplement contains:
+
+```text
+8 selected screenshots
+2 numbered visual chapters
+8 pages
+```
+
 The generated `dist/` directory is intentionally excluded from Git.
 
 ## Requirements
@@ -312,6 +427,104 @@ The current verified Partner Activity Process Guide publication contains:
 3 numbered activities
 33 pages
 ```
+
+## Visual Supplement publications
+
+### Preview and build the Master Visual Supplement
+
+Run the authoritative paginated preview:
+
+```bash
+npm run visual:preview
+```
+
+Build the Master Visual Supplement PDF:
+
+```bash
+npm run visual:build
+```
+
+The generated PDF is written to:
+
+```text
+dist/activity-process-guides-visual-supplement.pdf
+```
+
+The Master Visual Supplement is built directly from the tracked visual source
+and shared screenshot library. No generated intermediate Markdown is required.
+
+### Customer Visual Supplement
+
+Extract the Customer-facing visual subset:
+
+```bash
+npm run customer-visual:extract
+```
+
+This validates the expected Master Customer chapter, selects the approved
+Customer-safe visuals, rewrites their image paths for the generated publication
+context, and writes:
+
+```text
+dist/customer-activity-process-guides-visual-supplement.md
+```
+
+Run the authoritative paginated preview:
+
+```bash
+npm run customer-visual:preview
+```
+
+Build the Customer Visual Supplement PDF:
+
+```bash
+npm run customer-visual:build
+```
+
+The build command always regenerates the Customer Markdown before building:
+
+```text
+dist/customer-activity-process-guides-visual-supplement.pdf
+```
+
+### Partner Visual Supplement
+
+Extract the Partner-facing visual subset:
+
+```bash
+npm run partner-visual:extract
+```
+
+This validates the expected Master Partner workflow boundaries, preserves the
+separation between Partner Acceptance and Partner Work Completion, selects only
+the approved Partner-safe visuals, rewrites their image paths for the generated
+publication context, and writes:
+
+```text
+dist/partner-activity-process-guides-visual-supplement.md
+```
+
+Run the authoritative paginated preview:
+
+```bash
+npm run partner-visual:preview
+```
+
+Build the Partner Visual Supplement PDF:
+
+```bash
+npm run partner-visual:build
+```
+
+The build command always regenerates the Partner Markdown before building:
+
+```text
+dist/partner-activity-process-guides-visual-supplement.pdf
+```
+
+The generated Customer and Partner Visual Supplement Markdown files are build
+artifacts. Do not edit them directly or treat them as independent publication
+sources.
 
 ## Current publication rules
 

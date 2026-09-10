@@ -8,12 +8,20 @@
     "preview": "vivliostyle preview",
     "preview:quick": "vivliostyle preview --quick",
     "build": "vivliostyle build",
+    "visual:preview": "vivliostyle preview -c vivliostyle.visual-supplement.config.js",
+    "visual:build": "vivliostyle build -c vivliostyle.visual-supplement.config.js",
     "customer:extract": "node extract-customer-activity-guide.mjs",
     "customer:preview": "npm run customer:extract && vivliostyle preview -c vivliostyle.customer.config.js",
     "customer:build": "npm run customer:extract && vivliostyle build -c vivliostyle.customer.config.js",
+    "customer-visual:extract": "node extract-customer-visual-supplement.mjs",
+    "customer-visual:preview": "npm run customer-visual:extract && vivliostyle preview -c vivliostyle.customer-visual-supplement.config.js",
+    "customer-visual:build": "npm run customer-visual:extract && vivliostyle build -c vivliostyle.customer-visual-supplement.config.js",
     "partner:extract": "node extract-partner-activity-guide.mjs",
     "partner:preview": "npm run partner:extract && vivliostyle preview -c vivliostyle.partner.config.js",
-    "partner:build": "npm run partner:extract && vivliostyle build -c vivliostyle.partner.config.js"
+    "partner:build": "npm run partner:extract && vivliostyle build -c vivliostyle.partner.config.js",
+    "partner-visual:extract": "node extract-partner-visual-supplement.mjs",
+    "partner-visual:preview": "npm run partner-visual:extract && vivliostyle preview -c vivliostyle.partner-visual-supplement.config.js",
+    "partner-visual:build": "npm run partner-visual:extract && vivliostyle build -c vivliostyle.partner-visual-supplement.config.js"
   },
   "devDependencies": {
     "@vivliostyle/cli": "11.1.0"
