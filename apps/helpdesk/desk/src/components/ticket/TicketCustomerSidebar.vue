@@ -75,6 +75,7 @@
       v-if="
         customerLocationContext &&
         (customerLocationContext.fault_point ||
+          customerLocationContext.affected_equipment ||
           customerLocationContext.equipment_ref)
       "
       class="flex flex-col gap-3 border-b px-5 py-3 text-base"
@@ -103,6 +104,21 @@
 
       <div class="flex items-center text-base leading-5">
         <span class="w-[126px] text-sm text-gray-600">
+          {{ __("Affected Equipment") }}
+        </span>
+        <span
+          class="text-base text-gray-800 flex-1"
+          :class="
+            !customerLocationContext.affected_equipment &&
+            'text-ink-gray-4'
+          "
+        >
+          {{ customerLocationContext.affected_equipment || "—" }}
+        </span>
+      </div>
+
+      <div class="flex items-center text-base leading-5">
+        <span class="w-[126px] text-sm text-gray-600">
           {{ __("Equipment Ref") }}
         </span>
         <span
@@ -115,19 +131,32 @@
 
       <div
         v-if="customerLocationMapUrl"
-        class="flex items-center text-base leading-5"
+        class="flex items-start text-base leading-5"
       >
-        <span class="w-[126px] text-sm text-gray-600">
+        <span class="w-[126px] shrink-0 text-sm text-gray-600">
           {{ __("Map") }}
         </span>
-        <a
-          :href="customerLocationMapUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="font-semibold text-[#0f3d2e] underline underline-offset-4 hover:text-[#0a2b20]"
-        >
-          {{ __("View on map") }}
-        </a>
+
+        <div class="flex flex-wrap gap-2">
+          <a
+            :href="customerLocationMapUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded border border-[#7b836b] bg-[#7b836b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+          >
+            {{ __("Aerial view") }}
+          </a>
+
+          <a
+            v-if="customerOpenStreetMapUrl"
+            :href="customerOpenStreetMapUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {{ __("Map view") }}
+          </a>
+        </div>
       </div>
     </div>
 
@@ -167,14 +196,32 @@ const locationContextFieldnames = [
   "custom_fault_category",
   "custom_site",
   "custom_fault_asset",
+  "custom_affected_equipment",
   "custom_equipment_ref",
 ];
 
 const customerLocationContext = ref({});
 
 const customerLocationMapUrl = computed(() => {
+  const ticketName = String(ticket.data?.name || "").trim();
   const lat = Number(customerLocationContext.value?.latitude || 0);
   const lon = Number(customerLocationContext.value?.longitude || 0);
+
+  if (!ticketName || !lat || !lon) {
+    return "";
+  }
+
+  return `/helpdesk/my-tickets/${encodeURIComponent(ticketName)}/map`;
+});
+
+const customerOpenStreetMapUrl = computed(() => {
+  const lat = Number(
+    customerLocationContext.value?.latitude || 0,
+  );
+
+  const lon = Number(
+    customerLocationContext.value?.longitude || 0,
+  );
 
   if (!lat || !lon) {
     return "";

@@ -1,6 +1,21 @@
 console.log("telectro_handoff_action.js loaded");
 
 frappe.ui.form.on("HD Ticket", {
+  setup(frm) {
+    frm.set_query("custom_affected_equipment", () => {
+      const location =
+        frm.doc.custom_site ||
+        frm.doc.custom_fault_asset ||
+        "";
+
+      return {
+        filters: {
+          location: location || "__no_ticket_location__",
+        },
+      };
+    });
+  },
+
   refresh(frm) {
     setTimeout(() => {
       hide_split_and_merge_section(frm);
@@ -641,6 +656,7 @@ function should_show_internal_fault_location_context(frm) {
     d.custom_site_group ||
     d.custom_site ||
     d.custom_fault_asset ||
+    d.custom_affected_equipment ||
     d.custom_equipment_ref
   );
 }
@@ -706,6 +722,7 @@ function build_internal_fault_location_html(ctx) {
   const campus = ctx.campus || {};
   const faultPoint = ctx.fault_point || {};
   const faultAsset = ctx.fault_asset || {};
+  const affectedEquipment = ctx.affected_equipment || {};
   const showFaultAsset = faultAsset.id && faultAsset.id !== faultPoint.id;
 
   const rows = [
@@ -723,12 +740,20 @@ function build_internal_fault_location_html(ctx) {
 
   rows.push(
     build_context_row(
+      "Affected Equipment",
+      affectedEquipment.label || "",
+      affectedEquipment.route || "",
+    ),
+    build_context_row(
       "Equipment / Circuit / SIM / Tag",
       ctx.equipment_ref || "",
     ),
   );
 
-  const actions = build_internal_fault_location_actions(primary);
+  const actions = build_internal_fault_location_actions(
+    primary,
+    ctx.ticket,
+  );
 
   return `
     <div class="telectro-fault-location-card" style="
@@ -769,7 +794,7 @@ function build_context_row(label, value, route) {
   `;
 }
 
-function build_internal_fault_location_actions(location) {
+function build_internal_fault_location_actions(location, ticketName) {
   if (!location || !location.id) {
     return `
       <div class="text-muted small" style="margin-top: 10px;">
@@ -788,13 +813,25 @@ function build_internal_fault_location_actions(location) {
     `);
   }
 
+  if (ticketName) {
+    const aerialUrl =
+      `/app/internal-ticket-aerial/${encodeURIComponent(ticketName)}`;
+
+    buttons.push(`
+      <a class="btn btn-xs btn-default"
+         href="${frappe.utils.escape_html(aerialUrl)}">
+        Aerial view
+      </a>
+    `);
+  }
+
   if (location.map_url) {
     buttons.push(`
       <a class="btn btn-xs btn-default"
          href="${frappe.utils.escape_html(location.map_url)}"
          target="_blank"
          rel="noopener noreferrer">
-        View on map
+        Map view
       </a>
     `);
   }
