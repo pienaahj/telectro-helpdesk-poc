@@ -322,6 +322,49 @@ def _get_context_customer_name(customer):
 def _get_context_location_name(location):
     return _get_context_display_value("Location", location, ["location_name"])
 
+
+def _get_context_equipment(equipment_name):
+    equipment_name = (equipment_name or "").strip()
+
+    if not equipment_name:
+        return None
+
+    if not frappe.db.exists("TELECTRO Equipment", equipment_name):
+        return {
+            "id": equipment_name,
+            "label": equipment_name,
+            "route": "",
+            "equipment_type": "",
+            "manufacturer": "",
+            "model": "",
+            "location": "",
+        }
+
+    equipment = frappe.db.get_value(
+        "TELECTRO Equipment",
+        equipment_name,
+        [
+            "name",
+            "equipment_name",
+            "equipment_type",
+            "manufacturer",
+            "model",
+            "location",
+        ],
+        as_dict=True,
+    )
+
+    return {
+        "id": equipment.name,
+        "label": equipment.equipment_name or equipment.name,
+        "route": f"/app/telectro-equipment/{equipment.name}",
+        "equipment_type": equipment.equipment_type or "",
+        "manufacturer": equipment.manufacturer or "",
+        "model": equipment.model or "",
+        "location": equipment.location or "",
+    }
+
+
 @frappe.whitelist()
 def internal_ticket_location_context(ticket_name):
     ticket_name = (ticket_name or "").strip()
@@ -338,6 +381,9 @@ def internal_ticket_location_context(ticket_name):
     campus = _get_location_context(ticket.get("custom_site_group"))
     fault_point = _get_location_context(ticket.get("custom_site"))
     fault_asset = _get_location_context(ticket.get("custom_fault_asset"))
+    affected_equipment = _get_context_equipment(
+        ticket.get("custom_affected_equipment")
+    )
 
     primary_location = fault_point or fault_asset
 
@@ -350,11 +396,48 @@ def internal_ticket_location_context(ticket_name):
         "category": ticket.get("custom_fault_category") or "",
         "fault_point": fault_point,
         "fault_asset": fault_asset,
+        "affected_equipment": affected_equipment,
         "equipment_ref": ticket.get("custom_equipment_ref") or "",
         "service_area": ticket.get("custom_service_area") or "",
         "primary_location": primary_location,
-        "has_location_context": bool(campus or fault_point or fault_asset or ticket.get("custom_equipment_ref")),
+        "has_location_context": bool(
+            campus
+            or fault_point
+            or fault_asset
+            or affected_equipment
+            or ticket.get("custom_equipment_ref")
+        ),
     }
+
+
+@frappe.whitelist()
+def internal_ticket_aerial_context(ticket_name):
+    context = internal_ticket_location_context(ticket_name)
+
+    if not context.get("ok"):
+        return context
+
+    api_key = (
+        frappe.conf.get("telectro_esri_browser_api_key")
+        or ""
+    ).strip()
+
+    context["aerial"] = {
+        "configured": bool(api_key),
+        "tile_url": (
+            "https://ibasemaps-api.arcgis.com/"
+            "arcgis/rest/services/World_Imagery/"
+            "MapServer/tile/{z}/{y}/{x}"
+        ),
+        "api_key": api_key,
+        "attribution": (
+            "Source: Esri, Vantor, GeoEye, Earthstar Geographics, "
+            "CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, "
+            "and the GIS User Community"
+        ),
+    }
+
+    return context
 
 
 def _require_internal_ticket_location_context_access(ticket):

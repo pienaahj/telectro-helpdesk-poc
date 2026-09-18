@@ -12,15 +12,20 @@ BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
 CONTAINER_ROOT="/home/frappe/frappe-bench/apps/telephony/telephony"
 
 DRY_RUN=0
+NEW_SOURCE_PATHS=()
 
 usage() {
   cat <<'EOF'
 Usage:
-  bin/pull-telephony-changes.sh
-  bin/pull-telephony-changes.sh --dry-run
+  bin/pull-telephony-changes.sh [--dry-run] [--include-new <relative-path>]...
 
 The script synchronizes Git-tracked Telephony overlay files from the
 development backend container to the same repository paths.
+
+Use --include-new to explicitly approve a new source file that exists in the
+container but is not yet tracked by Git. Paths are relative to:
+
+  apps/telephony/telephony
 
 Fixture files are deliberately excluded. Use the controlled fixture-export
 workflow for fixture changes.
@@ -31,6 +36,40 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run)
       DRY_RUN=1
+      ;;
+      --include-new)
+      shift
+
+      if [ "$#" -eq 0 ] || [ -z "$1" ]; then
+        echo "ERROR: --include-new requires a relative path" >&2
+        exit 2
+      fi
+
+      candidate="$1"
+
+      case "${candidate}" in
+        /*)
+          echo "ERROR: --include-new path must be relative: ${candidate}" >&2
+          exit 2
+          ;;
+        fixtures/*)
+          echo "ERROR: fixtures cannot be included with --include-new: ${candidate}" >&2
+          exit 2
+          ;;
+      esac
+
+      case "/${candidate}/" in
+        */../*)
+          echo "ERROR: --include-new path cannot contain '..': ${candidate}" >&2
+          exit 2
+          ;;
+        */./*)
+          echo "ERROR: --include-new path cannot contain '.': ${candidate}" >&2
+          exit 2
+          ;;
+      esac
+
+      NEW_SOURCE_PATHS+=("${candidate}")
       ;;
     -h|--help)
       usage
@@ -100,6 +139,27 @@ git ls-files "${OVERLAY_REL}" |
       "${repository_path#"${OVERLAY_REL}/"}"
   done |
   sort > "${TRACKED_MANIFEST}"
+if [ "${#NEW_SOURCE_PATHS[@]}" -gt 0 ]; then
+  echo
+  echo "=== Adding explicitly approved new source paths ==="
+
+  for relative_path in "${NEW_SOURCE_PATHS[@]}"; do
+    source_path="${SNAPSHOT}/container/${relative_path}"
+
+    if [ ! -f "${source_path}" ]; then
+      echo "ERROR: approved new source path is missing from the container:" >&2
+      echo "  ${relative_path}" >&2
+      exit 1
+    fi
+
+    printf 'INCLUDE %s\n' "${relative_path}"
+    printf '%s\n' "${relative_path}" >> "${TRACKED_MANIFEST}"
+  done
+
+  sort -u \
+    -o "${TRACKED_MANIFEST}" \
+    "${TRACKED_MANIFEST}"
+fi
 
 TRACKED_COUNT="$(
   wc -l < "${TRACKED_MANIFEST}" |
@@ -163,7 +223,8 @@ echo "=== Static local dependency audit ==="
 python3 - \
   "${REPO_ROOT}" \
   "${OVERLAY_REL}" \
-  "${SNAPSHOT}/container" <<'PY'
+  "${SNAPSHOT}/container" \
+  "${TRACKED_MANIFEST}" <<'PY'
 from __future__ import annotations
 
 import ast
@@ -176,6 +237,7 @@ from pathlib import Path
 repo = Path(sys.argv[1]).resolve()
 overlay_rel = Path(sys.argv[2])
 snapshot = Path(sys.argv[3]).resolve()
+tracked_manifest = Path(sys.argv[4]).resolve()
 
 
 def module_name(relative_name: str) -> str | None:
@@ -264,15 +326,11 @@ def resolve_module(
     return None
 
 
-tracked_output = subprocess.check_output(
-    ["git", "ls-files", overlay_rel.as_posix()],
-    cwd=repo,
-    text=True,
-)
-
 tracked_files = {
-    Path(line).relative_to(overlay_rel).as_posix()
-    for line in tracked_output.splitlines()
+    line.strip()
+    for line in tracked_manifest.read_text(
+        encoding="utf-8"
+    ).splitlines()
     if line.strip()
 }
 
@@ -547,7 +605,8 @@ echo "=== Container-only custom-looking candidates ==="
 python3 - \
   "${REPO_ROOT}" \
   "${OVERLAY_REL}" \
-  "${SNAPSHOT}/container" <<'PY'
+  "${SNAPSHOT}/container" \
+  "${TRACKED_MANIFEST}" <<'PY'
 from __future__ import annotations
 
 import subprocess
@@ -558,16 +617,13 @@ from pathlib import Path
 repo = Path(sys.argv[1]).resolve()
 overlay_rel = Path(sys.argv[2])
 snapshot = Path(sys.argv[3]).resolve()
-
-tracked_output = subprocess.check_output(
-    ["git", "ls-files", overlay_rel.as_posix()],
-    cwd=repo,
-    text=True,
-)
+tracked_manifest = Path(sys.argv[4]).resolve()
 
 tracked = {
-    Path(line).relative_to(overlay_rel).as_posix()
-    for line in tracked_output.splitlines()
+    line.strip()
+    for line in tracked_manifest.read_text(
+        encoding="utf-8"
+    ).splitlines()
     if line.strip()
 }
 
