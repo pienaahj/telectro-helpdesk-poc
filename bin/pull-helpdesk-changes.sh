@@ -50,6 +50,14 @@ cp_helpdesk_py_from_container "overrides/email_account.py" "overrides/email_acco
 # --- Helpdesk generated route template for the compiled desk frontend ---
 cp_helpdesk_py_from_container "www/helpdesk/index.html" "www/helpdesk/index.html"
 
+# --- Helpdesk frontend workspace dependencies ---
+cp_helpdesk_desk_from_container "package.json" "package.json"
+
+echo "→ apps/helpdesk/yarn.lock"
+docker compose cp \
+  "backend:/home/frappe/frappe-bench/apps/helpdesk/yarn.lock" \
+  "apps/helpdesk/yarn.lock"
+
 # --- Helpdesk desk frontend files changed for Customer portal lifecycle hardening ---
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomer.vue" "src/pages/ticket/TicketCustomer.vue"
 
@@ -61,6 +69,8 @@ cp_helpdesk_desk_from_container "src/components/SearchArticles.vue" "src/compone
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketNew.vue" "src/pages/ticket/TicketNew.vue"
 cp_helpdesk_desk_from_container "src/components/ticket/TicketCustomerSidebar.vue" "src/components/ticket/TicketCustomerSidebar.vue"
 cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomerTemplateFields.vue" "src/pages/ticket/TicketCustomerTemplateFields.vue"
+cp_helpdesk_desk_from_container "src/router/index.ts" "src/router/index.ts"
+cp_helpdesk_desk_from_container "src/pages/ticket/TicketCustomerMap.vue" "src/pages/ticket/TicketCustomerMap.vue"
 
 # --- Helpdesk desk frontend files changed for customer ticket list views ---
 cp_helpdesk_desk_from_container "src/composables/useView.ts" "src/composables/useView.ts"

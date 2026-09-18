@@ -55,6 +55,26 @@ RUN set -eux; \
 
 USER frappe
 
+# Install the Helpdesk frontend workspace dependencies after applying the
+# repository overlay. This ensures dependencies introduced by our overlay,
+# such as Leaflet, are present before the Helpdesk frontend is built.
+RUN set -eux; \
+    cd apps/helpdesk; \
+    yarn install \
+        --frozen-lockfile \
+        --production=false \
+        --non-interactive; \
+    cd desk; \
+    node -e ' \
+        const resolved = require.resolve("leaflet/package.json"); \
+        const pkg = require(resolved); \
+        if (pkg.version !== "1.9.4") { \
+            throw new Error(`Expected leaflet 1.9.4, got ${pkg.version}`); \
+        } \
+        console.log(`leaflet_build_dependency=${pkg.version}`); \
+        console.log(`leaflet_resolved_path=${resolved}`); \
+    '
+
 RUN set -eux; \
     ./env/bin/pip install --no-cache-dir "nltk==3.10.0" -e ./apps/helpdesk -e ./apps/telephony; \
     mkdir -p sites; \

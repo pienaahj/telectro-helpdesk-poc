@@ -133,20 +133,15 @@ const locationContextFieldnames = [
 const customerLocationContext = ref({});
 
 const customerLocationMapUrl = computed(() => {
+  const ticketName = String(ticket.data?.name || "").trim();
   const lat = Number(customerLocationContext.value?.latitude || 0);
   const lon = Number(customerLocationContext.value?.longitude || 0);
 
-  if (!lat || !lon) {
+  if (!ticketName || !lat || !lon) {
     return "";
   }
 
-  const zoom = 19;
-
-  return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(
-    lat,
-  )}&mlon=${encodeURIComponent(lon)}#map=${zoom}/${encodeURIComponent(
-    lat,
-  )}/${encodeURIComponent(lon)}`;
+  return `/helpdesk/my-tickets/${encodeURIComponent(ticketName)}/map`;
 });
 
 async function loadCustomerLocationContext(ticketName: string) {
