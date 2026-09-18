@@ -1,0 +1,167 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "naming_series:",
+  "creation": "2026-09-18 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "naming_series",
+    "equipment_name",
+    "location",
+    "equipment_type",
+    "manufacturer",
+    "model",
+    "equipment_ref",
+    "serial_no",
+    "lifecycle_state",
+    "customer_visibility",
+    "ticket_selectability",
+    "source",
+    "notes"
+  ],
+  "fields": [
+    {
+      "default": "TEQ-.YYYY.-.#####",
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "hidden": 1,
+      "label": "Naming Series",
+      "options": "TEQ-.YYYY.-.#####",
+      "reqd": 1
+    },
+    {
+      "fieldname": "equipment_name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Equipment Name",
+      "reqd": 1
+    },
+    {
+      "fieldname": "location",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Location",
+      "options": "Location",
+      "reqd": 1
+    },
+    {
+      "description": "Operational equipment classification. Vocabulary remains intentionally open during Location V2 refinement.",
+      "fieldname": "equipment_type",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Equipment Type"
+    },
+    {
+      "fieldname": "manufacturer",
+      "fieldtype": "Data",
+      "label": "Manufacturer"
+    },
+    {
+      "fieldname": "model",
+      "fieldtype": "Data",
+      "label": "Model"
+    },
+    {
+      "description": "Customer, Telectro, or other authoritative asset/tag reference when known.",
+      "fieldname": "equipment_ref",
+      "fieldtype": "Data",
+      "label": "Equipment Reference"
+    },
+    {
+      "description": "Manufacturer serial number when known.",
+      "fieldname": "serial_no",
+      "fieldtype": "Data",
+      "label": "Serial Number"
+    },
+    {
+      "description": "Leave blank until the lifecycle state is explicitly known.",
+      "fieldname": "lifecycle_state",
+      "fieldtype": "Select",
+      "label": "Lifecycle State",
+      "options": "\nPlanned\nOperational\nRetired"
+    },
+    {
+      "description": "Leave blank until Customer visibility has been explicitly classified.",
+      "fieldname": "customer_visibility",
+      "fieldtype": "Select",
+      "label": "Customer Visibility",
+      "options": "\nCustomer-safe\nInternal\nRestricted"
+    },
+    {
+      "description": "Leave blank until ticket-selection policy has been explicitly classified.",
+      "fieldname": "ticket_selectability",
+      "fieldtype": "Select",
+      "label": "Ticket Selectability",
+      "options": "\nSelectable\nNot Selectable"
+    },
+    {
+      "fieldname": "source",
+      "fieldtype": "Data",
+      "label": "Source"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "istable": 0,
+  "links": [],
+  "modified": "2026-09-18 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "FTelephony",
+  "name": "TELECTRO Equipment",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Pilot Admin",
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Supervisor Governance",
+      "write": 1
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Coordinator Ops",
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1
+}

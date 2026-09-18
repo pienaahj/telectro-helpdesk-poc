@@ -149,6 +149,19 @@ const routes = [
     props: true,
   },
   {
+    path: "/location-map/:locationId",
+    name: "TicketCustomerLocationMap",
+    component: () =>
+      import(
+        "@/pages/ticket/TicketCustomerLocationMap.vue"
+      ),
+    meta: {
+      public: true,
+      auth: true,
+    },
+    props: true,
+  },
+  {
     path: "/my-tickets/new",
     name: "TicketNew",
     component: () => import("@/pages/ticket/TicketNew.vue"),

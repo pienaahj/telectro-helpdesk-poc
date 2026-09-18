@@ -4,6 +4,7 @@
       <template #left-header>
         <Breadcrumbs :items="breadcrumbs" />
       </template>
+
       <template #right-header>
         <CustomActions
           v-if="template.data?._customActions"
@@ -11,6 +12,7 @@
         />
       </template>
     </LayoutHeader>
+
     <!-- Container -->
     <div
       class="flex flex-col gap-5 py-6 h-full flex-1 self-center overflow-auto mx-auto w-full max-w-4xl px-5"
@@ -19,7 +21,7 @@
         v-if="isCustomerPortal"
         class="overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm"
       >
-        <div class="h-1 bg-[#c9b37a]" />
+        <div class="h-1 bg-[#c9b37a]"></div>
 
         <div class="flex items-center gap-4 px-5 py-4">
           <div
@@ -33,12 +35,16 @@
           </div>
 
           <div>
-            <div class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]">
+            <div
+              class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]"
+            >
               {{ __("Boschendal Service Desk") }}
             </div>
+
             <div class="text-xl font-semibold text-white">
               {{ __("Log a Support Request") }}
             </div>
+
             <div class="mt-1 max-w-2xl text-sm text-[#fffaf0]">
               {{
                 __(
@@ -49,14 +55,19 @@
           </div>
         </div>
       </div>
+
       <!-- custom fields descriptions -->
       <div v-if="Boolean(template.data?.about)" class="">
-        <div class="prose-f" v-html="sanitize(template.data.about)" />
+        <div
+          class="prose-f"
+          v-html="sanitize(template.data.about)"
+        ></div>
       </div>
+
       <!-- custom fields -->
       <div
-        class="grid grid-cols-1 gap-4 sm:grid-cols-3"
         v-if="Boolean(visibleFields)"
+        class="grid grid-cols-1 gap-4 sm:grid-cols-3"
       >
         <UniInput
           v-for="field in visibleFields"
@@ -64,10 +75,16 @@
           :field="field"
           :value="templateFields[field.fieldname]"
           @change="
-            (e) => handleOnFieldChange(e, field.fieldname, field.fieldtype)
+            (e) =>
+              handleOnFieldChange(
+                e,
+                field.fieldname,
+                field.fieldtype,
+              )
           "
         />
       </div>
+
       <!-- Telectro Customer Fault Point prototype -->
       <div
         v-if="isCustomerPortal"
@@ -77,6 +94,7 @@
           <span class="block text-sm font-medium text-gray-700">
             {{ __("Fault Point") }}
           </span>
+
           <span class="block text-sm text-gray-500">
             {{
               __(
@@ -88,7 +106,10 @@
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="flex flex-col gap-1">
-            <span class="text-sm text-gray-700">{{ __("Category") }}</span>
+            <span class="text-sm text-gray-700">
+              {{ __("Category") }}
+            </span>
+
             <select
               v-model="faultPointCategory"
               class="form-control rounded border border-gray-300 px-3 py-2 text-sm"
@@ -105,28 +126,39 @@
           </div>
 
           <div class="flex flex-col gap-1 sm:col-span-2">
-            <span class="text-sm text-gray-700">{{ __("Search") }}</span>
+            <span class="text-sm text-gray-700">
+              {{ __("Search") }}
+            </span>
+
             <div class="flex gap-2">
               <FormControl
                 v-model="faultPointSearch"
                 type="text"
                 :placeholder="
-                  __('Search within the selected category, e.g. Bakery')
+                  __(
+                    'Search within the selected category, e.g. Bakery',
+                  )
                 "
                 @keyup.enter="searchFaultPoints"
               />
+
               <button
                 type="button"
                 class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a] disabled:cursor-not-allowed disabled:opacity-60"
                 :disabled="faultPointLoading"
                 @click="searchFaultPoints"
               >
-                {{ faultPointLoading ? __("Searching...") : __("Search") }}
+                {{
+                  faultPointLoading
+                    ? __("Searching...")
+                    : __("Search")
+                }}
               </button>
             </div>
           </div>
         </div>
 
+        <!-- Selected Fault Point -->
         <div
           v-if="selectedFaultPoint"
           class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
@@ -136,6 +168,7 @@
               <div class="font-medium text-gray-900">
                 {{ selectedFaultPointLabel }}
               </div>
+
               <div class="text-xs text-gray-500">
                 {{
                   selectedFaultPointIsNonPoint
@@ -159,50 +192,81 @@
 
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div>
-              <div class="text-xs font-medium uppercase text-gray-500">
+              <div
+                class="text-xs font-medium uppercase text-gray-500"
+              >
                 {{
                   selectedFaultPointIsNonPoint
                     ? __("Fault Asset")
                     : __("Fault Point")
                 }}
               </div>
+
               <div class="text-gray-900">
                 {{ selectedFaultPoint.location_name }}
               </div>
             </div>
 
             <div>
-              <div class="text-xs font-medium uppercase text-gray-500">
+              <div
+                class="text-xs font-medium uppercase text-gray-500"
+              >
                 {{ __("Category") }}
               </div>
+
               <div class="text-gray-900">
                 {{ faultPointCategory }}
               </div>
             </div>
 
             <div>
-              <div class="text-xs font-medium uppercase text-gray-500">
+              <div
+                class="text-xs font-medium uppercase text-gray-500"
+              >
                 {{ __("Campus") }}
               </div>
+
               <div class="text-gray-900">
                 {{ selectedFaultPointCampus }}
               </div>
             </div>
 
             <div>
-              <div class="text-xs font-medium uppercase text-gray-500">
+              <div
+                class="text-xs font-medium uppercase text-gray-500"
+              >
                 {{ __("Map") }}
               </div>
+
               <div class="text-gray-900">
-                <a
+                <div
                   v-if="selectedFaultPointHasCoordinates"
-                  :href="selectedFaultPointMapUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-blue-600 hover:underline"
+                  class="flex flex-wrap gap-2"
                 >
-                  {{ __("View on map") }}
-                </a>
+                  <RouterLink
+                    :to="{
+                      name: 'TicketCustomerLocationMap',
+                      params: {
+                        locationId: selectedFaultPoint.name,
+                      },
+                    }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rounded border border-[#7b836b] bg-[#7b836b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                  >
+                    {{ __("Aerial view") }}
+                  </RouterLink>
+
+                  <a
+                    :href="selectedFaultPointMapUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    {{ __("Map view") }}
+                  </a>
+                </div>
+
                 <span v-else>
                   {{
                     selectedFaultPointIsNonPoint
@@ -215,6 +279,153 @@
           </div>
         </div>
 
+        <!-- Telectro Customer Affected Equipment -->
+        <div
+          v-if="selectedFaultPoint"
+          class="space-y-3 rounded border border-gray-200 bg-gray-50 p-4"
+        >
+          <div>
+            <div class="font-medium text-gray-900">
+              {{ __("Affected Equipment") }}
+            </div>
+
+            <div class="text-xs text-gray-500">
+              {{
+                __(
+                  "If you know which installed equipment is faulty, select it here. This helps Telectro identify both where the fault is and what is affected.",
+                )
+              }}
+            </div>
+          </div>
+
+          <!-- Selected Equipment -->
+          <div
+            v-if="selectedEquipment"
+            class="rounded border border-gray-200 bg-white p-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-medium text-gray-900">
+                  {{ selectedEquipment.equipment_name }}
+                </div>
+
+                <div class="mt-1 text-xs text-gray-500">
+                  <span v-if="selectedEquipment.equipment_type">
+                    {{ selectedEquipment.equipment_type }}
+                  </span>
+
+                  <span
+                    v-if="
+                      selectedEquipment.equipment_type &&
+                      (selectedEquipment.manufacturer ||
+                        selectedEquipment.model)
+                    "
+                  >
+                    ·
+                  </span>
+
+                  <span v-if="selectedEquipment.manufacturer">
+                    {{ selectedEquipment.manufacturer }}
+                  </span>
+
+                  <span
+                    v-if="
+                      selectedEquipment.manufacturer &&
+                      selectedEquipment.model
+                    "
+                  >
+                    {{ " " }}
+                  </span>
+
+                  <span v-if="selectedEquipment.model">
+                    {{ selectedEquipment.model }}
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                :label="__('Clear')"
+                theme="gray"
+                variant="subtle"
+                @click="clearEquipmentSelection"
+              />
+            </div>
+          </div>
+
+          <!-- Equipment Search -->
+          <template v-else>
+            <div class="flex gap-2">
+              <input
+                v-model="equipmentSearch"
+                type="text"
+                class="form-control flex-1"
+                :placeholder="
+                  __('Search equipment at this location')
+                "
+                @keyup.enter="searchEquipment"
+              />
+
+              <Button
+                :label="
+                  equipmentLoading
+                    ? __('Searching...')
+                    : __('Search')
+                "
+                theme="gray"
+                variant="subtle"
+                :disabled="equipmentLoading"
+                @click="searchEquipment"
+              />
+            </div>
+
+            <div
+              v-if="equipmentResults.length"
+              class="max-h-64 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+            >
+              <button
+                v-for="row in equipmentResults"
+                :key="row.name"
+                type="button"
+                class="block w-full rounded border border-gray-200 bg-white px-3 py-2 text-left text-sm hover:bg-gray-50"
+                @click="selectEquipment(row)"
+              >
+                <span class="block font-medium text-gray-900">
+                  {{ row.equipment_name }}
+                </span>
+
+                <span class="block text-xs text-gray-500">
+                  {{ row.equipment_type || __("Equipment") }}
+
+                  <template
+                    v-if="row.manufacturer || row.model"
+                  >
+                    ·
+                    {{
+                      [row.manufacturer, row.model]
+                        .filter(Boolean)
+                        .join(" ")
+                    }}
+                  </template>
+                </span>
+              </button>
+            </div>
+
+            <div
+              v-else-if="
+                equipmentSearched && !equipmentLoading
+              "
+              class="text-sm text-gray-500"
+            >
+              {{
+                __(
+                  "No customer-selectable equipment is registered at this location. You can still continue with the support request.",
+                )
+              }}
+            </div>
+          </template>
+        </div>
+
+        <!-- Fault Point Loading -->
         <div
           v-if="faultPointLoading && !selectedFaultPoint"
           class="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"
@@ -222,7 +433,11 @@
           {{ __("Loading available fault points...") }}
         </div>
 
-        <div v-if="faultPointResults.length" class="space-y-2">
+        <!-- Fault Point Results -->
+        <div
+          v-if="faultPointResults.length"
+          class="space-y-2"
+        >
           <div class="text-xs text-gray-500">
             {{
               faultPointSearch
@@ -248,21 +463,27 @@
               <span class="block font-medium text-gray-900">
                 {{ row.location_name }}
               </span>
+
               <span class="block text-xs text-gray-500">
                 {{ row.parent_location }}
               </span>
             </button>
           </div>
         </div>
+
+        <!-- No Fault Point Results -->
         <div
           v-else-if="
-            faultPointSearched && !faultPointLoading && !selectedFaultPoint
+            faultPointSearched &&
+            !faultPointLoading &&
+            !selectedFaultPoint
           "
           class="rounded border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800"
         >
           <div class="font-medium">
             {{ __("No matching fault points found.") }}
           </div>
+
           <div class="mt-1">
             {{
               __(
@@ -272,42 +493,60 @@
           </div>
         </div>
       </div>
+
       <!-- existing fields -->
       <div
         class="flex flex-col"
-        :class="(subject.length >= 2 || description.length) && 'gap-5'"
+        :class="
+          (subject.length >= 2 || description.length) &&
+          'gap-5'
+        "
       >
         <div class="flex flex-col gap-2">
           <span class="block text-sm text-gray-700">
             {{ __("Subject") }}
-            <span class="place-self-center text-red-500"> * </span>
+            <span class="place-self-center text-red-500">
+              *
+            </span>
           </span>
+
           <FormControl
             v-model="subject"
             type="text"
             :placeholder="__('A short description')"
           />
         </div>
+
         <SearchArticles
           v-if="isCustomerPortal"
           :query="subject"
           class="shadow"
         />
+
         <div v-if="isCustomerPortal">
           <h4
-            v-show="subject.length <= 2 && description.length === 0"
+            v-show="
+              subject.length <= 2 &&
+              description.length === 0
+            "
             class="text-p-sm text-gray-500 ml-1"
           >
             {{ __("Please enter a subject to continue") }}
           </h4>
+
           <TicketTextEditor
-            v-show="subject.length > 2 || description.length > 0"
+            v-show="
+              subject.length > 2 ||
+              description.length > 0
+            "
             ref="editor"
             v-model:attachments="attachments"
             v-model:content="description"
             :placeholder="__('Detailed explanation')"
             expand
-            :uploadFunction="(file: any) => uploadFunction(file)"
+            :uploadFunction="
+              (file: any) => uploadFunction(file)
+            "
           >
             <template #bottom-right>
               <Button
@@ -315,7 +554,9 @@
                 theme="gray"
                 variant="solid"
                 :disabled="
-                  $refs.editor.editor.isEmpty || ticket.loading || !subject
+                  $refs.editor.editor.isEmpty ||
+                  ticket.loading ||
+                  !subject
                 "
                 @click="() => ticket.submit()"
               />
@@ -339,7 +580,9 @@
               theme="gray"
               variant="solid"
               :disabled="
-                $refs.editor.editor.isEmpty || ticket.loading || !subject
+                $refs.editor.editor.isEmpty ||
+                ticket.loading ||
+                !subject
               "
               @click="() => ticket.submit()"
             />
@@ -424,6 +667,12 @@ const faultPointResults = ref([]);
 const selectedFaultPoint = ref(null);
 const faultPointLoading = ref(false);
 const faultPointSearched = ref(false);
+
+const equipmentSearch = ref("");
+const equipmentResults = ref([]);
+const selectedEquipment = ref(null);
+const equipmentLoading = ref(false);
+const equipmentSearched = ref(false);
 
 const template = createResource({
   url: "helpdesk.helpdesk.doctype.hd_ticket_template.api.get_one",
@@ -535,10 +784,57 @@ const selectedFaultPointMapUrl = computed(() => {
   )}/${encodeURIComponent(lon)}`;
 });
 
+function clearEquipmentSelection() {
+  selectedEquipment.value = null;
+}
+
+function clearEquipmentResults() {
+  equipmentResults.value = [];
+  equipmentSearched.value = false;
+}
+
+function resetEquipmentForLocation() {
+  selectedEquipment.value = null;
+  equipmentSearch.value = "";
+  clearEquipmentResults();
+}
+
+function selectEquipment(row: any) {
+  selectedEquipment.value = row;
+  equipmentResults.value = [];
+  equipmentSearched.value = false;
+}
+
+async function searchEquipment() {
+  if (!selectedFaultPoint.value?.name) {
+    resetEquipmentForLocation();
+    return;
+  }
+
+  equipmentLoading.value = true;
+  equipmentSearched.value = true;
+
+  try {
+    const rows = await call(
+      "telephony.customer_location_lookup.search_customer_equipment",
+      {
+        location: selectedFaultPoint.value.name,
+        txt: equipmentSearch.value,
+        page_len: 64,
+      },
+    );
+
+    equipmentResults.value = rows || [];
+  } finally {
+    equipmentLoading.value = false;
+  }
+}
+
 function clearFaultPointSelection() {
   selectedFaultPoint.value = null;
   faultPointResults.value = [];
   faultPointSearched.value = false;
+  resetEquipmentForLocation();
 }
 
 function clearFaultPointResults() {
@@ -550,16 +846,20 @@ async function handleFaultPointCategoryChange() {
   selectedFaultPoint.value = null;
   faultPointSearch.value = "";
   clearFaultPointResults();
+  resetEquipmentForLocation();
 
   if (isCustomerPortal.value) {
     await searchFaultPoints();
   }
 }
 
-function selectFaultPoint(row: any) {
+async function selectFaultPoint(row: any) {
   selectedFaultPoint.value = row;
   faultPointResults.value = [];
   faultPointSearched.value = false;
+
+  resetEquipmentForLocation();
+  await searchEquipment();
 }
 
 async function searchFaultPoints() {
@@ -599,10 +899,18 @@ function selectedFaultPointFields() {
     return {};
   }
 
+  const equipmentFields = selectedEquipment.value?.name
+    ? {
+        custom_affected_equipment:
+          selectedEquipment.value.name,
+      }
+    : {};
+
   if (selectedFaultPointIsNonPoint.value) {
     return {
       custom_fault_asset: selectedFaultPoint.value.name,
       custom_fault_category: faultPointCategory.value,
+      ...equipmentFields,
     };
   }
 
@@ -610,6 +918,7 @@ function selectedFaultPointFields() {
     custom_site: selectedFaultPoint.value.name,
     custom_fault_asset: selectedFaultPoint.value.name,
     custom_fault_category: faultPointCategory.value,
+    ...equipmentFields,
   };
 }
 

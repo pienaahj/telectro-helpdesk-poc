@@ -96,6 +96,15 @@
 
             <div>
               <div class="text-xs font-medium uppercase text-gray-500">
+                {{ __("Affected Equipment") }}
+              </div>
+              <div class="mt-1 text-base font-medium text-gray-900">
+                {{ locationContext.affected_equipment || "—" }}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-medium uppercase text-gray-500">
                 {{ __("Equipment Ref") }}
               </div>
               <div class="mt-1 text-base font-medium text-gray-900">
@@ -162,6 +171,11 @@ interface CustomerLocationContext {
   campus?: string;
   category?: string;
   service_area?: string;
+  affected_equipment?: string;
+  affected_equipment_id?: string;
+  affected_equipment_type?: string;
+  affected_equipment_manufacturer?: string;
+  affected_equipment_model?: string;
   equipment_ref?: string;
   fault_point?: string;
   fault_point_id?: string;

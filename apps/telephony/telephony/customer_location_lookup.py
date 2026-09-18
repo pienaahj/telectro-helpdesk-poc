@@ -33,6 +33,8 @@ CATEGORY_CONFIG = {
 
 CUSTOMER_FAULT_POINT_PAGE_LEN_MAX = 64
 
+CUSTOMER_EQUIPMENT_PAGE_LEN_MAX = 64
+
 @frappe.whitelist()
 def get_customer_ticket_location_context(ticket_name=None):
     """Return Customer-safe location context for a Customer portal ticket."""
@@ -52,6 +54,7 @@ def get_customer_ticket_location_context(ticket_name=None):
             "custom_site",
             "custom_fault_asset",
             "custom_service_area",
+            "custom_affected_equipment",
             "custom_equipment_ref",
             "via_customer_portal",
         ],
@@ -70,6 +73,8 @@ def get_customer_ticket_location_context(ticket_name=None):
     location_name = ticket.custom_site or ticket.custom_fault_asset
 
     location = None
+    equipment = None
+
     if location_name:
         location = frappe.db.get_value(
             "Location",
@@ -85,6 +90,29 @@ def get_customer_ticket_location_context(ticket_name=None):
             as_dict=True,
         )
 
+    if ticket.custom_affected_equipment and location_name:
+        equipment = frappe.db.get_value(
+            "TELECTRO Equipment",
+            ticket.custom_affected_equipment,
+            [
+                "name",
+                "equipment_name",
+                "location",
+                "equipment_type",
+                "manufacturer",
+                "model",
+                "customer_visibility",
+            ],
+            as_dict=True,
+        )
+
+        if (
+            not equipment
+            or equipment.location != location_name
+            or equipment.customer_visibility != "Customer-safe"
+        ):
+            equipment = None
+
     return {
         "ticket": ticket.name,
         "customer": ticket.customer,
@@ -92,12 +120,39 @@ def get_customer_ticket_location_context(ticket_name=None):
         "category": ticket.custom_fault_category,
         "service_area": ticket.custom_service_area,
         "equipment_ref": ticket.custom_equipment_ref,
-        "fault_point": location.location_name if location else "",
-        "fault_point_id": location.name if location else location_name,
-        "parent_location": location.parent_location if location else "",
-        "latitude": location.latitude if location else None,
-        "longitude": location.longitude if location else None,
-        "geometry_type": location.custom_kmz_geometry_type if location else "",
+        "affected_equipment": (
+            equipment.equipment_name if equipment else ""
+        ),
+        "affected_equipment_id": (
+            equipment.name if equipment else ""
+        ),
+        "affected_equipment_type": (
+            equipment.equipment_type if equipment else ""
+        ),
+        "affected_equipment_manufacturer": (
+            equipment.manufacturer if equipment else ""
+        ),
+        "affected_equipment_model": (
+            equipment.model if equipment else ""
+        ),
+        "fault_point": (
+            location.location_name if location else ""
+        ),
+        "fault_point_id": (
+            location.name if location else location_name
+        ),
+        "parent_location": (
+            location.parent_location if location else ""
+        ),
+        "latitude": (
+            location.latitude if location else None
+        ),
+        "longitude": (
+            location.longitude if location else None
+        ),
+        "geometry_type": (
+            location.custom_kmz_geometry_type if location else ""
+        ),
     }
 
 @frappe.whitelist()
@@ -173,6 +228,164 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
         params,
         as_dict=True,
     )
+
+
+@frappe.whitelist()
+def search_customer_equipment(location=None, txt=None, page_len=20):
+    """
+    Return Customer-safe, ticket-selectable Equipment for one allowed Location.
+
+    The selected Location is not trusted merely because it came from the client.
+    It must be a leaf Location inside the logged-in Customer user's allowed Campus.
+    """
+    campus = _get_customer_allowed_campus_for_user(frappe.session.user)
+    if not campus:
+        return []
+
+    location = (location or "").strip()
+    if not location:
+        return []
+
+    txt = (txt or "").strip()
+    page_len = min(
+        max(int(page_len or 20), 1),
+        CUSTOMER_EQUIPMENT_PAGE_LEN_MAX,
+    )
+
+    campus_row = frappe.db.get_value(
+        "Location",
+        campus,
+        ["name", "lft", "rgt", "is_group"],
+        as_dict=True,
+    )
+
+    location_row = frappe.db.get_value(
+        "Location",
+        location,
+        ["name", "lft", "rgt", "is_group"],
+        as_dict=True,
+    )
+
+    if not campus_row or not campus_row.is_group:
+        return []
+
+    if not location_row or location_row.is_group:
+        return []
+
+    if (
+        location_row.lft < campus_row.lft
+        or location_row.rgt > campus_row.rgt
+    ):
+        return []
+
+    params = {
+        "location": location,
+        "txt": f"%{txt}%",
+        "page_len": page_len,
+    }
+
+    return frappe.db.sql(
+        """
+        SELECT
+            name,
+            equipment_name,
+            equipment_type,
+            manufacturer,
+            model
+        FROM `tabTELECTRO Equipment`
+        WHERE location = %(location)s
+          AND customer_visibility = 'Customer-safe'
+          AND ticket_selectability = 'Selectable'
+          AND (
+              %(txt)s = '%%'
+              OR name LIKE %(txt)s
+              OR equipment_name LIKE %(txt)s
+              OR equipment_type LIKE %(txt)s
+              OR manufacturer LIKE %(txt)s
+              OR model LIKE %(txt)s
+          )
+        ORDER BY equipment_name, name
+        LIMIT %(page_len)s
+        """,
+        params,
+        as_dict=True,
+    )
+
+
+@frappe.whitelist()
+def get_customer_location_map_context(location=None):
+    """
+    Return Customer-safe map context for one Location.
+
+    The Location is not trusted merely because it came from the client.
+    It must be a leaf Location inside the logged-in Customer user's
+    allowed Campus.
+    """
+    campus = _get_customer_allowed_campus_for_user(frappe.session.user)
+    if not campus:
+        return {}
+
+    location = (location or "").strip()
+    if not location:
+        return {}
+
+    campus_row = frappe.db.get_value(
+        "Location",
+        campus,
+        [
+            "name",
+            "lft",
+            "rgt",
+            "is_group",
+        ],
+        as_dict=True,
+    )
+
+    location_row = frappe.db.get_value(
+        "Location",
+        location,
+        [
+            "name",
+            "location_name",
+            "parent_location",
+            "lft",
+            "rgt",
+            "is_group",
+            "latitude",
+            "longitude",
+            "custom_kmz_geometry_type",
+        ],
+        as_dict=True,
+    )
+
+    if not campus_row or not campus_row.is_group:
+        return {}
+
+    if not location_row or location_row.is_group:
+        return {}
+
+    if (
+        location_row.lft < campus_row.lft
+        or location_row.rgt > campus_row.rgt
+    ):
+        return {}
+
+    return {
+        "location": location_row.name,
+        "location_name": (
+            location_row.location_name
+            or location_row.name
+        ),
+        "campus": campus_row.name,
+        "parent_location": (
+            location_row.parent_location or ""
+        ),
+        "latitude": location_row.latitude,
+        "longitude": location_row.longitude,
+        "geometry_type": (
+            location_row.custom_kmz_geometry_type or ""
+        ),
+    }
 
 
 def _get_customer_allowed_campus_for_user(user: str) -> str | None:
