@@ -20,6 +20,9 @@
     "customer_visibility",
     "ticket_selectability",
     "source",
+    "first_seen_import",
+    "last_seen_import",
+    "last_changed_import",
     "notes"
   ],
   "fields": [
@@ -101,6 +104,33 @@
       "fieldname": "source",
       "fieldtype": "Data",
       "label": "Source"
+    },
+    {
+      "description": "First infrastructure import batch in which this Equipment was observed.",
+      "fieldname": "first_seen_import",
+      "fieldtype": "Link",
+      "label": "First Seen Import",
+      "no_copy": 1,
+      "options": "TELECTRO Infrastructure Import",
+      "read_only": 1
+    },
+    {
+      "description": "Most recent infrastructure import batch in which this Equipment was observed.",
+      "fieldname": "last_seen_import",
+      "fieldtype": "Link",
+      "label": "Last Seen Import",
+      "no_copy": 1,
+      "options": "TELECTRO Infrastructure Import",
+      "read_only": 1
+    },
+    {
+      "description": "Most recent infrastructure import batch that changed authoritative source-backed data for this Equipment.",
+      "fieldname": "last_changed_import",
+      "fieldtype": "Link",
+      "label": "Last Changed Import",
+      "no_copy": 1,
+      "options": "TELECTRO Infrastructure Import",
+      "read_only": 1
     },
     {
       "fieldname": "notes",

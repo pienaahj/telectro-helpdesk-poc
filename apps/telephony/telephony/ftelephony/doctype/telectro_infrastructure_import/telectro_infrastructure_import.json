@@ -1,0 +1,170 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "field:import_version",
+  "creation": "2026-09-23 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "import_version",
+    "customer",
+    "source_type",
+    "source_filename",
+    "source_hash",
+    "source_received_on",
+    "imported_on",
+    "importer_version",
+    "status",
+    "record_count",
+    "location_count",
+    "equipment_count",
+    "notes"
+  ],
+  "fields": [
+    {
+      "fieldname": "import_version",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Import Version",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Customer",
+      "options": "Customer",
+      "reqd": 1
+    },
+    {
+      "fieldname": "source_type",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Source Type",
+      "options": "KMZ\nKML\nCSV\nGeoJSON\nManual",
+      "reqd": 1
+    },
+    {
+      "fieldname": "source_filename",
+      "fieldtype": "Data",
+      "label": "Source Filename"
+    },
+    {
+      "description": "SHA-256 or other authoritative content hash of the source artifact when available.",
+      "fieldname": "source_hash",
+      "fieldtype": "Data",
+      "label": "Source Hash"
+    },
+    {
+      "description": "Date the source dataset was received from the Customer or source authority, when known.",
+      "fieldname": "source_received_on",
+      "fieldtype": "Date",
+      "label": "Source Received On"
+    },
+    {
+      "description": "Date and time this import batch was actually applied.",
+      "fieldname": "imported_on",
+      "fieldtype": "Datetime",
+      "label": "Imported On",
+      "read_only": 1
+    },
+    {
+      "description": "Importer implementation/version used for this batch, such as a Git commit or release identifier.",
+      "fieldname": "importer_version",
+      "fieldtype": "Data",
+      "label": "Importer Version"
+    },
+    {
+      "default": "Draft",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Status",
+      "options": "Draft\nValidated\nApplied\nSuperseded",
+      "reqd": 1
+    },
+    {
+      "default": "0",
+      "fieldname": "record_count",
+      "fieldtype": "Int",
+      "label": "Source Record Count",
+      "read_only": 1
+    },
+    {
+      "default": "0",
+      "fieldname": "location_count",
+      "fieldtype": "Int",
+      "label": "Location Count",
+      "read_only": 1
+    },
+    {
+      "default": "0",
+      "fieldname": "equipment_count",
+      "fieldtype": "Int",
+      "label": "Equipment Count",
+      "read_only": 1
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "istable": 0,
+  "links": [],
+  "modified": "2026-09-23 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "FTelephony",
+  "name": "TELECTRO Infrastructure Import",
+  "naming_rule": "By fieldname",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Pilot Admin",
+      "share": 0,
+      "write": 1
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "TELECTRO-POC Role - Supervisor Governance",
+      "share": 0,
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "search_fields": "import_version,customer,source_filename",
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": [],
+  "title_field": "import_version",
+  "track_changes": 1
+}
