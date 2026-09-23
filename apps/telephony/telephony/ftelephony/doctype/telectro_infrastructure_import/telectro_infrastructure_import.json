@@ -10,6 +10,7 @@
   "field_order": [
     "import_version",
     "customer",
+    "scope_key",
     "source_type",
     "source_filename",
     "source_hash",
@@ -37,6 +38,14 @@
       "in_list_view": 1,
       "label": "Customer",
       "options": "Customer",
+      "reqd": 1
+    },
+    {
+      "description": "Stable identifier for this infrastructure dataset lineage across import versions. It must remain the same when later source files represent the same managed population.",
+      "fieldname": "scope_key",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Scope Key",
       "reqd": 1
     },
     {
@@ -161,7 +170,7 @@
     }
   ],
   "quick_entry": 0,
-  "search_fields": "import_version,customer,source_filename",
+  "search_fields": "import_version,scope_key,customer,source_filename",
   "sort_field": "creation",
   "sort_order": "DESC",
   "states": [],
