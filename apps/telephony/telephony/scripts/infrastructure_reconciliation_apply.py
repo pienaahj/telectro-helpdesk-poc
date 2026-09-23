@@ -29,7 +29,6 @@ from telephony.scripts.infrastructure_reconciliation_writer import (
 
 
 LOCATION_V2_NEW_SEMANTIC_FIELDS = (
-    "custom_location_semantics",
     "custom_infrastructure_class",
     "custom_lifecycle_state",
     "custom_customer_visibility",

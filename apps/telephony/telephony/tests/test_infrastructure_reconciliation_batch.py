@@ -33,9 +33,6 @@ class TestLocationV2BatchPlanner(unittest.TestCase):
             "custom_kmz_metadata_json": (
                 '{"pts_count":1}'
             ),
-            "custom_location_semantics": (
-                "Physical Location"
-            ),
             "custom_infrastructure_class": None,
             "custom_lifecycle_state": None,
             "custom_customer_visibility": (

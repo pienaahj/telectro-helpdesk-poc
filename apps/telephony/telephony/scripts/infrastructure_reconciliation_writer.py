@@ -19,7 +19,6 @@ LOCATION_V2_ORDINARY_WRITE_FIELDS = (
     "custom_kmz_geometry_type",
     "custom_kmz_description",
     "custom_kmz_metadata_json",
-    "custom_location_semantics",
     "custom_infrastructure_class",
     "custom_lifecycle_state",
     "custom_customer_visibility",

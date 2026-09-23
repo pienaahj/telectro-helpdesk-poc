@@ -45,9 +45,6 @@ class TestLocationV2ApplyCoordinator(
             "custom_kmz_metadata_json": (
                 '{"pts_count":1}'
             ),
-            "custom_location_semantics": (
-                "Physical Location"
-            ),
             "custom_infrastructure_class": None,
             "custom_lifecycle_state": None,
             "custom_customer_visibility": (
@@ -407,8 +404,6 @@ class TestLocationV2ApplyCoordinator(
             "Location",
             "kmz-new",
             {
-                "custom_location_semantics":
-                    "Physical Location",
                 "custom_infrastructure_class":
                     "Fibre",
                 "custom_lifecycle_state":
