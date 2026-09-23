@@ -38,6 +38,17 @@ FLOAT_FIELDS = {
     "longitude",
 }
 
+BLANK_EQUIVALENT_FIELDS = {
+    "area_uom",
+    "location",
+    "custom_kmz_description",
+    "custom_kmz_metadata_json",
+    "custom_infrastructure_class",
+    "custom_lifecycle_state",
+    "custom_customer_visibility",
+    "custom_ticket_selectability",
+}
+
 
 @dataclass(frozen=True)
 class LocationFieldChange:
@@ -76,6 +87,10 @@ def _normalize_for_compare(fieldname, value):
             return None
 
         return float(value)
+
+    if fieldname in BLANK_EQUIVALENT_FIELDS:
+        if value is None or value == "":
+            return None
 
     return value
 

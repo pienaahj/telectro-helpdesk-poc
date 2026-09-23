@@ -120,6 +120,50 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
             (),
         )
 
+    def test_blank_text_representations_compare_equal(
+        self,
+    ):
+        desired = self._state(
+            area_uom=None,
+            location=None,
+            custom_kmz_description=None,
+            custom_kmz_metadata_json=None,
+            custom_infrastructure_class=None,
+            custom_lifecycle_state=None,
+            custom_customer_visibility=None,
+            custom_ticket_selectability=None,
+        )
+
+        stored = self._state(
+            area_uom="",
+            location="",
+            custom_kmz_description="",
+            custom_kmz_metadata_json="",
+            custom_infrastructure_class="",
+            custom_lifecycle_state="",
+            custom_customer_visibility="",
+            custom_ticket_selectability="",
+        )
+
+        result = (
+            infrastructure_reconciliation
+            .plan_location_reconciliation(
+                "kmz123",
+                desired,
+                stored,
+            )
+        )
+
+        self.assertEqual(
+            result.state,
+            "UNCHANGED",
+        )
+
+        self.assertEqual(
+            result.changes,
+            (),
+        )
+
     def test_single_authoritative_change_is_reported(self):
         desired = self._state(
             custom_lifecycle_state="Planned",
