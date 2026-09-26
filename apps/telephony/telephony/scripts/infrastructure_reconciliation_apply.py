@@ -29,6 +29,7 @@ from telephony.scripts.infrastructure_reconciliation_writer import (
 
 
 LOCATION_V2_NEW_SEMANTIC_FIELDS = (
+    "custom_customer",
     "custom_infrastructure_class",
     "custom_lifecycle_state",
     "custom_customer_visibility",
@@ -212,6 +213,47 @@ def _validate_apply_policy(plan):
             .reconciliation
             .changes
         )
+
+        for change in (
+            entry.database_plan
+            .reconciliation
+            .changes
+        ):
+            if change.fieldname != "custom_customer":
+                continue
+
+            stored_customer = (
+                change.stored_value or ""
+            ).strip()
+            desired_customer = (
+                change.desired_value or ""
+            ).strip()
+
+            if (
+                stored_customer
+                and not desired_customer
+            ):
+                raise ValueError(
+                    "Location V2 customer ownership "
+                    "removal is not allowed during "
+                    "ordinary apply: "
+                    f"{entry.location_id} "
+                    f"stored={stored_customer!r}"
+                )
+
+            if (
+                stored_customer
+                and desired_customer
+                and stored_customer != desired_customer
+            ):
+                raise ValueError(
+                    "Location V2 customer ownership "
+                    "reassignment is not allowed during "
+                    "ordinary apply: "
+                    f"{entry.location_id} "
+                    f"stored={stored_customer!r} "
+                    f"desired={desired_customer!r}"
+                )
 
         deferred = tuple(
             fieldname

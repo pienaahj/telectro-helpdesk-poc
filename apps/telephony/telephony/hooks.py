@@ -159,6 +159,7 @@ fixtures = [
                 "Location-custom_kmz_description",
                 "Location-custom_kmz_metadata_json",
                 "Location-custom_location_semantics",
+                "Location-custom_customer",
                 "Location-custom_infrastructure_class",
                 "Location-custom_lifecycle_state",
                 "Location-custom_customer_visibility",
@@ -341,6 +342,13 @@ ticket_status_durability_after_migrate = (
 
 if ticket_status_durability_after_migrate not in after_migrate:
     after_migrate.append(ticket_status_durability_after_migrate)
+
+location_customer_durability_after_migrate = (
+    "telephony.setup.location_customer_durability.after_migrate"
+)
+
+if location_customer_durability_after_migrate not in after_migrate:
+    after_migrate.append(location_customer_durability_after_migrate)
 
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})

@@ -36,6 +36,7 @@ class TestLocationV2ExistingLocationWriter(
             "custom_kmz_metadata_json": (
                 '{"pts_count":1}'
             ),
+            "custom_customer": None,
             "custom_infrastructure_class": None,
             "custom_lifecycle_state": None,
             "custom_customer_visibility": (
@@ -144,6 +145,65 @@ class TestLocationV2ExistingLocationWriter(
             result.updated_fields,
             (
                 "custom_lifecycle_state",
+                "custom_last_seen_import",
+                "custom_last_changed_import",
+            ),
+        )
+
+    @mock.patch.object(
+        infrastructure_reconciliation_writer.frappe.db,
+        "set_value",
+    )
+    def test_customer_ownership_field_writes_as_ordinary_change(
+        self,
+        set_value,
+    ):
+        stored = self._stored(
+            custom_customer=None,
+        )
+
+        desired = self._desired(
+            custom_customer="Customer A",
+        )
+
+        plan = self._plan(
+            "kmz123",
+            desired,
+            stored,
+            "BOSCHENDAL-KMZ-2026-02",
+        )
+
+        result = (
+            infrastructure_reconciliation_writer
+            .apply_existing_location_plan(
+                "kmz123",
+                stored,
+                plan,
+            )
+        )
+
+        set_value.assert_called_once_with(
+            "Location",
+            "kmz123",
+            {
+                "custom_customer": "Customer A",
+                "custom_last_seen_import":
+                    "BOSCHENDAL-KMZ-2026-02",
+                "custom_last_changed_import":
+                    "BOSCHENDAL-KMZ-2026-02",
+            },
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            result.reconciliation_state,
+            "CHANGED",
+        )
+
+        self.assertEqual(
+            result.updated_fields,
+            (
+                "custom_customer",
                 "custom_last_seen_import",
                 "custom_last_changed_import",
             ),

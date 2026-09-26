@@ -25,6 +25,7 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
             "custom_kmz_metadata_json": (
                 '{"pts_count":1}'
             ),
+            "custom_customer": None,
             "custom_infrastructure_class": None,
             "custom_lifecycle_state": None,
             "custom_customer_visibility": (
@@ -128,6 +129,7 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
             location=None,
             custom_kmz_description=None,
             custom_kmz_metadata_json=None,
+            custom_customer=None,
             custom_infrastructure_class=None,
             custom_lifecycle_state=None,
             custom_customer_visibility=None,
@@ -139,6 +141,7 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
             location="",
             custom_kmz_description="",
             custom_kmz_metadata_json="",
+            custom_customer="",
             custom_infrastructure_class="",
             custom_lifecycle_state="",
             custom_customer_visibility="",
@@ -206,6 +209,52 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
         self.assertEqual(
             change.desired_value,
             "Planned",
+        )
+
+    def test_customer_ownership_change_is_authoritative(
+        self,
+    ):
+        desired = self._state(
+            custom_customer="Emerald Life",
+        )
+
+        stored = self._state(
+            custom_customer=None,
+        )
+
+        result = (
+            infrastructure_reconciliation
+            .plan_location_reconciliation(
+                "emerald-site-001",
+                desired,
+                stored,
+            )
+        )
+
+        self.assertEqual(
+            result.state,
+            "CHANGED",
+        )
+
+        self.assertEqual(
+            len(result.changes),
+            1,
+        )
+
+        change = result.changes[0]
+
+        self.assertEqual(
+            change.fieldname,
+            "custom_customer",
+        )
+
+        self.assertIsNone(
+            change.stored_value,
+        )
+
+        self.assertEqual(
+            change.desired_value,
+            "Emerald Life",
         )
 
     def test_multiple_changes_follow_authoritative_field_order(

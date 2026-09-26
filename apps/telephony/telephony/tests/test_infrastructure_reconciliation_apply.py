@@ -45,6 +45,7 @@ class TestLocationV2ApplyCoordinator(
             "custom_kmz_metadata_json": (
                 '{"pts_count":1}'
             ),
+            "custom_customer": None,
             "custom_infrastructure_class": None,
             "custom_lifecycle_state": None,
             "custom_customer_visibility": (
@@ -272,6 +273,95 @@ class TestLocationV2ApplyCoordinator(
                 )
             )
 
+    def test_existing_customer_reassignment_is_refused(
+        self,
+    ):
+        entry = self._entry(
+            "kmz-customer",
+            "CHANGED",
+            changes=(
+                LocationFieldChange(
+                    fieldname="custom_customer",
+                    stored_value="Customer A",
+                    desired_value="Customer B",
+                ),
+            ),
+            custom_customer="Customer B",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "customer ownership reassignment",
+        ):
+            (
+                infrastructure_reconciliation_apply
+                ._validate_apply_policy(
+                    self._batch(
+                        entries=(
+                            entry,
+                        )
+                    )
+                )
+            )
+
+    def test_existing_customer_removal_is_refused(
+        self,
+    ):
+        entry = self._entry(
+            "kmz-customer",
+            "CHANGED",
+            changes=(
+                LocationFieldChange(
+                    fieldname="custom_customer",
+                    stored_value="Customer A",
+                    desired_value=None,
+                ),
+            ),
+            custom_customer=None,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "customer ownership removal",
+        ):
+            (
+                infrastructure_reconciliation_apply
+                ._validate_apply_policy(
+                    self._batch(
+                        entries=(
+                            entry,
+                        )
+                    )
+                )
+            )
+
+    def test_existing_customer_ownership_can_be_established(
+        self,
+    ):
+        entry = self._entry(
+            "kmz-customer",
+            "CHANGED",
+            changes=(
+                LocationFieldChange(
+                    fieldname="custom_customer",
+                    stored_value=None,
+                    desired_value="Customer A",
+                ),
+            ),
+            custom_customer="Customer A",
+        )
+
+        (
+            infrastructure_reconciliation_apply
+            ._validate_apply_policy(
+                self._batch(
+                    entries=(
+                        entry,
+                    )
+                )
+            )
+        )
+
     def test_unsupported_apply_policies_are_refused(
         self,
     ):
@@ -404,10 +494,54 @@ class TestLocationV2ApplyCoordinator(
             "Location",
             "kmz-new",
             {
+                "custom_customer": None,
                 "custom_infrastructure_class":
                     "Fibre",
                 "custom_lifecycle_state":
                     "Planned",
+                "custom_customer_visibility":
+                    "Customer-safe",
+                "custom_ticket_selectability":
+                    "Selectable",
+                "custom_first_seen_import":
+                    self.IMPORT_VERSION,
+                "custom_last_seen_import":
+                    self.IMPORT_VERSION,
+                "custom_last_changed_import":
+                    self.IMPORT_VERSION,
+            },
+            update_modified=False,
+        )
+
+    @mock.patch.object(
+        infrastructure_reconciliation_apply.frappe.db,
+        "set_value",
+    )
+    def test_new_location_writes_customer_ownership(
+        self,
+        set_value,
+    ):
+        entry = self._entry(
+            "customer-site-new",
+            "NEW",
+            location_name="Customer Site",
+            custom_customer="Customer A",
+        )
+
+        (
+            infrastructure_reconciliation_apply
+            ._apply_new_v2_fields(
+                entry
+            )
+        )
+
+        set_value.assert_called_once_with(
+            "Location",
+            "customer-site-new",
+            {
+                "custom_customer": "Customer A",
+                "custom_infrastructure_class": None,
+                "custom_lifecycle_state": None,
                 "custom_customer_visibility":
                     "Customer-safe",
                 "custom_ticket_selectability":
