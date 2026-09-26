@@ -82,6 +82,8 @@ def _desired_from_release_row(row):
             row.custom_kmz_description,
         "custom_kmz_metadata_json":
             row.custom_kmz_metadata_json,
+        "custom_customer":
+            None,
         "custom_infrastructure_class":
             None,
         "custom_lifecycle_state":

@@ -54,6 +54,12 @@ class TestBoschendalLocationV2Desired(
 
         self.assertIsNone(
             desired[
+                "custom_customer"
+            ]
+        )
+
+        self.assertIsNone(
+            desired[
                 "custom_infrastructure_class"
             ]
         )
