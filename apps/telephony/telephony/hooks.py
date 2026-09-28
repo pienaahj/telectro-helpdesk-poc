@@ -151,6 +151,7 @@ fixtures = [
                 "HD Ticket-custom_partner_work_state",
                 "HD Ticket-custom_partner_work_completed",
                 "HD Ticket-custom_take_ownership_on_create",
+                "HD Customer-custom_erp_customer",
                 "Customer-custom_default_campus",
                 "Location-custom_kmz_metadata",
                 "Location-custom_kmz_source",
