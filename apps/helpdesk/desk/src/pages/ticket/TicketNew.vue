@@ -98,12 +98,67 @@
           <span class="block text-sm text-gray-500">
             {{
               __(
-                "Optional. Choose the affected Boschendal location. You can browse the available options or search if you know the name. Results are limited to your Customer organisation.",
+                "Choose the affected Campus and location. Available options are limited to your Customer organisation.",
               )
             }}
           </span>
         </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-sm text-gray-700">
+            {{ __("Campus") }}
+          </span>
 
+          <select
+            v-model="selectedCampus"
+            class="form-control rounded border border-gray-300 px-3 py-2 text-sm"
+            :disabled="campusLoading || customerCampuses.length <= 1"
+            @change="handleCampusChange"
+          >
+            <option
+              v-if="customerCampuses.length !== 1"
+              value=""
+            >
+              {{
+                campusLoading
+                  ? __("Loading Campuses...")
+                  : __("Select the affected Campus")
+              }}
+            </option>
+
+            <option
+              v-for="campus in customerCampuses"
+              :key="campus.name"
+              :value="campus.name"
+            >
+              {{ campus.location_name || campus.name }}
+            </option>
+          </select>
+
+          <span
+            v-if="
+              campusLoaded &&
+              customerCampuses.length === 0
+            "
+            class="text-xs text-red-600"
+          >
+            {{
+              __(
+                "No Campus is available for your Customer account. Please contact Telectro.",
+              )
+            }}
+          </span>
+
+          <span
+            v-else-if="
+              campusLoaded &&
+              customerCampuses.length > 1 &&
+              !selectedCampus
+            "
+            class="text-xs text-gray-500"
+          >
+            {{ __("Select the Campus where the issue is located.") }}
+          </span>
+        </div>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="flex flex-col gap-1">
             <span class="text-sm text-gray-700">
@@ -145,7 +200,7 @@
               <button
                 type="button"
                 class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a] disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="faultPointLoading"
+                :disabled="faultPointLoading || !selectedCampus"
                 @click="searchFaultPoints"
               >
                 {{
@@ -661,6 +716,10 @@ const faultPointCategories = [
   "Residents",
 ];
 
+const customerCampuses = ref<any[]>([]);
+const selectedCampus = ref("");
+const campusLoading = ref(false);
+const campusLoaded = ref(false);
 const faultPointCategory = ref("Buildings");
 const faultPointSearch = ref("");
 const faultPointResults = ref([]);
@@ -751,14 +810,7 @@ const selectedFaultPointLabel = computed(() => {
 });
 
 const selectedFaultPointCampus = computed(() => {
-  const parent = selectedFaultPoint.value?.parent_location || "";
-  const category = faultPointCategory.value || "";
-
-  if (parent && category && parent.endsWith(` - ${category}`)) {
-    return parent.slice(0, -` - ${category}`.length);
-  }
-
-  return parent || "";
+  return selectedCampus.value || "";
 });
 
 const selectedFaultPointHasCoordinates = computed(() => {
@@ -842,6 +894,21 @@ function clearFaultPointResults() {
   faultPointSearched.value = false;
 }
 
+function resetLocationForCampus() {
+  selectedFaultPoint.value = null;
+  faultPointSearch.value = "";
+  clearFaultPointResults();
+  resetEquipmentForLocation();
+}
+
+async function handleCampusChange() {
+  resetLocationForCampus();
+
+  if (selectedCampus.value) {
+    await searchFaultPoints();
+  }
+}
+
 async function handleFaultPointCategoryChange() {
   selectedFaultPoint.value = null;
   faultPointSearch.value = "";
@@ -863,6 +930,11 @@ async function selectFaultPoint(row: any) {
 }
 
 async function searchFaultPoints() {
+  if (isCustomerPortal.value && !selectedCampus.value) {
+    clearFaultPointResults();
+    return;
+  }
+
   faultPointLoading.value = true;
   faultPointSearched.value = true;
 
@@ -870,6 +942,7 @@ async function searchFaultPoints() {
     const rows = await call(
       "telephony.customer_location_lookup.search_customer_fault_points",
       {
+        campus: selectedCampus.value || undefined,
         txt: faultPointSearch.value,
         category: faultPointCategory.value,
         page_len: 64,
@@ -882,6 +955,31 @@ async function searchFaultPoints() {
   }
 }
 
+async function loadCustomerCampuses() {
+  campusLoading.value = true;
+  campusLoaded.value = false;
+
+  customerCampuses.value = [];
+  selectedCampus.value = "";
+  resetLocationForCampus();
+
+  try {
+    const rows = await call(
+      "telephony.customer_location_lookup.get_customer_allowed_campuses",
+    );
+
+    customerCampuses.value = rows || [];
+
+    if (customerCampuses.value.length === 1) {
+      selectedCampus.value = customerCampuses.value[0].name;
+      await searchFaultPoints();
+    }
+  } finally {
+    campusLoading.value = false;
+    campusLoaded.value = true;
+  }
+}
+
 watch(
   isCustomerPortal,
   async (isPortal) => {
@@ -889,14 +987,24 @@ watch(
       return;
     }
 
-    await searchFaultPoints();
+    await loadCustomerCampuses();
   },
   { immediate: true },
 );
 
 function selectedFaultPointFields() {
-  if (!isCustomerPortal.value || !selectedFaultPoint.value?.name) {
+  if (!isCustomerPortal.value) {
     return {};
+  }
+
+  const campusFields = selectedCampus.value
+    ? {
+        custom_site_group: selectedCampus.value,
+      }
+    : {};
+
+  if (!selectedFaultPoint.value?.name) {
+    return campusFields;
   }
 
   const equipmentFields = selectedEquipment.value?.name
@@ -908,6 +1016,7 @@ function selectedFaultPointFields() {
 
   if (selectedFaultPointIsNonPoint.value) {
     return {
+      ...campusFields,
       custom_fault_asset: selectedFaultPoint.value.name,
       custom_fault_category: faultPointCategory.value,
       ...equipmentFields,
@@ -915,6 +1024,7 @@ function selectedFaultPointFields() {
   }
 
   return {
+    ...campusFields,
     custom_site: selectedFaultPoint.value.name,
     custom_fault_asset: selectedFaultPoint.value.name,
     custom_fault_category: faultPointCategory.value,
@@ -936,6 +1046,9 @@ const ticket = createResource({
     attachments: attachments.value,
   }),
   validate: (params) => {
+    if (isCustomerPortal.value && !selectedCampus.value) {
+      return __("Please select the affected Campus.");
+    }
     const fields = visibleFields.value?.filter((f) => f.required) || [];
     const toVerify = [...fields, "subject", "description"];
     for (const field of toVerify) {

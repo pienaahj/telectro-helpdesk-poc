@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from helpdesk.utils import get_customer
 
 from telephony.telectro_site_guard import _get_default_campus_for_ticket
 
@@ -155,6 +156,15 @@ def get_customer_ticket_location_context(ticket_name=None):
         ),
     }
 
+
+@frappe.whitelist()
+def get_customer_allowed_campuses():
+    """Return Customer-owned Campus Locations for the logged-in user."""
+    return _get_customer_allowed_campuses_for_user(
+        frappe.session.user
+    )
+
+
 @frappe.whitelist()
 def get_customer_allowed_campus():
     """Return the current Customer user's allowed Campus Location."""
@@ -162,13 +172,46 @@ def get_customer_allowed_campus():
 
 
 @frappe.whitelist()
-def search_customer_fault_points(txt=None, category=None, page_len=20):
+def search_customer_fault_points(
+    campus=None,
+    txt=None,
+    category=None,
+    page_len=20,
+):
     """
-    Return Customer-scoped fault point Location rows for the logged-in Customer user.
+    Return Customer-scoped fault point Location rows for the logged-in
+    Customer user.
 
-    This is intentionally server-scoped and does not trust client filters.
+    When Campus is supplied explicitly, it must be one of the top-level
+    Campus Locations owned by the user's resolved Customer organisation.
+
+    The legacy single-Campus resolver remains temporarily available when
+    Campus is omitted so existing portal callers continue to work while
+    the multi-Campus UI is introduced.
     """
-    campus = _get_customer_allowed_campus_for_user(frappe.session.user)
+    requested_campus = (campus or "").strip()
+
+    if requested_campus:
+        allowed_campuses = (
+            _get_customer_allowed_campuses_for_user(
+                frappe.session.user
+            )
+        )
+
+        allowed_names = {
+            row["name"]
+            for row in allowed_campuses
+        }
+
+        if requested_campus not in allowed_names:
+            return []
+
+        campus = requested_campus
+    else:
+        campus = _get_customer_allowed_campus_for_user(
+            frappe.session.user
+        )
+
     if not campus:
         return []
 
@@ -229,6 +272,71 @@ def search_customer_fault_points(txt=None, category=None, page_len=20):
         as_dict=True,
     )
 
+def _get_customer_owned_campus_for_location(
+    user: str,
+    location_name: str,
+):
+    """
+    Resolve one leaf Location to the Customer-owned Campus
+    that contains it.
+
+    Customer ownership comes from the authenticated user's
+    HD Customer -> ERP Customer bridge. The requested Location
+    is never trusted merely because it came from the client.
+    """
+    location_name = (location_name or "").strip()
+    if not location_name:
+        return None, None
+
+    allowed_campuses = _get_customer_allowed_campuses_for_user(user)
+    if not allowed_campuses:
+        return None, None
+
+    location_row = frappe.db.get_value(
+        "Location",
+        location_name,
+        [
+            "name",
+            "location_name",
+            "parent_location",
+            "lft",
+            "rgt",
+            "is_group",
+            "latitude",
+            "longitude",
+            "custom_kmz_geometry_type",
+        ],
+        as_dict=True,
+    )
+
+    if not location_row or location_row.is_group:
+        return None, None
+
+    for allowed_campus in allowed_campuses:
+        campus_name = allowed_campus["name"]
+
+        campus_row = frappe.db.get_value(
+            "Location",
+            campus_name,
+            [
+                "name",
+                "lft",
+                "rgt",
+                "is_group",
+            ],
+            as_dict=True,
+        )
+
+        if not campus_row or not campus_row.is_group:
+            continue
+
+        if (
+            location_row.lft >= campus_row.lft
+            and location_row.rgt <= campus_row.rgt
+        ):
+            return campus_row, location_row
+
+    return None, None
 
 @frappe.whitelist()
 def search_customer_equipment(location=None, txt=None, page_len=20):
@@ -236,14 +344,21 @@ def search_customer_equipment(location=None, txt=None, page_len=20):
     Return Customer-safe, ticket-selectable Equipment for one allowed Location.
 
     The selected Location is not trusted merely because it came from the client.
-    It must be a leaf Location inside the logged-in Customer user's allowed Campus.
+    It must be a leaf Location inside one of the logged-in Customer user's
+    owned Campuses.
     """
-    campus = _get_customer_allowed_campus_for_user(frappe.session.user)
-    if not campus:
-        return []
-
     location = (location or "").strip()
     if not location:
+        return []
+
+    campus_row, location_row = (
+        _get_customer_owned_campus_for_location(
+            frappe.session.user,
+            location,
+        )
+    )
+
+    if not campus_row or not location_row:
         return []
 
     txt = (txt or "").strip()
@@ -251,32 +366,6 @@ def search_customer_equipment(location=None, txt=None, page_len=20):
         max(int(page_len or 20), 1),
         CUSTOMER_EQUIPMENT_PAGE_LEN_MAX,
     )
-
-    campus_row = frappe.db.get_value(
-        "Location",
-        campus,
-        ["name", "lft", "rgt", "is_group"],
-        as_dict=True,
-    )
-
-    location_row = frappe.db.get_value(
-        "Location",
-        location,
-        ["name", "lft", "rgt", "is_group"],
-        as_dict=True,
-    )
-
-    if not campus_row or not campus_row.is_group:
-        return []
-
-    if not location_row or location_row.is_group:
-        return []
-
-    if (
-        location_row.lft < campus_row.lft
-        or location_row.rgt > campus_row.rgt
-    ):
-        return []
 
     params = {
         "location": location,
@@ -318,56 +407,21 @@ def get_customer_location_map_context(location=None):
     Return Customer-safe map context for one Location.
 
     The Location is not trusted merely because it came from the client.
-    It must be a leaf Location inside the logged-in Customer user's
-    allowed Campus.
+    It must be a leaf Location inside one of the logged-in Customer user's
+    owned Campuses.
     """
-    campus = _get_customer_allowed_campus_for_user(frappe.session.user)
-    if not campus:
-        return {}
-
     location = (location or "").strip()
     if not location:
         return {}
 
-    campus_row = frappe.db.get_value(
-        "Location",
-        campus,
-        [
-            "name",
-            "lft",
-            "rgt",
-            "is_group",
-        ],
-        as_dict=True,
+    campus_row, location_row = (
+        _get_customer_owned_campus_for_location(
+            frappe.session.user,
+            location,
+        )
     )
 
-    location_row = frappe.db.get_value(
-        "Location",
-        location,
-        [
-            "name",
-            "location_name",
-            "parent_location",
-            "lft",
-            "rgt",
-            "is_group",
-            "latitude",
-            "longitude",
-            "custom_kmz_geometry_type",
-        ],
-        as_dict=True,
-    )
-
-    if not campus_row or not campus_row.is_group:
-        return {}
-
-    if not location_row or location_row.is_group:
-        return {}
-
-    if (
-        location_row.lft < campus_row.lft
-        or location_row.rgt > campus_row.rgt
-    ):
+    if not campus_row or not location_row:
         return {}
 
     return {
@@ -386,6 +440,55 @@ def get_customer_location_map_context(location=None):
             location_row.custom_kmz_geometry_type or ""
         ),
     }
+
+
+def _get_customer_allowed_campuses_for_user(
+    user: str,
+) -> list[dict]:
+    """
+    Return top-level Campus Locations owned by the logged-in
+    Customer user's ERP Customer organisation.
+
+    Native Helpdesk customer resolution returns HD Customer
+    identities. The durable HD Customer.custom_erp_customer
+    bridge resolves that Helpdesk identity to the ERPNext
+    Customer used by Location.custom_customer.
+
+    If the user resolves to zero or multiple HD Customers, or
+    the HD Customer has no ERP Customer bridge, do not guess.
+    """
+    if not user or user == "Guest":
+        return []
+
+    hd_customers = get_customer(user)
+
+    if len(hd_customers) != 1:
+        return []
+
+    hd_customer = hd_customers[0]
+
+    erp_customer = frappe.db.get_value(
+        "HD Customer",
+        hd_customer,
+        "custom_erp_customer",
+    )
+
+    if not erp_customer:
+        return []
+
+    return frappe.get_all(
+        "Location",
+        filters={
+            "parent_location": "Pilot Sites",
+            "is_group": 1,
+            "custom_customer": erp_customer,
+        },
+        fields=[
+            "name",
+            "location_name",
+        ],
+        order_by="location_name asc, name asc",
+    )
 
 
 def _get_customer_allowed_campus_for_user(user: str) -> str | None:

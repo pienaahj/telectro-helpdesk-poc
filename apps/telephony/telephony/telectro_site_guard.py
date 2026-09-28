@@ -1,4 +1,5 @@
 import frappe
+from helpdesk.utils import get_customer
 
 # Categories stored by Select field (exact labels)
 CAT_BUILDINGS = "buildings"
@@ -101,6 +102,68 @@ def _is_pilot_campus_location(location_name: str) -> bool:
         return False
 
     return bool(row.is_group) and row.parent_location == "Pilot Sites"
+
+def _require_customer_portal_campus_ownership(doc) -> None:
+    """
+    Require a Customer Portal user's selected Campus to belong
+    to the ERP Customer explicitly linked to their HD Customer.
+
+    Authorization is derived from the authenticated session user,
+    never from client-supplied HD Ticket.customer.
+    """
+    if _is_email_intake(doc):
+        return
+
+    user = _norm(getattr(frappe.session, "user", ""))
+
+    if not user or user == "Guest":
+        return
+
+    user_type = frappe.db.get_value(
+        "User",
+        user,
+        "user_type",
+    )
+
+    if user_type != "Website User":
+        return
+
+    campus = _norm(doc.get("custom_site_group"))
+
+    if not campus:
+        return
+
+    hd_customers = get_customer(user)
+
+    if len(hd_customers) != 1:
+        frappe.throw(
+            "Customer account does not resolve to a single "
+            "Helpdesk Customer."
+        )
+
+    hd_customer = hd_customers[0]
+
+    erp_customer = frappe.db.get_value(
+        "HD Customer",
+        hd_customer,
+        "custom_erp_customer",
+    )
+
+    if not erp_customer:
+        frappe.throw(
+            "Customer account is not linked to an ERP Customer."
+        )
+
+    campus_customer = frappe.db.get_value(
+        "Location",
+        campus,
+        "custom_customer",
+    )
+
+    if campus_customer != erp_customer:
+        frappe.throw(
+            "Campus does not belong to your Customer."
+        )
         
 def _require_campus(doc) -> None:
     if _is_email_intake(doc):
@@ -236,6 +299,7 @@ def validate_site_fields(doc, method=None):
     # Slice B: default + required campus anchor
     _apply_customer_default_campus(doc)
     _require_campus(doc)
+    _require_customer_portal_campus_ownership(doc)
 
     # Fault-like: require the category-appropriate location anchor early.
     _require_fault_location_for_faults(doc)
