@@ -171,7 +171,63 @@
             {{ __("Select the Campus where the issue is located.") }}
           </span>
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div
+          v-if="selectedCampusIsTerminal"
+          class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
+        >
+          <div class="font-medium text-gray-900">
+            {{ __("Selected fault location") }}
+          </div>
+
+          <div class="mt-1 text-base text-gray-900">
+            {{
+              selectedCampusRecord?.location_name ||
+              selectedCampusRecord?.name
+            }}
+          </div>
+
+          <div class="mt-1 text-xs text-gray-500">
+            {{
+              __(
+                "This Customer reports faults at Campus level. The selected Campus will be sent to Telectro with this support request.",
+              )
+            }}
+          </div>
+
+          <div
+            v-if="selectedCampusHasCoordinates"
+            class="mt-3 flex flex-wrap gap-2"
+          >
+            <RouterLink
+              :to="{
+                name: 'TicketCustomerLocationMap',
+                params: {
+                  locationId: selectedCampusRecord.name,
+                },
+              }"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded border border-gray-700 bg-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+              :style="portalPrimaryStyle"
+            >
+              {{ __("Aerial view") }}
+            </RouterLink>
+
+            <a
+              :href="selectedCampusMapUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {{ __("Map view") }}
+            </a>
+          </div>
+        </div>
+
+        <div
+          v-if="!selectedCampusIsTerminal"
+          class="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        >
           <div class="flex flex-col gap-1">
             <span class="text-sm text-gray-700">
               {{ __("Category") }}
@@ -771,6 +827,56 @@ const customerCampuses = ref<any[]>([]);
 const selectedCampus = ref("");
 const campusLoading = ref(false);
 const campusLoaded = ref(false);
+const selectedCampusRecord = computed(() => {
+  return (
+    customerCampuses.value.find(
+      (campus) => campus.name === selectedCampus.value,
+    ) || null
+  );
+});
+
+const selectedCampusIsTerminal = computed(() => {
+  const campus = selectedCampusRecord.value;
+
+  return (
+    campus?.custom_customer_visibility === "Customer-safe" &&
+    campus?.custom_ticket_selectability === "Selectable"
+  );
+});
+
+const selectedCampusHasCoordinates = computed(() => {
+  const latitude = Number(
+    selectedCampusRecord.value?.latitude || 0,
+  );
+  const longitude = Number(
+    selectedCampusRecord.value?.longitude || 0,
+  );
+
+  return latitude !== 0 && longitude !== 0;
+});
+
+const selectedCampusMapUrl = computed(() => {
+  if (!selectedCampusHasCoordinates.value) {
+    return "";
+  }
+
+  const latitude = Number(
+    selectedCampusRecord.value?.latitude || 0,
+  );
+  const longitude = Number(
+    selectedCampusRecord.value?.longitude || 0,
+  );
+  const zoom = 19;
+
+  return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(
+    latitude,
+  )}&mlon=${encodeURIComponent(
+    longitude,
+  )}#map=${zoom}/${encodeURIComponent(
+    latitude,
+  )}/${encodeURIComponent(longitude)}`;
+});
+
 const faultPointCategory = ref("Buildings");
 const faultPointSearch = ref("");
 const faultPointResults = ref([]);
@@ -955,7 +1061,10 @@ function resetLocationForCampus() {
 async function handleCampusChange() {
   resetLocationForCampus();
 
-  if (selectedCampus.value) {
+  if (
+    selectedCampus.value &&
+    !selectedCampusIsTerminal.value
+  ) {
     await searchFaultPoints();
   }
 }
@@ -966,7 +1075,10 @@ async function handleFaultPointCategoryChange() {
   clearFaultPointResults();
   resetEquipmentForLocation();
 
-  if (isCustomerPortal.value) {
+  if (
+    isCustomerPortal.value &&
+    !selectedCampusIsTerminal.value
+  ) {
     await searchFaultPoints();
   }
 }
@@ -981,7 +1093,13 @@ async function selectFaultPoint(row: any) {
 }
 
 async function searchFaultPoints() {
-  if (isCustomerPortal.value && !selectedCampus.value) {
+  if (
+    isCustomerPortal.value &&
+    (
+      !selectedCampus.value ||
+      selectedCampusIsTerminal.value
+    )
+  ) {
     clearFaultPointResults();
     return;
   }
