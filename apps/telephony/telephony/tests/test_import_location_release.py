@@ -1,3 +1,4 @@
+from dataclasses import replace
 import csv
 import tempfile
 import unittest
@@ -1200,6 +1201,42 @@ class TestLocationReleaseStoredRowVerification(
         frappe_mock.db.set_value.assert_not_called()
         frappe_mock.db.commit.assert_not_called()
         frappe_mock.db.rollback.assert_not_called()
+
+    def test_verify_accepts_database_coordinate_precision(
+        self,
+    ):
+        frappe_mock = self._frappe()
+
+        row = replace(
+            self._row(),
+            latitude=-33.90108434167573,
+            longitude=18.635543618367677,
+        )
+
+        stored = self._stored()
+
+        stored["latitude"] = (
+            -33.901084342
+        )
+
+        stored["longitude"] = (
+            18.635543618
+        )
+
+        frappe_mock.db.get_value.return_value = (
+            stored
+        )
+
+        result = (
+            import_location_release
+            .verify_release_row(
+                row
+            )
+        )
+
+        self.assertIsNone(
+            result
+        )
 
 class TestLocationReleaseStageApplication(
     unittest.TestCase

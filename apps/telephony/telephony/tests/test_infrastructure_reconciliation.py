@@ -401,3 +401,35 @@ class TestLocationV2ReconciliationPlanner(unittest.TestCase):
                     None,
                 )
             )
+
+    def test_coordinates_compare_at_database_precision(
+        self,
+    ):
+        desired = self._state(
+            latitude=-33.90108434167573,
+            longitude=18.635543618367677,
+        )
+
+        stored = self._state(
+            latitude=-33.901084342,
+            longitude=18.635543618,
+        )
+
+        result = (
+            infrastructure_reconciliation
+            .plan_location_reconciliation(
+                "site-001",
+                desired,
+                stored,
+            )
+        )
+
+        self.assertEqual(
+            result.state,
+            "UNCHANGED",
+        )
+
+        self.assertEqual(
+            result.changes,
+            (),
+        )
