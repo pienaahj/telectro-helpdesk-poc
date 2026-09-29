@@ -157,6 +157,105 @@ def get_customer_ticket_location_context(ticket_name=None):
     }
 
 
+def _empty_customer_portal_profile():
+    """Return the neutral Customer Portal presentation profile."""
+    return {
+        "customer": "",
+        "customer_name": "",
+        "service_desk_name": "Service Desk",
+        "logo": "",
+        "primary_colour": "",
+        "accent_colour": "",
+        "foreground_colour": "",
+    }
+
+
+def _get_customer_portal_profile_for_user(
+    user: str,
+) -> dict:
+    """
+    Resolve Customer Portal presentation for one authenticated user.
+
+    Native Helpdesk customer resolution is authoritative. If the user
+    resolves to zero or multiple HD Customers, do not guess and return
+    the neutral profile.
+    """
+    profile = _empty_customer_portal_profile()
+
+    if not user or user == "Guest":
+        return profile
+
+    hd_customers = get_customer(user)
+
+    if len(hd_customers) != 1:
+        return profile
+
+    hd_customer = hd_customers[0]
+
+    customer = frappe.db.get_value(
+        "HD Customer",
+        hd_customer,
+        [
+            "name",
+            "customer_name",
+            "image",
+            "custom_portal_service_desk_name",
+            "custom_portal_primary_colour",
+            "custom_portal_accent_colour",
+            "custom_portal_foreground_colour",
+        ],
+        as_dict=True,
+    )
+
+    if not customer:
+        return profile
+
+    customer_name = str(
+        customer.customer_name
+        or customer.name
+        or ""
+    ).strip()
+
+    service_desk_name = str(
+        customer.custom_portal_service_desk_name
+        or ""
+    ).strip()
+
+    if not service_desk_name:
+        service_desk_name = (
+            f"{customer_name} Service Desk"
+            if customer_name
+            else "Service Desk"
+        )
+
+    return {
+        "customer": str(customer.name or hd_customer).strip(),
+        "customer_name": customer_name,
+        "service_desk_name": service_desk_name,
+        "logo": str(customer.image or "").strip(),
+        "primary_colour": str(
+            customer.custom_portal_primary_colour
+            or ""
+        ).strip(),
+        "accent_colour": str(
+            customer.custom_portal_accent_colour
+            or ""
+        ).strip(),
+        "foreground_colour": str(
+            customer.custom_portal_foreground_colour
+            or ""
+        ).strip(),
+    }
+
+
+@frappe.whitelist()
+def get_customer_portal_profile():
+    """Return portal presentation for the logged-in Customer user."""
+    return _get_customer_portal_profile_for_user(
+        frappe.session.user
+    )
+
+
 @frappe.whitelist()
 def get_customer_allowed_campuses():
     """Return Customer-owned Campus Locations for the logged-in user."""

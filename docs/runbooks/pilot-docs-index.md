@@ -578,7 +578,7 @@ At the moment, the doc set has a good emerging split:
 - **Production Deployment Runbook** = what needs to be tested locally vs on staging/prod, and recommended rollout phases.
 - **Service Coverage Model** = how service coverage is currently modeled in the system, how it interacts with assignment and routing, and known limitations.
 - **Customer Ticket Lifecycle** = current contract for customer ticket status lifecycle, customer portal visibility, and Telectro-side finalisation requirements.
-- **Customer Location and Organisation Model** = how customer locations and organisational structures are represented in the system.
+- **Customer Location and Organisation Model** = canonical Customer onboarding model covering Customer organisation, Campus/Location containment, reusable production onboarding, and HD Customer-owned Customer Portal presentation profiles.
 - **Pilot Phase 2 Enhancements** = Parking lot for post-pilot enhancement candidates, including technician time logging, monthly time budget reporting, waiting/dependency classification, and mobile time logging investigation.
 - **Production Runtime Release** = canonical procedure for deploying merged application changes to the existing production site.
 

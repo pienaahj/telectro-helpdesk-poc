@@ -538,5 +538,200 @@ class TestCustomerAllowedCampuses(unittest.TestCase):
 
         get_legacy_campus.assert_not_called()
 
+    def test_portal_profile_returns_configured_hd_customer_profile(
+        self,
+    ):
+        profile_row = frappe._dict(
+            {
+                "name": "Emerald Life",
+                "customer_name": "Emerald Life",
+                "image": "/files/emerald-logo.png",
+                "custom_portal_service_desk_name":
+                    "Emerald Life Support",
+                "custom_portal_primary_colour": "#123456",
+                "custom_portal_accent_colour": "#abcdef",
+                "custom_portal_foreground_colour": "#fedcba",
+            }
+        )
+
+        with (
+            mock.patch.object(
+                customer_location_lookup,
+                "get_customer",
+                return_value=["Emerald Life"],
+            ),
+            mock.patch.object(
+                customer_location_lookup.frappe.db,
+                "get_value",
+                return_value=profile_row,
+            ) as get_value,
+        ):
+            result = (
+                customer_location_lookup
+                ._get_customer_portal_profile_for_user(
+                    "emerald@example.com"
+                )
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "customer": "Emerald Life",
+                "customer_name": "Emerald Life",
+                "service_desk_name":
+                    "Emerald Life Support",
+                "logo": "/files/emerald-logo.png",
+                "primary_colour": "#123456",
+                "accent_colour": "#abcdef",
+                "foreground_colour": "#fedcba",
+            },
+        )
+
+        get_value.assert_called_once_with(
+            "HD Customer",
+            "Emerald Life",
+            [
+                "name",
+                "customer_name",
+                "image",
+                "custom_portal_service_desk_name",
+                "custom_portal_primary_colour",
+                "custom_portal_accent_colour",
+                "custom_portal_foreground_colour",
+            ],
+            as_dict=True,
+        )
+
+    def test_portal_profile_derives_name_when_optional_fields_blank(
+        self,
+    ):
+        profile_row = frappe._dict(
+            {
+                "name": "Emerald Life",
+                "customer_name": "Emerald Life",
+                "image": None,
+                "custom_portal_service_desk_name": None,
+                "custom_portal_primary_colour": None,
+                "custom_portal_accent_colour": None,
+                "custom_portal_foreground_colour": None,
+            }
+        )
+
+        with (
+            mock.patch.object(
+                customer_location_lookup,
+                "get_customer",
+                return_value=["Emerald Life"],
+            ),
+            mock.patch.object(
+                customer_location_lookup.frappe.db,
+                "get_value",
+                return_value=profile_row,
+            ),
+        ):
+            result = (
+                customer_location_lookup
+                ._get_customer_portal_profile_for_user(
+                    "emerald@example.com"
+                )
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "customer": "Emerald Life",
+                "customer_name": "Emerald Life",
+                "service_desk_name":
+                    "Emerald Life Service Desk",
+                "logo": "",
+                "primary_colour": "",
+                "accent_colour": "",
+                "foreground_colour": "",
+            },
+        )
+
+    def test_portal_profile_does_not_guess_customer(
+        self,
+    ):
+        for user, customers in (
+            ("Guest", []),
+            ("none@example.com", []),
+            (
+                "shared@example.com",
+                ["Customer A", "Customer B"],
+            ),
+        ):
+            with self.subTest(user=user):
+                with (
+                    mock.patch.object(
+                        customer_location_lookup,
+                        "get_customer",
+                        return_value=customers,
+                    ),
+                    mock.patch.object(
+                        customer_location_lookup.frappe.db,
+                        "get_value",
+                    ) as get_value,
+                ):
+                    result = (
+                        customer_location_lookup
+                        ._get_customer_portal_profile_for_user(
+                            user
+                        )
+                    )
+
+                self.assertEqual(
+                    result,
+                    {
+                        "customer": "",
+                        "customer_name": "",
+                        "service_desk_name": "Service Desk",
+                        "logo": "",
+                        "primary_colour": "",
+                        "accent_colour": "",
+                        "foreground_colour": "",
+                    },
+                )
+
+                get_value.assert_not_called()
+
+    def test_public_portal_profile_uses_session_user(
+        self,
+    ):
+        expected = {
+            "customer": "Emerald Life",
+            "customer_name": "Emerald Life",
+            "service_desk_name":
+                "Emerald Life Service Desk",
+            "logo": "",
+            "primary_colour": "",
+            "accent_colour": "",
+            "foreground_colour": "",
+        }
+
+        with (
+            mock.patch.object(
+                customer_location_lookup,
+                "_get_customer_portal_profile_for_user",
+                return_value=expected,
+            ) as get_profile,
+            mock.patch.object(
+                customer_location_lookup.frappe,
+                "session",
+            ) as session,
+        ):
+            session.user = "emerald@example.com"
+
+            result = (
+                customer_location_lookup
+                .get_customer_portal_profile()
+            )
+
+        self.assertEqual(result, expected)
+
+        get_profile.assert_called_once_with(
+            "emerald@example.com"
+        )
+
 if __name__ == "__main__":
     unittest.main()

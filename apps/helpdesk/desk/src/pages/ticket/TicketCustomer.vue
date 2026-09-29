@@ -1,5 +1,5 @@
 <template>
-  <div v-if="ticket.data" class="flex flex-col bg-[#fbf8f2]">
+  <div v-if="ticket.data" class="flex flex-col bg-gray-50">
     <LayoutHeader>
       <template #left-header>
         <div
@@ -47,36 +47,49 @@
       </template>
     </LayoutHeader>
     <div
-      class="mx-6 mt-4 overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm md:mx-10"
+      class="mx-6 mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-700 shadow-sm md:mx-10"
+      :style="portalPrimaryStyle"
     >
-      <div class="h-1 bg-[#b79a55]" />
+      <div
+        class="h-1 bg-gray-300"
+        :style="portalAccentStyle"
+      />
 
       <div
         class="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between"
       >
         <div class="flex items-center gap-4">
           <div
-            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#fffaf0] p-2 shadow-sm ring-1 ring-[#e5d8bc]"
+            v-if="customerPortalProfile.logo"
+            class="flex h-14 w-24 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200 sm:w-36"
           >
             <img
-              :src="boschendalLogoUrl"
-              alt="Boschendal"
-              class="max-h-10 w-auto"
+              :src="customerPortalProfile.logo"
+              :alt="customerPortalProfile.customer_name"
+              class="max-h-10 max-w-full object-contain"
             />
           </div>
 
           <div>
-            <div class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]">
-              {{ __("Boschendal Service Desk") }}
+            <div
+              class="text-sm uppercase tracking-[0.22em] text-gray-200"
+              :style="portalAccentTextStyle"
+            >
+              {{ customerPortalProfile.service_desk_name }}
             </div>
-            <div class="text-xl font-semibold text-white">
+
+            <div
+              class="text-xl font-semibold text-white"
+              :style="portalForegroundStyle"
+            >
               {{ __("Support request") }} #{{ ticket.data.name }}
             </div>
           </div>
         </div>
 
         <div
-          class="w-fit rounded-full border border-[#f1e8d2]/50 px-3 py-1 text-sm text-[#fffaf0]"
+          class="w-fit rounded-full border border-white/40 px-3 py-1 text-sm text-white"
+          :style="portalForegroundStyle"
         >
           {{ __("Managed by Telectro") }}
         </div>
@@ -92,7 +105,7 @@
 
         <div
           v-if="isMobileView && originalCustomerRequest"
-          class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 shadow-sm md:mx-10"
+          class="mx-6 mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
             {{ __("Request details") }}
@@ -119,7 +132,7 @@
             latestCustomerVisibleUpdate &&
             latestCustomerVisibleUpdate.name !== originalCustomerRequest?.name
           "
-          class="mx-6 mt-4 rounded-2xl border border-[#e5ded2] bg-[#fffdf8] p-4 shadow-sm md:mx-10"
+          class="mx-6 mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:mx-10"
         >
           <div class="mb-1 text-sm font-medium text-gray-900">
             {{ __("Latest update") }}
@@ -145,7 +158,7 @@
 
         <div
           v-if="showEditor"
-          class="border-t border-[#e5ded2] bg-[#fbf8f2] px-5 pt-4 md:bg-surface-white"
+          class="border-t border-gray-200 bg-gray-50 px-5 pt-4 md:bg-surface-white"
         >
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -162,7 +175,8 @@
             </div>
             <button
               type="button"
-              class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a]"
+              class="inline-flex items-center rounded-lg bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:opacity-90"
+              :style="portalPrimaryStyle"
               @click="openCustomerUpdateEditor"
             >
               {{ __("Add information") }}
@@ -231,6 +245,7 @@ import {
   provide,
   ref,
 } from "vue";
+import { useCustomerPortalProfile } from "@/composables/useCustomerPortalProfile";
 import { useRouter } from "vue-router";
 import { ITicket } from "./symbols";
 import TicketConversation from "./TicketConversation.vue";
@@ -285,7 +300,43 @@ const isExpanded = ref(false);
 const { isMobileView } = useScreenSize();
 const { $dialog } = globalStore();
 
-const boschendalLogoUrl = "/assets/telephony/images/boschendal-logo.svg";
+const { profile: customerPortalProfile } = useCustomerPortalProfile();
+
+const portalPrimaryStyle = computed(() =>
+  customerPortalProfile.value.primary_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.primary_colour,
+      }
+    : {},
+);
+
+const portalAccentStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalAccentTextStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        color:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalForegroundStyle = computed(() =>
+  customerPortalProfile.value.foreground_colour
+    ? {
+        color:
+          customerPortalProfile.value.foreground_colour,
+      }
+    : {},
+);
 
 const send = createResource({
   url: "run_doc_method",
