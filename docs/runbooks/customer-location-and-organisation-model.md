@@ -521,30 +521,79 @@ The portal remains server-scoped to the Campus resolved for that Customer.
 
 ### 1. Required Location topology
 
-Customer campuses must be group Locations directly below:
+Every Customer site or campus that must be selectable operationally is represented
+by a group `Location` directly below:
 
 ```text
 Pilot Sites
 ```
 
-Example:
+The minimum valid topology is therefore:
 
 ```text
 Pilot Sites
-├─ Existing Customer Campus
-└─ New Customer Campus
-   ├─ New Customer Campus - Areas
-   ├─ New Customer Campus - Buildings
-   ├─ New Customer Campus - Links
-   ├─ New Customer Campus - Network Nodes
-   ├─ New Customer Campus - Other
-   └─ New Customer Campus - Residents
+├─ Customer Campus A
+├─ Customer Campus B
+└─ Customer Campus C
 ```
 
-The top-level Campus and category buckets are group Locations.
+The required depth of the Location hierarchy is Customer-specific.
 
-Actual Fault Points and assets are leaf Locations beneath the relevant
-category.
+A Campus may itself be the terminal operational fault location where the
+Customer reports faults only at site or campus level. In that model, the Campus
+does not require synthetic Buildings, Links, Network Nodes, Fault Points, or
+Equipment merely to satisfy the portal workflow.
+
+A terminal Customer Campus is explicitly represented as:
+
+```text
+custom_customer_visibility = Customer-safe
+custom_ticket_selectability = Selectable
+```
+
+Where coordinates are available on that Campus, those coordinates may be used
+directly for Customer-facing map and aerial-map context.
+
+A deeper hierarchy may be required where the Customer's operational workflow
+needs users to identify a more specific fault location, logical infrastructure,
+or Equipment.
+
+For example:
+
+```text
+Pilot Sites
+└─ Customer Campus
+   ├─ Customer Campus - Buildings
+   │  └─ Source-backed Building / Fault Point
+   ├─ Customer Campus - Links
+   │  └─ Source-backed Link / Fault Point
+   └─ Customer Campus - Network Nodes
+      └─ Source-backed Network Location
+```
+
+Only introduce descendant Locations, logical-network structure, or Equipment
+where:
+
+1. the Customer's fault-reporting or operational workflow requires that level
+   of identification; and
+2. the structure is supported by authoritative source data.
+
+Do not automatically reproduce another Customer's hierarchy.
+
+Buildings, Links, Network Nodes, Areas, Equipment, and similar layers may be
+appropriate for one Customer while being unnecessary for another. The absence
+of those layers for one Customer must not be treated as a general rule for
+future Customers.
+
+Emerald Life is the accepted Campus-only example. Faults are reported against
+the affected site, for example a link-down or phones-down condition. Subsequent
+equipment investigation occurs inside Telectro, so Emerald Life does not
+require Customer-site Equipment or an additional logical-network Location
+layer.
+
+Boschendal remains an example of a Customer for which a deeper Location
+hierarchy is operationally useful. Future Customers must be assessed against
+their own workflow and authoritative source data.
 
 ### 2. Location has no active/enabled switch
 
@@ -1207,7 +1256,11 @@ For every future Customer Campus and Location onboarding:
 [ ] Accept deterministic staged release artifacts
 [ ] Record accepted artifact SHA-256 hashes
 [ ] Confirm logical staged row counts
-[ ] Confirm target Campus root and category groups
+[ ] Confirm target Campus roots
+[ ] Determine the required Customer-specific Location depth
+[ ] Confirm whether the Campus itself is a valid terminal ticket Location
+[ ] Determine whether descendant Locations, logical topology, or Equipment are operationally required
+[ ] Require authoritative source data before creating deeper Location or Equipment structures
 [ ] Verify production Pilot Sites prerequisite
 [ ] Inspect existing Pilot Sites baseline
 [ ] Stage exact artifacts through the controlled import boundary
@@ -1239,9 +1292,11 @@ For every future Customer Campus and Location onboarding:
 [ ] Verify Customer roles and containment
 [ ] Resolve Customer user to intended Campus
 [ ] Prove another Customer's Campus is not exposed
-[ ] Browser-test each required Location category
-[ ] Verify point Location selection
-[ ] Verify Links/Areas non-point behaviour where required
+[ ] Browser-test every required Campus and Location level
+[ ] For terminal Campuses, verify Campus-only ticket submission and map/aerial-map behaviour
+[ ] Verify descendant Location selection where the Customer requires descendants
+[ ] Verify logical or Equipment selection where the Customer requires those layers
+[ ] Verify category-specific point/non-point behaviour only where those categories exist
 [ ] Browser-test the Support Requests list
 [ ] Browser-test Log a Support Request
 [ ] Browser-test an existing Support Request detail page
