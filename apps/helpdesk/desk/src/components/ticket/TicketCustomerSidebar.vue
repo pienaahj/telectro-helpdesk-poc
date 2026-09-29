@@ -142,7 +142,8 @@
             :href="customerLocationMapUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded border border-[#7b836b] bg-[#7b836b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            class="rounded border border-gray-700 bg-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            :style="portalPrimaryStyle"
           >
             {{ __("Aerial view") }}
           </a>
@@ -186,10 +187,24 @@ import { Field } from "@/types";
 import { formatTime } from "@/utils";
 import { Avatar, Tooltip, call } from "frappe-ui";
 import { computed, inject, ref, watch } from "vue";
+import { useCustomerPortalProfile } from "@/composables/useCustomerPortalProfile";
 
 const emit = defineEmits(["open"]);
 
 const ticket = inject(ITicket);
+
+const { profile: customerPortalProfile } = useCustomerPortalProfile();
+
+const portalPrimaryStyle = computed(() =>
+  customerPortalProfile.value.primary_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.primary_colour,
+        borderColor:
+          customerPortalProfile.value.primary_colour,
+      }
+    : {},
+);
 
 const locationContextFieldnames = [
   "custom_site_group",

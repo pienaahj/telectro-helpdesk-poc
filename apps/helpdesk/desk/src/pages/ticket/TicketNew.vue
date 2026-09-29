@@ -19,33 +19,45 @@
     >
       <div
         v-if="isCustomerPortal"
-        class="overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm"
+        class="overflow-hidden rounded-2xl border border-gray-200 bg-gray-700 shadow-sm"
+        :style="portalPrimaryStyle"
       >
-        <div class="h-1 bg-[#c9b37a]"></div>
+        <div
+          class="h-1 bg-gray-300"
+          :style="portalAccentStyle"
+        ></div>
 
         <div class="flex items-center gap-4 px-5 py-4">
           <div
-            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#fffaf0] p-2 shadow-sm ring-1 ring-[#e5d8bc]"
+            v-if="customerPortalProfile.logo"
+            class="flex h-14 w-24 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200 sm:w-36"
           >
             <img
-              :src="boschendalLogoUrl"
-              alt="Boschendal"
-              class="max-h-10 w-auto"
+              :src="customerPortalProfile.logo"
+              :alt="customerPortalProfile.customer_name"
+              class="max-h-10 max-w-full object-contain"
             />
           </div>
 
           <div>
             <div
-              class="text-sm uppercase tracking-[0.22em] text-[#f1e8d2]"
+              class="text-sm uppercase tracking-[0.22em] text-gray-200"
+              :style="portalAccentTextStyle"
             >
-              {{ __("Boschendal Service Desk") }}
+              {{ customerPortalProfile.service_desk_name }}
             </div>
 
-            <div class="text-xl font-semibold text-white">
+            <div
+              class="text-xl font-semibold text-white"
+              :style="portalForegroundStyle"
+            >
               {{ __("Log a Support Request") }}
             </div>
 
-            <div class="mt-1 max-w-2xl text-sm text-[#fffaf0]">
+            <div
+              class="mt-1 max-w-2xl text-sm text-gray-100"
+              :style="portalForegroundStyle"
+            >
               {{
                 __(
                   "Tell the Telectro team what needs attention and where it is located.",
@@ -199,7 +211,8 @@
 
               <button
                 type="button"
-                class="inline-flex items-center rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a] disabled:cursor-not-allowed disabled:opacity-60"
+                class="inline-flex items-center rounded-lg bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                :style="portalPrimaryStyle"
                 :disabled="faultPointLoading || !selectedCampus"
                 @click="searchFaultPoints"
               >
@@ -307,7 +320,8 @@
                     }"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="rounded border border-[#7b836b] bg-[#7b836b] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                    class="rounded border border-gray-700 bg-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                    :style="portalPrimaryStyle"
                   >
                     {{ __("Aerial view") }}
                   </RouterLink>
@@ -656,6 +670,7 @@ import {
   parseField,
   setupCustomizations,
 } from "@/composables/formCustomisation";
+import { useCustomerPortalProfile } from "@/composables/useCustomerPortalProfile";
 import { useAuthStore } from "@/stores/auth";
 import { globalStore } from "@/stores/globalStore";
 import { capture } from "@/telemetry";
@@ -705,7 +720,43 @@ const description = ref("");
 const attachments = ref([]);
 const templateFields = reactive({});
 
-const boschendalLogoUrl = "/assets/telephony/images/boschendal-logo.svg";
+const { profile: customerPortalProfile } = useCustomerPortalProfile();
+
+const portalPrimaryStyle = computed(() =>
+  customerPortalProfile.value.primary_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.primary_colour,
+      }
+    : {},
+);
+
+const portalAccentStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalAccentTextStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        color:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalForegroundStyle = computed(() =>
+  customerPortalProfile.value.foreground_colour
+    ? {
+        color:
+          customerPortalProfile.value.foreground_colour,
+      }
+    : {},
+);
 
 const faultPointCategories = [
   "Buildings",

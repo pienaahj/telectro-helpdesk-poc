@@ -17,7 +17,8 @@
           <button
             v-if="isCustomerPortal"
             type="button"
-            class="inline-flex items-center gap-2 rounded-lg bg-[#757c65] px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-[#68705a]"
+            class="inline-flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-gray-800"
+            :style="portalPrimaryStyle"
           >
             <LucidePlus class="h-4 w-4" />
             <span>{{ __("Log a Support Request") }}</span>
@@ -34,32 +35,48 @@
 
     <div
       v-if="isCustomerPortal"
-      class="mx-6 mt-4 overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#757c65] shadow-sm md:mx-10"
+      class="mx-6 mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-700 shadow-sm md:mx-10"
+      :style="portalPrimaryStyle"
     >
-      <div class="h-1 bg-[#c9b37a]" />
+      <div
+        class="h-1 bg-gray-300"
+        :style="portalAccentStyle"
+      />
 
       <div
         class="flex flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between"
       >
         <div class="flex items-center gap-4">
           <div
-            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#fffaf0] p-2 shadow-sm ring-1 ring-[#e5d8bc]"
+            v-if="customerPortalProfile.logo"
+            class="flex h-14 w-24 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-200 sm:w-36"
           >
             <img
-              :src="boschendalLogoUrl"
-              alt="Boschendal"
-              class="max-h-10 w-auto"
+              :src="customerPortalProfile.logo"
+              :alt="customerPortalProfile.customer_name"
+              class="max-h-10 max-w-full object-contain"
             />
           </div>
 
           <div>
-            <div class="text-sm uppercase tracking-[0.22em] text-[#d8c28a]">
-              {{ __("Boschendal Service Desk") }}
+            <div
+              class="text-sm uppercase tracking-[0.22em] text-gray-200"
+              :style="portalAccentTextStyle"
+            >
+              {{ customerPortalProfile.service_desk_name }}
             </div>
-            <div class="text-xl font-semibold text-white">
+
+            <div
+              class="text-xl font-semibold text-white"
+              :style="portalForegroundStyle"
+            >
               {{ __("Support Requests") }}
             </div>
-            <div class="mt-1 max-w-2xl text-sm text-[#efe6d4]">
+
+            <div
+              class="mt-1 max-w-2xl text-sm text-gray-100"
+              :style="portalForegroundStyle"
+            >
               {{
                 __(
                   "View your logged support requests, follow progress, and add information for the Telectro team.",
@@ -70,7 +87,8 @@
         </div>
 
         <div
-          class="w-fit rounded-full border border-[#f1e8d2]/50 px-3 py-1 text-sm text-[#fffaf0]"
+          class="w-fit rounded-full border border-white/40 px-3 py-1 text-sm text-white"
+          :style="portalForegroundStyle"
         >
           {{ __("Managed by Telectro") }}
         </div>
@@ -117,6 +135,7 @@ import {
   TicketIcon,
   UnpinIcon,
 } from "@/components/icons";
+import { useCustomerPortalProfile } from "@/composables/useCustomerPortalProfile";
 import ExportModal from "@/components/ticket/ExportModal.vue";
 import ViewBreadcrumbs from "@/components/ViewBreadcrumbs.vue";
 import ViewModal from "@/components/ViewModal.vue";
@@ -151,7 +170,43 @@ const { isManager } = useAuthStore();
 const listViewRef = ref(null);
 const showExportModal = ref(false);
 
-const boschendalLogoUrl = "/assets/telephony/images/boschendal-logo.svg";
+const { profile: customerPortalProfile } = useCustomerPortalProfile();
+
+const portalPrimaryStyle = computed(() =>
+  customerPortalProfile.value.primary_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.primary_colour,
+      }
+    : {},
+);
+
+const portalAccentStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalAccentTextStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        color:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
+
+const portalForegroundStyle = computed(() =>
+  customerPortalProfile.value.foreground_colour
+    ? {
+        color:
+          customerPortalProfile.value.foreground_colour,
+      }
+    : {},
+);
 
 const { getStatus } = useTicketStatusStore();
 

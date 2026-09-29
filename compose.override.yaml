@@ -18,7 +18,7 @@ services:
       - "8080:8080"
     volumes:
       - apps:/home/frappe/frappe-bench/apps:ro
-
+      - ./deploy/nginx/dev-default.conf.template:/etc/nginx/conf.d/default.conf.template:ro
   queue-long:
     volumes:
       - apps:/home/frappe/frappe-bench/apps

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen flex-col bg-[#fbf8f2]">
+  <div class="flex min-h-screen flex-col bg-gray-50">
     <LayoutHeader>
       <template #left-header>
         <div class="flex min-w-0 items-center gap-1 text-lg font-medium">
@@ -30,14 +30,20 @@
 
     <main class="mx-auto w-full max-w-5xl flex-1 px-6 py-6 md:px-10">
       <div
-        class="overflow-hidden rounded-2xl border border-[#d6c7a8] bg-[#fffdf8] shadow-sm"
+        class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
       >
-        <div class="h-1 bg-[#b79a55]"></div>
+        <div
+          class="h-1 bg-gray-300"
+          :style="portalAccentStyle"
+        ></div>
 
         <div class="space-y-6 p-5 md:p-6">
           <div>
-            <div class="text-sm uppercase tracking-[0.18em] text-[#757c65]">
-              {{ __("Boschendal Service Desk") }}
+            <div
+              class="text-sm uppercase tracking-[0.18em] text-gray-700"
+              :style="portalPrimaryTextStyle"
+            >
+              {{ customerPortalProfile.service_desk_name }}
             </div>
 
             <h1 class="mt-1 text-2xl font-semibold text-gray-900">
@@ -66,7 +72,7 @@
 
           <template v-else>
             <div
-              class="grid gap-4 rounded-xl border border-[#e5ded2] bg-white p-4 md:grid-cols-2"
+              class="grid gap-4 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-2"
             >
               <div>
                 <div class="text-xs font-medium uppercase text-gray-500">
@@ -113,12 +119,12 @@
               <div
                 v-if="hasCoordinates"
                 ref="mapContainer"
-                class="h-[420px] w-full overflow-hidden rounded-xl border border-[#d6c7a8] md:h-[500px]"
+                class="h-[420px] w-full overflow-hidden rounded-xl border border-gray-200 md:h-[500px]"
               ></div>
 
               <div
                 v-else
-                class="rounded-xl border border-dashed border-[#d6c7a8] bg-[#fbf8f2] p-6 text-center text-sm text-gray-600"
+                class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-600"
               >
                 {{
                   __(
@@ -147,6 +153,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { useCustomerPortalProfile } from "@/composables/useCustomerPortalProfile";
 
 interface CustomerLocationMapContext {
   location?: string;
@@ -173,6 +180,26 @@ interface P {
 }
 
 const props = defineProps<P>();
+
+const { profile: customerPortalProfile } = useCustomerPortalProfile();
+
+const portalPrimaryTextStyle = computed(() =>
+  customerPortalProfile.value.primary_colour
+    ? {
+        color:
+          customerPortalProfile.value.primary_colour,
+      }
+    : {},
+);
+
+const portalAccentStyle = computed(() =>
+  customerPortalProfile.value.accent_colour
+    ? {
+        backgroundColor:
+          customerPortalProfile.value.accent_colour,
+      }
+    : {},
+);
 
 const locationContext = ref<CustomerLocationMapContext>({});
 const loading = ref(false);

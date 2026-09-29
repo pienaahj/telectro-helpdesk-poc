@@ -1225,19 +1225,384 @@ For every future Customer Campus and Location onboarding:
 [ ] Confirm existing Location hierarchy remains semantically intact
 [ ] Confirm new Campus is a group directly under Pilot Sites
 [ ] Create/configure the correct HD Customer organisation
+[ ] Configure the Customer Portal presentation profile on that HD Customer
+[ ] Attach the approved Customer logo to the native HD Customer `image` field
+[ ] Use a public PNG runtime logo and verify the `/files/...png` URL returns HTTP 200
+[ ] Configure or deliberately leave blank the Portal Service Desk Name
+[ ] Configure or deliberately leave blank Portal Primary Colour
+[ ] Configure or deliberately leave blank Portal Accent Colour
+[ ] Configure or deliberately leave blank Portal Foreground Colour
+[ ] Verify blank presentation fields fall back to the neutral portal presentation
 [ ] Link named Customer Website Users through Contacts
+[ ] Verify every Customer Website User resolves to exactly one intended HD Customer
+[ ] Verify multiple users for the same HD Customer receive the same presentation profile
 [ ] Verify Customer roles and containment
 [ ] Resolve Customer user to intended Campus
 [ ] Prove another Customer's Campus is not exposed
 [ ] Browser-test each required Location category
 [ ] Verify point Location selection
 [ ] Verify Links/Areas non-point behaviour where required
+[ ] Browser-test the Support Requests list
+[ ] Browser-test Log a Support Request
+[ ] Browser-test an existing Support Request detail page
+[ ] Verify the Customer logo, service-desk name, and colour roles on each required page
+[ ] Verify desktop presentation
+[ ] Verify narrow/mobile presentation
+[ ] Verify another Customer does not inherit this Customer's branding
 [ ] Capture Customer-facing acceptance screenshots
 [ ] Record controlled-test Campus restoration/retention decision
 [ ] Only then mark Customer Location onboarding production-ready
 ```
 
-### 18. Operational troubleshooting boundary
+### 18. Customer Portal presentation-profile onboarding
+
+Customer Portal presentation is Customer master data.
+
+The presentation profile belongs to the `HD Customer`. It must not be implemented
+by adding Customer-specific names, colours, logos, or conditional branches to
+Helpdesk frontend source.
+
+The reusable architecture is:
+
+```text
+Customer Website User
+        |
+        v
+native Helpdesk Customer resolution
+        |
+        v
+one HD Customer
+        |
+        v
+Customer Portal presentation profile
+        |
+        +-- service-desk name
+        +-- logo
+        +-- primary colour
+        +-- accent colour
+        +-- foreground colour
+```
+
+#### Presentation ownership
+
+The canonical presentation owner is:
+
+```text
+HD Customer
+```
+
+The relevant fields are:
+
+```text
+customer_name
+image
+custom_portal_service_desk_name
+custom_portal_primary_colour
+custom_portal_accent_colour
+custom_portal_foreground_colour
+```
+
+`image` is the native HD Customer image field.
+
+The four `custom_portal_*` fields are optional Customer-specific presentation
+settings.
+
+Do not create per-user branding.
+
+All Customer Website Users that resolve to the same `HD Customer` must inherit
+the same presentation profile.
+
+#### Resolution contract
+
+Customer identity must continue to use the native Helpdesk Customer-resolution
+path.
+
+The portal-profile resolver must not guess.
+
+The expected resolution behaviour is:
+
+```text
+authenticated user resolves to exactly one HD Customer
+→ return that HD Customer's presentation profile
+
+Guest
+→ neutral profile
+
+user resolves to zero HD Customers
+→ neutral profile
+
+user resolves to more than one HD Customer
+→ neutral profile
+```
+
+Do not repair an ambiguous Customer relationship by adding presentation-specific
+lookup logic.
+
+Fix the Customer / Contact / Dynamic Link relationship instead.
+
+#### Neutral fallback contract
+
+All presentation fields are optional.
+
+The neutral fallback is:
+
+```text
+service_desk_name = Service Desk
+logo              = blank
+primary_colour    = blank
+accent_colour     = blank
+foreground_colour = blank
+```
+
+For an authenticated Customer with no explicit service-desk name:
+
+```text
+{customer_name} Service Desk
+```
+
+is derived automatically.
+
+Therefore a new Customer does not require branding data merely to make the
+portal usable.
+
+An unconfigured Customer must never inherit another Customer's presentation.
+
+#### Colour-role contract
+
+The three configurable colours have separate semantic roles.
+
+```text
+Portal Primary Colour
+→ main branded header/background surface
+→ primary Customer Portal actions where applicable
+
+Portal Accent Colour
+→ narrow header trim
+→ Customer service-desk label
+
+Portal Foreground Colour
+→ main branded-header heading
+→ explanatory header text
+→ branded header badge text
+```
+
+These roles are deliberately independent.
+
+Do not assume that a Customer's brightest brand colour is suitable as the
+primary surface.
+
+For example, a bright gold can work well as an accent but provide poor contrast
+when used as the main background.
+
+Blank values retain the neutral Helpdesk presentation.
+
+#### Logo contract
+
+The Customer logo is stored in the native HD Customer `image` field.
+
+For runtime Customer Portal use:
+
+```text
+preferred runtime format = PNG
+Frappe File visibility   = public
+expected URL shape       = /files/<customer-logo>.png
+```
+
+Use a clean, approved Customer logo with appropriate whitespace and aspect
+ratio.
+
+The current Customer Portal logo frame is responsive and is designed to
+accommodate landscape Customer logos without Customer-specific frontend sizing.
+
+Do not add Customer-specific image sizing or Customer-specific logo assets to
+the Helpdesk Vue source.
+
+SVG may remain useful as a source/design asset, but the proven portal runtime
+format is PNG.
+
+Before acceptance, verify that the target environment returns the logo URL as a
+successful image response.
+
+A missing logo is a presentation/configuration problem. It must not trigger
+Customer identity, Campus, or Location changes.
+
+#### Configuration procedure
+
+For every new Customer:
+
+```text
+1. Complete the Customer organisation and Campus onboarding first.
+
+2. Confirm at least one intended Customer Website User resolves to exactly one
+   HD Customer.
+
+3. Open the HD Customer.
+
+4. Confirm the native customer_name.
+
+5. Attach the approved public PNG logo to image.
+
+6. Set Portal Service Desk Name only if the derived
+   "{customer_name} Service Desk" value is not suitable.
+
+7. Choose the primary colour according to the large-surface role.
+   Leave blank if the neutral dark surface is preferable.
+
+8. Choose the accent colour for trim and service-desk identification.
+   Leave blank for the neutral default.
+
+9. Choose the foreground colour for branded-header foreground text.
+   Leave blank for the neutral default.
+
+10. Save the HD Customer.
+
+11. Resolve the Customer Portal profile server-side and verify the returned
+    Customer, service-desk name, logo and colour values.
+
+12. Verify the logo `/files/...png` URL returns successfully.
+
+13. Browser-test the authenticated Customer Portal.
+
+14. Repeat the browser test with another user belonging to the same HD Customer
+    where available.
+
+15. Test a different Customer and prove there is no presentation leakage.
+```
+
+#### Required browser acceptance
+
+At minimum, inspect:
+
+```text
+/helpdesk/my-tickets
+/helpdesk/my-tickets/new
+/helpdesk/my-tickets/<ticket-id>
+```
+
+Confirm:
+
+```text
+[ ] correct Customer logo
+[ ] correct service-desk name
+[ ] correct primary colour role
+[ ] correct accent colour role
+[ ] correct foreground colour role
+[ ] Support Requests list remains usable
+[ ] new-ticket form remains usable
+[ ] existing ticket detail remains usable
+[ ] desktop layout is acceptable
+[ ] narrow/mobile layout is acceptable
+[ ] Customer-specific presentation does not leak to another Customer
+```
+
+Presentation acceptance must include actual browser proof. A correct database
+record alone is not sufficient.
+
+#### Reference configurations
+
+These are accepted examples of how the same generic presentation model can
+support different Customer identities.
+
+Boschendal:
+
+```text
+primary_colour    = #757c65
+accent_colour     = #c9b37a
+foreground_colour = #fffaf0
+logo              = public PNG
+```
+
+This produces the accepted olive surface, gold trim/service-desk label and warm
+foreground treatment.
+
+Emerald Life:
+
+```text
+primary_colour    = blank
+accent_colour     = #d19d30
+foreground_colour = blank
+logo              = public PNG
+```
+
+For Emerald Life the neutral dark primary surface provides better contrast,
+while the Customer gold remains an accent.
+
+These are Customer data examples.
+
+They must never be copied into Helpdesk frontend source as hard-coded Customer
+rules.
+
+#### Source-code boundary
+
+The portal presentation implementation is shared.
+
+The shared profile is obtained through:
+
+```text
+telephony.customer_location_lookup.get_customer_portal_profile
+```
+
+and consumed by the shared Helpdesk Customer Portal presentation code.
+
+When onboarding another Customer, the normal procedure is therefore:
+
+```text
+configure data
++
+prove identity resolution
++
+prove browser presentation
+```
+
+not:
+
+```text
+edit Vue files
++
+add another Customer conditional
++
+rebuild a special Customer portal
+```
+
+If onboarding a new Customer appears to require Customer-specific frontend code,
+stop and inspect the shared presentation model before extending it.
+
+The first question must be:
+
+```text
+Is this genuinely a new reusable presentation capability,
+or are we about to re-implement branding for one Customer?
+```
+
+Only a genuinely reusable capability should extend the shared presentation
+contract.
+
+#### Troubleshooting boundary
+
+Keep presentation failures separate from Customer Location failures.
+
+```text
+Wrong Campus / wrong Location exposure
+→ investigate Customer organisation, Contact, Campus and Location resolution
+
+Correct Customer and Campus, wrong presentation values
+→ inspect HD Customer presentation fields and portal-profile resolver
+
+Correct profile values, wrong browser appearance
+→ inspect shared Customer Portal presentation code / built assets / cache
+
+Correct profile and browser styling, missing logo
+→ inspect Frappe File record and /files delivery
+```
+
+Do not re-import Location data because a logo or colour is wrong.
+
+Do not change Customer/Campus relationships because a CSS presentation value is
+wrong.
+
+This separation is part of the reusable Customer onboarding contract.
+
+### 19. Operational troubleshooting boundary
 
 Always keep these three questions separate:
 
