@@ -199,7 +199,45 @@ def _require_site_within_campus(doc) -> None:
             f"Selected site parent is '{parent}'."
         )
 
-def _require_fault_location_for_faults(doc) -> None:
+def _is_ticket_selectable_terminal_campus(doc) -> bool:
+    """
+    Return whether the selected Campus is itself a valid terminal
+    Customer ticket Location.
+
+    Terminal Campuses are top-level Pilot Sites group Locations that
+    are explicitly Customer-safe and ticket-selectable.
+    """
+    campus = _norm(doc.get("custom_site_group"))
+
+    if not campus:
+        return False
+
+    row = frappe.db.get_value(
+        "Location",
+        campus,
+        [
+            "is_group",
+            "parent_location",
+            "custom_customer_visibility",
+            "custom_ticket_selectability",
+        ],
+        as_dict=True,
+    )
+
+    if not row:
+        return False
+
+    return (
+        bool(row.is_group)
+        and row.parent_location == "Pilot Sites"
+        and row.custom_customer_visibility == "Customer-safe"
+        and row.custom_ticket_selectability == "Selectable"
+    )
+
+def _require_fault_location_for_faults(
+    doc,
+    terminal_campus=False,
+) -> None:
     """
     Require the location field appropriate to the selected Fault Category.
 
@@ -215,6 +253,9 @@ def _require_fault_location_for_faults(doc) -> None:
         return
 
     if not _is_fault_ticket(doc):
+        return
+
+    if terminal_campus:
         return
 
     cat_norm = _norm_lower(
@@ -301,8 +342,16 @@ def validate_site_fields(doc, method=None):
     _require_campus(doc)
     _require_customer_portal_campus_ownership(doc)
 
+    terminal_campus = (
+        _is_ticket_selectable_terminal_campus(doc)
+    )
+
     # Fault-like: require the category-appropriate location anchor early.
-    _require_fault_location_for_faults(doc)
+    # A ticket-selectable terminal Campus is itself the location anchor.
+    _require_fault_location_for_faults(
+        doc,
+        terminal_campus=terminal_campus,
+    )
 
     site_group = _norm(doc.get("custom_site_group"))
     site = _norm(doc.get("custom_site"))
@@ -310,7 +359,13 @@ def validate_site_fields(doc, method=None):
     
     # ✅ NEW: Fault-like tickets must have these fields (server truth)
     if _is_fault_ticket(doc) and not _is_email_intake(doc):
-        _require(doc, "custom_fault_category", "Fault Category")
+        if not terminal_campus:
+            _require(
+                doc,
+                "custom_fault_category",
+                "Fault Category",
+            )
+
         _require(doc, "custom_severity", "Severity")
         _require(doc, "custom_service_area", "Service Area")
 

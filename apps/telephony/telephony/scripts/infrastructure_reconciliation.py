@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 
 
 LOCATION_V2_AUTHORITATIVE_FIELDS = (
@@ -38,6 +39,28 @@ FLOAT_FIELDS = {
     "latitude",
     "longitude",
 }
+
+LOCATION_COORDINATE_DECIMAL_PLACES = 9
+
+_LOCATION_COORDINATE_QUANTUM = (
+    Decimal("1").scaleb(
+        -LOCATION_COORDINATE_DECIMAL_PLACES
+    )
+)
+
+
+def normalize_location_coordinate(value):
+    if value is None or value == "":
+        return None
+
+    return float(
+        Decimal(
+            str(value)
+        ).quantize(
+            _LOCATION_COORDINATE_QUANTUM,
+            rounding=ROUND_HALF_UP,
+        )
+    )
 
 BLANK_EQUIVALENT_FIELDS = {
     "area_uom",
@@ -85,10 +108,9 @@ def _normalize_for_compare(fieldname, value):
         return int(value or 0)
 
     if fieldname in FLOAT_FIELDS:
-        if value is None or value == "":
-            return None
-
-        return float(value)
+        return normalize_location_coordinate(
+            value
+        )
 
     if fieldname in BLANK_EQUIVALENT_FIELDS:
         if value is None or value == "":

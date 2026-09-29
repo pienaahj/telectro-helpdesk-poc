@@ -71,7 +71,10 @@ def get_customer_ticket_location_context(ticket_name=None):
     if ticket.raised_by != user and ticket.customer not in allowed_customers:
         frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-    location_name = ticket.custom_site or ticket.custom_fault_asset
+    location_name = (
+        ticket.custom_site
+        or ticket.custom_fault_asset
+    )
 
     location = None
     equipment = None
@@ -90,6 +93,17 @@ def get_customer_ticket_location_context(ticket_name=None):
             ],
             as_dict=True,
         )
+    elif ticket.custom_site_group:
+        terminal_campus = (
+            _get_customer_owned_terminal_campus(
+                user,
+                ticket.custom_site_group,
+            )
+        )
+
+        if terminal_campus:
+            location_name = terminal_campus.name
+            location = terminal_campus
 
     if ticket.custom_affected_equipment and location_name:
         equipment = frappe.db.get_value(
@@ -374,6 +388,7 @@ def search_customer_fault_points(
 def _get_customer_owned_campus_for_location(
     user: str,
     location_name: str,
+    allowed_campuses=None,
 ):
     """
     Resolve one leaf Location to the Customer-owned Campus
@@ -387,7 +402,11 @@ def _get_customer_owned_campus_for_location(
     if not location_name:
         return None, None
 
-    allowed_campuses = _get_customer_allowed_campuses_for_user(user)
+    if allowed_campuses is None:
+        allowed_campuses = (
+            _get_customer_allowed_campuses_for_user(user)
+        )
+
     if not allowed_campuses:
         return None, None
 
@@ -499,24 +518,100 @@ def search_customer_equipment(location=None, txt=None, page_len=20):
         as_dict=True,
     )
 
+def _get_customer_owned_terminal_campus(
+    user: str,
+    campus_name: str,
+    allowed_campuses=None,
+):
+    """
+    Return one Customer-owned Campus when that Campus is itself
+    a Customer-safe, ticket-selectable terminal Location.
+    """
+    campus_name = (campus_name or "").strip()
+    if not campus_name:
+        return None
+
+    if allowed_campuses is None:
+        allowed_campuses = (
+            _get_customer_allowed_campuses_for_user(user)
+        )
+
+    for campus in allowed_campuses:
+        if campus["name"] != campus_name:
+            continue
+
+        if (
+            campus.get("custom_customer_visibility")
+            != "Customer-safe"
+        ):
+            return None
+
+        if (
+            campus.get("custom_ticket_selectability")
+            != "Selectable"
+        ):
+            return None
+
+        return frappe._dict(campus)
+
+    return None
+
 
 @frappe.whitelist()
 def get_customer_location_map_context(location=None):
     """
-    Return Customer-safe map context for one Location.
+    Return Customer-safe map context for one allowed Location.
 
-    The Location is not trusted merely because it came from the client.
-    It must be a leaf Location inside one of the logged-in Customer user's
-    owned Campuses.
+    A Location may be either:
+
+    - a Customer-owned, Customer-safe, ticket-selectable Campus
+      that is itself the terminal ticket Location; or
+    - a leaf Location inside one of the logged-in Customer user's
+      owned Campuses.
     """
     location = (location or "").strip()
     if not location:
         return {}
 
+    allowed_campuses = (
+        _get_customer_allowed_campuses_for_user(
+            frappe.session.user
+        )
+    )
+
+    if not allowed_campuses:
+        return {}
+
+    terminal_campus = _get_customer_owned_terminal_campus(
+        frappe.session.user,
+        location,
+        allowed_campuses=allowed_campuses,
+    )
+
+    if terminal_campus:
+        return {
+            "location": terminal_campus.name,
+            "location_name": (
+                terminal_campus.location_name
+                or terminal_campus.name
+            ),
+            "campus": terminal_campus.name,
+            "parent_location": (
+                terminal_campus.parent_location or ""
+            ),
+            "latitude": terminal_campus.latitude,
+            "longitude": terminal_campus.longitude,
+            "geometry_type": (
+                terminal_campus.custom_kmz_geometry_type
+                or ""
+            ),
+        }
+
     campus_row, location_row = (
         _get_customer_owned_campus_for_location(
             frappe.session.user,
             location,
+            allowed_campuses=allowed_campuses,
         )
     )
 
@@ -585,6 +680,12 @@ def _get_customer_allowed_campuses_for_user(
         fields=[
             "name",
             "location_name",
+            "parent_location",
+            "latitude",
+            "longitude",
+            "custom_kmz_geometry_type",
+            "custom_customer_visibility",
+            "custom_ticket_selectability",
         ],
         order_by="location_name asc, name asc",
     )

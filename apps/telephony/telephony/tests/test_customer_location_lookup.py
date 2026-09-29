@@ -67,6 +67,12 @@ class TestCustomerAllowedCampuses(unittest.TestCase):
             fields=[
                 "name",
                 "location_name",
+                "parent_location",
+                "latitude",
+                "longitude",
+                "custom_kmz_geometry_type",
+                "custom_customer_visibility",
+                "custom_ticket_selectability",
             ],
             order_by="location_name asc, name asc",
         )
@@ -537,6 +543,165 @@ class TestCustomerAllowedCampuses(unittest.TestCase):
         )
 
         get_legacy_campus.assert_not_called()
+
+    def test_map_context_accepts_selectable_terminal_campus(
+        self,
+    ):
+        allowed_campuses = [
+            {
+                "name": "EL-SITE-024",
+                "location_name":
+                    "Emerald Life - Worcester",
+                "parent_location": "Pilot Sites",
+                "latitude": -33.644688272,
+                "longitude": 19.440466184,
+                "custom_kmz_geometry_type": "Point",
+                "custom_customer_visibility":
+                    "Customer-safe",
+                "custom_ticket_selectability":
+                    "Selectable",
+            }
+        ]
+
+        with (
+            mock.patch.object(
+                customer_location_lookup,
+                "_get_customer_allowed_campuses_for_user",
+                return_value=allowed_campuses,
+            ) as get_allowed_campuses,
+            mock.patch.object(
+                customer_location_lookup,
+                "_get_customer_owned_campus_for_location",
+            ) as get_leaf_location,
+            mock.patch.object(
+                customer_location_lookup.frappe,
+                "session",
+            ) as session,
+        ):
+            session.user = "emerald@example.com"
+
+            result = (
+                customer_location_lookup
+                .get_customer_location_map_context(
+                    location="EL-SITE-024",
+                )
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "location": "EL-SITE-024",
+                "location_name":
+                    "Emerald Life - Worcester",
+                "campus": "EL-SITE-024",
+                "parent_location": "Pilot Sites",
+                "latitude": -33.644688272,
+                "longitude": 19.440466184,
+                "geometry_type": "Point",
+            },
+        )
+
+        get_allowed_campuses.assert_called_once_with(
+            "emerald@example.com"
+        )
+
+        get_leaf_location.assert_not_called()
+
+    def test_ticket_context_uses_selectable_terminal_campus(
+        self,
+    ):
+        ticket = frappe._dict(
+            {
+                "name": 999,
+                "customer": "Emerald Life",
+                "raised_by": "emerald@example.com",
+                "custom_site_group": "EL-SITE-024",
+                "custom_fault_category": None,
+                "custom_site": None,
+                "custom_fault_asset": None,
+                "custom_service_area": "PABX",
+                "custom_affected_equipment": None,
+                "custom_equipment_ref": None,
+                "via_customer_portal": 1,
+            }
+        )
+
+        terminal_campus = frappe._dict(
+            {
+                "name": "EL-SITE-024",
+                "location_name":
+                    "Emerald Life - Worcester",
+                "parent_location": "Pilot Sites",
+                "latitude": -33.644688272,
+                "longitude": 19.440466184,
+                "custom_kmz_geometry_type": "Point",
+                "custom_customer_visibility":
+                    "Customer-safe",
+                "custom_ticket_selectability":
+                    "Selectable",
+            }
+        )
+
+        with (
+            mock.patch.object(
+                customer_location_lookup.frappe.db,
+                "get_value",
+                return_value=ticket,
+            ) as get_value,
+            mock.patch.object(
+                customer_location_lookup,
+                "_get_hd_customers_for_user",
+                return_value=["Emerald Life"],
+            ),
+            mock.patch.object(
+                customer_location_lookup,
+                "_get_customer_owned_terminal_campus",
+                return_value=terminal_campus,
+            ) as get_terminal_campus,
+            mock.patch.object(
+                customer_location_lookup.frappe,
+                "session",
+            ) as session,
+        ):
+            session.user = "emerald@example.com"
+
+            result = (
+                customer_location_lookup
+                .get_customer_ticket_location_context(
+                    ticket_name="999",
+                )
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "ticket": 999,
+                "customer": "Emerald Life",
+                "campus": "EL-SITE-024",
+                "category": None,
+                "service_area": "PABX",
+                "equipment_ref": None,
+                "affected_equipment": "",
+                "affected_equipment_id": "",
+                "affected_equipment_type": "",
+                "affected_equipment_manufacturer": "",
+                "affected_equipment_model": "",
+                "fault_point":
+                    "Emerald Life - Worcester",
+                "fault_point_id": "EL-SITE-024",
+                "parent_location": "Pilot Sites",
+                "latitude": -33.644688272,
+                "longitude": 19.440466184,
+                "geometry_type": "Point",
+            },
+        )
+
+        get_value.assert_called_once()
+
+        get_terminal_campus.assert_called_once_with(
+            "emerald@example.com",
+            "EL-SITE-024",
+        )
 
     def test_portal_profile_returns_configured_hd_customer_profile(
         self,

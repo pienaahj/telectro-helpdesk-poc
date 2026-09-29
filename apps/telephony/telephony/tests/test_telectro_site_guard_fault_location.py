@@ -84,6 +84,21 @@ class TestTelectroSiteGuardFaultLocation(unittest.TestCase):
             doc
         )
 
+    def test_terminal_campus_accepts_fault_without_descendant_location(
+        self,
+    ):
+        doc = self._fault_doc(
+            custom_site_group="EL-SITE-024",
+            custom_fault_category=None,
+            custom_site=None,
+            custom_fault_asset=None,
+        )
+
+        telectro_site_guard._require_fault_location_for_faults(
+            doc,
+            terminal_campus=True,
+        )
+
 
 class TestCustomerPortalCampusOwnership(unittest.TestCase):
     def _doc(self, **overrides):

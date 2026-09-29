@@ -2,6 +2,9 @@ import csv
 from dataclasses import dataclass
 from pathlib import Path
 import frappe
+from telephony.scripts.infrastructure_reconciliation import (
+    normalize_location_coordinate,
+)
 
 
 V1_HEADER = (
@@ -395,15 +398,15 @@ def verify_release_row(row):
             "longitude",
         }:
             actual = (
-                None
-                if actual is None
-                else float(actual)
+                normalize_location_coordinate(
+                    actual
+                )
             )
 
             wanted = (
-                None
-                if wanted is None
-                else float(wanted)
+                normalize_location_coordinate(
+                    wanted
+                )
             )
 
         if actual != wanted:
