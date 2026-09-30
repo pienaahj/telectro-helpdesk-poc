@@ -28,6 +28,7 @@ FULL_COMMIT_SHA="${FULL_COMMIT_SHA:-}"
 SOURCE_ARTIFACT="${SOURCE_ARTIFACT:-}"
 SOURCE_TAR_SHA256="${SOURCE_TAR_SHA256:-}"
 BUILDX_BUILDER="${BUILDX_BUILDER:-}"
+ESRI_BROWSER_KEY="${ESRI_BROWSER_KEY:-}"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 TMPDIR="${TMPDIR:-/tmp}"
 
@@ -53,6 +54,9 @@ esac
 
 [ -n "$BUILDX_BUILDER" ] ||
   fail "BUILDX_BUILDER is required"
+
+[ -n "$ESRI_BROWSER_KEY" ] ||
+  fail "ESRI_BROWSER_KEY is required"
 
 [ "${#FULL_COMMIT_SHA}" -eq 40 ] ||
   fail "FULL_COMMIT_SHA must be exactly 40 lowercase hexadecimal characters"
@@ -252,6 +256,7 @@ if "$DOCKER_BIN" buildx build \
   --platform "$BUILD_PLATFORM" \
   --progress plain \
   --load \
+  --secret id=esri_browser_key,env=ESRI_BROWSER_KEY \
   --file "$BUILD_CONTEXT/docker/telectro-runtime.Dockerfile" \
   --tag "$IMAGE_TAG" \
   "$BUILD_CONTEXT" \

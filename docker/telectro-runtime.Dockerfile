@@ -352,11 +352,31 @@ print(
 )
 PY
 
-RUN set -eux; \
+RUN --mount=type=secret,id=esri_browser_key,required=true,mode=0444 \
+    set -eu; \
+    ESRI_BROWSER_KEY="$(cat /run/secrets/esri_browser_key)"; \
+    [ -n "$ESRI_BROWSER_KEY" ] || { \
+        printf '%s\n' 'Esri browser key is empty' >&2; \
+        exit 1; \
+    }; \
     mkdir -p sites; \
     printf '%s\n' '{"socketio_port": 9000}' > sites/common_site_config.json; \
     cat sites/common_site_config.json; \
-    bench build
+    VITE_ESRI_API_KEY="$ESRI_BROWSER_KEY" \
+        bench build; \
+    printf '%s\n' 'ESRI_BROWSER_BUILD_INPUT_APPLIED=YES'; \
+    test -d sites/assets/helpdesk || { \
+        printf '%s\n' 'Compiled Helpdesk asset directory is missing' >&2; \
+        exit 1; \
+    }; \
+    grep -R -F -q \
+        --include='*.js' \
+        -- "$ESRI_BROWSER_KEY" \
+        sites/assets/helpdesk || { \
+        printf '%s\n' 'Esri browser key was not embedded in compiled Helpdesk JavaScript' >&2; \
+        exit 1; \
+    }; \
+    printf '%s\n' 'ESRI_BROWSER_KEY_EMBEDDED=YES'
 
 # Frappe's asset build can minify rgba(0, 0, 0, 0.1) to eight-digit hex.
 # Premailer's CSS parser rejects that syntax while preparing email HTML.

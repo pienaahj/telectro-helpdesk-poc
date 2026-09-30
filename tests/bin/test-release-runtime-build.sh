@@ -9,12 +9,16 @@ ROOT_DIR="$(
 
 HELPER="${ROOT_DIR}/bin/release-runtime-build.sh"
 SOURCE_ARTIFACT_HELPER="${ROOT_DIR}/bin/release-source-artifact.sh"
+RUNTIME_DOCKERFILE="${ROOT_DIR}/docker/telectro-runtime.Dockerfile"
 
 KNOWN_RELEASE_ID="20260814-b946cbf"
 KNOWN_FULL_COMMIT_SHA="b946cbf7ae23b628a261ac0702577b5f7323c222"
 KNOWN_SOURCE_TAR_SHA256="5d95fbc2ba1f1e9a4da7f3bb49e13b9620b1e6b4aeaa65aeb8afb07b817815d8"
 KNOWN_IMAGE_TAG="telectro/erpnext-runtime:prod-${KNOWN_RELEASE_ID}"
 KNOWN_BUILDER="recordingdepov2-builder"
+KNOWN_ESRI_BROWSER_KEY="test-esri-browser-key-for-release-regression"
+
+export ESRI_BROWSER_KEY="$KNOWN_ESRI_BROWSER_KEY"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -42,6 +46,110 @@ fi
 
 printf '%s\n' 'RELEASE_RUNTIME_BUILD_HELPER_PRESENT=PASS'
 
+printf '\n%s\n' \
+  '=== Esri Dockerfile build-secret contract ==='
+
+test -f "$RUNTIME_DOCKERFILE" ||
+  fail "runtime Dockerfile is missing"
+
+ESRI_BUILD_BLOCK="${TMP_ROOT}/esri-build-block.txt"
+
+if ! grep -A35 -F \
+  'RUN --mount=type=secret,id=esri_browser_key' \
+  "$RUNTIME_DOCKERFILE" \
+  >"$ESRI_BUILD_BLOCK"
+then
+  fail "runtime Dockerfile does not consume Esri BuildKit secret"
+fi
+
+grep -F \
+  'required=true,mode=0444' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri BuildKit secret mount is not required and read-only"
+
+grep -F \
+  "grep -R -F -q" \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build step does not verify compiled browser assets"
+
+grep -F \
+  -- "--include='*.js'" \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification is not limited to compiled JavaScript"
+
+grep -F \
+  '"$ESRI_BROWSER_KEY"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification does not check the supplied browser key"
+
+grep -F \
+  'sites/assets/helpdesk' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification does not inspect Helpdesk assets"
+
+grep -F \
+  'ESRI_BROWSER_KEY_EMBEDDED=YES' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri asset embedding success marker is missing"
+
+grep -F \
+  'ESRI_BROWSER_KEY="$(cat /run/secrets/esri_browser_key)"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri browser key is not read from the BuildKit secret mount"
+
+grep -F \
+  'VITE_ESRI_API_KEY="$ESRI_BROWSER_KEY"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri browser key is not supplied to the Vite build"
+
+grep -F \
+  'bench build' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri secret consumer does not execute bench build"
+
+grep -F \
+  'set -eu;' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build step does not use non-xtrace shell mode"
+
+if grep -F \
+  'set -eux' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null
+then
+  fail "Esri build step enables shell xtrace"
+fi
+
+if grep -E \
+  '^[[:space:]]*(ARG|ENV)[[:space:]]+VITE_ESRI_API_KEY' \
+  "$RUNTIME_DOCKERFILE" \
+  >/dev/null
+then
+  fail "VITE_ESRI_API_KEY must not be persisted as Docker ARG or ENV"
+fi
+
+printf '%s\n' \
+  'ESRI_DOCKERFILE_SECRET_CONSUMER=PASS'
+
+printf '%s\n' \
+  'ESRI_DOCKERFILE_NO_XTRACE=PASS'
+
+printf '%s\n' \
+  'ESRI_VITE_KEY_NOT_PERSISTED_AS_DOCKER_ENV=PASS'
+
+printf '%s\n' \
+  'ESRI_BROWSER_KEY_EMBEDDING_CONTRACT=PASS'
+
 printf '\n%s\n' '=== Prepare known-good 2026-08-14 source artifact ==='
 
 RELEASE_ID="$KNOWN_RELEASE_ID" \
@@ -60,6 +168,74 @@ grep -F \
   fail "known-good source tar SHA-256 was not reproduced"
 
 printf '%s\n' 'KNOWN_GOOD_SOURCE_ARTIFACT=PASS'
+
+printf '\n%s\n' \
+  '=== Missing Esri browser key rejection ==='
+
+MISSING_ESRI_DOCKER="${TMP_ROOT}/docker-missing-esri"
+MISSING_ESRI_DOCKER_MARKER="${TMP_ROOT}/missing-esri-docker-called"
+MISSING_ESRI_BUILD_LOG="${TMP_ROOT}/missing-esri-build.log"
+
+cat >"$MISSING_ESRI_DOCKER" <<'MOCK'
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+: >"${MISSING_ESRI_DOCKER_MARKER:?}"
+
+printf '%s\n' \
+  'Docker must not run when ESRI_BROWSER_KEY is missing' \
+  >&2
+
+exit 93
+MOCK
+
+chmod +x "$MISSING_ESRI_DOCKER"
+
+export MISSING_ESRI_DOCKER_MARKER
+
+if MISSING_ESRI_OUTPUT="$(
+  env -u ESRI_BROWSER_KEY \
+    RELEASE_ID="$KNOWN_RELEASE_ID" \
+    FULL_COMMIT_SHA="$KNOWN_FULL_COMMIT_SHA" \
+    SOURCE_ARTIFACT="$SOURCE_ARTIFACT" \
+    SOURCE_TAR_SHA256="$KNOWN_SOURCE_TAR_SHA256" \
+    BUILDX_BUILDER="$KNOWN_BUILDER" \
+    BUILD_LOG="$MISSING_ESRI_BUILD_LOG" \
+    DOCKER_BIN="$MISSING_ESRI_DOCKER" \
+    TMPDIR="$TMP_ROOT" \
+      "$HELPER" \
+      2>&1
+)"; then
+  MISSING_ESRI_STATUS=0
+else
+  MISSING_ESRI_STATUS=$?
+fi
+
+printf '%s\n' "$MISSING_ESRI_OUTPUT"
+printf 'MISSING_ESRI_KEY_STATUS=%s\n' \
+  "$MISSING_ESRI_STATUS"
+
+[ "$MISSING_ESRI_STATUS" -ne 0 ] ||
+  fail "missing ESRI_BROWSER_KEY was accepted"
+
+grep -F \
+  'ESRI_BROWSER_KEY is required' \
+  <<<"$MISSING_ESRI_OUTPUT" \
+  >/dev/null ||
+  fail "missing Esri browser key rejection reason was not reported"
+
+[ ! -e "$MISSING_ESRI_DOCKER_MARKER" ] ||
+  fail "Docker was invoked despite missing ESRI_BROWSER_KEY"
+
+[ ! -e "$MISSING_ESRI_BUILD_LOG" ] ||
+  fail "missing Esri browser key created a build log"
+
+printf '%s\n' \
+  'MISSING_ESRI_BROWSER_KEY_REJECTED=PASS'
+
+printf '%s\n' \
+  'MISSING_ESRI_KEY_STOPPED_DOCKER_FLOW=PASS'
 
 printf '\n%s\n' '=== Install isolated Docker mock ==='
 
@@ -217,6 +393,42 @@ grep -F \
   "$MOCK_BUILD_ARGS" \
   >/dev/null ||
   fail "runtime Dockerfile was not used"
+
+grep -F \
+  -- '--secret id=esri_browser_key,env=ESRI_BROWSER_KEY' \
+  "$MOCK_BUILD_ARGS" \
+  >/dev/null ||
+  fail "Esri browser key was not passed through BuildKit secret input"
+
+if grep -F \
+  "$KNOWN_ESRI_BROWSER_KEY" \
+  "$MOCK_BUILD_ARGS" \
+  >/dev/null
+then
+  fail "Esri browser key leaked into Docker build arguments"
+fi
+
+if grep -F \
+  "$KNOWN_ESRI_BROWSER_KEY" \
+  "$BUILD_LOG" \
+  >/dev/null
+then
+  fail "Esri browser key leaked into retained build log"
+fi
+
+if grep -F \
+  "$KNOWN_ESRI_BROWSER_KEY" \
+  <<<"$OUTPUT" \
+  >/dev/null
+then
+  fail "Esri browser key leaked into release helper output"
+fi
+
+printf '%s\n' \
+  'ESRI_BUILDKIT_SECRET_BINDING=PASS'
+
+printf '%s\n' \
+  'ESRI_BROWSER_KEY_NOT_LOGGED=PASS'
 
 printf '%s\n' 'KNOWN_GOOD_RUNTIME_BUILD=PASS'
 printf '\n%s\n' '=== Existing candidate tag rejection ==='
@@ -863,3 +1075,4 @@ printf '%s\n' 'MALFORMED_FULL_COMMIT_SHA_REJECTED=PASS'
 printf '%s\n' 'MALFORMED_SOURCE_TAR_SHA_REJECTED=PASS'
 printf '%s\n' 'MALFORMED_IDENTITY_DOCKER_NOT_INVOKED=PASS'
 printf '%s\n' 'RELEASE_RUNTIME_BUILD_REGRESSION=PASS'
+
