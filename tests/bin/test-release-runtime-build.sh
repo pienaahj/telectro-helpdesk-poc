@@ -9,6 +9,7 @@ ROOT_DIR="$(
 
 HELPER="${ROOT_DIR}/bin/release-runtime-build.sh"
 SOURCE_ARTIFACT_HELPER="${ROOT_DIR}/bin/release-source-artifact.sh"
+RUNTIME_DOCKERFILE="${ROOT_DIR}/docker/telectro-runtime.Dockerfile"
 
 KNOWN_RELEASE_ID="20260814-b946cbf"
 KNOWN_FULL_COMMIT_SHA="b946cbf7ae23b628a261ac0702577b5f7323c222"
@@ -44,6 +45,77 @@ if [ ! -x "$HELPER" ]; then
 fi
 
 printf '%s\n' 'RELEASE_RUNTIME_BUILD_HELPER_PRESENT=PASS'
+
+printf '\n%s\n' \
+  '=== Esri Dockerfile build-secret contract ==='
+
+test -f "$RUNTIME_DOCKERFILE" ||
+  fail "runtime Dockerfile is missing"
+
+ESRI_BUILD_BLOCK="${TMP_ROOT}/esri-build-block.txt"
+
+if ! grep -A20 -F \
+  'RUN --mount=type=secret,id=esri_browser_key' \
+  "$RUNTIME_DOCKERFILE" \
+  >"$ESRI_BUILD_BLOCK"
+then
+  fail "runtime Dockerfile does not consume Esri BuildKit secret"
+fi
+
+grep -F \
+  'required=true,mode=0444' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri BuildKit secret mount is not required and read-only"
+
+grep -F \
+  'ESRI_BROWSER_KEY="$(cat /run/secrets/esri_browser_key)"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri browser key is not read from the BuildKit secret mount"
+
+grep -F \
+  'VITE_ESRI_API_KEY="$ESRI_BROWSER_KEY"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri browser key is not supplied to the Vite build"
+
+grep -F \
+  'bench build' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri secret consumer does not execute bench build"
+
+grep -F \
+  'set -eu;' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build step does not use non-xtrace shell mode"
+
+if grep -F \
+  'set -eux' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null
+then
+  fail "Esri build step enables shell xtrace"
+fi
+
+if grep -E \
+  '^[[:space:]]*(ARG|ENV)[[:space:]]+VITE_ESRI_API_KEY' \
+  "$RUNTIME_DOCKERFILE" \
+  >/dev/null
+then
+  fail "VITE_ESRI_API_KEY must not be persisted as Docker ARG or ENV"
+fi
+
+printf '%s\n' \
+  'ESRI_DOCKERFILE_SECRET_CONSUMER=PASS'
+
+printf '%s\n' \
+  'ESRI_DOCKERFILE_NO_XTRACE=PASS'
+
+printf '%s\n' \
+  'ESRI_VITE_KEY_NOT_PERSISTED_AS_DOCKER_ENV=PASS'
 
 printf '\n%s\n' '=== Prepare known-good 2026-08-14 source artifact ==='
 
