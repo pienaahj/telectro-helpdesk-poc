@@ -364,7 +364,19 @@ RUN --mount=type=secret,id=esri_browser_key,required=true,mode=0444 \
     cat sites/common_site_config.json; \
     VITE_ESRI_API_KEY="$ESRI_BROWSER_KEY" \
         bench build; \
-    printf '%s\n' 'ESRI_BROWSER_BUILD_INPUT_APPLIED=YES'
+    printf '%s\n' 'ESRI_BROWSER_BUILD_INPUT_APPLIED=YES'; \
+    test -d sites/assets/helpdesk || { \
+        printf '%s\n' 'Compiled Helpdesk asset directory is missing' >&2; \
+        exit 1; \
+    }; \
+    grep -R -F -q \
+        --include='*.js' \
+        -- "$ESRI_BROWSER_KEY" \
+        sites/assets/helpdesk || { \
+        printf '%s\n' 'Esri browser key was not embedded in compiled Helpdesk JavaScript' >&2; \
+        exit 1; \
+    }; \
+    printf '%s\n' 'ESRI_BROWSER_KEY_EMBEDDED=YES'
 
 # Frappe's asset build can minify rgba(0, 0, 0, 0.1) to eight-digit hex.
 # Premailer's CSS parser rejects that syntax while preparing email HTML.

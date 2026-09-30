@@ -54,7 +54,7 @@ test -f "$RUNTIME_DOCKERFILE" ||
 
 ESRI_BUILD_BLOCK="${TMP_ROOT}/esri-build-block.txt"
 
-if ! grep -A20 -F \
+if ! grep -A35 -F \
   'RUN --mount=type=secret,id=esri_browser_key' \
   "$RUNTIME_DOCKERFILE" \
   >"$ESRI_BUILD_BLOCK"
@@ -67,6 +67,36 @@ grep -F \
   "$ESRI_BUILD_BLOCK" \
   >/dev/null ||
   fail "Esri BuildKit secret mount is not required and read-only"
+
+grep -F \
+  "grep -R -F -q" \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build step does not verify compiled browser assets"
+
+grep -F \
+  -- "--include='*.js'" \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification is not limited to compiled JavaScript"
+
+grep -F \
+  '"$ESRI_BROWSER_KEY"' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification does not check the supplied browser key"
+
+grep -F \
+  'sites/assets/helpdesk' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri build verification does not inspect Helpdesk assets"
+
+grep -F \
+  'ESRI_BROWSER_KEY_EMBEDDED=YES' \
+  "$ESRI_BUILD_BLOCK" \
+  >/dev/null ||
+  fail "Esri asset embedding success marker is missing"
 
 grep -F \
   'ESRI_BROWSER_KEY="$(cat /run/secrets/esri_browser_key)"' \
@@ -116,6 +146,9 @@ printf '%s\n' \
 
 printf '%s\n' \
   'ESRI_VITE_KEY_NOT_PERSISTED_AS_DOCKER_ENV=PASS'
+
+printf '%s\n' \
+  'ESRI_BROWSER_KEY_EMBEDDING_CONTRACT=PASS'
 
 printf '\n%s\n' '=== Prepare known-good 2026-08-14 source artifact ==='
 
@@ -1042,3 +1075,4 @@ printf '%s\n' 'MALFORMED_FULL_COMMIT_SHA_REJECTED=PASS'
 printf '%s\n' 'MALFORMED_SOURCE_TAR_SHA_REJECTED=PASS'
 printf '%s\n' 'MALFORMED_IDENTITY_DOCKER_NOT_INVOKED=PASS'
 printf '%s\n' 'RELEASE_RUNTIME_BUILD_REGRESSION=PASS'
+
