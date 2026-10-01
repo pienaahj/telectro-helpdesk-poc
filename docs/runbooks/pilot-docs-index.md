@@ -559,7 +559,8 @@ This index should stay light and navigational, not become another duplicated ref
 At the moment, the doc set has a good emerging split:
 
 - **README** = repo entry point
-- **Pilot Welcome Guides** = role-based onboarding and orientation for Telectro internal users, Partner users, and Customer users.
+- **Pilot Welcome Guides** = role-based onboarding and orientation for Telectro internal users and Partner users, plus shared pilot boundaries and Customer-guide routing.
+- **Customer Welcome Guides** = reusable Customer-guide base plus Customer-specific distributable orientation guides under `docs/user-guides/customer-welcome-guides/`; current Customer-specific guides cover Boschendal and Emerald Life.
 - **Activity Process Guides** = user-facing step-by-step activity workflows, including Customer-visible evidence updates, controlled claim/release/handoff ownership flows, internal note vs Customer-visible update guidance, Customer ticket resolution, Customer support request logging, Customer follow-up information, Customer latest update review, Customer-visible evidence download, Customer resolved outcome review, Partner acceptance response, Partner work-done submission, Telectro Partner acceptance review, Partner acceptance queue review, Telectro Partner work review, Partner work completion queue review, internal current work review, unclaimed ticket review, aging / at-risk ticket review, Customer first-response risk review, and stale / blocked ticket intervention.
 - **Onboarding and Training Readiness Checklist** = onboarding and training readiness control checklist covering required guides, role-specific training material, screenshot readiness, production-blocked proof, and onboarding go/no-go checks.
 - **Bench Verification Playbook** = proof method
