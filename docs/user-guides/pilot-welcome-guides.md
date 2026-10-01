@@ -597,159 +597,43 @@ Partner acceptance and Partner fulfilment work are separate workflow trains.
 
 ---
 
-# 3. Customer Welcome Guide
+# 3. Customer Welcome Guides
 
-## Main purpose
+Customer onboarding is maintained separately from this combined role guide because Customer organisations may differ in:
 
-The Customer portal gives Boschendal customer users a simple way to:
+- portal branding;
+- intended portal users;
+- organisation-level ticket visibility;
+- Campus, site, branch, Fault Point, or other location models;
+- Customer-facing terminology;
+- evidence examples; and
+- screenshots.
 
-- log support requests;
-- identify the affected service area;
-- choose the closest fault point or asset;
-- attach photos or evidence;
-- view progress;
-- add more information when needed.
+Use the reusable Customer Welcome Guide base as the internal source for deriving a Customer-specific guide:
 
-The Customer portal is not a formal sign-off system. Telectro confirms completion directly with the customer through the normal service process and then closes the ticket from the Telectro side.
+- `docs/user-guides/customer-welcome-guides/customer-welcome-guide-base.md`
 
----
+Current Customer-specific guides:
 
-## Customer portal
+- `docs/user-guides/customer-welcome-guides/boschendal-customer-welcome-guide.md`
+- `docs/user-guides/customer-welcome-guides/emerald-life-customer-welcome-guide.md`
 
-Customer users should use:
+Do not copy the location model or screenshots from one Customer into another Customer guide unless that operating model has been deliberately confirmed.
 
-`Support Requests`
+The applicable Customer-specific Welcome Guide is the Customer-facing orientation source for:
 
----
+- Customer portal access;
+- Support Requests;
+- logging a support request;
+- selecting the affected operational location;
+- Customer-visible updates;
+- `Add information`;
+- evidence guidance; and
+- what Customer users should and should not do.
 
-## Basic customer workflow
+Detailed Customer workflows remain in:
 
-1. Log in as a Customer user.
-2. Open `Support Requests`.
-3. Select `Log a Support Request`.
-4. Choose the relevant service area.
-5. Choose the affected fault point or fault asset.
-6. Add a short subject.
-7. Add a clear description.
-8. Attach photos, equipment labels, access notes, or evidence where helpful.
-9. Submit the request.
-10. Return to the ticket later to view progress or add more information.
-
----
-
-## Key screens to screenshot
-
-```markdown
-> Screenshot: Boschendal Support Requests list.
-```
-
-```markdown
-> Screenshot: Log a Support Request button.
-```
-
-```markdown
-> Screenshot: New Support Request page.
-```
-
-```markdown
-> Screenshot: Fault Point selector.
-```
-
-```markdown
-> Screenshot: Selected Fault Point details.
-```
-
-```markdown
-> Screenshot: Ticket detail page.
-```
-
-```markdown
-> Screenshot: Latest update card.
-```
-
-```markdown
-> Screenshot: Add information action.
-```
-
----
-
-## Important customer concepts
-
-### Support Requests list
-
-The Support Requests list shows the customer’s logged support requests.
-
-Use it to check status and return to existing requests.
-
-### Log a Support Request
-
-Use this action to create a new support request.
-
-A good request includes:
-
-- the affected service area;
-- the closest fault point or asset;
-- a clear subject;
-- a useful description;
-- photos or evidence where helpful.
-
-### Fault Point
-
-The Fault Point helps Telectro understand where the issue is located.
-
-Customers should choose the closest known location. If the exact point is not available, choose the closest recognisable point and explain the exact location in the description.
-
-### Latest update
-
-The Latest update card shows the most recent customer-visible update from the ticket activity.
-
-Customers only see information intended for them. Internal Telectro notes are not shown in the Customer portal.
-
-### Add information
-
-Use `Add information` when more detail needs to be sent to Telectro after the ticket has been created.
-
-Useful examples:
-
-- photos;
-- access notes;
-- equipment labels;
-- corrected location details;
-- additional symptoms;
-- contact availability.
-
----
-
-## Customer do
-
-- Choose the closest fault point or asset.
-- Use a short, clear subject.
-- Add enough detail for Telectro to understand the request.
-- Attach photos where useful.
-- Use `Add information` instead of logging a duplicate request.
-- Check the ticket later for updates.
-
----
-
-## Customer do not
-
-- Do not log duplicate requests for the same issue unless there is a clear reason.
-- Do not use the portal as a formal sign-off process.
-- Do not expect to see Telectro internal notes.
-- Do not choose a random fault point if a closer known point is available.
-- Do not close tickets as part of the normal Customer workflow.
-
----
-
-## What done looks like for a Customer
-
-Customer portal work is done when:
-
-- the support request has been submitted with enough detail; or
-- additional requested information has been added to the ticket; or
-- the customer has reviewed the latest visible progress update.
-
-Formal Customer portal sign-off is not required before Telectro closes the ticket.
+- `docs/user-guides/activity-process-guides.md`
 
 ---
 
@@ -846,14 +730,14 @@ Use this checklist when enhancing the guide in Obsidian.
 
 ## Customer screenshots
 
-- [ ] Support Requests list
-- [ ] Log a Support Request button
-- [ ] New Support Request page
-- [ ] Fault Point selector
-- [ ] Selected Fault Point details
-- [ ] Ticket detail page
-- [ ] Latest update card
-- [ ] Add information action
+Customer screenshots are maintained in the applicable Customer-specific Welcome Guide.
+
+Current Customer-specific screenshot sources:
+
+- `docs/user-guides/customer-welcome-guides/boschendal-customer-welcome-guide.md`
+- `docs/user-guides/customer-welcome-guides/emerald-life-customer-welcome-guide.md`
+
+Do not assume that every Customer uses the same location hierarchy or screenshot sequence.
 
 ---
 
@@ -900,9 +784,18 @@ These can be used later as shorter handouts.
 
 ## Customer quick start
 
+Use the quick-start workflow in the applicable Customer-specific Welcome Guide.
+
+The generic pattern is:
+
 1. Open `Support Requests`.
-2. Select `Log a Support Request`.
-3. Choose service area and fault point.
-4. Add subject, description, and photos if useful.
-5. Submit the request.
-6. Reopen the ticket later to view progress or add information.
+2. Check whether the issue is already logged.
+3. Select `Log a Support Request` for a new issue.
+4. Choose the relevant service area and severity.
+5. Choose the affected operational location according to that Customer's configured location model.
+6. Add a clear subject and description.
+7. Add references, photos, or evidence where useful.
+8. Submit the request.
+9. Reopen the existing request later to view progress or use `Add information`.
+
+Do not assume that every Customer selects a deeper Fault Point or asset. Some Customers, such as Emerald Life, report Customer-facing faults at Campus level.

@@ -1279,12 +1279,19 @@ For every future Customer Campus and Location onboarding:
 [ ] Confirm new Campus is a group directly under Pilot Sites
 [ ] Create/configure the correct HD Customer organisation
 [ ] Configure the Customer Portal presentation profile on that HD Customer
-[ ] Attach the approved Customer logo to the native HD Customer `image` field
-[ ] Use a public PNG runtime logo and verify the `/files/...png` URL returns HTTP 200
+[ ] Identify the exact approved Customer logo and record its SHA-256 hash
+[ ] Preserve and verify the approved logo bytes through controlled production staging
+[ ] Use a public PNG runtime logo
+[ ] Where direct production File creation/restoration is required, inspect the installed Frappe file API first
+[ ] Create/attach the public Frappe File to the native HD Customer `image` field through the supported Frappe API path
+[ ] Commit the intended File/HD Customer transaction deliberately
+[ ] Perform fresh-session proof of the File record, public file, and HD Customer `image` reference
+[ ] Verify the `/files/...png` URL returns HTTP 200
 [ ] Configure or deliberately leave blank the Portal Service Desk Name
 [ ] Configure or deliberately leave blank Portal Primary Colour
 [ ] Configure or deliberately leave blank Portal Accent Colour
 [ ] Configure or deliberately leave blank Portal Foreground Colour
+[ ] Perform fresh-session proof of the persisted HD Customer presentation values
 [ ] Verify blank presentation fields fall back to the neutral portal presentation
 [ ] Link named Customer Website Users through Contacts
 [ ] Verify every Customer Website User resolves to exactly one intended HD Customer
@@ -1475,8 +1482,67 @@ the Helpdesk Vue source.
 SVG may remain useful as a source/design asset, but the proven portal runtime
 format is PNG.
 
-Before acceptance, verify that the target environment returns the logo URL as a
-successful image response.
+For production onboarding, treat the approved logo as a controlled data
+artifact rather than merely as a visual attachment.
+
+Before moving the logo into production:
+
+1. identify the exact approved source file;
+2. calculate and record its SHA-256 hash;
+3. preserve the exact approved bytes while staging the file through the
+   controlled production boundaries;
+4. verify the SHA-256 hash again at each relevant staging boundary before the
+   file is committed to Frappe.
+
+SHA-256 is the independent integrity proof for the approved source and staged
+file bytes.
+
+Do not confuse that integrity proof with Frappe's own `File.content_hash`.
+
+The accepted production Boschendal proof confirmed that the installed Frappe
+implementation records `File.content_hash` as an MD5 digest. Therefore:
+
+```text
+SHA-256
+→ independent source/staging integrity proof
+
+Frappe File.content_hash
+→ Frappe's internal content hash
+→ MD5 in the currently proven production implementation
+```
+
+Do not expect those values to match.
+
+When a logo must be created or restored directly in production, inspect the
+file API provided by the **installed Frappe version** before using it. Do not
+assume a remembered `frappe.utils.file_manager.save_file()` signature or other
+file-creation contract is still correct.
+
+Create the logo as a public Frappe `File` and attach it to:
+
+```text
+attached_to_doctype = HD Customer
+attached_to_name    = <Customer>
+attached_to_field   = image
+```
+
+Use the supported Frappe document/file API path rather than ad-hoc database
+mutation.
+
+After creating or changing the production File:
+
+1. commit the intended Frappe transaction deliberately;
+2. start an independent fresh session;
+3. prove that the `File` record still exists;
+4. prove that the public file still exists at its expected runtime location;
+5. prove that `HD Customer.image` references the intended `/files/...png` URL;
+6. verify the staged/source SHA-256 integrity evidence where applicable.
+
+Only after that persistence proof should portal-profile and browser acceptance
+be treated as evidence of a durable logo configuration.
+
+Before final acceptance, verify that the target environment returns the logo URL
+as a successful image response.
 
 A missing logo is a presentation/configuration problem. It must not trigger
 Customer identity, Campus, or Location changes.
@@ -1495,7 +1561,18 @@ For every new Customer:
 
 4. Confirm the native customer_name.
 
-5. Attach the approved public PNG logo to image.
+5. Prepare and attach the approved public PNG logo according to the Logo
+   contract above.
+
+   For production, this includes:
+   - independent SHA-256 integrity evidence;
+   - controlled staging of the exact approved bytes;
+   - inspection of the installed Frappe file API where direct File creation or
+     restoration is required;
+   - creation of a public Frappe File attached to HD Customer.image;
+   - deliberate transaction commit;
+   - fresh-session persistence proof of the File record, physical public file,
+     and HD Customer.image reference.
 
 6. Set Portal Service Desk Name only if the derived
    "{customer_name} Service Desk" value is not suitable.
@@ -1509,20 +1586,33 @@ For every new Customer:
 9. Choose the foreground colour for branded-header foreground text.
    Leave blank for the neutral default.
 
-10. Save the HD Customer.
+10. Save the HD Customer presentation values deliberately.
 
-11. Resolve the Customer Portal profile server-side and verify the returned
-    Customer, service-desk name, logo and colour values.
+11. Start an independent fresh session and confirm the persisted HD Customer
+    presentation values before using them as acceptance evidence.
 
-12. Verify the logo `/files/...png` URL returns successfully.
+12. Resolve the Customer Portal profile server-side as an intended real
+    Customer Website User and verify the returned:
+    - Customer identity;
+    - service-desk name;
+    - logo URL;
+    - primary colour;
+    - accent colour;
+    - foreground colour.
 
-13. Browser-test the authenticated Customer Portal.
+13. Verify the logo `/files/...png` URL returns successfully.
 
-14. Repeat the browser test with another user belonging to the same HD Customer
+14. Browser-test the authenticated Customer Portal.
+
+15. Repeat the browser test with another user belonging to the same HD Customer
     where available.
 
-15. Test a different Customer and prove there is no presentation leakage.
+16. Test a different Customer and prove there is no presentation leakage.
 ```
+
+Do not treat successful database writes alone as Customer Portal acceptance.
+Server-side profile proof and browser proof are separate required acceptance
+layers.
 
 #### Required browser acceptance
 

@@ -91,25 +91,53 @@ Ready now:
 
 Still needed:
 
-* controlled real-inbox receipt proof for the onboarding email path;
-* successful password setup through the public HTTPS setup link;
-* first login after password setup;
-* role-specific landing and access proof after first login;
-* failed or expired setup-link behaviour proof;
-* production screenshots;
-* final training pack assembly;
-* production screenshot follow-up pass for guides that currently use screenshot placeholders.
+* production admin login proof;
+* completion of onboarding for the remaining real Telectro users;
+* completion of onboarding for the two real Emerald Life Customer contacts;
+* second-user Emerald Life organisation-level ticket visibility proof;
+* failed or expired setup-link browser behaviour proof;
+* production Partner workspace onboarding proof;
+* remaining production Telectro role screenshots;
+* final training pack assembly; and
+* production screenshot follow-up for guides that still contain placeholders.
 
 Production onboarding acceptance proof still required:
 
 * production admin login proof;
-* controlled real-inbox receipt of a test / onboarding email;
-* successful public HTTPS password setup in a browser;
-* first production role login after password setup;
-* first production user onboarding screenshots;
-* production Customer portal screenshots;
-* production Partner workspace screenshots;
-* production Telectro workspace screenshots.
+* remaining real Telectro user onboarding;
+* two real Emerald Life Customer-user onboarding runs;
+* Emerald Life organisation-level ticket visibility proof using the second real Customer user;
+* failed or expired setup-link browser behaviour proof;
+* production Partner workspace onboarding proof;
+* remaining production Telectro role screenshots; and
+* final Customer / Partner onboarding pack assembly.
+
+Controlled production Customer onboarding proof completed on 2026-10-01 using a dedicated Emerald Life Website User established:
+
+* a real external mailbox received the production `Welcome to Telectro` email;
+* the message used the public `https://erp.telectro.co.za/update-password` setup route;
+* the password was successfully set through the public HTTPS page;
+* the successful setup consumed the original setup key;
+* the Customer completed first login successfully;
+* first login landed in the Emerald Life `Support Requests` portal;
+* Emerald Life branding and presentation were shown correctly;
+* the Campus selector exposed the 24 Emerald Life Campuses without observed Boschendal or pilot-test leakage;
+* Emerald Life Campus-only fault-location behaviour worked as intended;
+* a controlled Customer support request was submitted successfully;
+* the selected Campus persisted as the Customer-facing fault location;
+* the request appeared in the Customer Support Requests list;
+* `Add information` successfully added a Customer-visible follow-up update; and
+* production Customer screenshots were captured and used in the Emerald Life Customer Welcome Guide.
+
+This proves the complete controlled Customer path from real-inbox invitation through first login and normal Customer portal use.
+
+It does not yet prove:
+
+* the same end-to-end path for the two real Emerald Life Customer contacts;
+* organisation-level cross-user ticket visibility between two Emerald Life Customer users;
+* Partner first-user onboarding;
+* remaining real Telectro user onboarding; or
+* browser behaviour for a genuinely expired setup link.
 
 The production email path should no longer be described as blocked by unproven SMTP configuration, Email Queue processing, Welcome-email generation, or public setup-link generation; those application-side layers are now proven.
 
@@ -127,7 +155,7 @@ Those checks prove application-side configuration, queue processing, Welcome-ema
 
 The main risk is not the absence of role guides.
 
-The main risk is starting onboarding before the complete user acceptance path has been proven:
+The main risk is onboarding real users without completing the same end-to-end acceptance path for their intended role, organisation, and access model:
 
 1. user account created;
 2. role profile applied;
@@ -440,10 +468,16 @@ The Technician assignment/access smoke test through a canonical pilot ticket-int
 
 ### Required documents
 
-* `docs/user-guides/pilot-welcome-guides.md`
+Use the applicable Customer-specific Welcome Guide:
 
-  * Customer Welcome Guide
-  * Customer quick start
+* `docs/user-guides/customer-welcome-guides/boschendal-customer-welcome-guide.md`
+* `docs/user-guides/customer-welcome-guides/emerald-life-customer-welcome-guide.md`
+
+Use the reusable base only as the internal source for deriving or reviewing a Customer-specific guide:
+
+* `docs/user-guides/customer-welcome-guides/customer-welcome-guide-base.md`
+
+Detailed Customer workflows remain in:
 
 * `docs/user-guides/activity-process-guides.md`
 
@@ -453,51 +487,75 @@ The Technician assignment/access smoke test through a canonical pilot ticket-int
   * Customer downloads Customer-visible evidence
   * Customer checks resolved ticket outcome
 
+Do not substitute one Customer's location model, terminology, branding, or screenshots for another Customer without confirming that the same operating model applies.
+
 ### Still needed
 
-* Customer screenshot pack
+* customer-specific onboarding completion for each real Customer user being introduced;
+* Customer-specific organisation-level visibility proof where more than one portal user must share organisation tickets;
+* any Customer-specific screenshots not already captured in the applicable Welcome Guide; and
+* resolved-outcome / evidence-download production proof where still required for the onboarding pack.
+
+For Emerald Life specifically, the controlled production proof and production screenshots for the normal request, Campus selection, ticket detail, Latest update, and `Add information` workflow were completed on 2026-10-01.
+
+The two real Emerald Life Customer contacts still require their own onboarding runs, and cross-user organisation-level ticket visibility still requires proof using the second real user.
 
 ### Required screenshots
 
-* Support Requests list
-* Log a Support Request button
-* New Support Request page
-* Service area selector
-* Fault Point selector
-* Selected Fault Point details
-* Add photo/evidence during request creation
-* Ticket detail page
-* Latest update card
-* Customer-visible activity/timeline
-* Add information action
-* Customer-visible evidence download
-* Resolved ticket outcome
+Select screenshots according to the applicable Customer-specific operating model.
+
+Typical Customer screenshots may include:
+
+* Support Requests list;
+* Log a Support Request action;
+* New Support Request page;
+* Service Area and Severity fields;
+* affected operational location selector;
+* selected operational location;
+* optional equipment / circuit / SIM / tag reference where applicable;
+* ticket detail page;
+* Latest update;
+* Customer-visible Activity;
+* Add information action;
+* evidence attachment or download where applicable; and
+* resolved ticket outcome where applicable.
+
+Do not assume that every Customer uses a deeper Fault Point or asset selector.
 
 ### Training actions to demonstrate
 
-* Open Support Requests
-* Log a support request
-* Choose service area
-* Choose closest fault point or asset
-* Add clear subject and description
-* Attach photos or evidence where useful
-* Submit request
-* Reopen ticket
-* View latest update
-* Add follow-up information
-* Understand that the Customer portal is not a formal sign-off workflow
-* Understand that Telectro closes tickets after confirming the work outcome through the normal direct service process
+* Open Support Requests.
+* Check whether the issue is already logged.
+* Log a new support request when required.
+* Choose the relevant Service Area and Severity.
+* Choose the affected operational location according to that Customer's configured location model.
+* Add a clear Subject and description.
+* Add a known equipment, circuit, SIM, tag, or other reference where useful and supported.
+* Attach photos or evidence where useful.
+* Submit the request.
+* Reopen the existing request.
+* View Latest update and Customer-visible Activity.
+* Use `Add information` for follow-up details instead of creating a duplicate request.
+* Understand that the Customer portal is not a formal sign-off workflow.
+* Understand that Telectro closes tickets after confirming the work outcome through the normal service process.
 
 ### Onboarding proof required
 
-* Customer user can log in.
+* Customer User exists, is enabled, and is linked to the intended Customer organisation.
+* Customer receives the intended onboarding email.
+* Customer can complete password setup through the public HTTPS setup link.
+* Customer can complete first login.
 * Customer lands on or can access Support Requests.
-* Customer can log a support request.
-* Customer can view their own submitted tickets.
+* Customer sees the intended Customer branding and presentation.
+* Customer can select only operational locations permitted for that Customer organisation.
+* Customer can log a support request using the configured Customer-facing location model.
+* The selected operational location persists correctly on the submitted request.
+* Customer can view tickets permitted by the configured Customer visibility model.
 * Customer can add follow-up information.
 * Customer can see Customer-visible updates.
-* Customer can download Customer-visible evidence.
+* Customer can download Customer-visible evidence where that workflow is used.
 * Customer cannot see Telectro internal notes.
+* Customer cannot access unrelated Customer organisations or internal Telectro workspaces and reports.
 
 ---
 
@@ -505,21 +563,30 @@ The Technician assignment/access smoke test through a canonical pilot ticket-int
 
 ## Required repo-backed documents
 
-* [ ] `docs/user-guides/pilot-welcome-guides.md`
-* [ ] `docs/user-guides/activity-process-guides.md`
-* [ ] `docs/user-guides/onboarding-training-readiness-checklist.md`
-* [ ] `docs/runbooks/pilot-docs-index.md`
+* [x] `docs/user-guides/pilot-welcome-guides.md`
+* [x] `docs/user-guides/activity-process-guides.md`
+* [x] `docs/user-guides/onboarding-training-readiness-checklist.md`
+* [x] `docs/runbooks/pilot-docs-index.md`
+* [x] `docs/user-guides/customer-welcome-guides/customer-welcome-guide-base.md`
+* [x] `docs/user-guides/customer-welcome-guides/boschendal-customer-welcome-guide.md`
+* [x] `docs/user-guides/customer-welcome-guides/emerald-life-customer-welcome-guide.md`
 
 ## Existing Welcome Guide coverage
 
-* [ ] Technician Guide
-* [ ] Coordinator Guide
-* [ ] Ops / Supervisor Guide
-* [ ] Partner Welcome Guide
-* [ ] Customer Welcome Guide
-* [ ] Shared Pilot Boundaries
-* [ ] Screenshot Checklist
-* [ ] One-page quick starts
+* [x] Technician Guide
+* [x] Coordinator Guide
+* [x] Ops / Supervisor Guide
+* [x] Partner Welcome Guide
+* [x] Customer-specific Welcome Guide architecture
+* [x] Boschendal Customer Welcome Guide
+* [x] Emerald Life Customer Welcome Guide
+* [x] Shared Pilot Boundaries
+* [x] Screenshot Checklist
+* [x] One-page quick starts
+
+Customer onboarding no longer relies on a single generic Customer section inside `pilot-welcome-guides.md`.
+
+The applicable Customer-specific Welcome Guide is the distributable Customer orientation source. The reusable base is an internal derivation and review source, not a Customer-facing document.
 
 ## Existing Activity Process Guide coverage
 
@@ -684,14 +751,14 @@ Do not invite real users until these checks are complete or explicitly accepted 
 * [ ] Partner User has enabled membership in the intended Partner organisation.
 * [ ] Partner organisation containment has been tested.
 * [ ] Default Dispatch User has been verified where Partner fulfilment dispatch is required.
-* [ ] Customer portal user tested.
+* [x] Customer portal user tested.
 * [x] Technician lands on or can access Tech Workspace.
 * [x] Pure Technician access to Coordinator and Ops workspace routes redirects to the Tech Workspace.
 * [x] Pure Technician with an active `HD Agent` can access the native Helpdesk agent application without HD Team membership.
 * [ ] Coordinator lands on or can access Coordinator Workspace.
 * [ ] Supervisor lands on or can access Ops Workspace.
 * [ ] Partner lands on or can access Partner Workspace.
-* [ ] Customer lands on or can access Support Requests.
+* [x] Customer lands on or can access Support Requests.
 * [ ] Partner cannot access internal Telectro workspaces/reports.
 * [ ] Partner cannot access tickets belonging only to an unrelated Partner organisation.
 * [ ] Customer cannot access internal Telectro workspaces/reports.
@@ -699,7 +766,7 @@ Do not invite real users until these checks are complete or explicitly accepted 
 
 ## Ticket flow smoke tests
 
-* [ ] Customer can log a support request.
+* [x] Customer can log a support request.
 * [ ] Customer request appears internally.
 * [ ] Internal user can open the ticket.
 * [ ] Customer Request context is visible internally.
@@ -923,33 +990,55 @@ Do not onboard Customer users until Telectro can:
 
 # 8. Known pending items
 
-These items remain pending until production onboarding acceptance proof is complete.
+Production onboarding acceptance is now partly proven end to end.
 
-Already production-proven:
+## Already production-proven
+
+Application and internal-user foundations:
 
 * outgoing Email Account configuration;
 * Email Queue / recipient processing to `Sent` without recorded errors;
-* Welcome-email generation for synthetic Customer and Partner users;
 * generation of the public `https://erp.telectro.co.za/update-password` setup route;
 * pure Technician Role Profile parity using a temporary controlled production role transition;
-* pure Technician Tech Workspace access and Coordinator/Ops workspace containment;
+* pure Technician Tech Workspace access and Coordinator / Ops workspace containment;
 * pure Technician native Helpdesk agent access with an active `HD Agent`;
 * successful restoration of the controlled production user to the original Supervisor Role Profile;
-* HD Team membership synchronisation to the linked native Assignment Rule;
+* HD Team membership synchronisation to the linked native Assignment Rule; and
 * canonical ERPNext / Desk PABX routing and native Assignment Rule assignment.
 
-Still pending:
+Controlled Customer onboarding and portal acceptance on 2026-10-01:
+
+* production `Welcome to Telectro` email delivered to a real external mailbox;
+* public HTTPS password-setup link opened successfully;
+* password setup completed successfully;
+* successful setup consumed the original setup key;
+* first Customer login completed successfully;
+* first login landed in the Emerald Life `Support Requests` portal;
+* Emerald Life Customer branding and presentation were shown correctly;
+* the Emerald Life Campus selector exposed the intended 24 Campuses without observed unrelated-Customer leakage;
+* Campus-only Customer fault-location behaviour worked as intended;
+* a controlled Customer support request was submitted successfully;
+* the selected Campus persisted as the Customer-facing fault location;
+* the submitted request appeared in `Support Requests`;
+* `Add information` produced a Customer-visible follow-up update; and
+* production Customer screenshots were captured and incorporated into the Emerald Life Customer Welcome Guide.
+
+## Still pending
 
 * production admin login proof;
-* controlled real-inbox receipt of an onboarding email;
-* successful browser opening of the public HTTPS setup link;
-* successful password setup by the test user;
-* first production role login after password setup;
-* failed or expired setup-link behaviour proof;
-* production screenshots;
-* final Customer/Partner onboarding screenshots.
+* onboarding completion for the remaining real Telectro users;
+* onboarding completion for the two real Emerald Life Customer contacts;
+* Emerald Life organisation-level cross-user ticket visibility proof using the second real Customer user;
+* browser behaviour for a genuinely expired setup link;
+* production Partner first-user onboarding and workspace proof;
+* remaining production Telectro role screenshots;
+* resolved-outcome / Customer-visible evidence-download production proof where still required;
+* final Partner onboarding screenshots; and
+* final training-pack assembly.
 
-Until the remaining acceptance checks are proven, the training package can be prepared but should not claim that the complete first-user production onboarding path has been verified.
+The controlled Customer onboarding path has therefore been verified end to end.
+
+That proof does not replace role-, organisation-, or user-specific onboarding acceptance. Each remaining real-user onboarding should still verify the intended identity, access model, landing experience, containment, and normal working actions before being treated as complete.
 
 ---
 
