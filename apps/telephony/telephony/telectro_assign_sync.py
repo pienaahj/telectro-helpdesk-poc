@@ -1,6 +1,9 @@
 import frappe
 import json
 from telephony.partner_identity import resolve_partner_dispatch_user
+from telephony.telectro_site_guard import (
+    _is_ticket_selectable_terminal_campus,
+)
 
 DOCT = "HD Ticket"
 
@@ -40,7 +43,14 @@ def _validate_site_group_and_leaf(doc) -> None:
     # ✅ NEW: Only enforce fault-site rules for Fault-like ticket types
     if not _is_fault_ticket(doc):
         return
-    
+
+    # A Customer-safe, ticket-selectable top-level Campus is itself
+    # the terminal location anchor. Do not require a child Site Location.
+    #
+    # Keep this aligned with telectro_site_guard validation semantics.
+    if _is_ticket_selectable_terminal_campus(doc):
+        return
+
     cat = _cat_norm(doc)
 
     # Links/Areas are asset-driven
