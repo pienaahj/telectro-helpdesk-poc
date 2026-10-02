@@ -7,6 +7,79 @@ from telephony import telectro_assign_sync as assign_sync
 class _TicketDoc(dict):
     __getattr__ = dict.get
 
+class TestTerminalCampusValidation(unittest.TestCase):
+    def test_selectable_terminal_campus_does_not_require_site_leaf(self):
+        doc = _TicketDoc(
+            name="TEST-TERMINAL-CAMPUS",
+            ticket_type="Faults",
+            custom_fault_category="",
+            custom_fault_asset="",
+            custom_site_group="EL-SITE-001",
+            custom_site="",
+            custom_request_source="Customer",
+            raised_by="",
+        )
+
+        terminal_campus = assign_sync.frappe._dict(
+            {
+                "is_group": 1,
+                "parent_location": "Pilot Sites",
+                "custom_customer_visibility": "Customer-safe",
+                "custom_ticket_selectability": "Selectable",
+            }
+        )
+
+        with (
+            patch.object(
+                assign_sync.frappe,
+                "logger",
+            ),
+            patch.object(
+                assign_sync.frappe.db,
+                "get_value",
+                return_value=terminal_campus,
+            ),
+        ):
+            assign_sync._validate_site_group_and_leaf(doc)
+
+    def test_non_terminal_group_still_requires_site_leaf(self):
+        doc = _TicketDoc(
+            name="TEST-NON-TERMINAL-CAMPUS",
+            ticket_type="Faults",
+            custom_fault_category="",
+            custom_fault_asset="",
+            custom_site_group="Boschendal",
+            custom_site="",
+            custom_request_source="Customer",
+            raised_by="",
+        )
+
+        non_terminal_group = assign_sync.frappe._dict(
+            {
+                "is_group": 1,
+                "parent_location": "Pilot Sites",
+                "custom_customer_visibility": None,
+                "custom_ticket_selectability": None,
+            }
+        )
+
+        with (
+            patch.object(
+                assign_sync.frappe,
+                "logger",
+            ),
+            patch.object(
+                assign_sync.frappe.db,
+                "get_value",
+                return_value=non_terminal_group,
+            ),
+            self.assertRaisesRegex(
+                Exception,
+                "Please select a Site Location",
+            ),
+        ):
+            assign_sync._validate_site_group_and_leaf(doc)
+
 
 class TestTerminalAssignmentCleanup(unittest.TestCase):
     def test_terminal_statuses_cancel_open_todos_and_clear_assign(self):
