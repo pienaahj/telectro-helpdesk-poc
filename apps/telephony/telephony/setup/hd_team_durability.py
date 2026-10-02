@@ -34,6 +34,14 @@ def _expected_assignment_condition(team_name: str) -> str:
         f"agent_group == '{team_name}'"
     )
 
+def _expected_contextual_assignment_condition(
+    team_name: str,
+) -> str:
+    return (
+        "status == 'Open' and "
+        f"agent_group == '{team_name}' and "
+        "not custom_contextual_assignment_hold"
+    )
 
 def _get_enabled_orphan_assignment_rules() -> list[dict[str, str]]:
     """
@@ -42,7 +50,8 @@ def _get_enabled_orphan_assignment_rules() -> list[dict[str, str]]:
 
     Rule names are deliberately ignored. Ownership is determined from:
     - document_type
-    - exact native HD Team assignment condition
+    - a recognised native HD Team assignment condition
+      (legacy or contextual-hold form)
     - absence of any HD Team.assignment_rule link
     """
     linked_rules = {
@@ -58,37 +67,48 @@ def _get_enabled_orphan_assignment_rules() -> list[dict[str, str]]:
     orphan_rules: list[dict[str, str]] = []
 
     for team_name in REQUIRED_HD_TEAMS:
-        rules = frappe.get_all(
-            "Assignment Rule",
-            filters={
-                "document_type": "HD Ticket",
-                "assign_condition": (
-                    _expected_assignment_condition(
-                        team_name
-                    )
-                ),
-                "disabled": 0,
-            },
-            fields=["name"],
-            order_by="creation asc",
-            limit_page_length=500,
+        accepted_conditions = (
+            _expected_assignment_condition(team_name),
+            _expected_contextual_assignment_condition(
+                team_name
+            ),
         )
 
-        for row in rules:
-            rule_name = row.get("name")
+        seen_rule_names: set[str] = set()
 
-            if not rule_name:
-                continue
-
-            if rule_name in linked_rules:
-                continue
-
-            orphan_rules.append(
-                {
-                    "team": team_name,
-                    "assignment_rule": rule_name,
-                }
+        for assignment_condition in accepted_conditions:
+            rules = frappe.get_all(
+                "Assignment Rule",
+                filters={
+                    "document_type": "HD Ticket",
+                    "assign_condition": assignment_condition,
+                    "disabled": 0,
+                },
+                fields=["name"],
+                order_by="creation asc",
+                limit_page_length=500,
             )
+
+            for row in rules:
+                rule_name = row.get("name")
+
+                if not rule_name:
+                    continue
+
+                if rule_name in seen_rule_names:
+                    continue
+
+                seen_rule_names.add(rule_name)
+
+                if rule_name in linked_rules:
+                    continue
+
+                orphan_rules.append(
+                    {
+                        "team": team_name,
+                        "assignment_rule": rule_name,
+                    }
+                )
 
     return orphan_rules
 

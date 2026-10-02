@@ -308,6 +308,89 @@ class TestHDAssignmentRuleOwnership(unittest.TestCase):
             result["issues"],
         )
 
+    def test_contextual_hold_orphan_rule_is_detected(self):
+        contextual_condition = (
+            "status == 'Open' and "
+            "agent_group == 'PABX' and "
+            "not custom_contextual_assignment_hold"
+        )
+
+        def condition_matches_contextual_hold(value):
+            if value == contextual_condition:
+                return True
+
+            if (
+                isinstance(value, (list, tuple))
+                and len(value) >= 2
+                and value[0] == "in"
+            ):
+                return (
+                    contextual_condition
+                    in (value[1] or [])
+                )
+
+            return False
+
+        def get_all(
+            doctype,
+            fields=None,
+            filters=None,
+            order_by=None,
+            limit_page_length=None,
+        ):
+            if doctype == "HD Team":
+                return [
+                    {
+                        "assignment_rule": (
+                            "PABX - Current Rule"
+                        )
+                    }
+                ]
+
+            if doctype == "Assignment Rule":
+                condition = (
+                    filters.get("assign_condition")
+                    if filters
+                    else None
+                )
+
+                if condition_matches_contextual_hold(
+                    condition
+                ):
+                    return [
+                        {
+                            "name": (
+                                "PABX - Contextual Orphan"
+                            )
+                        }
+                    ]
+
+                return []
+
+            return []
+
+        with mock.patch.object(
+            hd_team_durability.frappe,
+            "get_all",
+            side_effect=get_all,
+        ):
+            result = (
+                hd_team_durability
+                ._get_enabled_orphan_assignment_rules()
+            )
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "team": "PABX",
+                    "assignment_rule": (
+                        "PABX - Contextual Orphan"
+                    ),
+                }
+            ],
+        )
+
 
 class TestHDTeamReconciliation(unittest.TestCase):
     def test_existing_teams_are_not_rewritten(self):
