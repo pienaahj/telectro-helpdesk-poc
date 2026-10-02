@@ -3,6 +3,30 @@ import json
 
 from telephony.partner_identity import resolve_partner_dispatch_user
 from telephony.telectro_routing_policy import resolve_ticket_routing_policy
+from telephony.service_coverage import resolve_contextual_team_assignment
+from telephony.native_team_assignment import (
+    advance_native_team_cursor as _advance_native_team_cursor,
+    native_team_assignment_state as _native_team_assignment_state,
+)
+
+def _set_contextual_assignment_hold(
+    doc,
+    ticket: str,
+    hold: bool,
+) -> None:
+    value = 1 if hold else 0
+
+    frappe.db.set_value(
+        "HD Ticket",
+        ticket,
+        "custom_contextual_assignment_hold",
+        value,
+        update_modified=False,
+    )
+
+    doc.update({
+        "custom_contextual_assignment_hold": value,
+    })
 
 def _ensure_open_todo(ticket_name: str, assignee: str, desc: str = "") -> None:
     ticket_name = (ticket_name or "").strip()
@@ -135,12 +159,78 @@ def assign_after_insert(doc, method=None):
                 _mirror_assign_from_todo(doc)
 
         return
-    # 3) Normal internal team routing is handled by the native
-    # HD Team Assignment Rule.
+    # 3) Contextual Service Coverage may narrow the native HD Team
+    # assignment population.
     #
-    # seed_ticket_routing() has already selected agent_group.
-    # Do not create a ToDo here. Frappe's normal on_update
-    # Assignment Rule processing will choose a member of that team.
+    # Capability remains defined by the native HD Team Assignment Rule.
+    # Service Coverage may only narrow that population; it must never
+    # grant capability outside the native team.
+    group = str(doc.get("agent_group") or "").strip()
+
+    native_state = _native_team_assignment_state(group)
+
+    contextual = resolve_contextual_team_assignment(
+        doc,
+        native_state.get("users") or [],
+        last_user=native_state.get("last_user") or "",
+    )
+
+    if contextual.get("coverage_applies"):
+        selected_user = str(
+            contextual.get("selected_user") or ""
+        ).strip()
+
+        if not selected_user:
+            _set_contextual_assignment_hold(
+                doc,
+                ticket,
+                True,
+            )
+            return
+
+        _set_contextual_assignment_hold(
+            doc,
+            ticket,
+            False,
+        )
+
+        open_todos = _open_todos_for_ticket(ticket)
+
+        if not open_todos:
+            assign_users = _parse_assign_users(
+                frappe.db.get_value(
+                    "HD Ticket",
+                    ticket,
+                    "_assign",
+                )
+                or ""
+            )
+
+            if not assign_users:
+                _ensure_open_todo(
+                    ticket,
+                    selected_user,
+                    desc=(
+                        doc.get("subject")
+                        or "Contextual Service Coverage"
+                    )[:140],
+                )
+
+                _mirror_assign_from_todo(doc)
+
+                _advance_native_team_cursor(
+                    native_state.get("rule") or "",
+                    selected_user,
+                )
+
+        return
+
+    _set_contextual_assignment_hold(
+        doc,
+        ticket,
+        False,
+    )
+
     return
 
 def _todo_assignees(ticket_name: str) -> list[str]:

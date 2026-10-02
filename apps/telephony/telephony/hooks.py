@@ -151,6 +151,7 @@ fixtures = [
                 "HD Ticket-custom_partner_work_state",
                 "HD Ticket-custom_partner_work_completed",
                 "HD Ticket-custom_take_ownership_on_create",
+                "HD Ticket-custom_contextual_assignment_hold",
                 "HD Customer-custom_erp_customer",
                 "HD Customer-custom_portal_service_desk_name",
                 "HD Customer-custom_portal_primary_colour",
@@ -340,6 +341,15 @@ hd_team_durability_after_migrate = (
 
 if hd_team_durability_after_migrate not in after_migrate:
     after_migrate.append(hd_team_durability_after_migrate)
+
+contextual_assignment_durability_after_migrate = (
+    "telephony.setup.contextual_assignment_durability.after_migrate"
+)
+
+if contextual_assignment_durability_after_migrate not in after_migrate:
+    after_migrate.append(
+        contextual_assignment_durability_after_migrate
+    )
 
 ticket_status_durability_after_migrate = (
     "telephony.setup.ticket_status_durability.after_migrate"

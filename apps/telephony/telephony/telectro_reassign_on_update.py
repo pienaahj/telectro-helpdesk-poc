@@ -6,6 +6,13 @@ from telephony.telectro_claim import _normalize_assignment, _normalize_to_pool
 from telephony.partner_identity import resolve_partner_dispatch_user
 from telephony.telectro_ticket_routing import seed_ticket_routing
 from telephony.telectro_routing_policy import resolve_ticket_routing_policy
+from telephony.service_coverage import (
+    resolve_contextual_team_assignment,
+)
+from telephony.native_team_assignment import (
+    advance_native_team_cursor as _advance_native_team_cursor,
+    native_team_assignment_state as _native_team_assignment_state,
+)
 
 ROUTING_FIELDS = {
     "ticket_type",
@@ -215,28 +222,163 @@ def reassign_if_routing_changed(doc, method=None):
             partner_name
         )
 
+        # Contextual Service Coverage is no longer authoritative once
+        # Partner fulfilment takes ownership.
+        frappe.db.set_value(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            0,
+            update_modified=False,
+        )
+
+        doc.update({
+            "custom_contextual_assignment_hold": 0,
+        })
+
         _normalize_assignment(
             ticket,
             partner_user,
-            note=f"Routing change: reassigned to Partner fulfilment | {subject}",
+            note=(
+                "Routing change: reassigned to Partner "
+                f"fulfilment | {subject}"
+            ),
         )
         return
+
     # 2) Explicit internal direct-owner routing policy
     policy = resolve_ticket_routing_policy(doc)
+
     if policy and policy.get("target_user"):
-        target_user = _clean(policy.get("target_user"))
-        if target_user and current_assignee != target_user:
-            _normalize_assignment(
+        target_user = _clean(
+            policy.get("target_user")
+        )
+
+        if target_user:
+            # Explicit direct ownership supersedes any previous
+            # contextual Service Coverage hold.
+            frappe.db.set_value(
+                "HD Ticket",
                 ticket,
-                target_user,
+                "custom_contextual_assignment_hold",
+                0,
+                update_modified=False,
+            )
+
+            doc.update({
+                "custom_contextual_assignment_hold": 0,
+            })
+
+            if current_assignee != target_user:
+                _normalize_assignment(
+                    ticket,
+                    target_user,
+                    note=(
+                        f"Routing change: reassigned via "
+                        f"{policy.get('reason') or 'Direct-owner routing policy'} "
+                        f"| {subject}"
+                    ),
+                )
+
+        return
+
+    # 3) Contextual Service Coverage can narrow the native team.
+    native_state = _native_team_assignment_state(group)
+
+    contextual = resolve_contextual_team_assignment(
+        doc,
+        native_state.get("users") or [],
+        last_user=native_state.get("last_user") or "",
+    )
+
+    if contextual.get("coverage_applies"):
+        selected_user = _clean(
+            contextual.get("selected_user")
+        )
+
+        if not selected_user:
+            frappe.db.set_value(
+                "HD Ticket",
+                ticket,
+                "custom_contextual_assignment_hold",
+                1,
+                update_modified=False,
+            )
+
+            doc.update({
+                "custom_contextual_assignment_hold": 1,
+            })
+
+            _release_for_native_team_assignment(
+                doc,
+                ticket,
                 note=(
-                    f"Routing change: reassigned via "
-                    f"{policy.get('reason') or 'Direct-owner routing policy'} | {subject}"
+                    "Routing change: released to contextual "
+                    "Service Coverage true pool "
+                    f"(group={group or 'blank'}) | {subject}"
                 ),
             )
+
+            return
+
+        frappe.db.set_value(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            0,
+            update_modified=False,
+        )
+
+        doc.update({
+            "custom_contextual_assignment_hold": 0,
+        })
+
+        eligible_users = {
+            _clean(user)
+            for user in (
+                contextual.get("eligible_users") or []
+            )
+            if _clean(user)
+        }
+
+        if (
+            current_assignee
+            and _clean(current_assignee) in eligible_users
+        ):
+            return
+
+        if current_assignee != selected_user:
+            _normalize_assignment(
+                ticket,
+                selected_user,
+                note=(
+                    "Routing change: reassigned via contextual "
+                    f"Service Coverage | {subject}"
+                ),
+            )
+
+            _advance_native_team_cursor(
+                native_state.get("rule") or "",
+                selected_user,
+            )
+
         return
-    # 3) Ordinary internal team routing is owned by the native
-    # HD Team Assignment Rule.
+
+    # No contextual coverage:
+    # remove any stale suppression before native routing continues.
+    frappe.db.set_value(
+        "HD Ticket",
+        ticket,
+        "custom_contextual_assignment_hold",
+        0,
+        update_modified=False,
+    )
+
+    doc.update({
+        "custom_contextual_assignment_hold": 0,
+    })
+
+
     team_users = _native_team_users(group)
 
     # Preserve the current owner when that user remains a valid member

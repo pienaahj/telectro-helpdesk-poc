@@ -337,3 +337,90 @@ def user_has_ticket_coverage(user: str, ticket_or_name) -> bool:
 
     rows = get_matching_coverage_rows_for_ticket(ticket_or_name)
     return any(_clean(row.get("user")) == user for row in rows)
+
+def resolve_contextual_team_assignment(
+    ticket_or_name,
+    team_users,
+    last_user: str | None = None,
+) -> dict:
+    """
+    Resolve optional Service Coverage narrowing for a native HD Team population.
+
+    This is a read-only decision helper.
+
+    Contract:
+    - no matching Service Coverage rows means native team assignment remains
+      authoritative;
+    - matching coverage narrows, but never expands, native team capability;
+    - native team order remains the assignment order;
+    - coverage_role and priority do not define assignment tiers;
+    - last_user is the existing native Assignment Rule cursor;
+    - matching coverage with no capable intersection does not fall back outside
+      the explicit coverage population.
+
+    This function does not:
+    - create or modify ToDos;
+    - write _assign;
+    - modify HD Team membership;
+    - modify Assignment Rule users;
+    - update Assignment Rule.last_user.
+    """
+    rows = get_matching_coverage_rows_for_ticket(ticket_or_name)
+
+    if not rows:
+        return {
+            "coverage_applies": False,
+            "coverage_rows": [],
+            "eligible_users": [],
+            "selected_user": "",
+        }
+
+    covered_users = {
+        _clean(row.get("user"))
+        for row in rows
+        if _clean(row.get("user"))
+    }
+
+    native_team_users = []
+    seen = set()
+
+    for user in team_users or []:
+        user = _clean(user)
+
+        if not user or user in seen:
+            continue
+
+        seen.add(user)
+        native_team_users.append(user)
+
+    eligible_users = [
+        user
+        for user in native_team_users
+        if user in covered_users
+    ]
+
+    selected_user = ""
+
+    if eligible_users:
+        last_user = _clean(last_user)
+
+        if last_user in native_team_users:
+            start_index = native_team_users.index(last_user)
+
+            for offset in range(1, len(native_team_users) + 1):
+                candidate = native_team_users[
+                    (start_index + offset) % len(native_team_users)
+                ]
+
+                if candidate in covered_users:
+                    selected_user = candidate
+                    break
+        else:
+            selected_user = eligible_users[0]
+
+    return {
+        "coverage_applies": True,
+        "coverage_rows": rows,
+        "eligible_users": eligible_users,
+        "selected_user": selected_user,
+    }
