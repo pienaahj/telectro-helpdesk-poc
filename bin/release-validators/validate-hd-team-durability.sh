@@ -258,6 +258,27 @@ require(
     ),
 )
 
+expected_contextual_condition = (
+    "status == 'Open' and "
+    "agent_group == 'PABX' and "
+    "not custom_contextual_assignment_hold"
+)
+
+observed_contextual_condition = (
+    hd_team_durability
+    ._expected_contextual_assignment_condition("PABX")
+)
+
+require(
+    observed_contextual_condition
+    == expected_contextual_condition,
+    (
+        "contextual-hold HD Team Assignment Rule "
+        "condition changed: "
+        f"{observed_contextual_condition!r}"
+    ),
+)
+
 orphan_source = inspect.getsource(
     hd_team_durability
     ._get_enabled_orphan_assignment_rules
@@ -285,6 +306,24 @@ require(
     "linked_rules"
     in orphan_source,
     "orphan classifier must exclude rules linked from HD Teams",
+)
+
+require(
+    "_expected_contextual_assignment_condition"
+    in orphan_source,
+    (
+        "orphan classifier must accept the "
+        "contextual-hold team condition"
+    ),
+)
+
+require(
+    "accepted_conditions"
+    in orphan_source,
+    (
+        "orphan classifier must evaluate both "
+        "legacy and contextual-hold conditions"
+    ),
 )
 
 require(
@@ -350,6 +389,11 @@ print(
     observed_condition,
 )
 
+print(
+    "HD_TEAM_ORPHAN_CONTEXTUAL_ASSIGNMENT_RULE_CONDITION=",
+    observed_contextual_condition,
+)
+
 print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_CLASSIFIER=PASS")
 print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_RECONCILIATION=PASS")
 print("HD_TEAM_ORPHAN_ASSIGNMENT_RULE_DISABLE_NOT_DELETE=PASS")
@@ -390,6 +434,7 @@ expected_tests = {
     "test_structural_orphan_rule_detection_ignores_rule_names",
     "test_enabled_orphan_rules_are_reported",
     "test_enabled_orphan_rule_is_disabled",
+    "test_contextual_hold_orphan_rule_is_detected",
 }
 
 print(
