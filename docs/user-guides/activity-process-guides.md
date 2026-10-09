@@ -1969,7 +1969,7 @@ Confirm:
 
 - the subject is clear;
 - the detailed explanation contains enough information;
-- the selected Fault Point or Fault Asset is correct, if one was selected;
+- the selected Campus, Fault Point, or Fault Asset is correct, as applicable;
 - the attachments are correct, if any were added.
 
 Select `Submit`.
