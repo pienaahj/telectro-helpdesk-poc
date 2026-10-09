@@ -1714,19 +1714,33 @@ Choose the Service Area that best matches the issue.
 
 The Customer does not need to diagnose the technical cause. Choose the closest practical service category based on what is affected.
 
-### Fault Point
+### Campus and Fault Point
 
-`Fault Point` helps Telectro understand where the issue is located.
+`Campus` and `Fault Point` help Telectro identify where a support request needs attention.
 
-In the current Customer portal flow, Fault Point is optional.
+The Customer portal supports different location-selection workflows depending on the Customer's configured location structure.
 
-The available Fault Point and Fault Asset results are limited to the Customer's allowed organisation and Campus.
+**Campus-level location selection**
 
-The Customer does not need to select or manage the Campus separately.
+Where the portal displays a `Campus` selector, the Customer must select the affected Campus before submitting the request.
 
-Customers should choose the closest recognised point, asset, link, or area when they can.
+The selected Campus identifies the affected branch or site and is sent to Telectro as the reported fault location.
 
-If the exact point is not available or the Customer is unsure, the Customer should still submit the request and describe the location clearly in the details.
+This is the workflow used by Customers whose support locations are managed at Campus level, such as Emerald Life.
+
+A separate detailed Fault Point selection is not required when the selected Campus already represents the fault location.
+
+**Detailed Fault Point selection**
+
+Where the portal provides a detailed `Fault Point` selector, the Customer can identify a more precise location, asset, link, building, or area.
+
+The available Fault Point and Fault Asset results are limited to the Customer's permitted organisation and location context.
+
+The Customer should select the closest recognised point or asset when one is known.
+
+If the exact location is unavailable or uncertain, the Customer should still submit the request and describe the location clearly in the detailed explanation.
+
+Detailed Fault Point selection is optional unless the Customer's portal explicitly requires it.
 
 ### Category
 
@@ -1745,13 +1759,13 @@ The Category helps narrow the available fault point search results.
 
 ### Search
 
-The Search field lets the Customer search within the selected category.
+Where a detailed Fault Point selector is available, the Search field lets the Customer search within the selected category.
 
 Customers can search for a recognisable location name, such as a building, room, cabinet, reception area, link, area, or known label.
 
 ### Selected Fault Point / Selected Fault Asset
 
-After the Customer selects a result, the portal shows a selected summary.
+After the Customer selects a Campus or detailed Fault Point, the portal shows the selected location context.
 
 Depending on the selected category and geometry, the summary may refer to:
 
@@ -1831,11 +1845,22 @@ Choose based on the affected service or type of work, not on who you think shoul
 
 If you are unsure, choose the closest appropriate Service Area and explain the issue clearly in the detailed explanation.
 
-### Step 4 — Choose a Fault Point category, if useful
 
-In the `Fault Point` area, review the selected Category.
+### Step 4 — Identify the affected Campus or location
 
-Choose the category that best matches the affected location or asset.
+Review the location-selection controls shown in the Customer portal.
+
+If a `Campus` selector is displayed, select the Campus where the issue is occurring.
+
+For Customers using Campus-level fault reporting, such as Emerald Life, the selected Campus identifies the affected branch or site. No additional detailed Fault Point selection is required.
+
+If the portal instead presents detailed Fault Point controls, continue with the category and search options described below.
+
+Do not select an unrelated location simply to complete the form.
+
+### Step 5 — Select a detailed Fault Point, if available and useful
+
+Where the portal provides a detailed `Fault Point` selector, choose the category that best describes the affected location or asset.
 
 Examples:
 
@@ -1845,35 +1870,33 @@ Examples:
 - use `Areas` when the issue affects a broader mapped area;
 - use `Other` when the exact category is not clear.
 
-If unsure, choose the closest likely category and explain the uncertainty in the detailed explanation.
-
-### Step 5 — Search for the closest affected location
-
-Use the Search field to find the closest affected location, point, asset, link, or area.
-
-If results appear, select the closest recognised option.
+Use the Search field to find the closest recognised location, point, asset, link, or area.
 
 If no matching result appears:
 
 - try a shorter search term;
 - search for a nearby known location;
-- choose the closest point you recognise; or
-- leave the Fault Point blank and explain the exact location in the detailed explanation.
+- select the closest point only when it genuinely identifies the affected place; or
+- leave the optional detailed Fault Point blank and describe the location clearly in the explanation.
 
-Fault Point is helpful, but it should not prevent the Customer from submitting a valid request.
+Do not delay reporting a valid support request because a detailed Fault Point is unavailable.
 
-### Step 6 — Confirm the selected Fault Point or Fault Asset
+### Step 6 — Confirm the selected location
 
-If a result is selected, check the selected summary before submitting.
+Review the selected location summary before submitting.
 
-Confirm:
+For Campus-level reporting, confirm that the selected Campus identifies the correct affected branch or site.
 
-- the selected name looks correct;
-- the category looks correct;
-- the campus/location context looks correct;
-- the map link is useful if available.
+For detailed Fault Point reporting, confirm where applicable:
 
-If the wrong point was selected, clear it and search again.
+- the selected point or asset name is correct;
+- the category is appropriate;
+- the location or Campus context is correct;
+- the map link identifies the expected location, if available.
+
+If the selection is incorrect, change or clear it and select the correct location.
+
+The aim is to provide Telectro with accurate location information, not to require the Customer to diagnose the fault.
 
 ### Step 7 — Add a short subject
 
@@ -1960,7 +1983,7 @@ Confirm:
 - the ticket was created;
 - the ticket number is visible;
 - the subject and description are correct;
-- the selected Fault Point or Fault Asset context appears where expected;
+- the selected Campus, Fault Point, or Fault Asset context appears where expected;
 - any uploaded attachments are present;
 - the ticket appears in `Support Requests`.
 
@@ -1975,8 +1998,9 @@ The process is complete when:
 - A Service Area was selected.
 - The subject is clear.
 - The detailed explanation is useful.
-- A Fault Point or Fault Asset was selected when one was known.
-- The request was still submitted when no exact Fault Point was available.
+- The affected Campus was selected where the portal requires Campus-level reporting.
+- A detailed Fault Point or Fault Asset was selected when available and useful.
+- The request was not delayed because an optional detailed Fault Point was unavailable.
 - Photos or evidence were attached when helpful.
 - The request submitted successfully.
 - The new ticket opened after submission.
@@ -2003,8 +2027,9 @@ Problem:
 
 Correct approach:
 
-- Select the closest known point if possible.
-- If no useful point is available, leave Fault Point blank and describe the exact location in the detailed explanation.
+- Select the affected Campus where Campus-level reporting is required.
+- Where detailed Fault Point selection is available, choose the closest recognised point only when it accurately identifies the affected location.
+- If no suitable detailed Fault Point is available, leave the optional selection blank and describe the location clearly.
 
 ### Mistake: Choosing a random Fault Point
 
