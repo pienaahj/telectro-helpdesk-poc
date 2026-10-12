@@ -13,6 +13,8 @@ from telephony.native_team_assignment import (
     advance_native_team_cursor as _advance_native_team_cursor,
     native_team_assignment_state as _native_team_assignment_state,
 )
+from telephony.assignment_policy import get_ticket_assignment_policy
+from telephony.service_coverage import get_ticket_context
 
 ROUTING_FIELDS = {
     "ticket_type",
@@ -279,6 +281,72 @@ def reassign_if_routing_changed(doc, method=None):
                         f"| {subject}"
                     ),
                 )
+
+        return
+
+    # 3) Assignment Policy controls whether automatic assignment is allowed.
+    # True Pool takes precedence over contextual Service Coverage and
+    # native HD Team round-robin, but not Partner or explicit direct-owner
+    # routing.
+    assignment_policy = get_ticket_assignment_policy(doc)
+
+    if (
+        assignment_policy
+        and assignment_policy.get("assignment_mode") == "True Pool"
+    ):
+        previous_policy = get_ticket_assignment_policy(old_doc)
+
+        same_pool_policy = bool(
+            previous_policy
+            and previous_policy.get("assignment_mode") == "True Pool"
+            and previous_policy.get("name") == assignment_policy.get("name")
+        )
+
+        previous_context = get_ticket_context(old_doc)
+        current_context = get_ticket_context(doc)
+
+        context_changed = any(
+            previous_context.get(field) != current_context.get(field)
+            for field in ("customer", "campus", "service_area")
+        )
+
+        previous_party = _clean(
+            old_doc.get("custom_fulfilment_party")
+        )
+        previous_group = _clean(
+            old_doc.get("agent_group")
+        )
+
+        frappe.db.set_value(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        doc.update({
+            "custom_contextual_assignment_hold": 1,
+        })
+
+        # A transition into this pool must retire previous ownership
+        # and historical ToDos. Preserve an intentional manual owner
+        # when the ticket remains within the same pool-only context.
+        if (
+            not same_pool_policy
+            or context_changed
+            or previous_party != party
+            or previous_group != group
+        ):
+            _release_for_native_team_assignment(
+                doc,
+                ticket,
+                note=(
+                    "Routing change: released to Assignment Policy "
+                    "True Pool "
+                    f"(group={group or 'blank'}) | {subject}"
+                ),
+            )
 
         return
 

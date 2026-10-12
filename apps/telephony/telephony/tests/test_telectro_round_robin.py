@@ -252,6 +252,11 @@ class TestContextualCoverageAfterInsert(unittest.TestCase):
             ),
             mock.patch.object(
                 round_robin,
+                "get_ticket_assignment_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                round_robin,
                 "_native_team_assignment_state",
                 return_value={
                     "rule": "CCTV - Support Rotation",
@@ -383,4 +388,209 @@ class TestContextualCoverageAfterInsert(unittest.TestCase):
         self.assertEqual(
             doc.get("custom_contextual_assignment_hold"),
             1,
+        )
+
+
+class TestContextualAssignmentPolicyAfterInsert(unittest.TestCase):
+    def test_emerald_life_cctv_true_pool_suppresses_automatic_assignment(self):
+        doc = _TicketDoc(
+            name="TEST-EMERALD-CCTV-TRUE-POOL",
+            subject="Emerald Life CCTV pool-only proof",
+            custom_fulfilment_party="Telectro",
+            custom_request_source="Customer",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=0,
+        )
+
+        with (
+            mock.patch.object(
+                round_robin,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                round_robin,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-EMERALD-CCTV",
+                    "coverage_scope": "Customer",
+                    "assignment_mode": "True Pool",
+                },
+            ) as resolve_policy,
+            mock.patch.object(
+                round_robin,
+                "_native_team_assignment_state",
+            ) as native_state,
+            mock.patch.object(
+                round_robin,
+                "resolve_contextual_team_assignment",
+            ) as resolve_coverage,
+            mock.patch.object(
+                round_robin,
+                "_ensure_open_todo",
+            ) as ensure_todo,
+            mock.patch.object(
+                round_robin,
+                "_advance_native_team_cursor",
+            ) as advance_cursor,
+            mock.patch.object(
+                round_robin.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            result = round_robin.assign_after_insert(doc)
+
+        self.assertIsNone(result)
+
+        resolve_policy.assert_called_once_with(doc)
+
+        native_state.assert_not_called()
+        resolve_coverage.assert_not_called()
+        ensure_todo.assert_not_called()
+        advance_cursor.assert_not_called()
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            "TEST-EMERALD-CCTV-TRUE-POOL",
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+    def test_boschendal_cctv_round_robin_assigns_covered_team_member(self):
+        doc = _TicketDoc(
+            name="TEST-BOSCHENDAL-CCTV-ROUND-ROBIN",
+            subject="Boschendal CCTV round-robin proof",
+            custom_fulfilment_party="Telectro",
+            custom_request_source="Customer",
+            custom_customer="Customer B",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        team_users = [
+            "pierre@telectro.co.za",
+            "sean@telectro.co.za",
+            "armandt@telectro.co.za",
+            "jacques@telectro.co.za",
+        ]
+
+        selected_user = "armandt@telectro.co.za"
+
+        with (
+            mock.patch.object(
+                round_robin,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                round_robin,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-BOSCHENDAL-CCTV",
+                    "coverage_scope": "Customer",
+                    "assignment_mode": "Round Robin",
+                },
+            ) as resolve_policy,
+            mock.patch.object(
+                round_robin,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": "CCTV - Support Rotation",
+                    "users": team_users,
+                    "last_user": "sean@telectro.co.za",
+                },
+            ) as native_state,
+            mock.patch.object(
+                round_robin,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": True,
+                    "coverage_rows": [
+                        {"user": user}
+                        for user in team_users
+                    ],
+                    "eligible_users": team_users,
+                    "selected_user": selected_user,
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                round_robin,
+                "_open_todos_for_ticket",
+                return_value=[],
+            ),
+            mock.patch.object(
+                round_robin,
+                "_parse_assign_users",
+                return_value=[],
+            ),
+            mock.patch.object(
+                round_robin,
+                "_ensure_open_todo",
+            ) as ensure_todo,
+            mock.patch.object(
+                round_robin,
+                "_mirror_assign_from_todo",
+            ) as mirror_assign,
+            mock.patch.object(
+                round_robin,
+                "_advance_native_team_cursor",
+            ) as advance_cursor,
+            mock.patch.object(
+                round_robin.frappe.db,
+                "get_value",
+                return_value="",
+            ),
+            mock.patch.object(
+                round_robin.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            result = round_robin.assign_after_insert(doc)
+
+        self.assertIsNone(result)
+
+        resolve_policy.assert_called_once_with(doc)
+        native_state.assert_called_once_with("CCTV")
+
+        resolve_coverage.assert_called_once_with(
+            doc,
+            team_users,
+            last_user="sean@telectro.co.za",
+        )
+
+        ensure_todo.assert_called_once_with(
+            "TEST-BOSCHENDAL-CCTV-ROUND-ROBIN",
+            selected_user,
+            desc="Boschendal CCTV round-robin proof",
+        )
+
+        mirror_assign.assert_called_once_with(doc)
+
+        advance_cursor.assert_called_once_with(
+            "CCTV - Support Rotation",
+            selected_user,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            "TEST-BOSCHENDAL-CCTV-ROUND-ROBIN",
+            "custom_contextual_assignment_hold",
+            0,
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            0,
         )

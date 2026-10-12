@@ -729,6 +729,13 @@ def _format_partner_acceptance_review_comment(outcome_label: str, note: str | No
 
 def enforce_partner_create_v1(doc, method=None):
     user = frappe.session.user
+
+    # Administrator may resolve to the Partner Creator role through
+    # Frappe's privileged role membership. Administrator-created
+    # internal tickets must not inherit Partner Creator defaults.
+    if user == "Administrator":
+        return
+
     if not _is_partner_creator(user):
         return
 

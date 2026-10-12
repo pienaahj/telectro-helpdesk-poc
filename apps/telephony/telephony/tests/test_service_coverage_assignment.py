@@ -242,5 +242,27 @@ class TestContextualTeamAssignment(unittest.TestCase):
             ],
         )
 
+
+    def test_matching_coverage_with_empty_native_population_cannot_assign(self):
+        coverage_rows = [
+            {"user": "pierre@telectro.co.za"},
+            {"user": "sean@telectro.co.za"},
+        ]
+
+        with mock.patch.object(
+            service_coverage,
+            "get_matching_coverage_rows_for_ticket",
+            return_value=coverage_rows,
+        ):
+            result = service_coverage.resolve_contextual_team_assignment(
+                "TEST-DISABLED-NATIVE-POPULATION",
+                [],
+                last_user="pierre@telectro.co.za",
+            )
+
+        self.assertTrue(result["coverage_applies"])
+        self.assertEqual(result["eligible_users"], [])
+        self.assertEqual(result["selected_user"], "")
+
 if __name__ == "__main__":
     unittest.main()
