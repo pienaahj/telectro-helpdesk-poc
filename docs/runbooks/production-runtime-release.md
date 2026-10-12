@@ -2548,6 +2548,61 @@ PRE_RECREATION_ONE_SHOT_STATE_CAPTURED
 PRODUCTION_RUNTIME_RECREATION_PRECHECK_OK
 ```
 
+### Release-specific gate — contextual CCTV assignment before runtime recreation
+
+**Applies when:** The release introduces or changes `TELECTRO Assignment Policy`, contextual Service Coverage assignment, or CCTV automatic assignment behavior.
+
+**Execution point:** After Phase 11 evidence capture and before Phase 12 runtime recreation.
+
+**Safety objective:** Prevent production CCTV tickets from receiving unintended automatic ownership while the candidate runtime is active but the Assignment Policy database schema and required Customer-specific policies have not yet been established.
+
+The new runtime is deployed before the production migration. During this interval, the Assignment Policy DocType table may not yet exist.
+
+The application resolver tolerates a missing Assignment Policy table, but this compatibility safeguard does not establish an Emerald Life True Pool policy.
+
+Before Phase 12, establish and record the existing production CCTV assignment configuration.
+
+Required pre-runtime checks:
+
+1. Identify the production `CCTV` HD Team and its current `HD Team.assignment_rule` link.
+2. Record whether the linked native Assignment Rule exists and whether it is enabled.
+3. Identify any other enabled Assignment Rule that could automatically assign CCTV HD Tickets.
+4. Record the native rule's `assign_condition`, assignment method, technician membership, and current round-robin cursor where applicable.
+5. Inspect existing CCTV `TELECTRO Service Coverage` records and determine whether the candidate contextual assignment code could select a technician before the new Assignment Policies are configured.
+6. Establish whether CCTV ticket intake can occur during the runtime-to-migration interval.
+7. Verify that no effective automatic assignment path can assign Emerald Life CCTV tickets before the intended True Pool policy is active.
+
+**Required safety state:** CCTV automatic assignment must remain inactive until the post-migration contextual policy and eligibility checks are complete.
+
+A disabled native Assignment Rule alone is not sufficient evidence if another applicable rule or contextual code path could still establish automatic ownership.
+
+If this safety state cannot be demonstrated, stop before Phase 12. Establish a controlled CCTV intake restriction or another separately verified safeguard before continuing.
+
+Do not enable a CCTV Assignment Rule, populate its technician membership for activation, or otherwise activate CCTV automatic assignment during this pre-runtime gate.
+
+The post-migration activation procedure must separately establish and verify:
+
+- Emerald Life CCTV Customer-scoped True Pool policy.
+- Boschendal CCTV Customer/Campus-scoped Round Robin policy.
+- Correct production Customer and Campus identities.
+- Production CCTV technician membership and applicable Service Coverage.
+- Native Assignment Rule contextual hold condition.
+- Customer-specific assignment lifecycle outcomes.
+
+Customer-specific Assignment Policies and Service Coverage are operational database configuration, not automatically supplied by the application fixtures.
+
+Record the pre-runtime findings in the release evidence.
+
+Required release-specific markers:
+
+```text
+CONTEXTUAL_CCTV_PRE_RUNTIME_CONFIGURATION_CAPTURED
+CONTEXTUAL_CCTV_PRE_RUNTIME_AUTOMATIC_ASSIGNMENT_INACTIVE
+CONTEXTUAL_CCTV_PRE_RUNTIME_SAFETY_GATE_OK
+```
+
+Do not proceed to Phase 12 without the final safety marker for a release to which this gate applies.
+
 ## Phase 12 — recreate only the five runtime services
 
 Recreate exactly:
@@ -3384,6 +3439,50 @@ schema fields exist
 stale records are absent when removal was intended
 ```
 
+### Release-specific database prerequisite — contextual CCTV assignment
+
+**Applies when:** The release introduces or changes `TELECTRO Assignment Policy`, contextual Service Coverage assignment, or native CCTV assignment safeguards.
+
+**Execution point:** Phase 18, after successful production migration and cache clearing.
+
+**Validation type:** Read-only production database and Frappe semantic verification. Do not create, modify, enable, or disable operational configuration during this validation.
+
+The purpose of this prerequisite is to establish that the migrated application and database can safely support the intended contextual assignment configuration before operational activation begins.
+
+Required verification:
+
+1. Confirm that the `TELECTRO Assignment Policy` DocType and its database table exist.
+2. Verify the required policy schema, including Customer, Campus, Service Area, scope, assignment mode, and enabled-state fields.
+3. Confirm that the Assignment Policy supports the intended `True Pool` and `Round Robin` modes and the required contextual specificity.
+4. Verify that the ticket-level `custom_contextual_assignment_hold` field exists and is available to assignment evaluation.
+5. Inspect the production CCTV HD Team and any linked native Assignment Rule.
+6. Where a linked native CCTV Assignment Rule exists, confirm that its `assign_condition` includes `not custom_contextual_assignment_hold`.
+7. Confirm that the migration completed the registered contextual assignment durability hook without an unresolved error.
+8. Confirm that the pre-runtime CCTV automatic-assignment safety restriction remains effective.
+9. Record the existing production Assignment Policies and Service Coverage configuration without assuming that DEV records were transported into production.
+
+**Important:** A successful schema migration does not establish the required Customer-specific operational policies.
+
+The production activation procedure must separately create or reconcile the Emerald Life CCTV True Pool policy, Boschendal CCTV Round Robin policy, native technician membership, and applicable Service Coverage.
+
+Do not enable CCTV automatic assignment merely because the new DocType exists or migration completed successfully.
+
+If the expected schema or native assignment safeguard is missing, stop contextual CCTV activation and investigate the migration result. Do not attempt to compensate by manually bypassing the assignment hold.
+
+Record the inspected values and read-only assertions in the release evidence.
+
+Required release-specific markers:
+
+```text
+CONTEXTUAL_CCTV_POLICY_SCHEMA_OK
+CONTEXTUAL_CCTV_HOLD_FIELD_OK
+CONTEXTUAL_CCTV_NATIVE_SAFEGUARD_OK
+CONTEXTUAL_CCTV_PRE_ACTIVATION_SAFETY_OK
+CONTEXTUAL_CCTV_POST_MIGRATION_PREREQUISITES_OK
+```
+
+These markers establish prerequisites only. They do not authorize CCTV automatic assignment or replace the subsequent Customer-specific operational configuration and functional verification.
+
 ### Validation output rules
 
 The validator must:
@@ -3401,6 +3500,166 @@ Required generic markers:
 PRODUCTION_DATABASE_SEMANTIC_VALIDATION_OK
 PRODUCTION_CHANGED_ARTIFACT_DATABASE_STATE_OK
 ```
+
+## Phase 18A — controlled contextual CCTV assignment activation
+
+**Applies when:** The release introduces or changes Customer-specific CCTV Assignment Policies, contextual Service Coverage, or CCTV automatic assignment behavior.
+
+**Execution point:** After successful Phase 18 database semantic verification and before Phase 19 functional execution.
+
+**Change type:** Controlled operational database configuration. Unlike Phase 18 validation, this phase may modify production configuration under an approved release procedure.
+
+**Safety rule:** CCTV automatic assignment must remain inactive until all configuration and pre-activation checks have passed.
+
+### 18A.1 — Establish the protected starting state
+
+Before changing production configuration:
+
+1. Confirm that Phase 18 completed successfully.
+2. Confirm that the pre-runtime CCTV safety restriction remains effective.
+3. Capture the current production CCTV HD Team, Assignment Rule, rule condition, enabled state, technician membership, and round-robin cursor.
+4. Capture existing `TELECTRO Assignment Policy` and `TELECTRO Service Coverage` records relevant to CCTV.
+5. Identify existing CCTV tickets and accountable ownership that must not be changed inadvertently.
+6. Confirm that the configuration procedure can be stopped without enabling automatic assignment.
+
+Do not assume that production contains the same Customer identities, Campus records, policies, technician Users, or Service Coverage as DEV.
+
+Do not enable the native CCTV Assignment Rule during this step.
+
+### 18A.2 — Establish Emerald Life True Pool protection
+
+Create or reconcile the production `TELECTRO Assignment Policy` for:
+
+```text
+Customer = Emerald Life
+Campus = not restricted
+Service Area = CCTV
+Scope = Customer
+Assignment Mode = True Pool
+Enabled = Yes
+```
+
+Use the actual production Customer identity and the field values supported by the migrated DocType.
+
+Verify:
+
+- The policy resolves for the Emerald Life Head Office context.
+- The same Customer-scoped policy resolves for representative Emerald Life branch contexts.
+- The policy covers all applicable Emerald Life CCTV tickets without requiring individual policies for each of the 24 active operational sites.
+- No more-specific enabled policy unexpectedly overrides the intended True Pool behavior.
+- The effective mode is `True Pool`.
+- Automatic assignment would be suppressed by `custom_contextual_assignment_hold`.
+
+This configuration must be established and verified before CCTV automatic assignment is activated.
+
+An Emerald Life ticket must not acquire an automatic technician merely because its Service Area and HD Team are `CCTV`.
+
+### 18A.3 — Establish Boschendal Round Robin configuration
+
+Create or reconcile the production `TELECTRO Assignment Policy` for:
+
+```text
+Customer = verified production Boschendal Customer
+Campus = Boschendal
+Service Area = CCTV
+Scope = Customer/Campus
+Assignment Mode = Round Robin
+Enabled = Yes
+```
+
+The DEV Customer identity `Customer B` must not be copied into production without verification.
+
+Configure or reconcile:
+
+1. The production `CCTV` HD Team.
+2. Its linked native Round Robin Assignment Rule.
+3. The intended production technician membership.
+4. Applicable Boschendal CCTV Service Coverage.
+5. The native Assignment Rule condition containing `not custom_contextual_assignment_hold`.
+
+The intended technician population must be confirmed against production Users and actual service responsibilities.
+
+Verify that matching Service Coverage does not grant assignment eligibility to a User outside the native CCTV Assignment Rule membership.
+
+Verify that the coverage intersection contains the intended eligible Boschendal technicians.
+
+Do not activate automatic assignment when the eligible population is empty or the production technician configuration remains unresolved.
+
+### 18A.4 — Pre-activation safety verification
+
+With CCTV automatic assignment still inactive, perform read-only, site-aware checks of the configured production state and effective assignment decisions.
+
+Required outcomes:
+
+| Context | Effective Assignment Policy | Expected automatic assignment |
+|---|---|---|
+| Emerald Life, CCTV, Head Office | True Pool | Suppressed |
+| Emerald Life, CCTV, representative branch | True Pool | Suppressed |
+| Boschendal, CCTV, verified Customer/Campus | Round Robin | Permitted for eligible native CCTV technicians |
+| Context without matching Assignment Policy | Existing fallback | Governed by existing routing and assignment rules |
+
+Also verify:
+
+- The Assignment Policy resolver returns the expected policy for each context.
+- The configured policies are enabled and do not conflict at the same specificity.
+- The native CCTV Assignment Rule uses the required contextual hold safeguard.
+- There is no competing enabled Assignment Rule that bypasses the intended restriction.
+- Existing operational ticket ownership has not been modified by configuration preparation.
+- The pre-runtime protection remains in force until activation is authorized.
+
+A read-only resolver check does not by itself prove the complete ticket insert/save lifecycle. Phase 19 must address functional execution separately.
+
+If any policy, eligibility, or safeguard assertion fails, stop activation. Leave CCTV automatic assignment inactive.
+
+### 18A.5 — Controlled activation decision
+
+CCTV automatic assignment may be activated only when all preceding checks pass and the approved release procedure authorizes the change.
+
+Before activation, record:
+
+```text
+Emerald Life True Pool policy = verified
+Boschendal Round Robin policy = verified
+production Customer/Campus identities = verified
+CCTV technician membership = verified
+Boschendal Service Coverage eligibility = verified
+native contextual hold safeguard = verified
+no competing automatic assignment path = verified
+pre-activation safety checks = PASS
+```
+
+Enable only the intended CCTV automatic assignment mechanism.
+
+Do not modify unrelated HD Team Assignment Rules or technician populations.
+
+After activation, immediately repeat the policy-resolution and assignment-safeguard checks.
+
+Do not interpret a successfully enabled Assignment Rule as proof that Customer-specific assignment behavior is correct.
+
+If the activation checks fail, stop further CCTV assignment activity, restore the approved protected configuration, and investigate before proceeding.
+
+### 18A.6 — Evidence and handoff to Phase 19
+
+Record the configuration before and after controlled activation, including policy identities, effective scopes, technician eligibility, native rule configuration, and the activation decision.
+
+Required release-specific markers:
+
+```text
+CONTEXTUAL_CCTV_EMERALD_TRUE_POOL_POLICY_OK
+CONTEXTUAL_CCTV_BOSCHENDAL_ROUND_ROBIN_POLICY_OK
+CONTEXTUAL_CCTV_NATIVE_MEMBERSHIP_AND_COVERAGE_OK
+CONTEXTUAL_CCTV_PRE_ACTIVATION_VERIFICATION_OK
+CONTEXTUAL_CCTV_CONTROLLED_ACTIVATION_OK
+CONTEXTUAL_CCTV_PHASE_18A_OK
+```
+
+These markers must be emitted only after their corresponding checks have passed.
+
+Phase 19 must provide functional execution evidence for the changed behavior.
+
+Do not create synthetic operational production tickets merely to demonstrate assignment. Any write-based production lifecycle test requires an explicitly approved, narrowly scoped procedure consistent with the production data rules in Phase 19.
+
+DEV lifecycle proofs remain supporting evidence but do not replace production configuration verification.
 
 ## Phase 19 — execute the changed behavior through Frappe
 
@@ -3519,6 +3778,152 @@ Required markers:
 PRODUCTION_CHANGED_FUNCTION_EXECUTION_OK
 PRODUCTION_FUNCTIONAL_SMOKE_OK
 ```
+
+### Release-specific functional proof — contextual CCTV assignment
+
+**Applies when:** The release introduces or changes Customer-specific CCTV Assignment Policies, contextual Service Coverage, or CCTV automatic assignment behavior.
+
+**Execution point:** Phase 19, following successful Phase 18A configuration and controlled activation.
+
+**Safety objective:** Demonstrate that production resolves the intended assignment policies and applies them without assigning Emerald Life CCTV tickets automatically or bypassing Boschendal technician eligibility.
+
+Functional proof must distinguish read-only policy resolution, observation of legitimate operational tickets, and any explicitly approved write-based lifecycle test.
+
+#### 19.1 — Read-only contextual policy execution
+
+Using the production Frappe site context, execute the Assignment Policy resolver against representative ticket contexts without inserting or modifying HD Tickets.
+
+Required contexts:
+
+1. Emerald Life Head Office, Service Area CCTV.
+2. Emerald Life representative branch, Service Area CCTV.
+3. Boschendal, verified production Customer and Campus, Service Area CCTV.
+4. A representative context with no matching Assignment Policy, where such a context is available.
+
+Expected resolution:
+
+| Context | Expected result |
+|---|---|
+| Emerald Life Head Office CCTV | Customer-scoped True Pool |
+| Emerald Life branch CCTV | Same Customer-scoped True Pool |
+| Boschendal CCTV | Customer/Campus-scoped Round Robin |
+| No matching policy | Existing assignment fallback |
+
+Verify that the policy resolver uses actual production Customer and Campus identities.
+
+Check for unexpected more-specific policies or duplicate enabled policies that could alter the effective result.
+
+Record the resolved policy identity, scope, assignment mode, and relevant context for each check.
+
+These checks must not create assignments, advance native round-robin cursors, or modify existing tickets.
+
+Do not invoke an assignment-selection function as a read-only check unless its absence of database writes and external side effects has been established.
+
+#### 19.2 — Read-only technician eligibility and native safeguard proof
+
+For the production CCTV HD Team:
+
+1. Verify the linked native Assignment Rule and its enabled state following Phase 18A.
+2. Inspect the configured native technician membership.
+3. Inspect applicable Boschendal CCTV Service Coverage.
+4. Calculate or inspect the effective eligible technician intersection without advancing the assignment cursor.
+5. Confirm that no uncovered or non-member technician becomes eligible through contextual coverage.
+6. Verify that the native `assign_condition` retains `not custom_contextual_assignment_hold`.
+7. Confirm that no competing enabled Assignment Rule bypasses the intended contextual safeguards.
+8. Record the native cursor without modifying it.
+
+The expected Boschendal eligible population must match the approved operational technician configuration.
+
+Read-only eligibility verification does not prove that the complete assignment lifecycle works.
+
+#### 19.3 — Observe legitimate production ticket outcomes
+
+Where suitable legitimate production CCTV tickets exist, inspect their actual assignment outcomes without modifying them.
+
+For Emerald Life CCTV, verify where observable:
+
+- The intended Customer-scoped True Pool policy applies to the ticket context.
+- An automatically created technician assignment has not bypassed the contextual hold.
+- An unclaimed ticket has no Open assignment ToDo and `_assign = []`.
+- A manually claimed ticket is not incorrectly classified as an automatic assignment failure.
+- Existing intentional ownership is preserved where the unchanged True Pool context requires it.
+
+For Boschendal CCTV, verify where observable:
+
+- The Customer/Campus-scoped Round Robin policy applies.
+- The ticket is routed to the CCTV HD Team.
+- Any automatically assigned technician belongs to the effective eligible population.
+- An owned ticket has exactly one Open assignment ToDo.
+- `_assign` mirrors the canonical accountable owner.
+- Historical assignment records do not indicate unintended reassignment.
+
+For both Customers, distinguish tickets created before the release from tickets created after activation.
+
+An existing ticket's current assignment state alone does not establish which assignment mechanism originally selected its owner.
+
+Do not modify legitimate tickets merely to force a desired observation.
+
+If no suitable production tickets exist, record the observation as unavailable rather than manufacturing evidence or claiming that the lifecycle has been proven.
+
+#### 19.4 — Controlled write-based lifecycle proof, only when authorized
+
+A full production ticket lifecycle test may be performed only through an explicitly approved, narrowly scoped procedure that complies with the Phase 19 production data rule.
+
+The procedure must specify:
+
+- The authorized production test context and responsible operator.
+- Whether a synthetic ticket is genuinely necessary.
+- How operational notifications, assignments, realtime events, background jobs, and other external side effects will be controlled.
+- How the native round-robin cursor and assignment history will be protected.
+- How temporary test records will be identified and retired.
+- How unexpected ownership or routing outcomes will be handled.
+- The exact evidence required before the test can be considered successful.
+
+A database rollback alone is not sufficient proof that all external effects were reversed.
+
+Where a controlled lifecycle test is authorized, the intended functional scenarios are:
+
+1. Emerald Life CCTV initial intake produces an intentional unclaimed True Pool state without automatic technician assignment.
+2. Boschendal CCTV initial intake permits assignment to an eligible native CCTV technician.
+3. A controlled Round Robin to True Pool transition retires stale automatic ownership.
+4. A controlled True Pool to Round Robin transition clears the hold and permits eligible automatic assignment.
+
+Routing transitions must not be tested by changing the Customer or Campus of legitimate operational tickets merely for demonstration purposes.
+
+Where production write-based testing is not approved, preserve the DEV lifecycle results as supporting regression evidence and explicitly identify the remaining production lifecycle proof limitation.
+
+#### 19.5 — Functional acceptance and evidence
+
+Collect and retain:
+
+- Production policy-resolution results.
+- Effective technician eligibility and native Assignment Rule safeguard results.
+- Relevant existing production ticket observations, where available.
+- Any approved lifecycle-test evidence.
+- Explicit PASS, FAIL, or NOT PROVEN outcomes for the required functional behaviors.
+- Confirmation that no unintended production ownership changes occurred during verification.
+
+Required release-specific markers:
+
+```text
+CONTEXTUAL_CCTV_PRODUCTION_POLICY_RESOLUTION_OK
+CONTEXTUAL_CCTV_PRODUCTION_ELIGIBILITY_OK
+CONTEXTUAL_CCTV_PRODUCTION_NATIVE_SAFEGUARD_OK
+```
+
+Emit the following marker only when a real production ticket lifecycle has been observed sufficiently to establish the expected behavior or an approved production lifecycle test has passed:
+
+```text
+CONTEXTUAL_CCTV_PRODUCTION_LIFECYCLE_OK
+```
+
+Do not emit a lifecycle success marker based solely on DocType existence, Assignment Policy resolution, or DEV regression results.
+
+If full production lifecycle proof is unavailable, record `NOT_PROVEN`, identify the missing evidence, and do not claim complete Phase 19 functional acceptance.
+
+A functional failure involving unintended Emerald Life automatic assignment, unauthorized technician eligibility, duplicate accountable ownership, or an unexpected contextual hold must stop release acceptance and trigger the protected-state procedure defined in Phase 18A.
+
+Do not close the contextual CCTV release as fully functionally verified until the required production evidence and acceptance decisions have been recorded.
 
 ## Phase 20 — prove runtime and HTTP health after migration
 

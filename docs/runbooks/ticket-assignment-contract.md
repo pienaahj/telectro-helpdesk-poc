@@ -33,39 +33,87 @@ The pilot currently uses a **hybrid routing and assignment model**.
 
 TELECTRO application code decides **where** a ticket should be routed and handles explicit ownership exceptions.
 
-For ordinary internal team routing, native Frappe / Helpdesk **Assignment Rules** decide **which member of the selected HD Team** becomes the accountable owner.
+For ordinary internal team routing, the native Frappe / Helpdesk Assignment Rule defines the eligible team population and maintains the round-robin cursor.
+
+Where matching contextual Service Coverage exists, TELECTRO selects an eligible technician from that native population. Otherwise, the native Assignment Rule performs ordinary team-member selection.
 
 The current working path is:
 
-1. ticket routing context is seeded
-2. explicit ownership exceptions are evaluated
-3. Partner fulfilment may establish the Partner organisation's deterministic Default Dispatch User
-4. an eligible internal creator may explicitly choose Take Ownership
-5. ordinary internal tickets retain the selected `agent_group`
-6. the native Assignment Rule linked to that `HD Team` selects the accountable team member
-7. TELECTRO assignment synchronization keeps open `ToDo` and `_assign` state consistent with the pilot single-owner invariant
-8. user-facing Claim, Release, and Controlled Handoff operate on top of that canonical ownership state
+1. Ticket routing context is seeded, including Customer, Campus,
+   Service Area, and the selected `agent_group`.
+2. Explicit ownership exceptions are evaluated first:
+   - Partner fulfilment resolves the Partner organisation's
+     Default Dispatch User.
+   - An eligible internal creator may explicitly select
+     Take Ownership.
+3. For ordinary internal tickets, `TELECTRO Assignment Policy`
+   determines whether automatic assignment is permitted.
+4. A matching **True Pool** policy suppresses automatic assignment
+   by setting `custom_contextual_assignment_hold = 1`.
+5. A matching **Round Robin** policy permits the existing
+   Service Coverage / native HD Team assignment path.
+6. When no Assignment Policy matches, existing assignment
+   behavior remains authoritative.
+7. `TELECTRO Service Coverage`, where configured, narrows the
+   eligible technician population to the intersection of
+   matching coverage users and native Assignment Rule users.
+8. When contextual coverage selects an eligible technician,
+   TELECTRO establishes the assignment and advances the
+   existing native Assignment Rule cursor.
+9. Without matching contextual coverage, the native Assignment
+   Rule remains responsible for ordinary team-member selection.
+10. TELECTRO assignment synchronization keeps Open `ToDo`
+    records and `_assign` consistent with the single-owner
+    invariant.
+11. User-facing Claim, Release, and Controlled Handoff operate
+    on top of the canonical ownership state.
 
 The important separation is:
 
 ```text
 TELECTRO routing policy
-    -> decides team / exceptional direct owner
+    -> determines Service Area and HD Team
+    -> handles exceptional direct ownership
 
 Partner fulfilment
-    -> resolves the Partner organisation's deterministic dispatch owner
+    -> resolves the Partner organisation's dispatch owner
 
 Explicit internal Take Ownership
-    -> may establish the eligible internal ticket creator as owner
+    -> may assign the eligible internal ticket creator
+
+TELECTRO Assignment Policy
+    -> True Pool: suppress automatic assignment
+    -> Round Robin: permit automatic assignment
+    -> no matching policy: preserve existing behavior
+
+TELECTRO Service Coverage
+    -> narrows eligible technicians by context
+    -> never expands native HD Team capability
 
 Native HD Team Assignment Rule
-    -> chooses the member of an ordinary internal team
+    -> defines technician membership and round-robin order
+    -> selects ordinary team owners where coverage does not apply
+    -> provides the cursor shared with contextual assignment
+    -> respects custom_contextual_assignment_hold
 
 TELECTRO ownership controls
     -> enforce one accountable owner
     -> synchronize ToDo / _assign
     -> provide Claim / Release / Controlled Handoff
 ```
+
+A matching True Pool policy does not prevent an authorized user from
+manually claiming a ticket or receiving a Controlled Handoff.
+
+When a ticket remains within the same True Pool policy and unchanged
+routing context, intentional manual ownership is preserved.
+
+When routing changes into a different True Pool context, stale
+assignment ownership is retired and historical assignment ToDos
+are cancelled.
+
+When routing changes from True Pool to Round Robin, the contextual
+hold is cleared and eligible automatic assignment can resume.
 
 Campus / Site context does not itself establish a direct owner. In particular, Boschendal tickets continue through their Service Area / HD Team routing path unless another explicit ownership exception applies.
 
@@ -85,15 +133,24 @@ Seeds routing context, including the final `agent_group`, before assignment is e
 
 * `telephony.telectro_round_robin.assign_after_insert`
 
-Despite the historical module name, ordinary internal round-robin selection is no longer performed here.
+Despite its historical module name, this function does not maintain a separate hard-coded technician pool or round-robin cursor.
+
+When contextual Service Coverage applies, it may select an eligible technician from the native HD Team population and advance the existing native Assignment Rule cursor. Otherwise, ordinary team-member selection remains with the native Assignment Rule.
 
 The current `assign_after_insert()` behavior is:
 
-* Partner fulfilment -> resolve and assign the Partner organisation's deterministic Default Dispatch User
-* explicit internal direct-owner policy -> assign the returned `target_user`; the current internal exception is an eligible ticket creator who explicitly selected Take Ownership
-* ordinary internal team routing -> create no assignment itself and allow the native HD Team Assignment Rule to assign a team member
+* **Partner fulfilment** — resolve and assign the Partner organisation's deterministic Default Dispatch User.
+* **Explicit internal direct ownership** — assign the target User when an eligible internal creator explicitly selected Take Ownership.
+* **Assignment Policy: True Pool** — set
+  `custom_contextual_assignment_hold = 1` and suppress automatic assignment through the native HD Team Assignment Rule.
+* **Assignment Policy: Round Robin** — permit the normal contextual Service Coverage / native HD Team assignment path.
+* **No matching Assignment Policy** — preserve the existing assignment behavior; no new global assignment default is imposed.
+* **Matching Service Coverage** — intersect covered Users with the native Assignment Rule membership. When an eligible technician is selected, establish ownership and advance the native rule cursor. If no eligible technician remains, hold the ticket unassigned.
+* **No matching Service Coverage** — clear any contextual assignment hold and allow the native HD Team Assignment Rule to perform ordinary team-member selection.
 
-Campus / Site is not an initial direct-owner policy. Boschendal and other ordinary internal tickets remain on the Service Area -> HD Team -> native Assignment Rule path.
+The contextual Assignment Policy decision is evaluated after Partner fulfilment and explicit internal direct-owner routing.
+
+Campus / Site context does not independently establish a direct owner. Boschendal CCTV tickets continue through their selected HD Team and native assignment population when Round Robin applies.
 
 ### Routing-change ownership
 
@@ -103,24 +160,89 @@ Re-evaluates ownership when routing-relevant fields change.
 
 Its current behavior is:
 
-* Partner fulfilment -> normalize ownership to the selected Partner organisation's Default Dispatch User
-* explicit internal direct-owner policy with a `target_user` -> normalize ownership to that User
-* ordinary internal team routing:
+* **Partner fulfilment** — normalize ownership to the selected Partner organisation's Default Dispatch User. Clear any previous contextual assignment hold.
 
-  * preserve the current accountable owner when that User remains valid in the newly selected HD Team
-  * otherwise retire stale assignment state so the native Assignment Rule for the current HD Team can select the replacement owner
+* **Explicit internal direct-owner policy** — normalize ownership to the specified User when required. Clear any previous contextual assignment hold.
+
+* **Assignment Policy: True Pool** — set
+  `custom_contextual_assignment_hold = 1` and suppress native automatic assignment.
+
+  * When entering a different True Pool policy, or when Customer, Campus, Service Area, fulfilment party, or HD Team context changes, retire previous ownership.
+  * Previous assignment ToDos are cancelled and `_assign` is cleared.
+  * When the ticket remains within the same True Pool policy and unchanged routing context, preserve an intentional manual owner.
+  * Do not select a replacement technician or advance the native round-robin cursor.
+
+* **Assignment Policy: Round Robin**, or no matching policy — continue through contextual Service Coverage and the native HD Team assignment mechanism.
+
+  * Clear any stale contextual hold when automatic assignment is permitted.
+  * When matching Service Coverage exists, restrict eligibility to covered Users who also belong to the native Assignment Rule.
+  * Preserve the current owner when that User remains eligible.
+  * Otherwise, select an eligible replacement and advance the existing native cursor.
+  * When matching Service Coverage has no eligible native team member, retain the ticket unassigned with a contextual hold.
+  * Without matching Service Coverage, preserve a current owner who remains a valid member of the selected native HD Team.
+  * Otherwise, retire stale ownership so the native Assignment Rule can select a replacement.
+
+### Verified routing transitions
+
+The following transitions were verified against persistent DEV Assignment Policies on 12 October 2026:
+
+| Transition | Expected result |
+|---|---|
+| Boschendal Round Robin to Emerald Life True Pool | Previous owner released; historical ToDo cancelled; contextual hold set |
+| Emerald Life True Pool to Boschendal Round Robin | Contextual hold cleared; eligible native team technician assigned |
+| Routing change within the same True Pool context | Intentional manual ownership preserved |
+
+The first two transitions were verified through real HD Ticket insert/save lifecycles, including assignment ToDos, `_assign`, native cursor handling, and database rollback.
+
+Manual ownership preservation was verified by a targeted regression test using mocked ownership dependencies.
+
+A routing change does not inherently grant direct ownership.
+Customer and Campus determine contextual policy and eligibility,
+while accountable ownership remains subject to the established assignment controls.
+
 
 ### Native internal team assignment
 
-Ordinary internal team ownership is selected through the native Frappe Assignment Rule linked from:
+The native Frappe Assignment Rule remains the authoritative source of ordinary internal team assignment capability.
+
+Each operational HD Team links to its Assignment Rule through:
 
 ```text
 HD Team.assignment_rule
 ```
 
-The active pilot HD Team rules use native `Round Robin` assignment.
+The native Assignment Rule defines:
 
-The Assignment Rule evaluates after the TELECTRO `HD Ticket` `on_update` hooks, so routing and stale-owner cleanup are completed before native team assignment is applied.
+- the enabled assignment mechanism;
+- the ordered technician population;
+- the shared round-robin cursor;
+- the condition under which native automatic assignment is allowed.
+
+The pilot uses native `Round Robin` assignment for its configured operational teams.
+
+Contextual Service Coverage does not replace this native configuration or introduce a separate technician pool.
+
+When matching Service Coverage exists:
+
+- TELECTRO intersects the covered Users with the native Assignment Rule's technician population.
+- TELECTRO may select an eligible technician using the native assignment order and cursor.
+- The selected technician receives canonical assignment ownership.
+- The existing native Assignment Rule cursor is advanced.
+- An empty eligible intersection results in a contextual hold, not assignment to an uncovered technician.
+
+When no matching Service Coverage exists, the native Assignment Rule remains responsible for ordinary team-member selection, provided automatic assignment is permitted.
+
+The canonical native Assignment Rule condition includes:
+
+```python
+status == 'Open' and agent_group == '<HD Team>' and not custom_contextual_assignment_hold
+```
+
+The contextual assignment durability hook maintains this condition for linked operational team rules during migration.
+
+The native Assignment Rule evaluates after the TELECTRO `HD Ticket` `on_update` hooks. This allows routing decisions, contextual holds, and stale-owner cleanup to complete before native automatic assignment is considered.
+
+An explicit True Pool Assignment Policy suppresses native automatic assignment but does not prohibit authorized manual Claim or Controlled Handoff.
 
 ### Partner organisation / dispatch identity
 
@@ -162,22 +284,40 @@ Restrict generic Frappe Assign/Unassign behavior where it would violate the pilo
 
 ## Important current truth
 
-The live assignment architecture is **not an app-owned round-robin implementation**.
+The live assignment architecture uses native Frappe Assignment Rules together with TELECTRO contextual assignment controls. It does not maintain a separate hard-coded technician pool or round-robin cursor.
 
 The current responsibility split is:
 
 ```text
-Routing / policy:
-    TELECTRO application code
-
-Ordinary team-member selection:
-    native HD Team Assignment Rule
+Routing and HD Team selection:
+    TELECTRO routing code
 
 Partner fulfilment ownership:
     Partner organisation Default Dispatch User
 
 Exceptional internal direct ownership:
     explicit creator Take Ownership
+
+Automatic assignment mode:
+    TELECTRO Assignment Policy
+    -> True Pool / Round Robin / existing fallback
+
+Native technician capability:
+    HD Team.assignment_rule
+    -> enabled native Assignment Rule
+    -> configured technician membership
+
+Contextual technician eligibility:
+    TELECTRO Service Coverage
+    -> intersection with native rule membership
+
+Round-robin order and cursor:
+    native HD Team Assignment Rule
+
+Ordinary team-member selection:
+    TELECTRO when contextual Service Coverage applies
+    native Assignment Rule when no coverage applies
+    neither when a contextual hold prevents assignment
 
 Canonical active ownership:
     open assignment ToDo
@@ -191,9 +331,11 @@ Operational ownership actions:
 
 The former hard-coded TELECTRO round-robin pool implementation is no longer the live mechanism for ordinary internal team assignment.
 
-Native Assignment Rules are therefore active operational runtime state, not merely historical or dormant configuration.
+Native Assignment Rules remain active operational runtime configuration. Their enabled state, technician membership, assignment condition, and round-robin cursor must be preserved and verified.
 
-Campus / Site does not itself establish accountable ownership. It remains routing context and must not bypass the selected HD Team's normal assignment path merely because a ticket belongs to a particular campus.
+Contextual Assignment Policy determines whether automatic assignment is permitted. Service Coverage restricts eligible technicians when applicable, but cannot expand the native HD Team's assignment capability.
+
+Campus / Site does not independently establish accountable ownership. Customer and Campus context may select an Assignment Policy or Service Coverage configuration, but ownership remains subject to the selected HD Team and the established assignment controls.
 
 ---
 
@@ -228,26 +370,66 @@ Campus / Site is not a direct-owner exception. A Boschendal ticket, for example,
 
 When an explicit ownership exception applies, TELECTRO code establishes the accountable owner directly.
 
-### 3) Native HD Team assignment handles ordinary internal routing
+### 3) Contextual policy and native HD Team assignment handle ordinary internal routing
 
-If no direct-owner policy applies, `assign_after_insert()` deliberately creates no assignment.
+When no Partner fulfilment or explicit direct-owner exception applies, TELECTRO evaluates the ticket's contextual Assignment Policy.
 
-The selected `agent_group` identifies the `HD Team`.
+The selected `agent_group` identifies the operational `HD Team`.
 
-That team's linked native Frappe Assignment Rule then evaluates during `on_update`.
+The assignment decision follows three possible paths.
 
-For the active pilot teams, these rules use native `Round Robin` assignment to select a User from the team's Assignment Rule membership.
+**Path A — Explicit True Pool policy**
 
-The ordinary internal path is therefore:
+When a matching `TELECTRO Assignment Policy` specifies `True Pool`, automatic assignment is suppressed.
+
+The ticket remains in its selected HD Team with:
+
+```text
+custom_contextual_assignment_hold = 1
+_assign = []
+no Open assignment ToDo
+```
+
+The native Assignment Rule respects the contextual hold and does not select an automatic owner.
+
+An authorized technician can subsequently Claim the ticket, or an authorized user can perform a Controlled Handoff.
+
+**Path B — Round Robin policy or no matching policy, with contextual Service Coverage**
+
+When automatic assignment is permitted, TELECTRO checks for matching `TELECTRO Service Coverage` records.
+
+If coverage exists, the eligible population is the intersection of:
+
+- Users in the matching Service Coverage records.
+- Users in the selected HD Team's native Assignment Rule.
+
+TELECTRO selects an eligible technician using the native Assignment Rule's membership order and existing round-robin cursor.
+
+The selected User receives canonical ownership, and the native cursor is advanced.
+
+If matching Service Coverage exists but no technician belongs to both populations, automatic assignment is suppressed through the contextual hold.
+
+**Path C — Round Robin policy or no matching policy, without contextual Service Coverage**
+
+When no matching Service Coverage records exist, the native Assignment Rule remains responsible for ordinary team-member selection.
+
+The routing path is:
 
 ```text
 routing fields
     -> seed_ticket_routing()
     -> agent_group / HD Team
+    -> contextual assignment hold cleared
     -> HD Team.assignment_rule
-    -> native Frappe Assignment Rule
+    -> native Frappe Round Robin
     -> accountable team member
 ```
+
+No matching Assignment Policy means that the existing assignment behavior remains authoritative. It does not introduce a new automatic-assignment requirement.
+
+Across all three paths, native HD Team membership remains the capability boundary. Contextual Service Coverage can restrict that membership but cannot expand it.
+
+TELECTRO sets or clears `custom_contextual_assignment_hold` during ticket assignment evaluation. The migration durability hook maintains the corresponding safeguard in native Assignment Rule conditions, preventing native automatic assignment from overriding an intentional contextual hold.
 
 ### 4) TELECTRO synchronization canonicalizes ownership state
 
@@ -320,20 +502,62 @@ Do not encode Assignment Rule document suffixes as operational policy.
 
 For an ordinary internal team ticket:
 
-* routing first establishes the final `agent_group`
-* TELECTRO does not choose a team member from a Python `POOLS` map
-* the enabled Assignment Rule linked to the selected `HD Team` evaluates
-* native Frappe `Round Robin` chooses an eligible User
-* Frappe creates the assignment `ToDo`
-* TELECTRO synchronization preserves the single-accountable-owner invariant and mirrored `_assign` state
+* Routing first establishes the final `agent_group` and selected HD Team.
+* TELECTRO does not choose technicians from a separate Python `POOLS` map.
+* Partner fulfilment and explicit internal Take Ownership take precedence over contextual automatic assignment.
+* A matching True Pool Assignment Policy suppresses automatic assignment through `custom_contextual_assignment_hold`.
+* When automatic assignment is permitted, matching Service Coverage restricts eligibility to covered technicians who are also members of the selected HD Team's native Assignment Rule.
+* When eligible contextual coverage exists, TELECTRO selects the technician using the native assignment order and cursor.
+* The existing native Assignment Rule cursor is advanced following contextual technician selection.
+* When matching Service Coverage has no eligible native team member, the ticket remains unassigned with a contextual hold.
+* When no matching Service Coverage exists, the enabled native Assignment Rule performs ordinary Round Robin selection.
+* Assignment ownership is represented by the canonical Open assignment `ToDo` and mirrored in `_assign`.
+* TELECTRO synchronization preserves the single-accountable-owner invariant.
 
 The former hard-coded TELECTRO round-robin pool and cursor implementation has been removed from the live ordinary team-assignment path.
+
+The native Assignment Rule remains the authoritative configuration for technician membership and round-robin cursor state. Contextual Service Coverage narrows this population without introducing a competing assignment system.
 
 ---
 
 ### True pool / unclaimed state
 
-A true-pool ticket is an active ticket for which there is currently **no accountable owner**.
+The pilot distinguishes between an explicit **True Pool Assignment Policy** and the **unclaimed ownership state** of an HD Ticket.
+
+These concepts are related but are not interchangeable.
+
+#### Explicit contextual True Pool policy
+
+A matching `TELECTRO Assignment Policy` with `assignment_mode = True Pool` suppresses automatic assignment for its configured Customer, Campus, and Service Area context.
+
+The ticket remains associated with its selected HD Team.
+
+The assignment lifecycle sets:
+
+```text
+custom_contextual_assignment_hold = 1
+```
+
+The corresponding native Assignment Rule condition prevents automatic assignment while this hold is active.
+
+An initially unclaimed ticket under this policy has:
+
+```text
+HD Ticket._assign = []
+no Open assignment ToDo
+```
+
+An authorized technician may subsequently Claim the ticket, or an authorized user may establish ownership through Controlled Handoff.
+
+The policy remains True Pool even when the ticket has a manually established accountable owner. The contextual hold prevents automatic assignment; it does not prohibit deliberate ownership.
+
+When the ticket remains within the same True Pool policy and unchanged routing context, intentional manual ownership is preserved.
+
+A routing transition into a different True Pool context retires stale ownership, while a transition to permitted Round Robin clears the contextual hold and allows automatic assignment to resume.
+
+#### General unclaimed ownership state
+
+An active ticket is unclaimed when there is currently no accountable owner.
 
 Its canonical ownership state is:
 
@@ -342,9 +566,13 @@ HD Ticket._assign = []
 no Open assignment ToDo
 ```
 
-A ticket can remain in this state when assignment has not produced an accountable owner.
+This state does not, by itself, establish that a True Pool Assignment Policy applies.
 
-True pool is therefore an ownership state, not a synthetic pool User and not the old fallback for a team missing from a Python round-robin map.
+A ticket may also remain unassigned because contextual Service Coverage has no eligible native team member, or because another assignment path has not established an owner.
+
+True Pool therefore does not require a synthetic pool User and is not the former fallback for a team missing from a Python round-robin map.
+
+The assignment policy, contextual hold, HD Team, and canonical ownership state must be inspected together to determine why a ticket is unassigned.
 
 #### Claim from true pool
 
@@ -649,20 +877,50 @@ fallback routing
     -> accountable team member
 ```
 
-### Example E — true pool
+### Example E — true pool and unclaimed ownership
 
-A true-pool ticket is one for which no accountable owner is currently established.
+An active ticket is unclaimed when no accountable owner is currently established.
 
-Its ownership state is:
+Its canonical ownership state is:
 
 ```text
 no Open assignment ToDo
 _assign = []
 ```
 
-It remains visible as unclaimed operational work until an ownership action establishes an accountable owner.
+This state may result from an explicit True Pool Assignment Policy, an empty contextual technician eligibility intersection, or another assignment path that has not established ownership.
 
-Claim is the normal pilot action for taking ownership of such a ticket.
+An explicit True Pool policy additionally establishes:
+
+```text
+custom_contextual_assignment_hold = 1
+```
+
+The contextual hold prevents native automatic assignment while leaving authorized manual Claim and Controlled Handoff available.
+
+A manually claimed ticket can therefore remain governed by a True Pool Assignment Policy even though it now has an accountable owner.
+
+**Verified DEV example — Emerald Life CCTV**
+
+The persistent DEV Assignment Policy for Customer `Emerald Life` and Service Area `CCTV` specifies `True Pool`.
+
+A real HD Ticket insert lifecycle verified:
+
+```text
+Customer = Emerald Life
+Service Area = CCTV
+HD Team = CCTV
+Assignment Policy = True Pool
+
+custom_contextual_assignment_hold = 1
+_assign = []
+Open assignment ToDos = 0
+native round-robin cursor = unchanged
+```
+
+The lifecycle test used temporary HD Ticket `934`, and its database transaction was rolled back after verification.
+
+This demonstrates that Emerald Life CCTV tickets can remain unclaimed without receiving an automatic technician assignment, even when an enabled native CCTV Assignment Rule exists.
 
 ### Example F — routing change where current owner becomes invalid
 
@@ -705,6 +963,35 @@ The `agent_group` represents the current routing destination.
 
 An existing assignment `ToDo` may still record the Assignment Rule that originally created that ownership. That historical `assignment_rule` value on the `ToDo` does not override the ticket's current routing state.
 
+### Example H — Boschendal CCTV contextual Round Robin
+
+The persistent DEV Assignment Policy for Customer `Customer B`, Campus `Boschendal`, and Service Area `CCTV` specifies `Round Robin`.
+
+`Customer B` is the DEV customer identity used for Boschendal. Production customer identity and operational technician membership must be verified independently.
+
+A real HD Ticket insert lifecycle verified:
+
+```text
+Customer = Customer B
+Campus = Boschendal
+Service Area = CCTV
+HD Team = CCTV
+Assignment Policy = Round Robin
+
+custom_contextual_assignment_hold = 0
+_assign = ["tech.bravo@local.test"]
+Open assignment ToDos = 1
+native round-robin cursor = advanced
+```
+
+The lifecycle test used temporary HD Ticket `935`, and its database transaction was rolled back after verification.
+
+This demonstrates that Boschendal CCTV tickets can receive automatic accountable ownership while Emerald Life CCTV tickets remain governed by their separate True Pool policy.
+
+The DEV CCTV Assignment Rule currently has only one technician, `tech.bravo@local.test`. This proves successful assignment and cursor advancement but does not establish multi-technician rotation fairness.
+
+The intended production Boschendal technician population must be configured and verified before CCTV automatic assignment is activated in production.
+
 ---
 
 ## Current boundaries
@@ -714,11 +1001,14 @@ The current pilot assignment contract is intentionally bounded.
 It currently provides:
 
 * routing-driven HD Team selection
-* native Frappe Assignment Rule team-member selection
+* native Frappe Assignment Rule membership, round-robin cursor, and ordinary assignment fallback
+* contextual `TELECTRO Assignment Policy` supporting True Pool and Round Robin modes
+* contextual `TELECTRO Service Coverage` restricting technician eligibility to the native Assignment Rule population
+* contextual assignment holds preventing unintended native automatic assignment
 * explicit Partner dispatch ownership
 * explicit eligible internal creator Take Ownership
 * one accountable ticket owner
-* true-pool / unclaimed state
+* distinction between explicit True Pool policy and general unclaimed ownership state
 * Claim
 * Release
 * Controlled Handoff
@@ -740,16 +1030,23 @@ If explicit multi-person work tracking becomes necessary, it should be modelled 
 
 * routing policy and assignment are separate responsibilities
 * TELECTRO routing logic determines the destination team or an exceptional direct owner
-* ordinary internal team-member selection is performed by the native Assignment Rule linked to the selected `HD Team`
+* Assignment Policy determines whether contextual automatic assignment uses True Pool or Round Robin
+* no matching Assignment Policy preserves the existing assignment behavior
+* ordinary internal team-member selection is performed by TELECTRO when matching contextual Service Coverage applies, or by the native Assignment Rule when no coverage applies
+* native Assignment Rules remain authoritative for technician membership, assignment condition, and the shared round-robin cursor
+* contextual Service Coverage restricts native technician eligibility but cannot expand it
+* `custom_contextual_assignment_hold` prevents native automatic assignment when an explicit True Pool policy applies or contextual coverage has no eligible native technician
 * native Assignment Rules are active runtime configuration
 * hard-coded Python `POOLS` are not the live ordinary team-assignment mechanism
 * assignment represents accountable ownership, not contributor participation
 * routing seed must establish the final `agent_group` before ordinary team assignment is expected to behave predictably
-* the current accountable owner may be retained across a routing change when that User is valid in the destination HD Team
-* stale ownership is retired when the current owner is not valid for the destination HD Team, allowing the destination native Assignment Rule to select a replacement
+* the current accountable owner may be retained across a routing change when that User remains eligible in the destination HD Team and any applicable contextual Service Coverage
+* intentional manual ownership is preserved when the ticket remains within the same True Pool policy and unchanged routing context
+* stale ownership is retired when the current owner becomes invalid for the destination context, allowing permitted contextual or native assignment to establish replacement ownership
 * open assignment `ToDo` state is canonical for active owned tickets
 * `_assign` is a mirrored/cache representation of accountable ownership
-* true pool means `_assign = []` and no Open assignment `ToDo`
+* an unclaimed ticket has `_assign = []` and no Open assignment `ToDo`
+* an explicit True Pool Assignment Policy can remain active after authorized manual Claim or Controlled Handoff establishes ownership
 * `Helpdesk Team` is an HD Team routing destination and is not synonymous with true pool
 * terminal (`Resolved` / `Closed` / `Archived`) means `_assign = []` and no Open assignment `ToDo`
 * terminal cleanup takes precedence over Partner fulfilment assignment enforcement and ordinary assignment repair
@@ -759,7 +1056,7 @@ If explicit multi-person work tracking becomes necessary, it should be modelled 
 * Controlled Handoff is audited in `TELECTRO Assignment Handoff Log`
 * the audit trail is visible in `TELECTRO Assignment Handoff Audit`
 * Partner fulfilment uses an explicit organisation-aware dispatch override and bypasses ordinary internal team-member selection
-* Campus / Site context does not by itself establish a direct owner; ordinary Boschendal tickets continue through Service Area -> HD Team -> native Assignment Rule assignment
+* Campus / Site does not independently establish a direct owner; Customer and Campus context may determine Assignment Policy and Service Coverage, while native HD Team technician capability remains authoritative
 * generic direct Assign/Unassign remains intentionally guarded where it would violate the pilot ownership model
 
 ---
@@ -768,83 +1065,125 @@ If explicit multi-person work tracking becomes necessary, it should be modelled 
 
 When proving or debugging assignment behavior, use this order:
 
-1. confirm routing inputs and final routing state
+1. **Confirm routing inputs and final routing state.**
 
    * `email_account`
+   * `custom_customer` / `customer`
+   * `custom_site_group` and other relevant Campus / Site context
    * `custom_service_area`
-   * `custom_site_group` / other relevant routing context
    * `agent_group`
    * relevant Partner ownership fields
    * `custom_take_ownership_on_create` when explicit creator ownership is in question
+   * current ticket status, including whether the ticket is terminal
 
-2. determine which ownership path applies
+2. **Determine whether an explicit ownership exception applies.**
 
-   * Partner fulfilment / dispatch path?
-   * explicit eligible internal creator Take Ownership path?
+   * Partner fulfilment / dispatch ownership?
+   * eligible internal creator with explicit Take Ownership?
+   * existing manual Claim or Controlled Handoff?
    * ordinary internal HD Team assignment?
-   * existing true-pool state?
 
-3. for ordinary internal routing, inspect the selected HD Team
+   Partner fulfilment and eligible explicit creator ownership take precedence over contextual automatic assignment. Existing deliberate manual ownership must also be considered before interpreting the assignment state.
+
+3. **Resolve the contextual Assignment Policy for ordinary internal routing.**
+
+   * Determine whether an enabled `TELECTRO Assignment Policy` matches the ticket context.
+   * Confirm the selected Customer, Campus, and Service Area.
+   * Apply the configured specificity order: Customer/Campus, Campus, Customer, then Default.
+   * Confirm whether the effective mode is `True Pool`, `Round Robin`, or no matching policy.
+   * A matching True Pool policy suppresses automatic assignment.
+   * A matching Round Robin policy permits automatic assignment through the existing assignment mechanisms.
+   * No matching policy preserves existing assignment behavior rather than introducing a new global default.
+
+4. **Inspect contextual Service Coverage when automatic assignment is permitted.**
+
+   * Determine whether matching `TELECTRO Service Coverage` records exist.
+   * Identify the covered Users for the effective ticket context.
+   * Compare those Users with the technician membership of the selected HD Team's native Assignment Rule.
+   * Confirm that the eligible population is the intersection of contextual coverage and native rule membership.
+   * When matching coverage has no eligible native technician, expect the ticket to remain unassigned with a contextual hold.
+   * When no matching coverage exists, ordinary native HD Team assignment remains the fallback.
+
+5. **Inspect the selected HD Team, native Assignment Rule, and contextual hold.**
 
    * `HD Team.assignment_rule`
    * linked Assignment Rule exists
-   * rule is enabled
+   * rule is enabled when automatic assignment is expected
    * rule applies to `HD Ticket`
-   * rule condition matches the ticket
-   * eligible Assignment Rule Users exist
-   * no enabled structural orphan Assignment Rule is competing with the currently linked HD Team rule
+   * native Assignment Rule membership is correctly configured
+   * `Assignment Rule.assign_condition` includes the contextual hold safeguard
+   * `custom_contextual_assignment_hold` reflects the effective assignment decision
+   * no enabled structural orphan Assignment Rule competes with the linked rule
+   * inspect the native round-robin cursor when contextual selection or rotation behavior is in question
 
-4. inspect assignment `ToDo` state
+   A contextual hold may be intentional. Do not clear it merely because the ticket has no accountable owner.
 
-   * all relevant `ToDo` rows, not only Open rows when diagnosing native Assignment Rule behavior
-   * current Open assignment count
-   * accountable User
-   * `assignment_rule`
-   * status
+6. **Inspect canonical ownership and assignment synchronization.**
 
-5. inspect `_assign`
+   * Inspect relevant assignment `ToDo` rows, including historical non-Open rows.
+   * Confirm the current Open assignment count.
+   * Identify the accountable User, if any.
+   * Inspect `assignment_rule` and `status` on relevant ToDo records.
+   * Confirm that an active owned ticket has exactly one Open assignment ToDo.
+   * Confirm that an unclaimed ticket has no Open assignment ToDo.
+   * Inspect `_assign` and verify that it mirrors canonical ownership.
+   * Do not treat `_assign` alone as proof of assignment correctness.
 
-   * confirm it mirrors current accountable ownership
-   * do not treat `_assign` alone as canonical proof
+7. **If routing context changed, verify ownership transitions.**
 
-6. if routing changed, establish whether the current owner remains valid
+   * Establish the previous and current Customer, Campus, Service Area, fulfilment party, and HD Team context.
+   * Determine whether the effective Assignment Policy changed.
+   * For a transition into a different True Pool context, confirm stale ownership was retired and the contextual hold established.
+   * For an unchanged True Pool policy and routing context, confirm intentional manual ownership was preserved.
+   * For a transition from True Pool to permitted Round Robin, confirm the contextual hold was cleared.
+   * When automatic assignment is permitted, verify that an existing owner remains eligible under both native team membership and applicable Service Coverage before preserving ownership.
+   * If the previous owner is no longer eligible, verify that stale ownership was retired and permitted replacement assignment was evaluated.
+   * Check the native cursor when contextual round-robin selection occurred.
 
-   * valid member of destination HD Team -> ownership may be preserved
-   * invalid for destination HD Team -> stale ownership should be retired before native reassignment
-
-7. inspect explicit ownership controls when relevant
+8. **Inspect operational ownership controls and use repair tooling only when justified.**
 
    * Claim
    * Release
    * Controlled Handoff
    * Partner dispatch normalization
    * eligible internal creator Take Ownership
+   * assignment synchronization and drift repair tools
 
-8. use assignment repair/proof tooling only when drift or inconsistent historical state is suspected
+   Do not run assignment repair merely to populate an intentionally unclaimed True Pool ticket. Establish the effective policy, contextual hold, eligibility, and canonical ToDo state before deciding that repair is appropriate.
 
 ### Why this order matters
 
-Routing and accountable ownership are related but separate concerns.
+Routing, automatic assignment policy, technician eligibility, and accountable ownership are related but separate responsibilities.
 
-The normal internal path is:
+The ordinary internal assignment path is:
 
 ```text
 routing inputs
-    -> final agent_group
-    -> HD Team
-    -> current linked native Assignment Rule
-    -> accountable User
-    -> assignment ToDo
+    -> final agent_group / HD Team
+    -> contextual Assignment Policy
+        -> True Pool: suppress automatic assignment
+        -> Round Robin or no policy: evaluate eligibility
+    -> contextual Service Coverage
+        -> matching coverage: native membership intersection
+        -> no matching coverage: native assignment fallback
+    -> contextual hold or eligible technician selection
+    -> canonical assignment ToDo
     -> mirrored _assign
 ```
 
-Partner fulfilment or explicit eligible internal creator Take Ownership may deliberately bypass ordinary team-member selection.
+Partner fulfilment and explicit eligible internal creator Take Ownership take precedence over contextual automatic assignment.
 
-Campus / Site context alone does not bypass ordinary team-member selection.
+Campus / Site context does not independently establish direct ownership. It can, however, determine which Assignment Policy or Service Coverage configuration applies.
 
-The most reliable operational proof therefore starts with routing context and the applicable ownership path, then examines canonical assignment `ToDo` state, and only then uses `_assign` as the mirrored representation.
+An unassigned ticket is not necessarily an assignment failure. It may represent an intentional True Pool policy or a contextual hold caused by the absence of an eligible technician.
 
-When native Assignment Rule behavior itself is under investigation, inspect non-Open historical `ToDo` rows as well because Frappe may treat statuses other than `Cancelled` as existing assignment state.
+The most reliable operational proof therefore starts with routing context and ownership exceptions, resolves the applicable Assignment Policy and Service Coverage, verifies native team eligibility and the contextual hold, and then examines canonical assignment `ToDo` state.
+
+The `_assign` field remains a mirrored representation and must not be treated as independent proof of accountable ownership.
+
+When native Assignment Rule behavior itself is under investigation, inspect historical non-Open `ToDo` rows as well. Frappe may treat statuses other than `Cancelled` as existing assignment state.
+
+Assignment repair should only follow confirmation of unintended ownership drift or inconsistent assignment state.
 
 ---
 
@@ -860,10 +1199,17 @@ The assignment contract is currently supported by repo-backed code and helpers i
 
   * `telephony.telectro_routing_policy.resolve_ticket_routing_policy`
 
-* initial ownership policy
+* initial ownership and contextual assignment
 
   * `telephony.telectro_round_robin.assign_after_insert`
-  * historical module name retained; ordinary team-member round-robin is native
+  * `telephony.assignment_policy`
+  * `telephony.service_coverage`
+  * `telephony.native_team_assignment`
+  * the historical `telectro_round_robin` module name is retained, but there is no separate hard-coded technician pool or round-robin cursor
+  * Assignment Policy determines whether contextual automatic assignment is suppressed or permitted
+  * Service Coverage restricts eligible technicians to the native Assignment Rule membership
+  * contextual technician selection uses the existing native assignment cursor
+  * when matching Service Coverage is absent, ordinary selection remains with the native Assignment Rule
 
 * routing-change ownership logic
 
@@ -892,6 +1238,14 @@ The assignment contract is currently supported by repo-backed code and helpers i
 
   * `telephony.setup.hd_team_durability`
 
+* contextual assignment durability
+
+  * `telephony.setup.contextual_assignment_durability`
+  * runs through the registered `after_migrate` hook
+  * ensures linked operational HD Team Assignment Rules retain the `not custom_contextual_assignment_hold` safeguard in `assign_condition`
+  * prevents native automatic assignment from overriding an intentional contextual hold
+  * does not configure production technician membership, enable disabled Assignment Rules, or create Customer-specific Assignment Policies
+
 * manual ticket intake runbook
 
 * email ticket intake runbook
@@ -914,6 +1268,14 @@ Revisit this runbook if any of the following change:
 * `HD Team.assignment_rule` relationships
 * native Assignment Rule method or conditions
 * Assignment Rule User membership
+* `TELECTRO Assignment Policy` modes, matching specificity, precedence, or enabled-state behavior
+* Customer / Campus / Service Area policy resolution
+* `TELECTRO Service Coverage` matching, technician eligibility, or native membership intersection
+* `custom_contextual_assignment_hold` lifecycle behavior
+* native Assignment Rule `assign_condition` contextual hold safeguards
+* native round-robin cursor handling during contextual technician selection
+* True Pool manual ownership preservation or transitions between True Pool and Round Robin
+* production activation procedures for contextual Assignment Policies, Service Coverage, and native Assignment Rules
 * Partner organisation / membership / Default Dispatch User rules
 * explicit internal creator Take Ownership policy
 * `_assign` / `ToDo` source-of-truth model

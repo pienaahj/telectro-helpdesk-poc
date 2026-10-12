@@ -365,6 +365,15 @@ location_customer_durability_after_migrate = (
 if location_customer_durability_after_migrate not in after_migrate:
     after_migrate.append(location_customer_durability_after_migrate)
 
+unassigned_notification_durability_after_migrate = (
+    "telephony.setup.unassigned_notification_durability.after_migrate"
+)
+
+if unassigned_notification_durability_after_migrate not in after_migrate:
+    after_migrate.append(
+        unassigned_notification_durability_after_migrate
+    )
+
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
 doc_events.setdefault("DocShare", {})

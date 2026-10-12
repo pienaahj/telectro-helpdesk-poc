@@ -1,5 +1,163 @@
 # TELECTRO Service Coverage Model
 
+
+> **Implementation status — 12 October 2026**
+>
+> This runbook originated as a design proposal. The sections below
+> describing proposed V1 functionality, future routing integration,
+> open questions, and recommended next steps are retained as historical
+> design context.
+>
+> The current implementation contract is documented immediately below.
+> Where historical proposals conflict with this contract, the current
+> implementation takes precedence.
+>
+> DEV verification does not constitute production activation.
+> Customer-specific Assignment Policy and Service Coverage records
+> are operational database configuration and are not automatically
+> deployed as fixtures.
+
+## Current implementation — contextual assignment
+
+The pilot separates three independent responsibilities:
+
+| Component | Responsibility |
+|---|---|
+| HD Team and native Assignment Rule | Define technician capability and round-robin population |
+| TELECTRO Service Coverage | Narrow eligible technicians by Customer, Campus and Service Area |
+| TELECTRO Assignment Policy | Decide whether automatic assignment is permitted |
+
+Role Profiles control system access, not customer-specific technician
+eligibility.
+
+### Assignment Policy
+
+The implemented `TELECTRO Assignment Policy` DocType supports:
+
+- `enabled`
+- `coverage_scope`
+- `customer`
+- `campus`
+- `service_area`
+- `assignment_mode`
+- `notes`
+
+Supported assignment modes:
+
+- **True Pool** — suppress automatic assignment; allow controlled
+  manual Claim and Handoff.
+- **Round Robin** — permit assignment through the existing HD Team
+  and contextual Service Coverage mechanism.
+
+Policy matching uses the following precedence:
+
+1. Customer/Campus + Service Area
+2. Campus + Service Area
+3. Customer + Service Area
+4. Default + Service Area
+
+Only enabled policies participate.
+
+Conflicting enabled policies at the same exact scope and context
+are rejected. An absent matching policy preserves existing routing
+behavior rather than imposing a new global default.
+
+### Service Coverage and native assignment
+
+Service Coverage uses the same Customer/Campus specificity order.
+
+For ordinary internal assignment:
+
+1. Resolve the ticket's Customer, Campus and Service Area.
+2. Resolve the matching Assignment Policy.
+3. If True Pool applies, set the contextual assignment hold.
+4. Otherwise, resolve the selected HD Team's native Assignment Rule.
+5. Where matching Service Coverage exists, restrict eligible users
+   to the intersection of coverage users and native rule members.
+6. If that intersection is empty, hold the ticket unassigned.
+7. Otherwise, allow the eligible technician to receive ownership,
+   preserving the native Assignment Rule cursor.
+
+Service Coverage never grants assignment capability to a user who
+is not in the native team's assignment population.
+
+### Ownership precedence
+
+Partner fulfilment and explicit internal Take Ownership decisions
+take precedence over contextual automatic-assignment policy.
+
+True Pool does not prohibit manual ownership.
+
+A manually claimed ticket can remain owned while its routing context
+continues to match the same True Pool policy. Transitions into a
+different pool context retire stale ownership and historical assignment
+ToDos as required.
+
+The canonical ownership state remains:
+
+- Owned ticket: one Open assignment ToDo, mirrored in `_assign`.
+- Unassigned ticket: no Open assignment ToDo, `_assign = []`.
+
+### Native Assignment Rule safeguard
+
+Linked HD Team Assignment Rules must respect:
+
+`not custom_contextual_assignment_hold`
+
+The existing contextual assignment durability mechanism reconciles
+the canonical native rule condition during migration.
+
+This safeguard is necessary but does not itself create customer-specific
+Assignment Policies.
+
+### Verified DEV scenarios
+
+On 12 October 2026, the migrated DEV site verified:
+
+| Context | Policy | Expected behavior |
+|---|---|---|
+| Emerald Life / CCTV | Customer / True Pool | No automatic owner |
+| Customer B / Boschendal / CCTV | Customer/Campus / Round Robin | Native CCTV assignment |
+
+DEV evidence:
+
+- 58 targeted regression tests passed.
+- Four real-ticket lifecycle scenarios passed.
+- Both transitions between Round Robin and True Pool were verified.
+- Temporary test tickets and assignment changes were rolled back.
+
+DEV used `Customer B` as the Boschendal ERP Customer identity.
+Production Customer and Campus identities must be independently
+verified before configuration.
+
+The DEV CCTV rule contained one technician; multi-technician
+rotation fairness was not established by these lifecycle tests.
+
+### Production activation boundary
+
+Assignment Policy and Service Coverage records are operational
+database state, not application fixtures.
+
+A production deployment must:
+
+1. Keep new CCTV automatic assignment inactive until the relevant
+   customer-specific protections are established.
+2. Complete the production migration and verify the new DocType.
+3. Create and verify Emerald Life's Customer-scoped CCTV True Pool policy.
+4. Configure and verify Boschendal's CCTV Round Robin policy.
+5. Verify native CCTV technician membership and applicable Service Coverage.
+6. Activate the native CCTV Assignment Rule only after the preceding
+   protections and configuration checks have passed.
+7. Record controlled production assignment smoke-test evidence.
+
+The exact release commands and safety gates belong in
+`docs/runbooks/production-runtime-release.md`.
+
+The detailed operational ownership behavior belongs in
+`docs/runbooks/ticket-assignment-contract.md`.
+
+---
+
 ## Purpose
 
 This document captures the intended TELECTRO pilot model for user access, service coverage, routing, and team visibility.

@@ -8,6 +8,7 @@ from telephony.native_team_assignment import (
     advance_native_team_cursor as _advance_native_team_cursor,
     native_team_assignment_state as _native_team_assignment_state,
 )
+from telephony.assignment_policy import get_ticket_assignment_policy
 
 def _set_contextual_assignment_hold(
     doc,
@@ -159,6 +160,26 @@ def assign_after_insert(doc, method=None):
                 _mirror_assign_from_todo(doc)
 
         return
+
+    # 3) Contextual Assignment Policy controls automatic assignment.
+    # An explicit True Pool policy suppresses native assignment while
+    # preserving manual Claim and Controlled Handoff operations.
+    #
+    # An explicit Round Robin policy, or no matching policy, continues
+    # through the existing Service Coverage / native team path.
+    assignment_policy = get_ticket_assignment_policy(doc)
+
+    if (
+        assignment_policy
+        and assignment_policy.get("assignment_mode") == "True Pool"
+    ):
+        _set_contextual_assignment_hold(
+            doc,
+            ticket,
+            True,
+        )
+        return
+
     # 3) Contextual Service Coverage may narrow the native HD Team
     # assignment population.
     #

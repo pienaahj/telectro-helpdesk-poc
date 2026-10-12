@@ -11,6 +11,49 @@ class TestPartnerFulfilmentRoutingFields(unittest.TestCase):
             reassign.ROUTING_FIELDS,
         )
 
+
+class TestNativeTeamUsersSafety(unittest.TestCase):
+    def test_disabled_native_rule_returns_no_team_users(self):
+        rule_name = "TEST-CCTV-ASSIGNMENT-RULE"
+
+        with mock.patch.object(
+            reassign,
+            "frappe",
+        ) as frappe_mock:
+            frappe_mock.db.get_value.side_effect = [
+                rule_name,
+                1,
+            ]
+            frappe_mock.db.exists.return_value = True
+
+            users = reassign._native_team_users("CCTV")
+
+        self.assertEqual(users, [])
+
+        self.assertEqual(
+            frappe_mock.db.get_value.call_args_list,
+            [
+                mock.call(
+                    "HD Team",
+                    "CCTV",
+                    "assignment_rule",
+                ),
+                mock.call(
+                    "Assignment Rule",
+                    rule_name,
+                    "disabled",
+                ),
+            ],
+        )
+
+        frappe_mock.db.exists.assert_called_once_with(
+            "Assignment Rule",
+            rule_name,
+        )
+
+        frappe_mock.get_all.assert_not_called()
+
+
 class _TicketDoc(dict):
     __getattr__ = dict.get
 
@@ -23,6 +66,7 @@ class _TicketDoc(dict):
             custom_fulfilment_party="Partner",
             custom_fulfilment_partner="Previous Partner",
         )
+
 
 class TestPartnerFulfilmentReassignment(unittest.TestCase):
     def test_partner_fulfilment_clears_contextual_hold_and_resolves_dispatch_user(self):
@@ -92,6 +136,7 @@ class TestPartnerFulfilmentReassignment(unittest.TestCase):
             ),
         )
 
+
 class TestDirectOwnerReassignment(unittest.TestCase):
     def test_direct_owner_clears_contextual_hold_when_owner_is_already_correct(self):
         target_user = "tech.owner@local.test"
@@ -155,6 +200,7 @@ class TestDirectOwnerReassignment(unittest.TestCase):
         )
 
         normalize_assignment.assert_not_called()
+
 
 class TestNativeTeamReassignment(unittest.TestCase):
     def test_boschendal_routing_change_falls_through_to_native_team(self):
@@ -532,6 +578,11 @@ class TestContextualCoverageReassignment(unittest.TestCase):
             ),
             mock.patch.object(
                 reassign,
+                "get_ticket_assignment_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
                 "_current_assignee",
                 return_value=current_user,
             ),
@@ -690,3 +741,347 @@ class TestContextualCoverageReassignment(unittest.TestCase):
         normalize_assignment.assert_not_called()
         release_for_native_team.assert_not_called()
         advance_cursor.assert_not_called()
+
+
+class TestAssignmentPolicyRoutingTransitions(unittest.TestCase):
+    def test_entering_true_pool_releases_previous_owner(self):
+        ticket = "TEST-ENTER-TRUE-POOL"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_service_area="Routing",
+            agent_group="Routing",
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="Emerald Life CCTV policy transition",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=0,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value="tech.previous@local.test",
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                side_effect=[
+                    {
+                        "name": "TAP-EMERALD-CCTV",
+                        "assignment_mode": "True Pool",
+                    },
+                    None,
+                ],
+            ) as resolve_policy,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_assignment,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize_assignment,
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+            ) as native_state,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        self.assertEqual(
+            resolve_policy.call_args_list,
+            [
+                mock.call(doc),
+                mock.call(old_doc),
+            ],
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        release_assignment.assert_called_once()
+
+        args, kwargs = release_assignment.call_args
+
+        self.assertIs(args[0], doc)
+        self.assertEqual(args[1], ticket)
+        self.assertIn("True Pool", kwargs["note"])
+
+        normalize_assignment.assert_not_called()
+        native_state.assert_not_called()
+
+    def test_same_true_pool_preserves_manually_claimed_owner(self):
+        ticket = "TEST-TRUE-POOL-MANUAL-OWNER"
+        current_user = "tech.claimed@local.test"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            custom_request_type="Fault",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="Preserve manually claimed CCTV ticket",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            custom_request_type="Assistance",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        policy = {
+            "name": "TAP-EMERALD-CCTV",
+            "assignment_mode": "True Pool",
+        }
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=current_user,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value=policy,
+            ) as resolve_policy,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_assignment,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize_assignment,
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+            ) as native_state,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        self.assertEqual(
+            resolve_policy.call_args_list,
+            [
+                mock.call(doc),
+                mock.call(old_doc),
+            ],
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        release_assignment.assert_not_called()
+        normalize_assignment.assert_not_called()
+        native_state.assert_not_called()
+
+    def test_leaving_true_pool_enters_contextual_round_robin(self):
+        ticket = "TEST-TRUE-POOL-TO-ROUND-ROBIN"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="CCTV round-robin transition proof",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Customer B",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        team_users = [
+            "pierre@telectro.co.za",
+            "sean@telectro.co.za",
+            "armandt@telectro.co.za",
+            "jacques@telectro.co.za",
+        ]
+
+        selected_user = "armandt@telectro.co.za"
+        rule_name = "CCTV - Support Rotation"
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-BOSCHENDAL-CCTV",
+                    "assignment_mode": "Round Robin",
+                },
+            ) as resolve_policy,
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": rule_name,
+                    "users": team_users,
+                    "last_user": "sean@telectro.co.za",
+                },
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": True,
+                    "eligible_users": team_users,
+                    "selected_user": selected_user,
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize_assignment,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_assignment,
+            mock.patch.object(
+                reassign,
+                "_advance_native_team_cursor",
+            ) as advance_cursor,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        resolve_policy.assert_called_once_with(doc)
+
+        native_state.assert_called_once_with("CCTV")
+
+        resolve_coverage.assert_called_once_with(
+            doc,
+            team_users,
+            last_user="sean@telectro.co.za",
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            0,
+            update_modified=False,
+        )
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            0,
+        )
+
+        normalize_assignment.assert_called_once_with(
+            ticket,
+            selected_user,
+            note=(
+                "Routing change: reassigned via contextual "
+                "Service Coverage | "
+                "CCTV round-robin transition proof"
+            ),
+        )
+
+        advance_cursor.assert_called_once_with(
+            rule_name,
+            selected_user,
+        )
+
+        release_assignment.assert_not_called()
