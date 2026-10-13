@@ -594,3 +594,83 @@ class TestContextualAssignmentPolicyAfterInsert(unittest.TestCase):
             doc.get("custom_contextual_assignment_hold"),
             0,
         )
+
+
+class TestCCTVIncompleteContextAfterInsert(unittest.TestCase):
+    """Incomplete CCTV context must not reach native assignment."""
+
+    def test_incomplete_context_sets_hold_before_native_fallback(self):
+        scenarios = [
+            ("NO_CUSTOMER", "", "Boschendal"),
+            ("NO_CAMPUS", "Boschendal", ""),
+            ("NEITHER", "", ""),
+        ]
+
+        for label, customer, campus in scenarios:
+            with self.subTest(context=label):
+                ticket_name = f"TEST-CCTV-INCOMPLETE-{label}"
+
+                doc = _TicketDoc(
+                    name=ticket_name,
+                    subject="Incomplete CCTV context proof",
+                    custom_fulfilment_party="Telectro",
+                    custom_request_source="Telectro",
+                    custom_customer=customer,
+                    customer="",
+                    custom_site_group=campus,
+                    custom_service_area="CCTV",
+                    agent_group="CCTV",
+                    custom_contextual_assignment_hold=0,
+                )
+
+                with (
+                    mock.patch.object(
+                        round_robin,
+                        "resolve_ticket_routing_policy",
+                        return_value=None,
+                    ),
+                    mock.patch.object(
+                        round_robin,
+                        "get_ticket_assignment_policy",
+                        return_value=None,
+                    ),
+                    mock.patch.object(
+                        round_robin,
+                        "_native_team_assignment_state",
+                        return_value={
+                            "rule": "",
+                            "users": [],
+                            "last_user": "",
+                        },
+                    ) as native_state,
+                    mock.patch.object(
+                        round_robin,
+                        "resolve_contextual_team_assignment",
+                        return_value={
+                            "coverage_applies": False,
+                            "eligible_users": [],
+                            "selected_user": "",
+                        },
+                    ) as resolve_coverage,
+                    mock.patch.object(
+                        round_robin.frappe.db,
+                        "set_value",
+                    ) as set_value,
+                ):
+                    round_robin.assign_after_insert(doc)
+
+                self.assertEqual(
+                    doc.get("custom_contextual_assignment_hold"),
+                    1,
+                )
+
+                set_value.assert_called_once_with(
+                    "HD Ticket",
+                    ticket_name,
+                    "custom_contextual_assignment_hold",
+                    1,
+                    update_modified=False,
+                )
+
+                native_state.assert_not_called()
+                resolve_coverage.assert_not_called()

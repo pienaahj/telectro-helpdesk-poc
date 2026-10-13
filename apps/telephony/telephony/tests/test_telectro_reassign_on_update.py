@@ -1085,3 +1085,180 @@ class TestAssignmentPolicyRoutingTransitions(unittest.TestCase):
         )
 
         release_assignment.assert_not_called()
+
+
+class TestCCTVIncompleteContextRoutingChange(unittest.TestCase):
+    """Protect ownership when CCTV Customer/Campus context is incomplete."""
+
+    def test_entering_incomplete_context_releases_previous_owner(self):
+        scenarios = [
+            ("NO_CUSTOMER", "", "Boschendal"),
+            ("NO_CAMPUS", "Boschendal", ""),
+            ("NEITHER", "", ""),
+        ]
+
+        for label, customer, campus in scenarios:
+            with self.subTest(context=label):
+                ticket = f"TEST-CCTV-ROUTING-{label}"
+
+                old_doc = _TicketDoc(
+                    name=ticket,
+                    custom_fulfilment_party="Telectro",
+                    custom_customer="Boschendal",
+                    custom_site_group="Boschendal",
+                    custom_service_area="CCTV",
+                    agent_group="CCTV",
+                )
+
+                doc = _TicketDoc(
+                    name=ticket,
+                    subject="Incomplete CCTV routing proof",
+                    custom_fulfilment_party="Telectro",
+                    custom_customer=customer,
+                    custom_site_group=campus,
+                    custom_service_area="CCTV",
+                    agent_group="CCTV",
+                    custom_contextual_assignment_hold=0,
+                )
+
+                with (
+                    mock.patch.object(
+                        reassign, "_get_old_doc",
+                        return_value=old_doc,
+                    ),
+                    mock.patch.object(
+                        reassign, "seed_ticket_routing",
+                    ),
+                    mock.patch.object(
+                        reassign, "resolve_ticket_routing_policy",
+                        return_value=None,
+                    ),
+                    mock.patch.object(
+                        reassign, "get_ticket_assignment_policy",
+                        return_value=None,
+                    ),
+                    mock.patch.object(
+                        reassign, "_current_assignee",
+                        return_value="kyle@telectro.co.za",
+                    ),
+                    mock.patch.object(
+                        reassign, "_native_team_assignment_state",
+                    ) as native_state,
+                    mock.patch.object(
+                        reassign, "resolve_contextual_team_assignment",
+                    ) as resolve_coverage,
+                    mock.patch.object(
+                        reassign, "_native_team_users",
+                        return_value=["kyle@telectro.co.za"],
+                    ),
+                    mock.patch.object(
+                        reassign, "_release_for_native_team_assignment",
+                    ) as release_owner,
+                    mock.patch.object(
+                        reassign, "_normalize_assignment",
+                    ) as normalize,
+                    mock.patch.object(
+                        reassign.frappe.db, "set_value",
+                    ) as set_value,
+                ):
+                    reassign.reassign_if_routing_changed(doc)
+
+                self.assertEqual(
+                    doc.get("custom_contextual_assignment_hold"),
+                    1,
+                )
+
+                set_value.assert_called_once_with(
+                    "HD Ticket",
+                    ticket,
+                    "custom_contextual_assignment_hold",
+                    1,
+                    update_modified=False,
+                )
+
+                release_owner.assert_called_once()
+                native_state.assert_not_called()
+                resolve_coverage.assert_not_called()
+                normalize.assert_not_called()
+
+    def test_unchanged_incomplete_context_preserves_manual_owner(self):
+        ticket = "TEST-CCTV-INCOMPLETE-MANUAL-OWNER"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="",
+            custom_service_area="CCTV",
+            custom_request_type="Fault",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="Preserve manually claimed CCTV ticket",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="",
+            custom_service_area="CCTV",
+            custom_request_type="Assistance",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        with (
+            mock.patch.object(
+                reassign, "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign, "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign, "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign, "get_ticket_assignment_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign, "_current_assignee",
+                return_value="pierre@telectro.co.za",
+            ),
+            mock.patch.object(
+                reassign, "_native_team_assignment_state",
+            ) as native_state,
+            mock.patch.object(
+                reassign, "resolve_contextual_team_assignment",
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign, "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign, "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign.frappe.db, "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        release_owner.assert_not_called()
+        native_state.assert_not_called()
+        resolve_coverage.assert_not_called()
+        normalize.assert_not_called()

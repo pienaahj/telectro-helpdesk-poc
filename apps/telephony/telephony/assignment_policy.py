@@ -158,3 +158,27 @@ def get_ticket_assignment_policy(ticket_or_name) -> dict | None:
         campus=context["campus"],
         service_area=context["service_area"],
     )
+
+
+def requires_cctv_context_triage(ticket_or_name) -> bool:
+    """
+    Identify CCTV tickets whose Customer/Campus context is incomplete.
+
+    These tickets must not fall through to automatic native team
+    assignment until both Customer and Campus are known.
+
+    This is a read-only context decision. It does not alter
+    Assignment Policies, ownership, or native assignment rules.
+
+    Complete CCTV contexts and all non-CCTV service areas retain
+    their existing assignment behaviour.
+    """
+    context = get_ticket_context(ticket_or_name)
+
+    if context["service_area"] != "CCTV":
+        return False
+
+    return not (
+        context["customer"]
+        and context["campus"]
+    )

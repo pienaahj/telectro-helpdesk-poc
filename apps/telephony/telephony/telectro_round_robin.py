@@ -8,7 +8,10 @@ from telephony.native_team_assignment import (
     advance_native_team_cursor as _advance_native_team_cursor,
     native_team_assignment_state as _native_team_assignment_state,
 )
-from telephony.assignment_policy import get_ticket_assignment_policy
+from telephony.assignment_policy import (
+    get_ticket_assignment_policy,
+    requires_cctv_context_triage,
+)
 
 def _set_contextual_assignment_hold(
     doc,
@@ -173,6 +176,22 @@ def assign_after_insert(doc, method=None):
         assignment_policy
         and assignment_policy.get("assignment_mode") == "True Pool"
     ):
+        _set_contextual_assignment_hold(
+            doc,
+            ticket,
+            True,
+        )
+        return
+
+    # CCTV requires a known Customer and Campus before automatic
+    # technician assignment may proceed.
+    #
+    # Incomplete intake remains available for triage, but must not
+    # fall through to the unrestricted native CCTV Team rotation.
+    #
+    # Partner fulfilment and explicit direct-owner routing have
+    # already been handled above.
+    if requires_cctv_context_triage(doc):
         _set_contextual_assignment_hold(
             doc,
             ticket,
