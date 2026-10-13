@@ -964,7 +964,7 @@ class TestAssignmentPolicyRoutingTransitions(unittest.TestCase):
             name=ticket,
             subject="CCTV round-robin transition proof",
             custom_fulfilment_party="Telectro",
-            custom_customer="Customer B",
+            custom_customer="Boschendal",
             custom_site_group="Boschendal",
             custom_service_area="CCTV",
             agent_group="CCTV",
