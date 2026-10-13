@@ -471,7 +471,7 @@ class TestContextualAssignmentPolicyAfterInsert(unittest.TestCase):
             subject="Boschendal CCTV round-robin proof",
             custom_fulfilment_party="Telectro",
             custom_request_source="Customer",
-            custom_customer="Customer B",
+            custom_customer="Boschendal",
             custom_site_group="Boschendal",
             custom_service_area="CCTV",
             agent_group="CCTV",
@@ -498,7 +498,7 @@ class TestContextualAssignmentPolicyAfterInsert(unittest.TestCase):
                 "get_ticket_assignment_policy",
                 return_value={
                     "name": "TAP-BOSCHENDAL-CCTV",
-                    "coverage_scope": "Customer",
+                    "coverage_scope": "Customer/Campus",
                     "assignment_mode": "Round Robin",
                 },
             ) as resolve_policy,
