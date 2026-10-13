@@ -3511,6 +3511,24 @@ PRODUCTION_CHANGED_ARTIFACT_DATABASE_STATE_OK
 
 **Safety rule:** CCTV automatic assignment must remain inactive until all configuration and pre-activation checks have passed.
 
+**Deployment and activation are separate decisions.**
+
+A release may deploy CCTV assignment safeguards and prepare operational
+configuration while leaving native CCTV automatic assignment disabled.
+
+If activation is not explicitly authorized:
+
+- Record the activation decision as `DEFERRED`.
+- Keep the native CCTV Assignment Rule disabled.
+- Preserve the configured Assignment Policies and Service Coverage.
+- Do not emit controlled-activation success markers.
+- Do not claim production assignment lifecycle acceptance.
+- Carry the unresolved activation prerequisites into a later approved
+  activation procedure.
+
+Passing code regressions or completing a production deployment does
+not, by itself, authorize automatic CCTV assignment.
+
 ### 18A.1 — Establish the protected starting state
 
 Before changing production configuration:
@@ -3593,10 +3611,11 @@ Required outcomes:
 
 | Context | Effective Assignment Policy | Expected automatic assignment |
 |---|---|---|
-| Emerald Life, CCTV, Head Office | True Pool | Suppressed |
-| Emerald Life, CCTV, representative branch | True Pool | Suppressed |
-| Boschendal, CCTV, verified Customer/Campus | Round Robin | Permitted for eligible native CCTV technicians |
-| Context without matching Assignment Policy | Existing fallback | Governed by existing routing and assignment rules |
+| Emerald Life CCTV, Head Office | True Pool | Suppressed |
+| Emerald Life CCTV, representative branch | True Pool | Suppressed |
+| Boschendal CCTV, complete Customer/Campus | Round Robin | Eligible technicians only, after activation |
+| CCTV, complete Customer/Campus, no matching policy | Existing fallback | Governed by existing routing and assignment rules, after activation |
+| CCTV, Customer or Campus missing | Any applicable policy or no matching policy | Suppressed pending context triage |
 
 Also verify:
 
@@ -3783,7 +3802,30 @@ PRODUCTION_FUNCTIONAL_SMOKE_OK
 
 **Applies when:** The release introduces or changes Customer-specific CCTV Assignment Policies, contextual Service Coverage, or CCTV automatic assignment behavior.
 
-**Execution point:** Phase 19, following successful Phase 18A configuration and controlled activation.
+**Execution point:** Phase 19, following Phase 18A configuration
+verification. Full automatic-assignment lifecycle acceptance applies
+only after controlled activation has been authorized and completed.
+
+**Deferred activation handling**
+
+When CCTV automatic assignment remains disabled:
+
+- Record `CCTV_ACTIVATION_DECISION=DEFERRED`.
+- Continue applicable read-only policy, eligibility, and safeguard
+  verification without enabling the native CCTV Assignment Rule.
+- Verify the incomplete-context guard for CCTV tickets with a missing
+  Customer or Campus using the approved regression evidence.
+- Retain DEV regression results as supporting evidence only.
+- Record automatic-assignment production lifecycle acceptance as
+  `NOT_PROVEN`.
+- Do not emit `CONTEXTUAL_CCTV_CONTROLLED_ACTIVATION_OK` or
+  `CONTEXTUAL_CCTV_PRODUCTION_LIFECYCLE_OK`.
+- Carry forward controlled activation, post-activation verification,
+  and outstanding lifecycle proof to a separately approved procedure.
+
+A deferred activation decision is not a failed deployment. It is an
+explicitly protected operational state and must not be represented as
+completed CCTV automatic-assignment acceptance.
 
 **Safety objective:** Demonstrate that production resolves the intended assignment policies and applies them without assigning Emerald Life CCTV tickets automatically or bypassing Boschendal technician eligibility.
 
@@ -3887,6 +3929,14 @@ Where a controlled lifecycle test is authorized, the intended functional scenari
 2. Boschendal CCTV initial intake permits assignment to an eligible native CCTV technician.
 3. A controlled Round Robin to True Pool transition retires stale automatic ownership.
 4. A controlled True Pool to Round Robin transition clears the hold and permits eligible automatic assignment.
+5. CCTV initial intake with a missing Customer or Campus retains the
+   contextual hold and does not create an automatic technician assignment.
+6. An existing CCTV ticket transitioning from complete to incomplete
+   Customer/Campus context retains the hold and retires stale ownership
+   and assignment ToDos.
+7. An already-held CCTV ticket with unchanged incomplete context
+   preserves an intentional manually claimed owner when an unrelated
+   routing-relevant field changes.
 
 Routing transitions must not be tested by changing the Customer or Campus of legitimate operational tickets merely for demonstration purposes.
 

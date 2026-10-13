@@ -13,7 +13,10 @@ from telephony.native_team_assignment import (
     advance_native_team_cursor as _advance_native_team_cursor,
     native_team_assignment_state as _native_team_assignment_state,
 )
-from telephony.assignment_policy import get_ticket_assignment_policy
+from telephony.assignment_policy import (
+    get_ticket_assignment_policy,
+    requires_cctv_context_triage,
+)
 from telephony.service_coverage import get_ticket_context
 
 ROUTING_FIELDS = {
@@ -345,6 +348,50 @@ def reassign_if_routing_changed(doc, method=None):
                     "Routing change: released to Assignment Policy "
                     "True Pool "
                     f"(group={group or 'blank'}) | {subject}"
+                ),
+            )
+
+        return
+
+    # Incomplete CCTV context requires manual triage.
+    # Never permit unrestricted native team fallback.
+    if requires_cctv_context_triage(doc):
+        previous_context = get_ticket_context(old_doc)
+        current_context = get_ticket_context(doc)
+
+        same_context = all(
+            previous_context[field] == current_context[field]
+            for field in ("customer", "campus", "service_area")
+        )
+
+        same_route = (
+            _clean(old_doc.get("custom_fulfilment_party")) == party
+            and _clean(old_doc.get("agent_group")) == group
+        )
+
+        previous_hold = (
+            _clean(old_doc.get("custom_contextual_assignment_hold"))
+            == "1"
+        )
+
+        frappe.db.set_value(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+        doc.update({"custom_contextual_assignment_hold": 1})
+
+        # Preserve a claimed owner in an unchanged, already-held
+        # context. Otherwise retire stale ownership and ToDos.
+        if not (same_context and same_route and previous_hold):
+            _release_for_native_team_assignment(
+                doc,
+                ticket,
+                note=(
+                    "Routing change: released for incomplete CCTV "
+                    f"context triage | {subject}"
                 ),
             )
 

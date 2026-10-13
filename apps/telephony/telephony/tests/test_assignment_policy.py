@@ -309,5 +309,110 @@ class TestAssignmentPolicyResolver(unittest.TestCase):
 
         get_all.assert_not_called()
 
+
+class TestCCTVIncompleteContextGuard(unittest.TestCase):
+    """Incomplete CCTV context must not enter automatic native fallback."""
+
+    def test_cctv_context_completeness(self):
+        scenarios = [
+            (
+                "missing_customer_and_campus",
+                "",
+                "",
+                "",
+                "CCTV",
+                True,
+            ),
+            (
+                "boschendal_missing_campus",
+                "Boschendal",
+                "",
+                "",
+                "CCTV",
+                True,
+            ),
+            (
+                "boschendal_missing_customer",
+                "",
+                "",
+                "Boschendal",
+                "CCTV",
+                True,
+            ),
+            (
+                "whitespace_only_customer_and_campus",
+                "   ",
+                "",
+                "   ",
+                "CCTV",
+                True,
+            ),
+            (
+                "boschendal_complete_erp_customer",
+                "Boschendal",
+                "",
+                "Boschendal",
+                "CCTV",
+                False,
+            ),
+            (
+                "boschendal_complete_hd_customer",
+                "",
+                "Boschendal",
+                "Boschendal",
+                "CCTV",
+                False,
+            ),
+            (
+                "emerald_life_complete",
+                "Emerald Life",
+                "",
+                "EL-SITE-001",
+                "CCTV",
+                False,
+            ),
+            (
+                "other_customer_complete",
+                "Another Customer",
+                "",
+                "Another Campus",
+                "CCTV",
+                False,
+            ),
+            (
+                "non_cctv_incomplete",
+                "",
+                "",
+                "",
+                "PABX",
+                False,
+            ),
+        ]
+
+        for (
+            label,
+            erp_customer,
+            hd_customer,
+            campus,
+            service_area,
+            expected_hold,
+        ) in scenarios:
+            with self.subTest(context=label):
+                ticket = {
+                    "custom_customer": erp_customer,
+                    "customer": hd_customer,
+                    "custom_site_group": campus,
+                    "custom_service_area": service_area,
+                    "agent_group": service_area,
+                }
+
+                actual_hold = (
+                    assignment_policy.requires_cctv_context_triage(
+                        ticket
+                    )
+                )
+
+                self.assertEqual(actual_hold, expected_hold)
+
 if __name__ == "__main__":
     unittest.main()
