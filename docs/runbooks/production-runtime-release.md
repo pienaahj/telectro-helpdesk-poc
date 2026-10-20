@@ -1557,6 +1557,27 @@ Example validator:
 bin/release-validators/validate-terminal-assignment.sh
 ```
 
+### Multiple semantic validators for a single release
+
+A release that changes more than one protected operational contract may require multiple semantic validators.
+
+Each validator is executed through a separate invocation of `bin/release-runtime-validate.sh`, using the same immutable candidate image, release identity, expected application versions, embedded change path, and expected embedded SHA-256.
+
+Each invocation must specify a unique `VALIDATION_LOG`. A successful validation of one contract does not substitute for validation of another.
+
+For the CCTV restricted-assignment release, both of the following validators are mandatory:
+
+- `bin/release-validators/validate-contextual-service-coverage-routing.sh`
+- `bin/release-validators/validate-assignment-policy.sh`
+
+The first validation must report `CONTEXTUAL_SERVICE_COVERAGE_ROUTING=PASS`. The second must report `ASSIGNMENT_POLICY_SEMANTIC_VALIDATION=PASS`.
+
+Both invocations must independently report `CANDIDATE_RUNTIME_VALIDATION_OK=YES`.
+
+Record both validation-log paths and the candidate image identity in the release evidence. Phase 6 must not begin until both validations have passed against the same immutable candidate image.
+
+Successful DEV-container validation does not replace candidate-image validation.
+
 ### Validation-log contract
 
 By default the helper writes:

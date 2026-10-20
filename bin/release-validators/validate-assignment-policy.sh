@@ -273,7 +273,7 @@ loader = unittest.TestLoader()
 
 suite = loader.loadTestsFromNames(test_targets)
 
-expected_test_count = 33
+expected_test_count = 35
 
 require(
     suite.countTestCases() == expected_test_count,

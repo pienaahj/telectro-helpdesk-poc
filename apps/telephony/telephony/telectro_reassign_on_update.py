@@ -150,6 +150,57 @@ def _release_for_native_team_assignment(
         update_modified=False,
     )
 
+def _hold_restricted_cctv_assignment(
+    doc,
+    old_doc,
+    ticket: str,
+    *,
+    party: str,
+    group: str,
+    release_note: str,
+) -> None:
+    """Hold restricted CCTV routing and retire stale ownership."""
+
+    previous_context = get_ticket_context(old_doc)
+    current_context = get_ticket_context(doc)
+
+    same_context = all(
+        previous_context[field] == current_context[field]
+        for field in ("customer", "campus", "service_area")
+    )
+
+    same_route = (
+        _clean(old_doc.get("custom_fulfilment_party")) == party
+        and _clean(old_doc.get("agent_group")) == group
+    )
+
+    previous_hold = (
+        _clean(old_doc.get("custom_contextual_assignment_hold"))
+        == "1"
+    )
+
+    frappe.db.set_value(
+        "HD Ticket",
+        ticket,
+        "custom_contextual_assignment_hold",
+        1,
+        update_modified=False,
+    )
+
+    doc.update({
+        "custom_contextual_assignment_hold": 1,
+    })
+
+    # An existing manual owner is preserved only when the
+    # routing context is unchanged and was already held.
+    # Otherwise retire stale ownership and assignment ToDos.
+    if not (same_context and same_route and previous_hold):
+        _release_for_native_team_assignment(
+            doc,
+            ticket,
+            note=release_note,
+        )
+
 def _get_old_doc(doc):
     old_doc = None
 
@@ -356,45 +407,41 @@ def reassign_if_routing_changed(doc, method=None):
     # Incomplete CCTV context requires manual triage.
     # Never permit unrestricted native team fallback.
     if requires_cctv_context_triage(doc):
-        previous_context = get_ticket_context(old_doc)
-        current_context = get_ticket_context(doc)
-
-        same_context = all(
-            previous_context[field] == current_context[field]
-            for field in ("customer", "campus", "service_area")
-        )
-
-        same_route = (
-            _clean(old_doc.get("custom_fulfilment_party")) == party
-            and _clean(old_doc.get("agent_group")) == group
-        )
-
-        previous_hold = (
-            _clean(old_doc.get("custom_contextual_assignment_hold"))
-            == "1"
-        )
-
-        frappe.db.set_value(
-            "HD Ticket",
+        _hold_restricted_cctv_assignment(
+            doc,
+            old_doc,
             ticket,
-            "custom_contextual_assignment_hold",
-            1,
-            update_modified=False,
+            party=party,
+            group=group,
+            release_note=(
+                "Routing change: released for incomplete CCTV "
+                f"context triage | {subject}"
+            ),
         )
-        doc.update({"custom_contextual_assignment_hold": 1})
+        return
 
-        # Preserve a claimed owner in an unchanged, already-held
-        # context. Otherwise retire stale ownership and ToDos.
-        if not (same_context and same_route and previous_hold):
-            _release_for_native_team_assignment(
-                doc,
-                ticket,
-                note=(
-                    "Routing change: released for incomplete CCTV "
-                    f"context triage | {subject}"
-                ),
-            )
-
+    # CCTV requires an explicitly scoped Assignment Policy.
+    # A missing policy or generic Default policy must never
+    # authorize unrestricted native team assignment.
+    if (
+        get_ticket_context(doc)["service_area"] == "CCTV"
+        and (
+            not assignment_policy
+            or assignment_policy.get("coverage_scope") == "Default"
+        )
+    ):
+        _hold_restricted_cctv_assignment(
+            doc,
+            old_doc,
+            ticket,
+            party=party,
+            group=group,
+            release_note=(
+                "Routing change: released for CCTV without "
+                "approved Assignment Policy "
+                f"(group={group or 'blank'}) | {subject}"
+            ),
+        )
         return
 
     # 3) Contextual Service Coverage can narrow the native team.
@@ -477,6 +524,23 @@ def reassign_if_routing_changed(doc, method=None):
                 selected_user,
             )
 
+        return
+
+    # An approved CCTV Assignment Policy without matching
+    # Service Coverage does not authorize native fallback.
+    if get_ticket_context(doc)["service_area"] == "CCTV":
+        _hold_restricted_cctv_assignment(
+            doc,
+            old_doc,
+            ticket,
+            party=party,
+            group=group,
+            release_note=(
+                "Routing change: released for CCTV without "
+                "matching Service Coverage "
+                f"(group={group or 'blank'}) | {subject}"
+            ),
+        )
         return
 
     # No contextual coverage:

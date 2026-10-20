@@ -35,7 +35,7 @@ TELECTRO application code decides **where** a ticket should be routed and handle
 
 For ordinary internal team routing, the native Frappe / Helpdesk Assignment Rule defines the eligible team population and maintains the round-robin cursor.
 
-Where matching contextual Service Coverage exists, TELECTRO selects an eligible technician from that native population. Otherwise, the native Assignment Rule performs ordinary team-member selection.
+Where permitted automatic assignment has matching contextual Service Coverage, TELECTRO selects an eligible technician from the native HD Team population. Without matching coverage, ordinary non-CCTV tickets retain native Assignment Rule selection. CCTV requires explicit contextual authorization and eligible Service Coverage; it never uses unrestricted native automatic-assignment fallback.
 
 The current working path is:
 
@@ -50,10 +50,19 @@ The current working path is:
    determines whether automatic assignment is permitted.
 4. A matching **True Pool** policy suppresses automatic assignment
    by setting `custom_contextual_assignment_hold = 1`.
-5. A matching **Round Robin** policy permits the existing
-   Service Coverage / native HD Team assignment path.
-6. When no Assignment Policy matches, existing assignment
-   behavior remains authoritative.
+5. A matching **Round Robin** policy permits automatic assignment
+   through the existing Service Coverage / native HD Team path,
+   subject to the applicable eligibility and safety requirements.
+6. For **CCTV**, automatic assignment requires complete Customer
+   and Campus context, an explicitly approved non-Default contextual
+   Round Robin Assignment Policy, and matching Service Coverage
+   containing an eligible native HD Team technician.
+   Missing context, a missing or generic Default policy, or absent
+   or ineligible contextual coverage establishes
+   `custom_contextual_assignment_hold = 1` and prohibits
+   unrestricted native automatic assignment.
+   For non-CCTV Service Areas, no matching Assignment Policy
+   preserves existing assignment behavior.
 7. `TELECTRO Service Coverage`, where configured, narrows the
    eligible technician population to the intersection of
    matching coverage users and native Assignment Rule users.
@@ -61,7 +70,9 @@ The current working path is:
    TELECTRO establishes the assignment and advances the
    existing native Assignment Rule cursor.
 9. Without matching contextual coverage, the native Assignment
-   Rule remains responsible for ordinary team-member selection.
+   Rule remains responsible for ordinary non-CCTV team-member
+   selection. CCTV remains held rather than falling through
+   to unrestricted native assignment.
 10. TELECTRO assignment synchronization keeps Open `ToDo`
     records and `_assign` consistent with the single-owner
     invariant.
@@ -83,8 +94,14 @@ Explicit internal Take Ownership
 
 TELECTRO Assignment Policy
     -> True Pool: suppress automatic assignment
-    -> Round Robin: permit automatic assignment
-    -> no matching policy: preserve existing behavior
+    -> Round Robin: permit assignment subject to safety gates
+    -> no matching policy: preserve non-CCTV behavior
+
+Restricted CCTV automatic assignment
+    -> requires complete Customer / Campus context
+    -> requires approved non-Default contextual Round Robin
+    -> requires matching eligible Service Coverage
+    -> otherwise custom_contextual_assignment_hold = 1
 
 TELECTRO Service Coverage
     -> narrows eligible technicians by context
@@ -92,7 +109,7 @@ TELECTRO Service Coverage
 
 Native HD Team Assignment Rule
     -> defines technician membership and round-robin order
-    -> selects ordinary team owners where coverage does not apply
+    -> selects ordinary non-CCTV team owners without coverage
     -> provides the cursor shared with contextual assignment
     -> respects custom_contextual_assignment_hold
 
@@ -135,22 +152,43 @@ Seeds routing context, including the final `agent_group`, before assignment is e
 
 Despite its historical module name, this function does not maintain a separate hard-coded technician pool or round-robin cursor.
 
-When contextual Service Coverage applies, it may select an eligible technician from the native HD Team population and advance the existing native Assignment Rule cursor. Otherwise, ordinary team-member selection remains with the native Assignment Rule.
+When automatic assignment is permitted, matching contextual Service Coverage may select an eligible technician from the native HD Team population and advance the existing native Assignment Rule cursor. Without matching coverage, ordinary non-CCTV assignment remains with the native Assignment Rule. CCTV does not permit unrestricted native fallback.
+
+### Initial CCTV hold — pre-insert lifecycle protection
+
+New CCTV tickets must receive `custom_contextual_assignment_hold = 1` before their initial database insertion. The `HD Ticket.validate` hook `telephony.telectro_round_robin.initialize_cctv_assignment_hold` executes immediately after `telephony.telectro_ticket_routing.seed_ticket_routing`, ensuring that the Service Area and HD Team have already been established.
+
+This early protection is necessary because Helpdesk's native `HD Ticket.after_insert()` can create an initial Communication. The Communication's `on_update` lifecycle invokes `HDTicket.on_communication_update()`, which saves the parent ticket. That nested save can execute the native Assignment Rule before TELECTRO's `assign_after_insert()` hook runs.
+
+The pre-insert hold therefore prevents premature native CCTV assignment. The subsequent `assign_after_insert()` handler evaluates the contextual Assignment Policy and Service Coverage, retaining the hold when automatic assignment is prohibited or releasing it when eligible contextual Round Robin assignment is permitted.
+
+Partner dispatch and explicitly authorized internal creator Take Ownership remain available while the native CCTV assignment hold is active. The initial hold does not prohibit these intentional ownership paths.
+
+This behaviour was verified through controlled DEV lifecycle tests: ticket 943 demonstrated unauthorized native assignment before the pre-insert correction; ticket 944 verified suppression after the correction; tickets 945 and 946 verified Partner and creator ownership; and ticket 947 verified authorized contextual Round Robin assignment. All test tickets and temporary Service Coverage were rolled back.
 
 The current `assign_after_insert()` behavior is:
 
 * **Partner fulfilment** — resolve and assign the Partner organisation's deterministic Default Dispatch User.
+
 * **Explicit internal direct ownership** — assign the target User when an eligible internal creator explicitly selected Take Ownership.
-* **Assignment Policy: True Pool** — set
-  `custom_contextual_assignment_hold = 1` and suppress automatic assignment through the native HD Team Assignment Rule.
-* **Assignment Policy: Round Robin** — permit the normal contextual Service Coverage / native HD Team assignment path.
-* **No matching Assignment Policy** — preserve the existing assignment behavior; no new global assignment default is imposed.
-* **Matching Service Coverage** — intersect covered Users with the native Assignment Rule membership. When an eligible technician is selected, establish ownership and advance the native rule cursor. If no eligible technician remains, hold the ticket unassigned.
-* **No matching Service Coverage** — clear any contextual assignment hold and allow the native HD Team Assignment Rule to perform ordinary team-member selection.
+
+* **Assignment Policy: True Pool** — set `custom_contextual_assignment_hold = 1` and suppress automatic assignment through the native HD Team Assignment Rule.
+
+* **Assignment Policy: Round Robin** — permit contextual Service Coverage assignment, subject to the applicable authorization and technician eligibility requirements.
+
+* **Restricted CCTV automatic assignment** — require complete Customer and Campus context, an explicitly approved non-Default contextual Round Robin Assignment Policy, and matching Service Coverage with an eligible native HD Team technician.
+
+  Missing CCTV context, a missing or generic Default Assignment Policy, or absent or ineligible contextual Service Coverage establishes `custom_contextual_assignment_hold = 1`. Unrestricted native automatic assignment is prohibited.
+
+* **No matching Assignment Policy** — preserve existing assignment behavior for non-CCTV Service Areas. CCTV remains held rather than falling through to native automatic assignment.
+
+* **Matching Service Coverage** — intersect covered Users with native Assignment Rule membership. When an eligible technician is selected, establish ownership and advance the native rule cursor. If no eligible technician remains, hold the ticket unassigned.
+
+* **No matching Service Coverage** — for non-CCTV Service Areas, clear any contextual assignment hold and allow the native HD Team Assignment Rule to perform ordinary team-member selection. CCTV remains held without automatic assignment.
 
 The contextual Assignment Policy decision is evaluated after Partner fulfilment and explicit internal direct-owner routing.
 
-Campus / Site context does not independently establish a direct owner. Boschendal CCTV tickets continue through their selected HD Team and native assignment population when Round Robin applies.
+Campus / Site context does not independently establish a direct owner. Boschendal CCTV tickets use their selected HD Team and native assignment population only when an approved contextual Round Robin policy and matching eligible Service Coverage authorize automatic assignment.
 
 ### Routing-change ownership
 
@@ -172,15 +210,21 @@ Its current behavior is:
   * When the ticket remains within the same True Pool policy and unchanged routing context, preserve an intentional manual owner.
   * Do not select a replacement technician or advance the native round-robin cursor.
 
-* **Assignment Policy: Round Robin**, or no matching policy — continue through contextual Service Coverage and the native HD Team assignment mechanism.
+* **Restricted CCTV automatic assignment** — require complete Customer and Campus context, an explicitly approved non-Default contextual Round Robin Assignment Policy, and matching Service Coverage with an eligible native HD Team technician. Incomplete context, a missing or generic Default policy, or absent or ineligible Service Coverage establishes `custom_contextual_assignment_hold = 1` and prevents unrestricted native automatic assignment.
+
+  * When routing changes into a restricted CCTV context, retire stale ownership, cancel previous assignment ToDos, and clear `_assign`.
+  * Preserve an existing manual owner only when Customer, Campus, Service Area, fulfilment party, and HD Team remain unchanged and the previous contextual assignment hold was already active.
+  * Do not automatically select a replacement technician or advance the native round-robin cursor while the restricted CCTV hold applies.
+
+* **Permitted Round Robin, or no matching policy for non-CCTV** — continue through contextual Service Coverage and the native HD Team assignment mechanism.
 
   * Clear any stale contextual hold when automatic assignment is permitted.
   * When matching Service Coverage exists, restrict eligibility to covered Users who also belong to the native Assignment Rule.
   * Preserve the current owner when that User remains eligible.
   * Otherwise, select an eligible replacement and advance the existing native cursor.
   * When matching Service Coverage has no eligible native team member, retain the ticket unassigned with a contextual hold.
-  * Without matching Service Coverage, preserve a current owner who remains a valid member of the selected native HD Team.
-  * Otherwise, retire stale ownership so the native Assignment Rule can select a replacement.
+  * Without matching Service Coverage, non-CCTV tickets may preserve a current owner who remains a valid member of the selected native HD Team.
+  * Otherwise, retire stale ownership so the native Assignment Rule can select a replacement for permitted non-CCTV routing.
 
 ### Verified routing transitions
 
@@ -230,7 +274,7 @@ When matching Service Coverage exists:
 - The existing native Assignment Rule cursor is advanced.
 - An empty eligible intersection results in a contextual hold, not assignment to an uncovered technician.
 
-When no matching Service Coverage exists, the native Assignment Rule remains responsible for ordinary team-member selection, provided automatic assignment is permitted.
+When no matching Service Coverage exists, the native Assignment Rule remains responsible for ordinary non-CCTV team-member selection, provided automatic assignment is permitted. CCTV requires matching eligible contextual Service Coverage and remains held without it; unrestricted native fallback is prohibited.
 
 The canonical native Assignment Rule condition includes:
 
@@ -315,9 +359,10 @@ Round-robin order and cursor:
     native HD Team Assignment Rule
 
 Ordinary team-member selection:
-    TELECTRO when contextual Service Coverage applies
-    native Assignment Rule when no coverage applies
-    neither when a contextual hold prevents assignment
+    TELECTRO -> when automatic assignment is permitted and eligible contextual Service Coverage exists
+    native Assignment Rule -> permitted non-CCTV fallback without matching coverage
+    neither -> when custom_contextual_assignment_hold = 1
+    CCTV -> requires approved contextual Round Robin and eligible Service Coverage; no unrestricted native fallback
 
 Canonical active ownership:
     open assignment ToDo
@@ -376,7 +421,7 @@ When no Partner fulfilment or explicit direct-owner exception applies, TELECTRO 
 
 The selected `agent_group` identifies the operational `HD Team`.
 
-The assignment decision follows three possible paths.
+The assignment decision follows three paths, subject to an additional CCTV authorization gate. Automatic CCTV assignment requires complete Customer and Campus context, an explicitly approved non-Default contextual Round Robin Assignment Policy, and matching Service Coverage containing an eligible native HD Team technician. Otherwise, `custom_contextual_assignment_hold = 1` prevents unrestricted native automatic assignment. Explicit True Pool policies continue to suppress automatic assignment while permitting authorized manual ownership.
 
 **Path A — Explicit True Pool policy**
 
@@ -394,7 +439,7 @@ The native Assignment Rule respects the contextual hold and does not select an a
 
 An authorized technician can subsequently Claim the ticket, or an authorized user can perform a Controlled Handoff.
 
-**Path B — Round Robin policy or no matching policy, with contextual Service Coverage**
+**Path B — Permitted Round Robin with contextual Service Coverage, or no matching policy for non-CCTV**
 
 When automatic assignment is permitted, TELECTRO checks for matching `TELECTRO Service Coverage` records.
 
@@ -409,9 +454,9 @@ The selected User receives canonical ownership, and the native cursor is advance
 
 If matching Service Coverage exists but no technician belongs to both populations, automatic assignment is suppressed through the contextual hold.
 
-**Path C — Round Robin policy or no matching policy, without contextual Service Coverage**
+**Path C — Permitted non-CCTV routing without contextual Service Coverage**
 
-When no matching Service Coverage records exist, the native Assignment Rule remains responsible for ordinary team-member selection.
+When no matching Service Coverage records exist for a non-CCTV ticket and automatic assignment is permitted, the native Assignment Rule remains responsible for ordinary team-member selection. CCTV cannot enter this fallback path.
 
 The routing path is:
 
@@ -425,7 +470,7 @@ routing fields
     -> accountable team member
 ```
 
-No matching Assignment Policy means that the existing assignment behavior remains authoritative. It does not introduce a new automatic-assignment requirement.
+For non-CCTV Service Areas, no matching Assignment Policy preserves existing assignment behavior rather than imposing a new automatic-assignment requirement. For CCTV, neither a missing Assignment Policy nor absent contextual Service Coverage authorizes native automatic assignment.
 
 Across all three paths, native HD Team membership remains the capability boundary. Contextual Service Coverage can restrict that membership but cannot expand it.
 
@@ -510,7 +555,7 @@ For an ordinary internal team ticket:
 * When eligible contextual coverage exists, TELECTRO selects the technician using the native assignment order and cursor.
 * The existing native Assignment Rule cursor is advanced following contextual technician selection.
 * When matching Service Coverage has no eligible native team member, the ticket remains unassigned with a contextual hold.
-* When no matching Service Coverage exists, the enabled native Assignment Rule performs ordinary Round Robin selection.
+* When no matching Service Coverage exists, the enabled native Assignment Rule performs ordinary Round Robin selection only for permitted non-CCTV routing. CCTV remains held and does not enter native automatic-assignment fallback.
 * Assignment ownership is represented by the canonical Open assignment `ToDo` and mirrored in `_assign`.
 * TELECTRO synchronization preserves the single-accountable-owner invariant.
 
@@ -1031,17 +1076,17 @@ If explicit multi-person work tracking becomes necessary, it should be modelled 
 * routing policy and assignment are separate responsibilities
 * TELECTRO routing logic determines the destination team or an exceptional direct owner
 * Assignment Policy determines whether contextual automatic assignment uses True Pool or Round Robin
-* no matching Assignment Policy preserves the existing assignment behavior
-* ordinary internal team-member selection is performed by TELECTRO when matching contextual Service Coverage applies, or by the native Assignment Rule when no coverage applies
+* no matching Assignment Policy preserves existing assignment behavior for non-CCTV Service Areas; CCTV requires an explicitly approved non-Default contextual Assignment Policy before automatic assignment is permitted
+* ordinary internal team-member selection is performed by TELECTRO when matching eligible contextual Service Coverage applies, or by the native Assignment Rule when permitted non-CCTV routing has no matching coverage; CCTV never uses unrestricted native fallback
 * native Assignment Rules remain authoritative for technician membership, assignment condition, and the shared round-robin cursor
 * contextual Service Coverage restricts native technician eligibility but cannot expand it
-* `custom_contextual_assignment_hold` prevents native automatic assignment when an explicit True Pool policy applies or contextual coverage has no eligible native technician
+* `custom_contextual_assignment_hold` prevents native automatic assignment when an explicit True Pool policy applies, contextual coverage has no eligible native technician, or CCTV lacks complete context, an approved contextual policy, or matching eligible Service Coverage
 * native Assignment Rules are active runtime configuration
 * hard-coded Python `POOLS` are not the live ordinary team-assignment mechanism
 * assignment represents accountable ownership, not contributor participation
 * routing seed must establish the final `agent_group` before ordinary team assignment is expected to behave predictably
 * the current accountable owner may be retained across a routing change when that User remains eligible in the destination HD Team and any applicable contextual Service Coverage
-* intentional manual ownership is preserved when the ticket remains within the same True Pool policy and unchanged routing context
+* intentional manual ownership is preserved when a ticket remains within the same True Pool policy and unchanged routing context, or within an unchanged, previously held restricted-CCTV context
 * stale ownership is retired when the current owner becomes invalid for the destination context, allowing permitted contextual or native assignment to establish replacement ownership
 * open assignment `ToDo` state is canonical for active owned tickets
 * `_assign` is a mirrored/cache representation of accountable ownership
@@ -1092,8 +1137,9 @@ When proving or debugging assignment behavior, use this order:
    * Apply the configured specificity order: Customer/Campus, Campus, Customer, then Default.
    * Confirm whether the effective mode is `True Pool`, `Round Robin`, or no matching policy.
    * A matching True Pool policy suppresses automatic assignment.
-   * A matching Round Robin policy permits automatic assignment through the existing assignment mechanisms.
-   * No matching policy preserves existing assignment behavior rather than introducing a new global default.
+   * A matching Round Robin policy permits automatic assignment through the existing assignment mechanisms, subject to contextual authorization and eligibility requirements.
+   * For CCTV, automatic assignment additionally requires complete Customer and Campus context and an explicitly approved non-Default contextual Round Robin policy. Missing context, a missing policy, or a generic Default policy requires a contextual hold.
+   * For non-CCTV Service Areas, no matching policy preserves existing assignment behavior rather than introducing a new global default.
 
 4. **Inspect contextual Service Coverage when automatic assignment is permitted.**
 
@@ -1102,7 +1148,7 @@ When proving or debugging assignment behavior, use this order:
    * Compare those Users with the technician membership of the selected HD Team's native Assignment Rule.
    * Confirm that the eligible population is the intersection of contextual coverage and native rule membership.
    * When matching coverage has no eligible native technician, expect the ticket to remain unassigned with a contextual hold.
-   * When no matching coverage exists, ordinary native HD Team assignment remains the fallback.
+   * When no matching coverage exists, ordinary native HD Team assignment remains the fallback only for permitted non-CCTV routing. CCTV requires matching eligible contextual Service Coverage and must remain held without it.
 
 5. **Inspect the selected HD Team, native Assignment Rule, and contextual hold.**
 
@@ -1135,6 +1181,8 @@ When proving or debugging assignment behavior, use this order:
    * Determine whether the effective Assignment Policy changed.
    * For a transition into a different True Pool context, confirm stale ownership was retired and the contextual hold established.
    * For an unchanged True Pool policy and routing context, confirm intentional manual ownership was preserved.
+   * For routing changes into restricted CCTV context, confirm `custom_contextual_assignment_hold = 1`, stale assignment ToDos are cancelled, and `_assign` no longer identifies the previous owner.
+   * For unchanged, previously held restricted CCTV context, confirm an intentionally established manual owner is preserved. Verify that Customer, Campus, Service Area, fulfilment party, and HD Team are unchanged.
    * For a transition from True Pool to permitted Round Robin, confirm the contextual hold was cleared.
    * When automatic assignment is permitted, verify that an existing owner remains eligible under both native team membership and applicable Service Coverage before preserving ownership.
    * If the previous owner is no longer eligible, verify that stale ownership was retired and permitted replacement assignment was evaluated.
@@ -1149,7 +1197,7 @@ When proving or debugging assignment behavior, use this order:
    * eligible internal creator Take Ownership
    * assignment synchronization and drift repair tools
 
-   Do not run assignment repair merely to populate an intentionally unclaimed True Pool ticket. Establish the effective policy, contextual hold, eligibility, and canonical ToDo state before deciding that repair is appropriate.
+   Do not run assignment repair merely to populate an intentionally unclaimed True Pool ticket or a ticket held by restricted CCTV authorization. For CCTV, first verify complete Customer and Campus context, an approved non-Default contextual Round Robin Assignment Policy, and matching eligible Service Coverage before expecting automatic assignment. Never clear a restricted CCTV hold or enable unrestricted native fallback merely to force assignment. Establish the effective policy, contextual hold, eligibility, and canonical ToDo state before deciding that repair is appropriate.
 
 ### Why this order matters
 
@@ -1161,13 +1209,16 @@ The ordinary internal assignment path is:
 routing inputs
     -> final agent_group / HD Team
     -> contextual Assignment Policy
-        -> True Pool: suppress automatic assignment
-        -> Round Robin or no policy: evaluate eligibility
+        -> True Pool: hold; suppress automatic assignment
+        -> CCTV: require complete Customer / Campus context and approved non-Default contextual Round Robin
+        -> non-CCTV: Round Robin or no policy may evaluate eligibility
     -> contextual Service Coverage
-        -> matching coverage: native membership intersection
-        -> no matching coverage: native assignment fallback
-    -> contextual hold or eligible technician selection
-    -> canonical assignment ToDo
+        -> matching eligible coverage: native membership intersection
+        -> no eligible native technician: contextual hold
+        -> CCTV without matching eligible coverage: hold; no native fallback
+        -> non-CCTV without matching coverage: native assignment fallback
+    -> contextual hold or permitted technician selection
+    -> canonical assignment ToDo when owned
     -> mirrored _assign
 ```
 

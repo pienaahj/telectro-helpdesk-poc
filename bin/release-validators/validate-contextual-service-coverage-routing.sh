@@ -216,6 +216,84 @@ print(
 
 hooks_tree = ast.parse(hooks_source)
 
+print()
+print("=== CCTV pre-insert assignment protection contract ===")
+
+validate_assignments = [
+    node
+    for node in ast.walk(hooks_tree)
+    if (
+        isinstance(node, ast.Assign)
+        and any(
+            ast.get_source_segment(hooks_source, target)
+            == 'doc_events["HD Ticket"]["validate"]'
+            for target in node.targets
+        )
+    )
+]
+
+require(
+    len(validate_assignments) == 1,
+    "expected exactly one HD Ticket validate hook registration",
+)
+
+validate_hooks = ast.literal_eval(validate_assignments[0].value)
+
+require(
+    validate_hooks[:2] == [
+        "telephony.telectro_ticket_routing.seed_ticket_routing",
+        "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
+    ],
+    "CCTV initial hold must execute immediately after routing seeding",
+)
+
+require(
+    validate_hooks.count(
+        "telephony.telectro_round_robin.initialize_cctv_assignment_hold"
+    ) == 1,
+    "CCTV initial hold must be registered exactly once",
+)
+
+hold_source, hold_tree = source_tree(
+    telectro_round_robin.initialize_cctv_assignment_hold
+)
+
+require(
+    "if not doc.is_new():" in hold_source,
+    "initial CCTV hold must be restricted to new tickets",
+)
+
+require(
+    'get_ticket_context(doc)["service_area"] != "CCTV"'
+    in hold_source,
+    "initial hold must not affect non-CCTV tickets",
+)
+
+hold_assignments = [
+    node
+    for node in ast.walk(hold_tree)
+    if (
+        isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Attribute)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == "doc"
+            and target.attr == "custom_contextual_assignment_hold"
+            for target in node.targets
+        )
+        and isinstance(node.value, ast.Constant)
+        and node.value.value == 1
+    )
+]
+
+require(
+    len(hold_assignments) == 1,
+    "initial CCTV hold must set the document field before insert",
+)
+
+print("CCTV_PRE_INSERT_HOOK_ORDER=PASS")
+print("CCTV_PRE_INSERT_HOLD_CONTRACT=PASS")
+
 hook_lines = {}
 
 for node in ast.walk(hooks_tree):
@@ -914,26 +992,50 @@ expected_tests = {
         "test_last_user_inside_team_but_outside_coverage_advances_to_next_eligible",
         "test_matching_coverage_is_intersected_with_native_team_membership",
         "test_matching_coverage_with_empty_intersection_does_not_fall_back",
+        "test_matching_coverage_with_empty_native_population_cannot_assign",
         "test_native_team_order_controls_contextual_rotation",
         "test_no_matching_coverage_leaves_native_team_path_untouched",
         "test_unknown_last_user_starts_with_first_eligible_native_team_member",
     },
     "telectro_round_robin": {
+        "test_boschendal_cctv_round_robin_assigns_covered_team_member",
+        "test_boschendal_cctv_round_robin_without_coverage_remains_held",
+        "test_cctv_default_policy_does_not_authorize_assignment",
+        "test_cctv_explicit_creator_ownership_preserves_initial_hold",
+        "test_cctv_partner_dispatch_preserves_initial_hold",
+        "test_cctv_without_approved_policy_remains_held",
+        "test_emerald_life_cctv_true_pool_suppresses_automatic_assignment",
+        "test_existing_cctv_ticket_preserves_hold_state",
+        "test_incomplete_context_sets_hold_before_native_fallback",
         "test_matching_contextual_coverage_assigns_selected_team_member",
         "test_matching_coverage_with_no_capable_team_member_stays_true_pool",
-        "test_no_contextual_coverage_still_falls_through_to_native_assignment",
+        "test_new_cctv_ticket_is_held_before_insert",
+        "test_new_non_cctv_ticket_preserves_native_fallback",
+        "test_non_cctv_without_contextual_coverage_preserves_native_fallback",
         "test_normal_internal_ticket_falls_through_to_native_team_assignment",
         "test_partner_fulfilment_resolves_default_dispatch_user",
+        "test_pre_insert_hold_follows_routing_seed",
     },
     "telectro_reassign_on_update": {
         "test_boschendal_routing_change_falls_through_to_native_team",
         "test_contextual_coverage_preserves_current_owner_when_still_eligible",
         "test_contextual_coverage_replaces_native_owner_outside_eligible_population",
         "test_direct_owner_clears_contextual_hold_when_owner_is_already_correct",
+        "test_disabled_native_rule_returns_no_team_users",
+        "test_entering_cctv_with_approved_policy_without_coverage_releases_owner",
+        "test_entering_cctv_with_default_policy_releases_owner",
+        "test_entering_cctv_without_approved_policy_releases_owner",
+        "test_entering_incomplete_context_releases_previous_owner",
+        "test_entering_true_pool_releases_previous_owner",
         "test_fulfilment_partner_is_routing_relevant",
+        "test_leaving_true_pool_enters_contextual_round_robin",
         "test_matching_coverage_without_capable_team_member_sets_hold_and_releases_owner",
         "test_no_contextual_coverage_clears_stale_hold_and_preserves_valid_native_owner",
         "test_partner_fulfilment_clears_contextual_hold_and_resolves_dispatch_user",
+        "test_same_true_pool_preserves_manually_claimed_owner",
+        "test_unchanged_complete_cctv_without_policy_preserves_manual_owner",
+        "test_unchanged_cctv_without_coverage_preserves_manual_owner",
+        "test_unchanged_incomplete_context_preserves_manual_owner",
     },
 }
 
@@ -976,9 +1078,9 @@ for contract_name, path in TEST_PATHS.items():
     total_tests += len(observed)
 
 require(
-    total_tests == 33,
+    total_tests == 57,
     (
-        "expected 33 focused contextual-routing "
+        "expected 57 focused contextual-routing "
         f"regression tests, observed {total_tests}"
     ),
 )

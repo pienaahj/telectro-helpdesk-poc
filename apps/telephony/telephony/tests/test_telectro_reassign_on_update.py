@@ -561,8 +561,8 @@ class TestContextualCoverageReassignment(unittest.TestCase):
             custom_request_source="Customer",
             custom_customer="Emerald Life",
             custom_site_group="Emerald Life - Head Office",
-            custom_service_area="CCTV",
-            agent_group="CCTV",
+            custom_service_area="PABX",
+            agent_group="PABX",
             custom_contextual_assignment_hold=1,
         )
 
@@ -590,7 +590,7 @@ class TestContextualCoverageReassignment(unittest.TestCase):
                 reassign,
                 "_native_team_assignment_state",
                 return_value={
-                    "rule": "CCTV - Support Rotation",
+                    "rule": "PABX - Support Rotation",
                     "users": [current_user],
                     "last_user": current_user,
                 },
@@ -1262,3 +1262,589 @@ class TestCCTVIncompleteContextRoutingChange(unittest.TestCase):
         native_state.assert_not_called()
         resolve_coverage.assert_not_called()
         normalize.assert_not_called()
+
+
+class TestCCTVRestrictedRoutingChange(unittest.TestCase):
+    """CCTV routing requires approved contextual assignment."""
+
+    def test_entering_cctv_without_approved_policy_releases_owner(self):
+        ticket = "TEST-CCTV-NO-POLICY-ROUTING"
+        previous_owner = "tech.charlie@local.test"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="PABX",
+            agent_group="PABX",
+            custom_contextual_assignment_hold=0,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="PABX to restricted CCTV routing",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=0,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=previous_owner,
+            ),
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": "CCTV - Support Rotation",
+                    "users": [previous_owner],
+                    "last_user": previous_owner,
+                },
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": False,
+                    "coverage_rows": [],
+                    "eligible_users": [],
+                    "selected_user": "",
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_native_team_users",
+                return_value=[previous_owner],
+            ) as native_users,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        # Complete Customer/Campus context does not authorize
+        # automatic CCTV assignment without an approved policy.
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        # Ownership from the previous PABX routing must be retired.
+        release_owner.assert_called_once()
+
+        # Restricted CCTV must not enter contextual or native
+        # technician selection.
+        native_state.assert_not_called()
+        resolve_coverage.assert_not_called()
+        native_users.assert_not_called()
+        normalize.assert_not_called()
+
+    def test_entering_cctv_with_approved_policy_without_coverage_releases_owner(self):
+        ticket = "TEST-CCTV-APPROVED-NO-COVERAGE-ROUTING"
+        previous_owner = "tech.charlie@local.test"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="PABX",
+            agent_group="PABX",
+            custom_contextual_assignment_hold=0,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="PABX to restricted CCTV routing",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=0,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-EMERALD-CCTV-CAMPUS",
+                    "coverage_scope": "Customer/Campus",
+                    "assignment_mode": "Round Robin",
+                },
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=previous_owner,
+            ),
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": "CCTV - Support Rotation",
+                    "users": [previous_owner],
+                    "last_user": previous_owner,
+                },
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": False,
+                    "coverage_rows": [],
+                    "eligible_users": [],
+                    "selected_user": "",
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_native_team_users",
+                return_value=[previous_owner],
+            ) as native_users,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        # Complete Customer/Campus context does not authorize
+        # automatic CCTV assignment without an approved policy.
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        # Ownership from the previous PABX routing must be retired.
+        release_owner.assert_called_once()
+
+        # Restricted CCTV must not enter contextual or native
+        # technician selection.
+        native_state.assert_called_once_with("CCTV")
+
+        resolve_coverage.assert_called_once_with(
+            doc,
+            [previous_owner],
+            last_user=previous_owner,
+        )
+        native_users.assert_not_called()
+        normalize.assert_not_called()
+
+    def test_entering_cctv_with_default_policy_releases_owner(self):
+        ticket = "TEST-CCTV-DEFAULT-POLICY-ROUTING"
+        previous_owner = "tech.charlie@local.test"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="PABX",
+            agent_group="PABX",
+            custom_contextual_assignment_hold=0,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="PABX to restricted CCTV routing",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Emerald Life",
+            custom_site_group="Emerald Life - Head Office",
+            custom_service_area="CCTV",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=0,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-DEFAULT-CCTV",
+                    "coverage_scope": "Default",
+                    "service_area": "CCTV",
+                    "assignment_mode": "Round Robin",
+                },
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=previous_owner,
+            ),
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": "CCTV - Support Rotation",
+                    "users": [previous_owner],
+                    "last_user": previous_owner,
+                },
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": False,
+                    "coverage_rows": [],
+                    "eligible_users": [],
+                    "selected_user": "",
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_native_team_users",
+                return_value=[previous_owner],
+            ) as native_users,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        # Complete Customer/Campus context does not authorize
+        # automatic CCTV assignment without an approved policy.
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        # Ownership from the previous PABX routing must be retired.
+        release_owner.assert_called_once()
+
+        # Restricted CCTV must not enter contextual or native
+        # technician selection.
+        native_state.assert_not_called()
+        resolve_coverage.assert_not_called()
+        native_users.assert_not_called()
+        normalize.assert_not_called()
+
+    def test_unchanged_complete_cctv_without_policy_preserves_manual_owner(self):
+        ticket = "TEST-CCTV-COMPLETE-MANUAL-OWNER"
+        manual_owner = "pierre@telectro.co.za"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            custom_request_type="Fault",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="Preserve manually claimed restricted CCTV ticket",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            custom_request_type="Assistance",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=manual_owner,
+            ) as current_assignee,
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        # An unchanged, previously held CCTV routing context
+        # must retain its intentional manual assignment.
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        current_assignee.assert_called_once_with(ticket)
+
+        # No ownership release, reassignment or native fallback.
+        release_owner.assert_not_called()
+        normalize.assert_not_called()
+        native_state.assert_not_called()
+        resolve_coverage.assert_not_called()
+
+    def test_unchanged_cctv_without_coverage_preserves_manual_owner(self):
+        ticket = "TEST-CCTV-NO-COVERAGE-MANUAL-OWNER"
+        manual_owner = "pierre@telectro.co.za"
+
+        old_doc = _TicketDoc(
+            name=ticket,
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            custom_request_type="Fault",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        doc = _TicketDoc(
+            name=ticket,
+            subject="Preserve manually claimed CCTV without coverage",
+            custom_fulfilment_party="Telectro",
+            custom_customer="Boschendal",
+            custom_site_group="Boschendal",
+            custom_service_area="CCTV",
+            custom_request_type="Assistance",
+            agent_group="CCTV",
+            custom_contextual_assignment_hold=1,
+        )
+
+        with (
+            mock.patch.object(
+                reassign,
+                "_get_old_doc",
+                return_value=old_doc,
+            ),
+            mock.patch.object(
+                reassign,
+                "seed_ticket_routing",
+            ),
+            mock.patch.object(
+                reassign,
+                "resolve_ticket_routing_policy",
+                return_value=None,
+            ),
+            mock.patch.object(
+                reassign,
+                "get_ticket_assignment_policy",
+                return_value={
+                    "name": "TAP-BOSCHENDAL-CCTV",
+                    "coverage_scope": "Customer/Campus",
+                    "assignment_mode": "Round Robin",
+                },
+            ),
+            mock.patch.object(
+                reassign,
+                "_current_assignee",
+                return_value=manual_owner,
+            ) as current_assignee,
+            mock.patch.object(
+                reassign,
+                "_native_team_assignment_state",
+                return_value={
+                    "rule": "CCTV - Support Rotation",
+                    "users": [manual_owner],
+                    "last_user": "",
+                },
+            ) as native_state,
+            mock.patch.object(
+                reassign,
+                "resolve_contextual_team_assignment",
+                return_value={
+                    "coverage_applies": False,
+                    "coverage_rows": [],
+                    "eligible_users": [],
+                    "selected_user": "",
+                },
+            ) as resolve_coverage,
+            mock.patch.object(
+                reassign,
+                "_release_for_native_team_assignment",
+            ) as release_owner,
+            mock.patch.object(
+                reassign,
+                "_normalize_assignment",
+            ) as normalize,
+            mock.patch.object(
+                reassign,
+                "_native_team_users",
+            ) as native_users,
+            mock.patch.object(
+                reassign,
+                "_advance_native_team_cursor",
+            ) as advance_cursor,
+            mock.patch.object(
+                reassign.frappe.db,
+                "set_value",
+            ) as set_value,
+        ):
+            reassign.reassign_if_routing_changed(doc)
+
+        self.assertEqual(
+            doc.get("custom_contextual_assignment_hold"),
+            1,
+        )
+
+        set_value.assert_called_once_with(
+            "HD Ticket",
+            ticket,
+            "custom_contextual_assignment_hold",
+            1,
+            update_modified=False,
+        )
+
+        current_assignee.assert_called_once_with(ticket)
+
+        # Approved policy is evaluated, but coverage does not apply.
+        native_state.assert_called_once_with("CCTV")
+
+        resolve_coverage.assert_called_once_with(
+            doc,
+            [manual_owner],
+            last_user="",
+        )
+
+        # The manually claimed owner must not be released or replaced.
+        release_owner.assert_not_called()
+        normalize.assert_not_called()
+        native_users.assert_not_called()
+        advance_cursor.assert_not_called()

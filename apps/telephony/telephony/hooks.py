@@ -408,6 +408,7 @@ _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.
 # validate: keep deterministic order (routing seed first, then site guard, then assign/_assign hygiene)
 doc_events["HD Ticket"]["validate"] = [
     "telephony.telectro_ticket_routing.seed_ticket_routing",
+    "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
     "telephony.telectro_site_guard.validate_site_fields",
     "telephony.telectro_equipment_guard.validate_affected_equipment",
     "telephony.telectro_ticket_edit_guard.validate_ticket_edit_rights",
