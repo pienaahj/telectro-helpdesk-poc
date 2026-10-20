@@ -3,7 +3,10 @@ import json
 
 from telephony.partner_identity import resolve_partner_dispatch_user
 from telephony.telectro_routing_policy import resolve_ticket_routing_policy
-from telephony.service_coverage import resolve_contextual_team_assignment
+from telephony.service_coverage import (
+    get_ticket_context,
+    resolve_contextual_team_assignment,
+)
 from telephony.native_team_assignment import (
     advance_native_team_cursor as _advance_native_team_cursor,
     native_team_assignment_state as _native_team_assignment_state,
@@ -12,6 +15,26 @@ from telephony.assignment_policy import (
     get_ticket_assignment_policy,
     requires_cctv_context_triage,
 )
+
+def initialize_cctv_assignment_hold(doc, method=None) -> None:
+    """
+    Suppress native CCTV assignment from the first database insert.
+
+    Helpdesk may create a Communication during HD Ticket.after_insert.
+    Its callback can save the ticket before TELECTRO's after_insert
+    assignment handler executes.
+
+    The final assignment decision remains with assign_after_insert.
+    """
+    if not doc.is_new():
+        return
+
+    if get_ticket_context(doc)["service_area"] != "CCTV":
+        return
+
+    # This runs before db_insert, so update the document directly.
+    # Frappe will persist the hold during the initial insert.
+    doc.custom_contextual_assignment_hold = 1
 
 def _set_contextual_assignment_hold(
     doc,
@@ -165,11 +188,20 @@ def assign_after_insert(doc, method=None):
         return
 
     # 3) Contextual Assignment Policy controls automatic assignment.
-    # An explicit True Pool policy suppresses native assignment while
-    # preserving manual Claim and Controlled Handoff operations.
     #
-    # An explicit Round Robin policy, or no matching policy, continues
-    # through the existing Service Coverage / native team path.
+    # True Pool suppresses native automatic assignment while
+    # preserving authorized manual Claim and Controlled Handoff.
+    #
+    # Round Robin permits contextual assignment subject to
+    # technician eligibility and the applicable safety gates.
+    #
+    # Missing Assignment Policy preserves native fallback only
+    # for non-CCTV Service Areas.
+    #
+    # CCTV requires complete Customer/Campus context, an approved
+    # non-Default contextual Round Robin policy, and matching
+    # eligible Service Coverage. Otherwise, native automatic
+    # assignment remains suppressed.
     assignment_policy = get_ticket_assignment_policy(doc)
 
     if (
@@ -199,6 +231,24 @@ def assign_after_insert(doc, method=None):
         )
         return
 
+    # CCTV automatic assignment requires contextual authorization.
+    # Neither a missing Assignment Policy nor a generic Default
+    # policy authorizes unrestricted CCTV assignment.
+    #
+    # Other Service Areas retain their existing native fallback.
+    if (
+        get_ticket_context(doc)["service_area"] == "CCTV"
+        and (
+            not assignment_policy
+            or assignment_policy.get("coverage_scope") == "Default"
+        )
+    ):
+        _set_contextual_assignment_hold(
+            doc,
+            ticket,
+            True,
+        )
+        return
     # 3) Contextual Service Coverage may narrow the native HD Team
     # assignment population.
     #
@@ -265,6 +315,19 @@ def assign_after_insert(doc, method=None):
 
         return
 
+    # No matching contextual Service Coverage.
+    #
+    # CCTV must not fall through to unrestricted native HD Team
+    # assignment, even when a contextual Round Robin policy exists.
+    if get_ticket_context(doc)["service_area"] == "CCTV":
+        _set_contextual_assignment_hold(
+            doc,
+            ticket,
+            True,
+        )
+        return
+
+    # Preserve ordinary native fallback for non-CCTV Service Areas.
     _set_contextual_assignment_hold(
         doc,
         ticket,
