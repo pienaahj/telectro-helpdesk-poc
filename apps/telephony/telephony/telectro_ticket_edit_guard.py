@@ -3,7 +3,10 @@ import json
 import frappe
 from frappe import _
 
-TECH_ROLE = "TELECTRO-POC Tech"
+from telephony.permissions import INTERNAL_BYPASS_ROLES
+
+
+TECH_ROLE = "TELECTRO-POC Role - Tech"
 
 
 def _parse_assign_users(assign_val) -> list[str]:
@@ -31,24 +34,31 @@ def validate_ticket_edit_rights(doc, method=None):
     if user == "Administrator":
         return
 
-    roles = frappe.get_roles(user) or []
+    roles = set(frappe.get_roles(user) or [])
+
+    # Preserve Coordinator, Supervisor and other explicitly
+    # privileged internal users' intervention rights.
+    if roles & INTERNAL_BYPASS_ROLES:
+        return
+
+    # Apply assignment containment to the actual Technician role.
     if TECH_ROLE not in roles:
         return
 
-    # Allow first save of a newly created ticket
+    # Allow first save of a newly created ticket.
     if doc.is_new():
         return
 
-    # IMPORTANT: for existing tickets, use persisted assignment state,
-    # not the incoming form payload (which may omit _assign)
+    # IMPORTANT: use the persisted assignment state,
+    # not the incoming form payload (which may omit _assign).
     assign_val = frappe.db.get_value("HD Ticket", doc.name, "_assign") or ""
     assignees = _parse_assign_users(assign_val)
 
-    # True pool: editable
+    # True pool: editable.
     if not assignees:
         return
 
-    # Assigned to me: editable
+    # Assigned to me: editable.
     if user in assignees:
         return
 
