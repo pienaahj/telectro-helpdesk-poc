@@ -26,6 +26,8 @@ class TestCustomerOutboundCommunicationAuthority(unittest.TestCase):
         self.ticket_record = {
             "customer": CUSTOMER,
             "raised_by": RECIPIENT,
+            "via_customer_portal": 1,
+            "custom_request_source": "Customer",
         }
         self.recipient_enabled = 1
         self.ticket_doc = object()
@@ -33,7 +35,15 @@ class TestCustomerOutboundCommunicationAuthority(unittest.TestCase):
         def db_get_value(doctype, name, field, **kwargs):
             if doctype == "HD Ticket":
                 self.assertEqual(name, TICKET)
-                self.assertEqual(field, ["customer", "raised_by"])
+                self.assertEqual(
+                    field,
+                    [
+                        "customer",
+                        "raised_by",
+                        "via_customer_portal",
+                        "custom_request_source",
+                    ],
+                )
                 return self.ticket_record
 
             if doctype == "User":
@@ -186,6 +196,20 @@ class TestCustomerOutboundCommunicationAuthority(unittest.TestCase):
             privacy.require_customer_update_authority(
                 TICKET, RECIPIENT
             )
+
+    def test_internal_creator_can_use_verified_customer_recipient(self):
+        self.ticket_record["raised_by"] = ACTOR
+        self.ticket_record["custom_request_source"] = "Telectro"
+        self.ticket_record["via_customer_portal"] = 0
+
+        actual = privacy.require_customer_update_authority(
+            TICKET, RECIPIENT
+        )
+
+        self.assertEqual(actual, RECIPIENT)
+        self.edit_guard_mock.assert_called_once_with(
+            self.ticket_doc
+        )
 
     def test_disabled_recipient_denied(self):
         self.recipient_enabled = 0

@@ -37,10 +37,12 @@ expected_modules = {
     "customer_ticket_detail_api_privacy": 4,
     "customer_ticket_detail_projection": 8,
     "realtime_ticket_authorization": 14,
-    "customer_outbound_communication_authority": 18,
+    "customer_outbound_communication_authority": 19,
+    "customer_identity_sync": 6,
+    "customer_resolution_communication": 6,
 }
 
-expected_total = 118
+expected_total = 131
 
 require(
     sum(expected_modules.values()) == expected_total,

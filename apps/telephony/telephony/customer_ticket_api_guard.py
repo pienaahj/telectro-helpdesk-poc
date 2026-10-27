@@ -82,15 +82,16 @@ def get_ticket_activities(ticket: str):
         limit_page_length=0,
     )
 
-    visible_names = []
-
-    for name in candidates:
-        if frappe.has_permission(
-            "Communication",
-            "read",
-            doc=name,
-        ):
-            visible_names.append(name)
+    # This endpoint has already verified the Customer actor,
+    # organisation membership and HD Ticket read permission.
+    #
+    # Candidates are restricted to Communications saved against
+    # this ticket with the immutable Customer audience.
+    #
+    # Native Communication DocPerm may deny portal users even when
+    # they can read the parent ticket. Do not broaden native
+    # Communication permissions or generic list access.
+    visible_names = set(candidates)
 
     activities = helpdesk_api.get_ticket_activities(ticket)
 

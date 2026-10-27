@@ -15,12 +15,41 @@ _INTERNAL_RESOLUTION_ROLES = {
     "Agent",
 }
 
+def _resolve_customer_message_recipient(doc, customer_recipient=None):
+    """Resolve the recipient without changing the ticket requester."""
+
+    recipient = str(customer_recipient or "").strip()
+    raised_by = str(doc.get("raised_by") or "").strip()
+
+    portal_initiated = (
+        bool(doc.get("via_customer_portal"))
+        or str(doc.get("custom_request_source") or "").strip()
+        == "Customer"
+    )
+
+    if portal_initiated:
+        if recipient and recipient != raised_by:
+            frappe.throw(
+                _("Portal ticket recipient must match its requester."),
+                frappe.PermissionError,
+            )
+        return raised_by
+
+    if not recipient:
+        frappe.throw(
+            _("Select a Customer recipient for this internal ticket."),
+            frappe.PermissionError,
+        )
+
+    return recipient
+
 
 @frappe.whitelist()
 def resolve_customer_ticket(
     ticket_name: str,
     resolution_note: str,
     completion_file: str | None = None,
+    customer_recipient: str | None = None,
 ):
     """Resolve a Customer ticket with a deliberate Customer-visible update."""
 
@@ -60,16 +89,25 @@ def resolve_customer_ticket(
     if current_status in {"Resolved", "Closed"}:
         frappe.throw(_("This ticket is already resolved or closed"))
 
+    recipient = _resolve_customer_message_recipient(
+        doc,
+        customer_recipient,
+    )
+
     require_customer_update_authority(
         doc.name,
-        doc.get("raised_by"),
+        recipient,
     )
 
     doc.status = "Resolved"
     doc.resolution_details = resolution_note
     doc.save(ignore_permissions=True)
 
-    comm = _create_customer_visible_resolution_communication(doc, resolution_note)
+    comm = _create_customer_visible_resolution_communication(
+        doc,
+        resolution_note,
+        recipient,
+    )
 
     completion_file_link = None
     if completion_file_doc:
@@ -107,6 +145,7 @@ def add_customer_update(
     ticket_name: str,
     update_note: str,
     update_file: str | None = None,
+    customer_recipient: str | None = None,
 ):
     """Add a Customer-visible update without resolving the Customer ticket."""
 
@@ -131,9 +170,14 @@ def add_customer_update(
     if current_status in {"Closed", "Archived"}:
         frappe.throw(_("This ticket is closed or archived"))
 
+    recipient = _resolve_customer_message_recipient(
+        doc,
+        customer_recipient,
+    )
+
     require_customer_update_authority(
         doc.name,
-        doc.get("raised_by"),
+        recipient,
     )
 
     update_file_doc = None
@@ -143,7 +187,11 @@ def add_customer_update(
     comm_count_before = _count_ticket_communications(doc.name)
     comment_count_before = _count_ticket_comments(doc.name)
 
-    comm = _create_customer_visible_update_communication(doc, update_note)
+    comm = _create_customer_visible_update_communication(
+        doc,
+        update_note,
+        recipient,
+    )
 
     update_file_link = None
     if update_file_doc:
@@ -269,10 +317,17 @@ def _is_customer_ticket(doc) -> bool:
 
     return False
 
-def _create_customer_visible_update_communication(doc, update_note: str):
-    recipient = (doc.get("raised_by") or "").strip()
+def _create_customer_visible_update_communication(
+    doc,
+    update_note: str,
+    recipient: str,
+):
+    recipient = str(recipient or "").strip()
     if not recipient:
-        frappe.throw(_("Customer email / raised by is missing on this ticket"))
+        frappe.throw(
+            _("Customer recipient is required."),
+            frappe.PermissionError,
+        )
 
     subject = f"Re: {doc.get('subject') or doc.name} (#{doc.name})"
     content = (
@@ -298,6 +353,7 @@ def _create_customer_visible_update_communication(doc, update_note: str):
             "communication_date": now_datetime(),
         }
     )
+
     with customer_outbound_communication_scope(doc.name, recipient):
         comm.insert(ignore_permissions=True)
 
@@ -330,18 +386,23 @@ def _add_internal_customer_update_audit_comment(
 
     return doc.add_comment("Comment", message)
 
-def _create_customer_visible_resolution_communication(doc, resolution_note: str):
-    recipient = (doc.get("raised_by") or "").strip()
+def _create_customer_visible_resolution_communication(
+    doc,
+    resolution_note: str,
+    recipient: str,
+):
+    recipient = str(recipient or "").strip()
     if not recipient:
-        frappe.throw(_("Customer email / raised by is missing on this ticket"))
-
+        frappe.throw(
+            _("Customer recipient is required."),
+            frappe.PermissionError,
+        )
     subject = f"Re: {doc.get('subject') or doc.name} (#{doc.name})"
     content = (
         '<div class="ql-editor read-mode">'
         f"<p>{escape_html(resolution_note)}</p>"
         "</div>"
     )
-
     comm = frappe.get_doc(
         {
             "doctype": "Communication",

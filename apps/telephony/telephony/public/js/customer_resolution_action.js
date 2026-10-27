@@ -39,6 +39,19 @@ function add_customer_update_action(frm) {
       const dialog = new frappe.ui.Dialog({
         title: "Add Customer Update",
         fields: [
+          ...(
+            is_portal_initiated_customer_ticket(frm.doc)
+              ? []
+              : [{
+                  fieldname: "customer_recipient",
+                  fieldtype: "Data",
+                  options: "Email",
+                  label: "Customer recipient email",
+                  reqd: 1,
+                  description:
+                    "Enter an enabled Customer portal user's email address belonging to this ticket's Customer.",
+                }]
+          ),
           {
             fieldname: "update_note",
             fieldtype: "Small Text",
@@ -84,6 +97,7 @@ function add_customer_update_action(frm) {
               ticket_name: frm.doc.name,
               update_note: updateNote,
               update_file: values.update_file || "",
+              customer_recipient: values.customer_recipient || "",
             },
             freeze: true,
             freeze_message: "Sending Customer update…",
@@ -133,6 +147,19 @@ function add_customer_resolution_action(frm) {
       const dialog = new frappe.ui.Dialog({
         title: "Resolve Customer Ticket",
         fields: [
+          ...(
+            is_portal_initiated_customer_ticket(frm.doc)
+              ? []
+              : [{
+                  fieldname: "customer_recipient",
+                  fieldtype: "Data",
+                  options: "Email",
+                  label: "Customer recipient email",
+                  reqd: 1,
+                  description:
+                    "Enter an enabled Customer portal user's email address belonging to this ticket's Customer.",
+                }]
+          ),
           {
             fieldname: "resolution_note",
             fieldtype: "Small Text",
@@ -179,6 +206,7 @@ function add_customer_resolution_action(frm) {
               ticket_name: frm.doc.name,
               resolution_note: resolutionNote,
               completion_file: values.completion_file || "",
+              customer_recipient: values.customer_recipient || "",
             },
             freeze: true,
             freeze_message: "Resolving Customer ticket…",
@@ -210,6 +238,13 @@ function add_customer_resolution_action(frm) {
       dialog.show();
     },
     "Customer",
+  );
+}
+
+function is_portal_initiated_customer_ticket(d) {
+  return (
+    Boolean(d.via_customer_portal) ||
+    (d.custom_request_source || "").trim() === "Customer"
   );
 }
 

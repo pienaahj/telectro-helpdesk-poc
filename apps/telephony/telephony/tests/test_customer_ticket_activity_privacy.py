@@ -74,16 +74,14 @@ class TestCustomerTicketActivityPrivacy(unittest.TestCase):
                 "get_all",
                 return_value=[
                     "customer-visible",
-                    "customer-cross",
                 ],
             ) as lookup,
             patch.object(
                 guard.frappe,
                 "has_permission",
-                side_effect=lambda doctype, ptype, doc=None: (
-                    doctype == "Communication"
-                    and ptype == "read"
-                    and doc == "customer-visible"
+                side_effect=AssertionError(
+                    "Customer activity must not depend on native "
+                    "Communication DocPerm"
                 ),
             ),
         ):
