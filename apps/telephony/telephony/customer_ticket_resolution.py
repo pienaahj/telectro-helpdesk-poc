@@ -2,7 +2,10 @@ import frappe
 from frappe import _
 from frappe.utils import now_datetime
 from frappe.utils.data import escape_html
-
+from telephony.customer_communication_privacy import (
+    require_customer_update_authority,
+    customer_outbound_communication_scope,
+)
 
 _INTERNAL_RESOLUTION_ROLES = {
     "System Manager",
@@ -56,6 +59,11 @@ def resolve_customer_ticket(
     current_status = (doc.get("status") or "").strip()
     if current_status in {"Resolved", "Closed"}:
         frappe.throw(_("This ticket is already resolved or closed"))
+
+    require_customer_update_authority(
+        doc.name,
+        doc.get("raised_by"),
+    )
 
     doc.status = "Resolved"
     doc.resolution_details = resolution_note
@@ -122,6 +130,11 @@ def add_customer_update(
     current_status = (doc.get("status") or "").strip()
     if current_status in {"Closed", "Archived"}:
         frappe.throw(_("This ticket is closed or archived"))
+
+    require_customer_update_authority(
+        doc.name,
+        doc.get("raised_by"),
+    )
 
     update_file_doc = None
     if update_file:
@@ -285,7 +298,9 @@ def _create_customer_visible_update_communication(doc, update_note: str):
             "communication_date": now_datetime(),
         }
     )
-    comm.insert(ignore_permissions=True)
+    with customer_outbound_communication_scope(doc.name, recipient):
+        comm.insert(ignore_permissions=True)
+
     return comm
 
 
@@ -344,7 +359,9 @@ def _create_customer_visible_resolution_communication(doc, resolution_note: str)
             "communication_date": now_datetime(),
         }
     )
-    comm.insert(ignore_permissions=True)
+    with customer_outbound_communication_scope(doc.name, recipient):
+        comm.insert(ignore_permissions=True)
+
     return comm
 
 

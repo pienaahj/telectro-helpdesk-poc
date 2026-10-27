@@ -8,7 +8,7 @@
     <!-- user info and sla info -->
     <div class="flex flex-col gap-4 pt-0 px-5 py-3 border-b">
       <!-- user info -->
-      <div class="flex gap-2">
+      <div v-if="ticket.data?.contact" class="flex gap-2">
         <Avatar
           size="2xl"
           :image="ticket.data.contact.image"

@@ -1578,6 +1578,64 @@ Record both validation-log paths and the candidate image identity in the release
 
 Successful DEV-container validation does not replace candidate-image validation.
 
+#### Customer Communication Privacy release
+
+A release containing the Customer Communication Privacy and
+realtime ticket-room security changes requires three separate
+semantic validations against the same immutable candidate image:
+
+1. `bin/release-validators/validate-contextual-service-coverage-routing.sh`
+2. `bin/release-validators/validate-assignment-policy.sh`
+3. `bin/release-validators/validate-customer-communication-privacy.sh`
+
+The first two validators are retained as regression safeguards
+for this release. The third verifies the Customer Communication
+Privacy security contract.
+
+The privacy validator must report:
+
+- `CUSTOMER_COMMUNICATION_PRIVACY_REGRESSION_TEST_COUNT=118`
+- `CUSTOMER_COMMUNICATION_PRIVACY_PYTHON_REGRESSIONS=PASS`
+- `CUSTOMER_COMMUNICATION_PRIVACY_HOOK_SOURCE_CONTRACT=PASS`
+- `CUSTOMER_COMMUNICATION_PRIVACY_JS_INTEGRITY=PASS`
+- `CUSTOMER_COMMUNICATION_PRIVACY_GLOBAL_ROOM_AUTHORITY=PASS`
+- `CUSTOMER_COMMUNICATION_PRIVACY_AUDIENCE_FIXTURE=PASS`
+- `CUSTOMER_COMMUNICATION_PRIVACY_SEMANTIC_VALIDATION=PASS`
+
+Before immutable-candidate validation, execute and retain
+separate successful host-level evidence for:
+
+- `tests/bin/test-frappe-realtime-compat.sh`
+- `tests/bin/test-hd-ticket-internal-doctype-authority.py`,
+  using the reviewed repository authority source.
+
+The host-level tests verify the pinned-source transformation,
+behavioural realtime security contracts, negative source guards,
+and the internal-only global HD Ticket room authority.
+
+The candidate privacy validator verifies the actual packaged
+Python security contracts, Frappe hook source registrations,
+Communication audience fixture, hardened JavaScript integrity
+and approved backend authority source.
+
+Each Phase 5 invocation must:
+
+- Use the same immutable candidate image and release identity.
+- Use the same expected application versions.
+- Use the same embedded change path and expected SHA-256.
+- Specify its own unique `VALIDATION_LOG`.
+- Complete with `CANDIDATE_RUNTIME_VALIDATION_OK=YES`.
+- Retain its semantic validation output as release evidence.
+
+The privacy semantic PASS marker does not replace the generic
+candidate runtime acceptance marker.
+
+Phase 6 must not begin until all three required candidate
+validations and the host-level prerequisites have passed.
+
+Do not treat successful execution against the running DEV
+container as immutable-candidate release evidence.
+
 ### Validation-log contract
 
 By default the helper writes:

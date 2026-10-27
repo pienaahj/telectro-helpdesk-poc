@@ -153,6 +153,7 @@ fixtures = [
                 "HD Ticket-custom_take_ownership_on_create",
                 "HD Ticket-custom_contextual_assignment_hold",
                 "HD Customer-custom_erp_customer",
+                "Communication-custom_telectro_audience",
                 "HD Customer-custom_portal_service_desk_name",
                 "HD Customer-custom_portal_primary_colour",
                 "HD Customer-custom_portal_accent_colour",
@@ -391,6 +392,26 @@ def _append_hook(target, event, handler):
         return
     target[event] = [cur, handler]
 
+has_permission = dict(globals().get("has_permission") or {})
+
+_append_hook(
+    doc_events.setdefault("Communication", {}),
+    "before_insert",
+    "telephony.customer_communication_privacy.classify_new_customer_communication",
+)
+
+_append_hook(
+    doc_events["Communication"],
+    "validate",
+    "telephony.customer_communication_privacy.validate_communication_audience_integrity",
+)
+
+_append_hook(
+    has_permission,
+    "Communication",
+    "telephony.customer_communication_permission.communication_has_permission",
+)
+
 # Gate debug-only instrumentation (default OFF)
 TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 
@@ -398,6 +419,12 @@ TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true"
 permission_query_conditions = {
     "HD Ticket": "telephony.permissions.hd_ticket_query_conditions",
 }
+
+_append_hook(
+    permission_query_conditions,
+    "Communication",
+    "telephony.customer_communication_permission.communication_query_conditions",
+)
 
 # --- HD Ticket hooks ---
 _append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intake.populate_from_email")
@@ -496,4 +523,11 @@ override_whitelisted_methods.update({
     
     # ✅ Redis search override (stops search on subject type of Customer site)
     "helpdesk.api.article.search": "telephony.api.customer_article_search",
+
+    # Customer ticket API read-containment guards
+    "helpdesk.helpdesk.doctype.hd_ticket.api.get_ticket_activities": "telephony.customer_ticket_api_guard.get_ticket_activities",
+    "helpdesk.helpdesk.doctype.hd_ticket.api.get_one": "telephony.customer_ticket_api_guard.get_one",
+    "helpdesk.helpdesk.doctype.hd_ticket.api.get_ticket_assignees": "telephony.customer_ticket_api_guard.get_ticket_assignees",
+    "helpdesk.helpdesk.doctype.hd_ticket.api.get_ticket_contact": "telephony.customer_ticket_api_guard.get_ticket_contact",
+    "helpdesk.helpdesk.doctype.hd_ticket.api.get_recent_similar_tickets": "telephony.customer_ticket_api_guard.get_recent_similar_tickets",
 })
