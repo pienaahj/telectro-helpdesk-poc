@@ -40,9 +40,10 @@ expected_modules = {
     "customer_outbound_communication_authority": 19,
     "customer_identity_sync": 6,
     "customer_resolution_communication": 6,
+    "customer_recipient_lookup": 10,
 }
 
-expected_total = 131
+expected_total = 141
 
 require(
     sum(expected_modules.values()) == expected_total,
@@ -526,6 +527,43 @@ print()
 print(
     "CUSTOMER_COMMUNICATION_PRIVACY_AUDIENCE_FIXTURE=PASS"
 )
+
+
+print()
+print("=== Customer recipient picker frontend regressions ===")
+
+picker_test = Path(
+    "apps/telephony/telephony/tests/"
+    "test_customer_recipient_picker.js"
+)
+
+require(
+    picker_test.is_file(),
+    f"Missing recipient picker regression: {picker_test}",
+)
+
+picker_result = subprocess.run(
+    ["node", str(picker_test)],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+
+print(picker_result.stdout, end="")
+
+require(
+    picker_result.returncode == 0,
+    "Recipient picker frontend tests failed: "
+    + picker_result.stderr,
+)
+
+require(
+    "B4_12I_FRONTEND_PICKER_REGRESSIONS=PASS"
+    in picker_result.stdout,
+    "Missing frontend picker acceptance marker",
+)
+
+print("CUSTOMER_RECIPIENT_PICKER_FRONTEND_REGRESSIONS=PASS")
 
 print()
 print("=== Customer Communication Privacy final acceptance ===")

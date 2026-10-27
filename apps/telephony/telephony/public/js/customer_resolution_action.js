@@ -35,23 +35,16 @@ function add_customer_update_action(frm) {
 
   frm.add_custom_button(
     "Add Customer Update",
-    () => {
+    async () => {
+      const recipientFields = await customer_recipient_dialog_fields(frm);
+      if (recipientFields === null) {
+        return;
+      }
+
       const dialog = new frappe.ui.Dialog({
         title: "Add Customer Update",
         fields: [
-          ...(
-            is_portal_initiated_customer_ticket(frm.doc)
-              ? []
-              : [{
-                  fieldname: "customer_recipient",
-                  fieldtype: "Data",
-                  options: "Email",
-                  label: "Customer recipient email",
-                  reqd: 1,
-                  description:
-                    "Enter an enabled Customer portal user's email address belonging to this ticket's Customer.",
-                }]
-          ),
+          ...recipientFields,
           {
             fieldname: "update_note",
             fieldtype: "Small Text",
@@ -143,23 +136,16 @@ function add_customer_resolution_action(frm) {
 
   frm.add_custom_button(
     "Resolve Customer Ticket",
-    () => {
+    async () => {
+      const recipientFields = await customer_recipient_dialog_fields(frm);
+      if (recipientFields === null) {
+        return;
+      }
+
       const dialog = new frappe.ui.Dialog({
         title: "Resolve Customer Ticket",
         fields: [
-          ...(
-            is_portal_initiated_customer_ticket(frm.doc)
-              ? []
-              : [{
-                  fieldname: "customer_recipient",
-                  fieldtype: "Data",
-                  options: "Email",
-                  label: "Customer recipient email",
-                  reqd: 1,
-                  description:
-                    "Enter an enabled Customer portal user's email address belonging to this ticket's Customer.",
-                }]
-          ),
+          ...recipientFields,
           {
             fieldname: "resolution_note",
             fieldtype: "Small Text",
@@ -239,6 +225,63 @@ function add_customer_resolution_action(frm) {
     },
     "Customer",
   );
+}
+
+async function customer_recipient_dialog_fields(frm) {
+  if (is_portal_initiated_customer_ticket(frm.doc)) {
+    return [];
+  }
+
+  let response;
+
+  try {
+    response = await frappe.call({
+      method:
+        "telephony.customer_ticket_resolution.get_customer_recipient_options",
+      args: {
+        ticket_name: frm.doc.name,
+      },
+    });
+  } catch (error) {
+    frappe.msgprint({
+      title: __("Customer recipients unavailable"),
+      message: __("Could not retrieve eligible Customer recipients."),
+      indicator: "red",
+    });
+    return null;
+  }
+
+  const recipients = response && response.message;
+
+  if (!Array.isArray(recipients)) {
+    frappe.msgprint({
+      title: __("Customer recipients unavailable"),
+      message: __("The recipient lookup returned an invalid response."),
+      indicator: "red",
+    });
+    return null;
+  }
+
+  if (recipients.length === 0) {
+    frappe.msgprint({
+      title: __("No eligible Customer recipients"),
+      message: __(
+        "No enabled Customer portal users are available for this ticket's Customer."
+      ),
+      indicator: "orange",
+    });
+    return null;
+  }
+
+  return [{
+    fieldname: "customer_recipient",
+    fieldtype: "Select",
+    label: "Customer recipient email",
+    options: ["", ...recipients].join("\n"),
+    reqd: 1,
+    description:
+      "Select an authorised Customer portal user for this ticket.",
+  }];
 }
 
 function is_portal_initiated_customer_ticket(d) {
