@@ -319,7 +319,12 @@ def require_customer_update_authority(ticket_name, recipient):
     ticket = frappe.db.get_value(
         "HD Ticket",
         ticket_name,
-        ["customer", "raised_by"],
+        [
+            "customer",
+            "raised_by",
+            "via_customer_portal",
+            "custom_request_source",
+        ],
         as_dict=True,
     )
 
@@ -328,10 +333,18 @@ def require_customer_update_authority(ticket_name, recipient):
             "Ticket Customer identity is required."
         )
 
-    if recipient != str(ticket.get("raised_by") or "").strip():
-        raise frappe.PermissionError(
-            "Recipient must match the ticket raiser."
-        )
+    customer_initiated = (
+        bool(ticket.get("via_customer_portal"))
+        or (ticket.get("custom_request_source") or "").strip() == "Customer"
+    )
+
+    # Portal-created tickets retain their original requester boundary.
+    # Internal tickets may address a different, verified Customer user.
+    if customer_initiated:
+        if recipient != str(ticket.get("raised_by") or "").strip():
+            raise frappe.PermissionError(
+                "Recipient must match the ticket raiser."
+            )
 
     if not frappe.db.get_value("User", recipient, "enabled"):
         raise frappe.PermissionError(

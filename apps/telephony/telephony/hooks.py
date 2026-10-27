@@ -432,8 +432,10 @@ _append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intak
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.telectro_round_robin.assign_after_insert")
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.hd_ticket_after_insert")
 
-# validate: keep deterministic order (routing seed first, then site guard, then assign/_assign hygiene)
+# validate: synchronise Customer identity before routing and location checks.
+# Preserve deterministic ordering of the existing validation handlers.
 doc_events["HD Ticket"]["validate"] = [
+    "telephony.customer_identity_sync.sync_ticket_customer_identity",
     "telephony.telectro_ticket_routing.seed_ticket_routing",
     "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
     "telephony.telectro_site_guard.validate_site_fields",
