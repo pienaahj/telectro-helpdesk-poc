@@ -44,6 +44,98 @@ def _resolve_customer_message_recipient(doc, customer_recipient=None):
     return recipient
 
 
+
+@frappe.whitelist()
+def get_customer_recipient_options(ticket_name: str):
+    """List only eligible Customer users for an authorised internal ticket."""
+
+    from helpdesk.utils import get_customer
+    from telephony.customer_communication_privacy import (
+        classify_actor_roles,
+        get_current_actor_access,
+    )
+    from telephony.telectro_ticket_edit_guard import (
+        validate_ticket_edit_rights,
+    )
+
+    ticket_name = str(ticket_name or "").strip()
+    if not ticket_name:
+        frappe.throw(
+            _("Ticket is required."),
+            frappe.PermissionError,
+        )
+
+    _require_internal_resolution_access()
+
+    access = get_current_actor_access(ticket_name)
+
+    if not (
+        access["actor_kind"] == "internal"
+        and access["ticket_read_allowed"]
+        and frappe.has_permission(
+            "HD Ticket", "write", doc=ticket_name
+        )
+    ):
+        frappe.throw(
+            _("Internal ticket read and write access is required."),
+            frappe.PermissionError,
+        )
+
+    doc = frappe.get_doc("HD Ticket", ticket_name)
+    validate_ticket_edit_rights(doc)
+
+    if not _is_customer_ticket(doc):
+        frappe.throw(
+            _("This action requires a Customer ticket."),
+            frappe.PermissionError,
+        )
+
+    if (
+        doc.get("via_customer_portal")
+        or str(doc.get("custom_request_source") or "").strip()
+        == "Customer"
+    ):
+        return []
+
+    hd_customer = str(doc.get("customer") or "").strip()
+
+    if not hd_customer:
+        frappe.throw(
+            _("Ticket HD Customer is required."),
+            frappe.PermissionError,
+        )
+
+    user_names = frappe.get_all(
+        "Has Role",
+        filters={
+            "parenttype": "User",
+            "role": "Customer",
+        },
+        pluck="parent",
+        limit_page_length=0,
+    )
+
+    eligible = []
+
+    for user_name in sorted(set(user_names)):
+        if not frappe.db.get_value("User", user_name, "enabled"):
+            continue
+
+        linked = list(get_customer(user_name))
+        actor_kind = classify_actor_roles(
+            frappe.get_roles(user_name),
+            linked_hd_customers=linked,
+        )
+
+        if (
+            actor_kind == "customer"
+            and len(linked) == 1
+            and linked[0] == hd_customer
+        ):
+            eligible.append(user_name)
+
+    return eligible
+
 @frappe.whitelist()
 def resolve_customer_ticket(
     ticket_name: str,
