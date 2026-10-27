@@ -478,3 +478,6 @@ import/
 
 # Generated PDF publication output
 /docs/pdf/dist/
+
+# Local Postman instruction files
+/.github/instructions/postman-*.instructions.md

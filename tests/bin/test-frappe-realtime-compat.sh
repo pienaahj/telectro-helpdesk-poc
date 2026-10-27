@@ -15,9 +15,11 @@ COMPOSE_PRODUCTION="${ROOT_DIR}/compose.production.yaml"
 FRAPPE_IMAGE="frappe/erpnext:v15.94.1"
 HELPDESK_IMAGE="ghcr.io/frappe/helpdesk:v1.18.1"
 
-EXPECTED_UTILS_SHA256="22f4eaafc945a153d89f5cece7532ad1803309150752061d8bb56b14cd9a5df0"
+EXPECTED_UTILS_SHA256="e5daace2a357d21673be184fdf8053f1c3544e3200f2c0f3865318da57805092"
 EXPECTED_AUTHENTICATE_SHA256="e05f517c353d300833fcf9376038718ca76a248098ffa74b5c0cd1f4d57c271f"
-EXPECTED_INDEX_SHA256="524c30923fa153f8f71ca1ece1b654dc1392bc466c7f16a73a7a005b61ab2527"
+EXPECTED_INDEX_SHA256="acf2ef802d3f68c8016c08685e24eaf83488ba63392ae63855218a4d70ea89c3"
+EXPECTED_NATIVE_SHA256="d484f2c63ef7c7ae16f1a876acc07e77d378638dad83c8649bce22458907fc86"
+EXPECTED_HELPDESK_SHA256="633df0811e0a75dd5e2b0e7814ca46a9d767896cec61139b1e2a8f9a0c119e69"
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -100,6 +102,7 @@ printf '\n%s\n' \
 
 mkdir -p \
   "${SOURCE_ROOT}/apps/frappe/realtime/middlewares" \
+  "${SOURCE_ROOT}/apps/frappe/realtime/handlers" \
   "${SOURCE_ROOT}/apps/helpdesk/realtime"
 
 FRAPPE_CID="$(
@@ -125,6 +128,10 @@ docker cp \
 docker cp \
   "${FRAPPE_CID}:/home/frappe/frappe-bench/apps/frappe/realtime/index.js" \
   "${SOURCE_ROOT}/apps/frappe/realtime/index.js"
+
+docker cp \
+  "${FRAPPE_CID}:/home/frappe/frappe-bench/apps/frappe/realtime/handlers/frappe_handlers.js" \
+  "${SOURCE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js"
 
 docker cp \
   "${HELPDESK_CID}:/home/frappe/frappe-bench/apps/helpdesk/realtime/handlers.js" \
@@ -197,24 +204,57 @@ ACTUAL_INDEX_SHA256="$(
     "${POSITIVE_ROOT}/apps/frappe/realtime/index.js"
 )"
 
+ACTUAL_NATIVE_SHA256="$(
+  sha256_file "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js"
+)"
+ACTUAL_HELPDESK_SHA256="$(
+  sha256_file "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js"
+)"
+
+[ "$ACTUAL_NATIVE_SHA256" = "$EXPECTED_NATIVE_SHA256" ] ||
+  fail "patched native handler SHA-256 changed"
+[ "$ACTUAL_HELPDESK_SHA256" = "$EXPECTED_HELPDESK_SHA256" ] ||
+  fail "patched Helpdesk handler SHA-256 changed"
+
 [ "$ACTUAL_UTILS_SHA256" = "$EXPECTED_UTILS_SHA256" ] ||
   fail "patched utils.js SHA-256 changed"
 
 [ "$ACTUAL_AUTHENTICATE_SHA256" = "$EXPECTED_AUTHENTICATE_SHA256" ] ||
   fail "patched authenticate.js SHA-256 changed"
 
-[ "$ACTUAL_INDEX_SHA256" = "$EXPECTED_INDEX_SHA256" ] ||
-  fail "patched index.js SHA-256 changed"
-
 printf 'UTILS_SHA256=%s\n' "$ACTUAL_UTILS_SHA256"
 printf 'AUTHENTICATE_SHA256=%s\n' "$ACTUAL_AUTHENTICATE_SHA256"
 printf 'INDEX_SHA256=%s\n' "$ACTUAL_INDEX_SHA256"
+printf 'NATIVE_SHA256=%s\n' "$ACTUAL_NATIVE_SHA256"
+printf 'HELPDESK_SHA256=%s\n' "$ACTUAL_HELPDESK_SHA256"
+
+[ "$ACTUAL_INDEX_SHA256" = "$EXPECTED_INDEX_SHA256" ] ||
+  fail "patched index.js SHA-256 changed"
+
+node --check \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "patched native Frappe handler has invalid JavaScript syntax"
 
 printf '%s\n' \
   'FRAPPE_REALTIME_COMPAT_POST_HASHES=PASS'
 
 printf '\n%s\n' \
   '=== Patched JavaScript syntax ==='
+printf '\n%s\n' \
+  '=== Helpdesk view_ticket room authorisation behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-helpdesk-ticket-room-authorization.js" \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "Helpdesk view_ticket authorisation behaviour failed"
+
+printf '\n%s\n' \
+  '=== Helpdesk ticket_get_viewers authorisation behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-helpdesk-ticket-viewer-query.js" \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "Helpdesk ticket_get_viewers authorisation behaviour failed"
 
 node --check \
   "${POSITIVE_ROOT}/apps/frappe/realtime/utils.js" ||
@@ -230,6 +270,83 @@ node --check \
 
 printf '%s\n' \
   'FRAPPE_REALTIME_COMPAT_JS_SYNTAX=PASS'
+
+printf '\n%s\n' \
+  '=== Frappe realtime HTTP callback site-header authorisation ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-frappe-realtime-callback-site-header.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/utils.js" ||
+  fail "Frappe realtime callback site-header behaviour failed"
+
+printf '%s\n' \
+  'FRAPPE_REALTIME_CALLBACK_SITE_HEADER=PASS'
+
+printf '\n%s\n' \
+  '=== Real recipient reauthorisation and revocation behaviour ==='
+node \
+  "${ROOT_DIR}/tests/node/test-realtime-recipient-delivery.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/utils.js" ||
+  fail "realtime recipient reauthorisation failed"
+
+printf '\n%s\n' \
+  '=== Telectro internal-only HD Ticket DocType backend authority ==='
+python3 \
+  "${ROOT_DIR}/tests/bin/test-hd-ticket-internal-doctype-authority.py" \
+  "${ROOT_DIR}/apps/telephony/telephony/realtime_ticket_authorization.py" ||
+  fail "Telectro internal-only HD Ticket DocType policy failed"
+
+printf '\n%s\n' \
+  '=== HD Ticket DocType-wide room privacy boundary ==='
+node \
+  "${ROOT_DIR}/tests/node/test-hd-ticket-doctype-realtime-boundary.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/utils.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "HD Ticket DocType-wide room privacy boundary failed"
+
+printf '\n%s\n' \
+  '=== Redis ticket room recipient-delivery dispatch ==='
+node \
+  "${ROOT_DIR}/tests/node/test-realtime-redis-protected-delivery.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/index.js" ||
+  fail "Redis protected ticket delivery dispatch failed"
+
+printf '\n%s\n' \
+  '=== Native and Helpdesk shared-room isolation ==='
+node \
+  "${ROOT_DIR}/tests/node/test-native-helpdesk-shared-room-isolation.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/utils.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "native and Helpdesk shared-room isolation failed"
+
+
+printf '\n%s\n' \
+  '=== Native HD Ticket socket authorisation behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-native-ticket-realtime-subscription.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "native HD Ticket socket authorisation behaviour failed"
+
+printf '\n%s\n' \
+  '=== Native HD Ticket asynchronous lifecycle behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-native-ticket-realtime-lifecycle.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "native HD Ticket asynchronous lifecycle behaviour failed"
+
+printf '\n%s\n' \
+  '=== Native HD Ticket pending-token cleanup behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-native-ticket-token-cleanup.js" \
+  "${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js" ||
+  fail "native HD Ticket pending-token cleanup behaviour failed"
+
+node --check \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "patched Helpdesk handler has invalid JavaScript syntax"
 
 printf '\n%s\n' \
   '=== Runtime behavior source contracts ==='
@@ -264,6 +381,184 @@ grep -F \
   >/dev/null ||
   fail "Frappe open_in_editor handler was not preserved"
 
+printf '\n%s\n' \
+  '=== Helpdesk stop_view_ticket membership behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-helpdesk-stop-view-ticket.js" \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "Helpdesk stop_view_ticket membership behaviour failed"
+
+printf '\n%s\n' \
+  '=== Helpdesk typing-event authorisation behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-helpdesk-ticket-typing-authorization.js" \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "Helpdesk typing-event authorisation behaviour failed"
+
+printf '\n%s\n' \
+  '=== Helpdesk pending view lifecycle behaviour ==='
+
+node \
+  "${ROOT_DIR}/tests/node/test-helpdesk-pending-view-lifecycle.js" \
+  "${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js" ||
+  fail "Helpdesk pending view lifecycle behaviour failed"
+
+NATIVE_HANDLER="${POSITIVE_ROOT}/apps/frappe/realtime/handlers/frappe_handlers.js"
+
+grep -F \
+  'if (doctype === "HD Ticket")' \
+  "$NATIVE_HANDLER" >/dev/null ||
+  fail "HD Ticket native subscription guard is missing"
+
+grep -F \
+  'telephony.realtime_ticket_authorization.require_ticket_realtime_access' \
+  "$NATIVE_HANDLER" >/dev/null ||
+  fail "Telectro realtime authority endpoint is missing"
+
+grep -F \
+  'channel: "native_doc"' \
+  "$NATIVE_HANDLER" >/dev/null ||
+  fail "native document channel is not specified"
+
+grep -F \
+  'res.body.message === true' \
+  "$NATIVE_HANDLER" >/dev/null ||
+  fail "strict native subscription approval check is missing"
+
+grep -F -A 12 \
+  'socket.on("doc_open", function (doctype, docname) {' \
+  "$NATIVE_HANDLER" |
+  grep -F \
+    '? can_subscribe_hd_ticket_native' \
+    >/dev/null ||
+  fail "HD Ticket native doc_open policy is missing"
+
+grep -F -A 12 \
+  'socket.on("doc_open", function (doctype, docname) {' \
+  "$NATIVE_HANDLER" |
+  grep -F \
+    ': can_subscribe_doc;' \
+    >/dev/null ||
+  fail "Other DocType doc_open Frappe fallback is missing"
+
+printf '%s\n' \
+  'NATIVE_HD_TICKET_DOC_OPEN_POLICY=PASS'
+
+HELPDESK_HANDLER="${POSITIVE_ROOT}/apps/helpdesk/realtime/handlers.js"
+
+grep -F \
+  'await can_view_helpdesk_ticket(socket, ticket_id)' \
+  "$HELPDESK_HANDLER" >/dev/null ||
+  fail "Helpdesk view_ticket permission gate is missing"
+
+grep -F -A 3 \
+  'socket.on("ticket_get_viewers", async (ticket_id) => {' \
+  "$HELPDESK_HANDLER" |
+  grep -F \
+    'if (!(await can_view_helpdesk_ticket(socket, ticket_id))) return;' \
+    >/dev/null ||
+  fail "Helpdesk ticket_get_viewers permission gate is missing"
+
+grep -F \
+  'channel: "helpdesk_ticket"' \
+  "$HELPDESK_HANDLER" >/dev/null ||
+  fail "Helpdesk ticket authorisation channel is missing"
+
+grep -F \
+  'res.body.message === true' \
+  "$HELPDESK_HANDLER" >/dev/null ||
+  fail "Helpdesk strict authorisation check is missing"
+
+if grep -Fq \
+  'socket.on("notify_ticket_update"' \
+  "$HELPDESK_HANDLER"
+then
+  fail "Untrusted client ticket-update handler remains enabled"
+fi
+
+if grep -Fq \
+  '.emit("ticket_update"' \
+  "$HELPDESK_HANDLER"
+then
+  fail "Untrusted ticket field broadcast remains enabled"
+fi
+
+grep -F -A 5 \
+  'socket.on("stop_view_ticket", (ticket_id) => {' \
+  "$HELPDESK_HANDLER" |
+  grep -F \
+    'if (!members || !members.has(socket.id)) return;' \
+    >/dev/null ||
+  fail "Helpdesk stop_view_ticket membership gate is missing"
+
+for EVENT in \
+  helpdesk_ticket_typing \
+  helpdesk_ticket_typing_stopped
+do
+  grep -F -A 6 \
+    "socket.on(\"${EVENT}\", async (ticket_id) => {" \
+    "$HELPDESK_HANDLER" |
+    grep -F \
+      'if (!members || !members.has(socket.id)) return;' \
+      >/dev/null ||
+    fail "${EVENT}: room membership gate missing"
+
+  grep -F -A 6 \
+    "socket.on(\"${EVENT}\", async (ticket_id) => {" \
+    "$HELPDESK_HANDLER" |
+    grep -F \
+      'if (!(await can_view_helpdesk_ticket(socket, ticket_id))) return;' \
+      >/dev/null ||
+    fail "${EVENT}: current authorisation gate missing"
+done
+
+for EVENT in \
+  helpdesk_ticket_typing \
+  helpdesk_ticket_typing_stopped
+do
+  grep -F -A 7 \
+    "socket.on(\"${EVENT}\", async (ticket_id) => {" \
+    "$HELPDESK_HANDLER" |
+    grep -F \
+      'if (!socket.nsp.adapter.rooms.get(ticket_room)?.has(socket.id)) return;' \
+      >/dev/null ||
+    fail "${EVENT}: post-authorisation membership recheck missing"
+done
+
+grep -Fq \
+  'socket.on("disconnect", () => pendingTicketViews.clear());' \
+  "$HELPDESK_HANDLER" ||
+  fail "Helpdesk pending-view disconnect cleanup missing"
+
+grep -F -A 12 \
+  'socket.on("view_ticket", async (ticket_id) => {' \
+  "$HELPDESK_HANDLER" |
+  grep -F \
+    'if (!allowed || socket.connected !== true) return;' \
+    >/dev/null ||
+  fail "Helpdesk pending-view connection gate missing"
+
+grep -F -A 5 \
+  'socket.on("stop_view_ticket", (ticket_id) => {' \
+  "$HELPDESK_HANDLER" |
+  grep -F \
+    'pendingTicketViews.delete(ticket_id);' \
+    >/dev/null ||
+  fail "Helpdesk pending-view cancellation missing"
+
+printf '%s\n' \
+  'HELPDESK_PENDING_VIEW_LIFECYCLE_CONTRACT=PASS'
+printf '%s\n' \
+  'HELPDESK_TYPING_POST_AUTH_MEMBERSHIP=PASS'
+printf '%s\n' \
+  'HELPDESK_TYPING_EVENT_SOURCE_GATES=PASS'
+printf '%s\n' \
+  'HELPDESK_STOP_VIEW_MEMBERSHIP_GATE=PASS'
+
+printf '%s\n' \
+  'HELPDESK_UNTRUSTED_TICKET_UPDATE_DISABLED=PASS'
 printf '%s\n' \
   'FRAPPE_REALTIME_COMPAT_RUNTIME_CONTRACTS=PASS'
 printf '%s\n' \
@@ -274,6 +569,22 @@ printf '\n%s\n' \
 
 printf '\n// realtime compatibility guard regression\n' >> \
   "${NEGATIVE_ROOT}/apps/frappe/realtime/utils.js"
+
+NEGATIVE_PATHS=(
+  "apps/frappe/realtime/utils.js"
+  "apps/frappe/realtime/middlewares/authenticate.js"
+  "apps/frappe/realtime/index.js"
+  "apps/frappe/realtime/handlers/frappe_handlers.js"
+  "apps/helpdesk/realtime/handlers.js"
+)
+
+NEGATIVE_BEFORE=()
+
+for RELATIVE_PATH in "${NEGATIVE_PATHS[@]}"; do
+  NEGATIVE_BEFORE+=(
+    "$(sha256_file "${NEGATIVE_ROOT}/${RELATIVE_PATH}")"
+  )
+done
 
 if NEGATIVE_OUTPUT="$(
   FRAPPE_BENCH_ROOT="$NEGATIVE_ROOT" \
@@ -302,6 +613,20 @@ grep -F \
   <<<"$NEGATIVE_OUTPUT" \
   >/dev/null ||
   fail "fail-closed marker was not reported"
+
+for INDEX in "${!NEGATIVE_PATHS[@]}"; do
+  RELATIVE_PATH="${NEGATIVE_PATHS[$INDEX]}"
+
+  ACTUAL_SHA256="$(
+    sha256_file "${NEGATIVE_ROOT}/${RELATIVE_PATH}"
+  )"
+
+  [ "$ACTUAL_SHA256" = "${NEGATIVE_BEFORE[$INDEX]}" ] ||
+    fail "rejected transformation modified ${RELATIVE_PATH}"
+done
+
+printf '%s\n' \
+  'FRAPPE_REALTIME_COMPAT_REFUSAL_UNCHANGED=PASS'
 
 printf '%s\n' \
   'FRAPPE_REALTIME_COMPAT_SOURCE_GUARD=PASS'
@@ -338,6 +663,16 @@ grep -F \
   "$DOCKERFILE" \
   >/dev/null ||
   fail "runtime Dockerfile does not validate patched index.js"
+
+grep -F \
+  'node --check apps/frappe/realtime/handlers/frappe_handlers.js;' \
+  "$DOCKERFILE" >/dev/null ||
+  fail "runtime Dockerfile does not validate native Frappe handler"
+
+grep -F \
+  'node --check apps/helpdesk/realtime/handlers.js;' \
+  "$DOCKERFILE" >/dev/null ||
+  fail "runtime Dockerfile does not validate Helpdesk handler"
 
 printf '%s\n' \
   'FRAPPE_REALTIME_COMPAT_DOCKERFILE_INTEGRATION=PASS'

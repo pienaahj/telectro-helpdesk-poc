@@ -48,6 +48,8 @@ RUN set -eux; \
     node --check apps/frappe/realtime/utils.js; \
     node --check apps/frappe/realtime/middlewares/authenticate.js; \
     node --check apps/frappe/realtime/index.js; \
+    node --check apps/frappe/realtime/handlers/frappe_handlers.js; \
+    node --check apps/helpdesk/realtime/handlers.js; \
     rm /tmp/apply-frappe-realtime-compat.py
 
 RUN set -eux; \
