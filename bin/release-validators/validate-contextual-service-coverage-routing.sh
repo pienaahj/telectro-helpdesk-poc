@@ -239,19 +239,28 @@ require(
 
 validate_hooks = ast.literal_eval(validate_assignments[0].value)
 
-require(
-    validate_hooks[:2] == [
-        "telephony.telectro_ticket_routing.seed_ticket_routing",
-        "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
-    ],
-    "CCTV initial hold must execute immediately after routing seeding",
+routing_hook = (
+    "telephony.telectro_ticket_routing.seed_ticket_routing"
+)
+
+hold_hook = (
+    "telephony.telectro_round_robin.initialize_cctv_assignment_hold"
 )
 
 require(
-    validate_hooks.count(
-        "telephony.telectro_round_robin.initialize_cctv_assignment_hold"
-    ) == 1,
+    validate_hooks.count(routing_hook) == 1,
+    "routing seed must be registered exactly once",
+)
+
+require(
+    validate_hooks.count(hold_hook) == 1,
     "CCTV initial hold must be registered exactly once",
+)
+
+require(
+    validate_hooks.index(hold_hook)
+    == validate_hooks.index(routing_hook) + 1,
+    "CCTV initial hold must execute immediately after routing seeding",
 )
 
 hold_source, hold_tree = source_tree(
