@@ -47,9 +47,39 @@ def project_customer_activities(
                 "name": user["name"],
             }
 
-        # Attachment access must be verified separately.
-        # Do not expose unverified file URLs at this stage.
-        public["attachments"] = []
+        # The caller has already restricted Communications to the
+        # authenticated Customer's authorised ticket and audience.
+        #
+        # Native Helpdesk retrieves attachments associated with
+        # each Communication from the File table.
+        #
+        # Expose only identifiers and display names. Never expose
+        # private storage URLs or other internal File metadata.
+        safe_attachments = []
+
+        for attachment in original.get("attachments") or []:
+            if not isinstance(attachment, dict):
+                continue
+
+            file_id = attachment.get("name")
+            file_name = attachment.get("file_name")
+
+            if not (
+                isinstance(file_id, str)
+                and file_id.strip()
+                and isinstance(file_name, str)
+                and file_name.strip()
+            ):
+                continue
+
+            safe_attachments.append(
+                {
+                    "file_id": file_id,
+                    "file_name": file_name,
+                }
+            )
+
+        public["attachments"] = safe_attachments
 
         communications.append(public)
 

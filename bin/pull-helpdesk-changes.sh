@@ -44,6 +44,30 @@ cp_helpdesk_desk_from_container() {
   docker compose cp "${HELPDESK_DESK_SRC_BASE}/${src}" "${HELPDESK_DESK_DST_BASE}/${dst}"
 }
 
+# --- Narrowly scoped Customer attachment frontend pull ---
+# Avoid copying unrelated Helpdesk files for this correction.
+if [ "${1:-}" = "--ticket-communication-only" ]; then
+  if [ "$#" -ne 1 ]; then
+    echo "ERROR: Unexpected additional arguments" >&2
+    exit 2
+  fi
+
+  cp_helpdesk_desk_from_container \
+    "src/pages/ticket/TicketCommunication.vue" \
+    "src/pages/ticket/TicketCommunication.vue"
+
+  echo
+  echo "Customer attachment frontend pull complete."
+  git status --short
+  git diff --check
+  exit 0
+fi
+
+if [ "$#" -gt 0 ]; then
+  echo "ERROR: Unknown option: $1" >&2
+  exit 2
+fi
+
 # --- Helpdesk Python/app files we changed previously ---
 cp_helpdesk_py_from_container "overrides/email_account.py" "overrides/email_account.py"
 

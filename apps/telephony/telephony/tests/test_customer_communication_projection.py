@@ -98,6 +98,36 @@ class TestCustomerCommunicationProjection(unittest.TestCase):
             [],
         )
 
+    def test_authorised_attachment_exposes_only_safe_metadata(self):
+        self.activities["communications"][0]["attachments"] = [
+            {
+                "name": "FILE-001",
+                "file_name": "customer.pdf",
+                "file_url": "/private/files/customer.pdf",
+                "is_private": 1,
+            }
+        ]
+
+        result = project_customer_activities(
+            self.activities,
+            {"CUSTOMER-001"},
+        )
+
+        attachments = result["communications"][0]["attachments"]
+
+        self.assertEqual(
+            attachments,
+            [
+                {
+                    "file_id": "FILE-001",
+                    "file_name": "customer.pdf",
+                }
+            ],
+        )
+
+        self.assertNotIn("file_url", attachments[0])
+        self.assertNotIn("is_private", attachments[0])
+
     def test_internal_activity_sections_removed(self):
         result = project_customer_activities(
             self.activities,
