@@ -559,34 +559,56 @@ def _count_ticket_comments(ticket_name: str) -> int:
     )
   
 def _require_customer_ticket_access(doc):
-    user = frappe.session.user
+    from telephony.customer_communication_privacy import (
+        get_current_actor_access,
+    )
 
-    if user == "Administrator":
+    access = get_current_actor_access(doc.name)
+
+    if not access["ticket_read_allowed"]:
+        frappe.throw(
+            _("You are not allowed to access this ticket"),
+            frappe.PermissionError,
+        )
+
+    if access["actor_kind"] == "internal":
         return
 
-    roles = set(frappe.get_roles(user))
-    if roles.intersection(_INTERNAL_RESOLUTION_ROLES):
+    if (
+        access["actor_kind"] == "customer"
+        and access["is_ticket_customer"]
+    ):
         return
 
-    if user != (doc.get("raised_by") or "").strip():
-        frappe.throw(_("You are not allowed to access this ticket"))
-
+    frappe.throw(
+        _("You are not allowed to access this ticket"),
+        frappe.PermissionError,
+    )
 
 def _get_customer_completion_evidence_file(
     ticket_name: str,
     file_url: str | None = None,
     file_id: str | None = None,
 ):
-    filters = {
-        "attached_to_doctype": "Communication",
-    }
+    # Customer evidence downloads must identify an exact File record.
+    # Storage URLs are not unique File identifiers and must not be
+    # used to resolve downloadable evidence.
+    file_id = str(file_id or "").strip()
 
-    if file_id:
-        filters["name"] = file_id
-    else:
-        filters["file_url"] = file_url
+    if not file_id:
+        frappe.throw(
+            _("Customer evidence downloads require a File ID"),
+            frappe.PermissionError,
+        )
 
-    file_name = frappe.db.get_value("File", filters, "name")
+    file_name = frappe.db.get_value(
+        "File",
+        {
+            "name": file_id,
+            "attached_to_doctype": "Communication",
+        },
+        "name",
+    )
 
     if not file_name:
         frappe.throw(_("Completion evidence file was not found"))
@@ -605,6 +627,12 @@ def _get_customer_completion_evidence_file(
     if (comm.get("sent_or_received") or "").strip() != "Sent":
         frappe.throw(_("Completion evidence is not Customer-facing"))
 
+    if (comm.get("custom_telectro_audience") or "").strip() != "Customer":
+        frappe.throw(
+            _("Completion evidence is not authorised for Customer access"),
+            frappe.PermissionError,
+        )
+
     return file_doc
   
 @frappe.whitelist()
@@ -620,8 +648,13 @@ def download_customer_completion_evidence(
     if not ticket_name:
         frappe.throw(_("Ticket is required"))
 
-    if not file_url and not file_id:
-        frappe.throw(_("Completion evidence file is required"))
+    # Customer downloads require an exact File record identifier.
+    # Reject URL-only requests before ticket or File lookups.
+    if not file_id:
+        frappe.throw(
+            _("Customer evidence downloads require a File ID"),
+            frappe.PermissionError,
+        )
 
     doc = frappe.get_doc("HD Ticket", ticket_name)
 
