@@ -2,6 +2,9 @@ import json
 import frappe
 from frappe.utils import now_datetime
 from telephony.telectro_notifications import notify_ticket_action_required
+from telephony.task_notification_transition import (
+    capture_verified_task_ownership_transition,
+)
 
 
 def _notify_controlled_handoff_receiver(
@@ -156,7 +159,7 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
         ).insert(ignore_permissions=True)
 
     if note:
-        frappe.get_doc(
+        comment = frappe.get_doc(
             {
                 "doctype": "Comment",
                 "comment_type": "Info",
@@ -164,7 +167,9 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
                 "reference_name": ticket,
                 "content": f"{note} | Assigned via TELECTRO pilot action",
             }
-        ).insert(ignore_permissions=True)
+        )
+        comment.insert(ignore_permissions=True)
+        return comment.name
 
 
 def _normalize_to_pool(ticket: str, note: str | None = None):
@@ -208,6 +213,74 @@ def _normalize_to_pool(ticket: str, note: str | None = None):
         ).insert(ignore_permissions=True)
 
 
+def _require_claim_authorization(ticket, user):
+    """Fail-closed manual Claim eligibility; does not acquire ownership.
+
+    True Pool contextual hold deliberately does NOT prohibit manual Claim.
+    Ticket state and team membership are also rechecked by the atomic UPDATE.
+    """
+    user = str(user or "").strip()
+    if not user or user == "Guest":
+        return None
+
+    identity = frappe.db.get_value(
+        "User", user, ["enabled", "user_type"], as_dict=True
+    )
+    if not identity or not identity.get("enabled") or identity.get("user_type") != "System User":
+        return None
+
+    roles = set(frappe.get_roles(user) or [])
+    if roles & {
+        "TELECTRO-POC Role - Partner",
+        "TELECTRO-POC Role- Partner Creator",
+        "TELECTRO-POC Role - Partner Creator",
+        "Customer",
+    }:
+        return None
+
+    privileged = user == "Administrator" or bool(roles & {
+        "System Manager",
+        "Pilot Admin",
+        "TELECTRO-POC Role - Supervisor Governance",
+        "TELECTRO-POC Role - Coordinator Ops",
+    })
+    if not privileged and "TELECTRO-POC Role - Tech" not in roles:
+        return None
+
+    row = frappe.db.get_value(
+        "HD Ticket", ticket,
+        ["name", "status", "agent_group", "custom_fulfilment_party"],
+        as_dict=True,
+    )
+    if not row:
+        return None
+    team = str(row.get("agent_group") or "").strip()
+    if row.get("status") != "Open" or row.get("custom_fulfilment_party") != "Telectro":
+        return None
+    if not team or not frappe.db.exists("HD Team", team):
+        return None
+
+    # A genuine pool has neither an owner ToDo nor an ownership JSON entry.
+    if frappe.db.exists("ToDo", {
+        "reference_type": "HD Ticket",
+        "reference_name": ticket,
+        "status": "Open",
+    }):
+        return None
+
+    if not frappe.has_permission("HD Ticket", ptype="read", doc=ticket, user=user):
+        return None
+
+    if not privileged and not frappe.db.exists("HD Team Member", {
+        "parent": team,
+        "parenttype": "HD Team",
+        "user": user,
+    }):
+        return None
+
+    return {"agent_group": team, "privileged": privileged}
+
+
 @frappe.whitelist(methods=["POST"])
 def telectro_claim_ticket(ticket: str):
     ticket = (ticket or "").strip()
@@ -215,6 +288,26 @@ def telectro_claim_ticket(ticket: str):
         return {"ok": 0, "reason": "missing_ticket"}
 
     user = frappe.session.user
+    eligibility = _require_claim_authorization(ticket, user)
+    if eligibility is None:
+        return {"ok": 0, "reason": "not_authorized"}
+
+    # The new runtime can become active before site migration.
+    # Never acquire task ownership when the durable notification
+    # outbox schema is unavailable.
+    #
+    # Bypass the table-list cache so a completed migration becomes
+    # visible without requiring a backend process restart.
+    if not frappe.db.table_exists(
+        "TELECTRO Task Notification Intent",
+        cached=False,
+    ):
+        return {
+            "ok": 0,
+            "ticket": ticket,
+            "reason": "notification_schema_unavailable",
+        }
+
     assign_json = json.dumps([user])
 
     # Atomic first-claim-wins from TRUE POOL only
@@ -223,16 +316,62 @@ def telectro_claim_ticket(ticket: str):
         UPDATE `tabHD Ticket`
            SET `_assign` = %s
          WHERE `name` = %s
+           AND `status` = 'Open'
+           AND `custom_fulfilment_party` = 'Telectro'
+           AND `agent_group` = %s
            AND (
              IFNULL(`_assign`, '') = '' OR `_assign` = '[]'
            )
+           AND NOT EXISTS (
+             SELECT 1 FROM `tabToDo` AS claim_todo
+              WHERE claim_todo.reference_type = 'HD Ticket'
+                AND claim_todo.reference_name =
+                    CAST(`tabHD Ticket`.`name` AS CHAR CHARACTER SET utf8mb4)
+                    COLLATE utf8mb4_unicode_ci
+                AND claim_todo.status = 'Open'
+           )
+           AND (
+             %s = 1 OR EXISTS (
+               SELECT 1 FROM `tabHD Team Member` AS claim_member
+                WHERE claim_member.parent = `tabHD Ticket`.`agent_group`
+                  AND claim_member.parenttype = 'HD Team'
+                  AND claim_member.user = %s
+             )
+           )
         """,
-        (assign_json, ticket),
+        (
+            assign_json, ticket, eligibility["agent_group"],
+            int(eligibility["privileged"]), user,
+        ),
     )
 
+    # ROW_COUNT() must be read immediately after the conditional
+    # UPDATE. The later ownership readback cannot prove that this
+    # request actually acquired responsibility.
+    claimed_rows = frappe.db.sql(
+        "SELECT ROW_COUNT()", as_list=True
+    )[0][0]
+
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
-    if current == assign_json:
-        _normalize_assignment(ticket, user, note="Claim")
+    if claimed_rows == 1 and current == assign_json:
+        claim_event_id = _normalize_assignment(
+            ticket, user, note="Claim"
+        )
+
+        # Capture only after a confirmed first acquisition.
+        # The durable Claim Comment identifies this event.
+        # The safe outbox preserves the caller's transaction.
+        capture_verified_task_ownership_transition(
+            ticket=ticket,
+            action="claim",
+            previous_owner="",
+            recipient=user,
+            event_id=claim_event_id,
+            transition_confirmed=True,
+            actor_user=user,
+            note="Claim",
+        )
+
         frappe.db.commit()
         return {"ok": 1, "ticket": ticket, "assigned_to": user}
 

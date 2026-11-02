@@ -1,0 +1,187 @@
+{
+  "actions": [],
+  "allow_rename": 0,
+  "autoname": "field:event_key",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "editable_grid": 0,
+  "engine": "InnoDB",
+  "field_order": [
+    "event_key",
+    "ticket",
+    "action",
+    "event_id",
+    "recipient",
+    "actor_user",
+    "note",
+    "status",
+    "attempt_count",
+    "in_app_status",
+    "email_status",
+    "notification_log",
+    "email_queue",
+    "last_attempt_at",
+    "next_attempt_at",
+    "email_transport_accepted_at",
+    "last_error"
+  ],
+  "fields": [
+    {
+      "fieldname": "event_key",
+      "fieldtype": "Data",
+      "label": "Event Key",
+      "reqd": 1,
+      "unique": 1,
+      "read_only": 1,
+      "length": 64
+    },
+    {
+      "fieldname": "ticket",
+      "fieldtype": "Link",
+      "label": "HD Ticket",
+      "options": "HD Ticket",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "action",
+      "fieldtype": "Select",
+      "label": "Action",
+      "options": "assignment\nclaim\nhandoff\nshare_context",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "event_id",
+      "fieldtype": "Data",
+      "label": "Event Occurrence ID",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "recipient",
+      "fieldtype": "Link",
+      "label": "Recipient",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "actor_user",
+      "fieldtype": "Link",
+      "label": "Actor",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "note",
+      "fieldtype": "Small Text",
+      "label": "Notification Note",
+      "read_only": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Processing Status",
+      "options": "Pending\nProcessing\nRetry\nCompleted\nFailed",
+      "default": "Pending",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "attempt_count",
+      "fieldtype": "Int",
+      "label": "Attempt Count",
+      "default": "0"
+    },
+    {
+      "fieldname": "in_app_status",
+      "fieldtype": "Select",
+      "label": "In-App Status",
+      "options": "Pending\nCreated\nRetry\nFailed",
+      "default": "Pending",
+      "reqd": 1
+    },
+    {
+      "fieldname": "email_status",
+      "fieldtype": "Select",
+      "label": "Email Status",
+      "options": "Pending\nQueued\nTransportAccepted\nRetry\nFailed",
+      "default": "Pending",
+      "reqd": 1,
+      "description": "Queued means submitted to the mail queue. TransportAccepted means accepted by the outbound mail transport, not confirmed inbox delivery."
+    },
+    {
+      "fieldname": "notification_log",
+      "fieldtype": "Link",
+      "label": "Notification Log",
+      "options": "Notification Log"
+    },
+    {
+      "fieldname": "email_queue",
+      "fieldtype": "Link",
+      "label": "Email Queue",
+      "options": "Email Queue"
+    },
+    {
+      "fieldname": "last_attempt_at",
+      "fieldtype": "Datetime",
+      "label": "Last Attempt At"
+    },
+    {
+      "fieldname": "next_attempt_at",
+      "fieldtype": "Datetime",
+      "label": "Next Attempt At"
+    },
+    {
+      "fieldname": "email_transport_accepted_at",
+      "fieldtype": "Datetime",
+      "label": "Email Transport Accepted At"
+    },
+    {
+      "fieldname": "last_error",
+      "fieldtype": "Long Text",
+      "label": "Last Error"
+    }
+  ],
+  "index_web_pages_for_search": 0,
+  "istable": 0,
+  "links": [],
+  "module": "FTelephony",
+  "name": "TELECTRO Task Notification Intent",
+  "naming_rule": "By fieldname",
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 0,
+      "email": 0,
+      "create": 0,
+      "write": 0,
+      "delete": 0,
+      "share": 0
+    },
+    {
+      "role": "Pilot Admin",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 0,
+      "email": 0,
+      "create": 0,
+      "write": 0,
+      "delete": 0,
+      "share": 0
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 0
+}

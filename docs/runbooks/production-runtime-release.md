@@ -1594,7 +1594,7 @@ Privacy security contract.
 
 The privacy validator must report:
 
-- `CUSTOMER_COMMUNICATION_PRIVACY_REGRESSION_TEST_COUNT=141`
+- `CUSTOMER_COMMUNICATION_PRIVACY_REGRESSION_TEST_COUNT=150`
 - `CUSTOMER_COMMUNICATION_PRIVACY_PYTHON_REGRESSIONS=PASS`
 - `CUSTOMER_RECIPIENT_PICKER_FRONTEND_REGRESSIONS=PASS`
 - `CUSTOMER_COMMUNICATION_PRIVACY_HOOK_SOURCE_CONTRACT=PASS`
@@ -1636,6 +1636,98 @@ validations and the host-level prerequisites have passed.
 
 Do not treat successful execution against the running DEV
 container as immutable-candidate release evidence.
+
+#### Task Notification and Customer Privacy combined release
+
+For a release containing the hardened Claim Task Notification changes,
+Notification Intent DocType, and Customer Communication Privacy changes
+(including PR #407 attachment-download security), Phase 5 requires four
+separate semantic validations against the **same immutable candidate**:
+
+1. `bin/release-validators/validate-contextual-service-coverage-routing.sh`
+2. `bin/release-validators/validate-assignment-policy.sh`
+3. `bin/release-validators/validate-customer-communication-privacy.sh`
+4. `bin/release-validators/validate-task-notification.sh`
+
+The first three preserve the existing assignment and customer-security
+regression safeguards. The fourth adds the Task Notification contract.
+
+The Task Notification validator must report:
+
+- `TASK_NOTIFICATION_REGRESSION_MODULES=14`
+- `TASK_NOTIFICATION_REGRESSION_TEST_COUNT=100`
+- `TASK_NOTIFICATION_PYTHON_REGRESSIONS=PASS`
+- `TASK_NOTIFICATION_CLAIM_SCHEMA_GUARD=PASS`
+- `TASK_NOTIFICATION_CLAIM_CAPTURE_INTEGRATION=PASS`
+- `TASK_NOTIFICATION_OUTBOX_TRANSACTION_BOUNDARY=PASS`
+- `TASK_NOTIFICATION_INTENT_SCHEMA=PASS`
+- `TASK_NOTIFICATION_MODULE_REGISTRATION=PASS`
+- `TASK_NOTIFICATION_SEMANTIC_VALIDATION=PASS`
+
+The Customer Communication Privacy validator must retain its
+150-test contract and all previously required security markers.
+The host-level realtime compatibility and HD Ticket authority
+prerequisites remain mandatory.
+
+Each validator invocation must use the same release identity,
+candidate image, expected application versions, embedded change
+path and expected embedded SHA-256, with its own unique
+`VALIDATION_LOG`.
+
+Each invocation must independently report
+`CANDIDATE_RUNTIME_VALIDATION_OK=YES`.
+
+Record all four validation logs in the release evidence.
+Phase 6 must not begin until all four candidate validations
+and the applicable host-level prerequisites have passed.
+
+Successful DEV execution is not immutable-candidate evidence.
+
+##### Task Notification production activation safety
+
+The production deployment activates the new runtime before the
+site migration creates newly introduced DocType tables.
+
+The hardened `telectro_claim_ticket` path therefore checks
+`TELECTRO Task Notification Intent` schema availability using
+`frappe.db.table_exists(..., cached=False)` after authorization
+and before the first Claim ownership mutation.
+
+When the table is absent, the Claim returns
+`notification_schema_unavailable` without acquiring ownership.
+Unexpected schema-check errors must not permit the Claim
+mutation to proceed.
+
+This is a **Claim-specific safeguard**, not a general traffic
+barrier or protection for every ticket assignment or handoff
+entry point.
+
+Before Phase 12 runtime recreation:
+
+- Record the potential runtime-to-migration exposure interval.
+- Identify whether non-Claim assignment or handoff writes can
+  occur during that interval.
+- Do not assume those paths are protected by the Claim guard.
+- If an affected write path cannot be shown safe, establish and
+  verify an operational restriction before proceeding.
+
+After Phase 16 migration, establish read-only, site-aware
+evidence that the Notification Intent DocType table exists and
+its required event-key schema has been applied.
+
+Do not treat a successful migration command alone as proof
+that the notification schema is operationally ready.
+
+The 100 Task Notification regressions establish source-level
+capture, event identity, authorization, outbox isolation and
+Claim schema-safety contracts. The separate DEV MariaDB
+lifecycle proof establishes committed Claim and Intent
+durability for the tested schema-present path.
+
+This release slice does not establish live notification capture
+for every initial-assignment or handoff path, nor does it
+establish email or in-app notification delivery. Those require
+separate implementation and acceptance evidence.
 
 ### Validation-log contract
 
