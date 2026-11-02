@@ -9,6 +9,63 @@ from telephony import customer_communication_privacy as privacy
 
 class TestCustomerCompletionDownloadSecurity(unittest.TestCase):
 
+    def setUp(self):
+        super().setUp()
+
+        class NoDatabase:
+            def get_value(self, *args, **kwargs):
+                raise AssertionError(
+                    "Unexpected unmocked database access"
+                )
+
+        def isolated_throw(
+            message,
+            exc=frappe.ValidationError,
+            **kwargs,
+        ):
+            raise exc(message)
+
+        fixtures = (
+            patch.object(
+                frappe.local,
+                "flags",
+                frappe._dict(in_test=True),
+                create=True,
+            ),
+            patch.object(
+                frappe.local,
+                "response",
+                frappe._dict(),
+                create=True,
+            ),
+            patch.object(
+                frappe.local,
+                "db",
+                NoDatabase(),
+                create=True,
+            ),
+            patch.object(
+                frappe.local,
+                "lang",
+                "en",
+                create=True,
+            ),
+            patch.object(
+                resolution,
+                "_",
+                lambda message: message,
+            ),
+            patch.object(
+                frappe,
+                "throw",
+                side_effect=isolated_throw,
+            ),
+        )
+
+        for fixture in fixtures:
+            fixture.start()
+            self.addCleanup(fixture.stop)
+
     def test_sent_unclassified_communication_attachment_is_denied(self):
         file_doc = frappe._dict({
             "name": "FILE-001",
@@ -340,7 +397,7 @@ class TestCustomerCompletionDownloadSecurity(unittest.TestCase):
             "get_content": Mock(return_value=expected_content),
         })
 
-        response = frappe._dict()
+        response = frappe.local.response
 
         with (
             patch.object(
@@ -362,12 +419,6 @@ class TestCustomerCompletionDownloadSecurity(unittest.TestCase):
                 "_get_customer_completion_evidence_file",
                 return_value=file_doc,
             ) as file_lookup,
-            patch.object(
-                resolution.frappe.local,
-                "response",
-                response,
-                create=True,
-            ),
         ):
             resolution.download_customer_completion_evidence(
                 ticket_name="54",

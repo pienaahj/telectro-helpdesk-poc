@@ -30,8 +30,9 @@ print("=== Customer Communication Privacy regressions ===")
 expected_modules = {
     "customer_communication_permission": 18,
     "customer_communication_privacy": 26,
-    "customer_communication_projection": 8,
+    "customer_communication_projection": 9,
     "customer_communication_query_permission": 10,
+    "customer_completion_download_security": 8,
     "customer_ticket_activity_privacy": 4,
     "customer_ticket_api_guard": 8,
     "customer_ticket_detail_api_privacy": 4,
@@ -43,7 +44,7 @@ expected_modules = {
     "customer_recipient_lookup": 10,
 }
 
-expected_total = 141
+expected_total = 150
 
 require(
     sum(expected_modules.values()) == expected_total,
