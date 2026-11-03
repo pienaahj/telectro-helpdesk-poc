@@ -56,6 +56,10 @@ if [ "${1:-}" = "--ticket-communication-only" ]; then
     "src/pages/ticket/TicketCommunication.vue" \
     "src/pages/ticket/TicketCommunication.vue"
 
+  cp_helpdesk_desk_from_container \
+    "src/pages/ticket/TicketConversation.vue" \
+    "src/pages/ticket/TicketConversation.vue"
+
   echo
   echo "Customer attachment frontend pull complete."
   git status --short

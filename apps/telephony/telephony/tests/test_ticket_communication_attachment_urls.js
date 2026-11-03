@@ -172,4 +172,80 @@ for (const item of cases) {
 }
 
 console.log(`ATTACHMENT_REGRESSION_TEST_COUNT=${cases.length}`);
+// Regression: TicketConversation must supply the ticket identifier
+// required by TicketCommunication's customer attachment URL resolver.
+
+const conversationPath = path.join(
+  deskRoot,
+  "src/pages/ticket/TicketConversation.vue"
+);
+
+const conversationSource = fs.readFileSync(
+  conversationPath,
+  "utf8"
+);
+
+const {
+  descriptor: conversationDescriptor,
+  errors: conversationErrors,
+} = parse(conversationSource, {
+  filename: conversationPath,
+});
+
+assert.equal(conversationErrors.length, 0);
+assert.ok(conversationDescriptor.template);
+assert.ok(conversationDescriptor.scriptSetup);
+
+// The parent obtains its ticket through the existing injection.
+assert.match(
+  conversationDescriptor.scriptSetup.content,
+  /const ticket\s*=\s*inject\(ITicket\)/
+);
+
+function verifyTicketCommunicationBinding(template) {
+  const usages = [
+    ...template.matchAll(
+      /<TicketCommunication\b[\s\S]*?\/>/g
+    ),
+  ];
+
+  assert.equal(usages.length, 1);
+
+  const invocation = usages[0][0];
+
+  assert.match(
+    invocation,
+    /:attachments\s*=\s*"c\.attachments"/
+  );
+
+  assert.match(
+    invocation,
+    /:ticket-name\s*=\s*"ticket\.data\.name"/
+  );
+}
+
+// Positive test: the real component passes the required prop.
+const conversationTemplate =
+  conversationDescriptor.template.content;
+
+verifyTicketCommunicationBinding(conversationTemplate);
+
+console.log("TICKET_CONVERSATION_PROP_BINDING=PASS");
+
+// Negative control: reproduce the exact omission found in
+// production and prove that this regression detects it.
+const withoutTicketName = conversationTemplate.replace(
+  ':ticket-name="ticket.data.name"',
+  ""
+);
+
+assert.notEqual(withoutTicketName, conversationTemplate);
+
+assert.throws(
+  () => verifyTicketCommunicationBinding(withoutTicketName),
+  { code: "ERR_ASSERTION" }
+);
+
+console.log("MISSING_TICKET_PROP_NEGATIVE_CONTROL=PASS");
+
 console.log("TICKET_COMMUNICATION_ATTACHMENT_REGRESSIONS=PASS");
