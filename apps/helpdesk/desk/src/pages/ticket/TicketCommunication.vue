@@ -18,7 +18,7 @@
     <div class="flex flex-wrap gap-2 mb-2">
       <AttachmentItem
         v-for="a in attachments"
-        :key="a.file_id"
+        :key="a.file_id || a.name"
         :label="a.file_name"
         :url="attachmentUrl(a)"
       />
@@ -34,7 +34,9 @@ import { Tooltip } from "frappe-ui";
 import sanitizeHtml from "sanitize-html";
 
 interface Attachment {
-  file_id: string;
+  file_id?: string;
+  name?: string;
+  file_url?: string;
   file_name: string;
 }
 
@@ -66,9 +68,18 @@ function sanitize(html: string) {
   });
 }
 
-function attachmentUrl(a: Attachment): string {
-  return `/api/method/telephony.customer_ticket_resolution.download_customer_completion_evidence?ticket_name=${encodeURIComponent(
-    props.ticketName,
-  )}&file_id=${encodeURIComponent(a.file_id)}`;
+function attachmentUrl(a: Attachment): string | undefined {
+  // Customer attachment: always use the authorized endpoint.
+  if (a.file_id) {
+    if (!props.ticketName) return undefined;
+
+    return `/api/method/telephony.customer_ticket_resolution.download_customer_completion_evidence?ticket_name=${encodeURIComponent(
+      props.ticketName,
+    )}&file_id=${encodeURIComponent(a.file_id)}`;
+  }
+
+  // Native Helpdesk attachment: preserve existing behaviour.
+  // Customer projections never expose file_url.
+  return a.file_url || undefined;
 }
 </script>

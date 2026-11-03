@@ -567,6 +567,49 @@ require(
 print("CUSTOMER_RECIPIENT_PICKER_FRONTEND_REGRESSIONS=PASS")
 
 print()
+print("=== Ticket communication attachment frontend regressions ===")
+
+attachment_test = Path(
+    "apps/telephony/telephony/tests/"
+    "test_ticket_communication_attachment_urls.js"
+)
+
+require(
+    attachment_test.is_file(),
+    f"Missing attachment regression: {attachment_test}",
+)
+
+attachment_result = subprocess.run(
+    ["node", str(attachment_test)],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+
+print(attachment_result.stdout, end="")
+
+require(
+    attachment_result.returncode == 0,
+    "Attachment frontend regressions failed: "
+    + attachment_result.stderr,
+)
+
+require(
+    "ATTACHMENT_REGRESSION_TEST_COUNT=7"
+    in attachment_result.stdout,
+    "Unexpected attachment frontend regression count",
+)
+
+require(
+    "TICKET_COMMUNICATION_ATTACHMENT_REGRESSIONS=PASS"
+    in attachment_result.stdout,
+    "Missing attachment frontend acceptance marker",
+)
+
+print("CUSTOMER_COMMUNICATION_ATTACHMENT_FRONTEND_REGRESSIONS=PASS")
+
+
+print()
 print("=== Customer Communication Privacy final acceptance ===")
 print("CUSTOMER_COMMUNICATION_PRIVACY_SEMANTIC_VALIDATION=PASS")
 PY
