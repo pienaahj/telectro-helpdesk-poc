@@ -18,6 +18,7 @@ AREA_TO_TEAM = {
     "SIM": "SIM",
     "Internet Connection": "Internet Connection",
     "CCTV": "CCTV",
+    "Data Request": "Data Provisioning",
     "Faults": "Helpdesk Team",
     "Quotes & Site Surveys": "Helpdesk Team",
     "Other": "Helpdesk Team",

@@ -38,6 +38,7 @@ expected_teams = (
     "CCTV",
     "Internet Connection",
     "Helpdesk Team",
+    "Data Provisioning",
 )
 
 observed_teams = tuple(

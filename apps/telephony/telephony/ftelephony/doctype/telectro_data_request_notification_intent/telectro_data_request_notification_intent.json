@@ -1,0 +1,163 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Data Request Notification Intent",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "field:intent_id",
+  "naming_rule": "By fieldname",
+  "field_order": [
+    "intent_id",
+    "ticket",
+    "recipient",
+    "event",
+    "delivery_state",
+    "in_app_state",
+    "email_state",
+    "notification_log",
+    "email_queue",
+    "attempt_count",
+    "last_attempt_on",
+    "next_attempt_on",
+    "last_error"
+  ],
+  "fields": [
+    {
+      "fieldname": "intent_id",
+      "fieldtype": "Data",
+      "label": "Intent ID",
+      "reqd": 1,
+      "unique": 1,
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "ticket",
+      "fieldtype": "Link",
+      "label": "HD Ticket",
+      "options": "HD Ticket",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "recipient",
+      "fieldtype": "Link",
+      "label": "Recipient",
+      "options": "User",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "event",
+      "fieldtype": "Select",
+      "label": "Event",
+      "options": "arrival",
+      "default": "arrival",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "delivery_state",
+      "fieldtype": "Select",
+      "label": "Delivery State",
+      "options": "Pending\nProcessing\nRetry\nComplete\nFailed",
+      "default": "Pending",
+      "reqd": 1,
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "in_app_state",
+      "fieldtype": "Select",
+      "label": "In-App State",
+      "options": "Pending\nRecorded\nFailed",
+      "default": "Pending",
+      "read_only": 1
+    },
+    {
+      "fieldname": "email_state",
+      "fieldtype": "Select",
+      "label": "Email State",
+      "options": "Pending\nQueued\nSent\nFailed\nSkipped",
+      "default": "Pending",
+      "read_only": 1
+    },
+    {
+      "fieldname": "notification_log",
+      "fieldtype": "Link",
+      "label": "Notification Log",
+      "options": "Notification Log",
+      "read_only": 1
+    },
+    {
+      "fieldname": "email_queue",
+      "fieldtype": "Link",
+      "label": "Email Queue",
+      "options": "Email Queue",
+      "read_only": 1
+    },
+    {
+      "fieldname": "attempt_count",
+      "fieldtype": "Int",
+      "label": "Attempt Count",
+      "default": "0",
+      "read_only": 1
+    },
+    {
+      "fieldname": "last_attempt_on",
+      "fieldtype": "Datetime",
+      "label": "Last Attempt On",
+      "read_only": 1
+    },
+    {
+      "fieldname": "next_attempt_on",
+      "fieldtype": "Datetime",
+      "label": "Next Attempt On",
+      "read_only": 1
+    },
+    {
+      "fieldname": "last_error",
+      "fieldtype": "Long Text",
+      "label": "Last Error",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "report": 1,
+      "export": 0,
+      "create": 0,
+      "write": 0,
+      "delete": 0,
+      "share": 0,
+      "email": 0,
+      "print": 0
+    },
+    {
+      "role": "Pilot Admin",
+      "read": 1,
+      "report": 1,
+      "export": 0,
+      "create": 0,
+      "write": 0,
+      "delete": 0,
+      "share": 0,
+      "email": 0,
+      "print": 0
+    }
+  ],
+  "actions": [],
+  "links": [],
+  "states": [],
+  "quick_entry": 0,
+  "index_web_pages_for_search": 0,
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "track_changes": 1
+}

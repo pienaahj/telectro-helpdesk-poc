@@ -12,6 +12,7 @@ REQUIRED_HD_TEAMS = (
     "CCTV",
     "Internet Connection",
     "Helpdesk Team",
+    "Data Provisioning",
 )
 
 

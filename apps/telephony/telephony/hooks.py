@@ -431,6 +431,7 @@ _append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intak
 
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.telectro_round_robin.assign_after_insert")
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.hd_ticket_after_insert")
+_append_hook(doc_events["HD Ticket"], "after_insert", "telephony.data_request_arrival_outbox.capture_arrival_intents")
 
 # validate: synchronise Customer identity before routing and location checks.
 # Preserve deterministic ordering of the existing validation handlers.
@@ -446,6 +447,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.partner_create.enforce_partner_create_v1",
     "telephony.partner_create.apply_partner_work_state",
     "telephony.partner_create.normalize_partner_train_fields",
+    "telephony.data_request_completion.capture_first_completion",
 ]
 
 _append_hook(doc_events["HD Ticket"], "on_update", "telephony.telectro_reassign_on_update.reassign_if_routing_changed")
