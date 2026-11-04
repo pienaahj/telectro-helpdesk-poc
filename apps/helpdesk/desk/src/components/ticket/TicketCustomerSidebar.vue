@@ -330,31 +330,52 @@ function firstResponseData() {
 }
 
 function resolutionData() {
-  let resolution = null;
-  if (
-    !ticket.data.resolution_date &&
-    dayjs().isBefore(ticket.data.resolution_by)
-  ) {
-    resolution = {
-      label: `Due in ${formatTime(
-        dayjs(ticket.data.resolution_by).diff(dayjs(), "s"),
-      )}`,
-      color: "orange",
-    };
-  } else if (ticket.data.agreement_status === "Fulfilled") {
-    resolution = {
-      label: `Fulfilled in ${formatTime(
-        dayjs(ticket.data.resolution_time, "s"),
-      )}`,
-      color: "green",
-    };
-  } else {
-    resolution = {
-      label: "Failed",
-      color: "red",
+  const resolvedAt = ticket.data?.resolution_date;
+  const dueAt = ticket.data?.resolution_by;
+
+  if (!dueAt || !dayjs(dueAt).isValid()) {
+    return {
+      label: "Not available",
+      color: "gray",
     };
   }
-  return resolution;
+
+  const deadline = dayjs(dueAt);
+
+  if (resolvedAt) {
+    const resolved = dayjs(resolvedAt);
+
+    if (!resolved.isValid()) {
+      return {
+        label: "Not available",
+        color: "gray",
+      };
+    }
+
+    return resolved.isAfter(deadline)
+      ? {
+          label: "Failed",
+          color: "red",
+        }
+      : {
+          label: "Fulfilled",
+          color: "green",
+        };
+  }
+
+  const remainingSeconds = deadline.diff(dayjs(), "s");
+
+  if (remainingSeconds > 0) {
+    return {
+      label: `Due in ${formatTime(remainingSeconds)}`,
+      color: "orange",
+    };
+  }
+
+  return {
+    label: "Overdue",
+    color: "red",
+  };
 }
 
 const ticketBasicInfo = computed(() => [
