@@ -46,12 +46,15 @@ DEV-only operational worker work is NOT included in this commit.
 | Candidate selection | 16 | PASS |
 | Worker retry policy | 19 | PASS |
 | Transactional worker | 19 | PASS |
-| Total | 189 | Previously verified PASS |
+| Notification batch | 27 | PASS |
+| Operational reporting | 14 | PASS |
+| Total | 230 | Previously verified PASS |
 
 These are results of individual verified test runs,
 not a claim of one aggregate 189-test execution.
 
-The final three suites (54 tests) are DEV-only pending Git recovery.
+The selection, worker policy and transactional worker suites (54 tests) were recovered and published in commit `d518644`.
+The batch and reporting suites (41 tests) remain in canonical DEV pending controlled Git recovery.
 
 ## 4. MariaDB integration proofs
 
@@ -199,6 +202,60 @@ This proves recovery of an already committed stale Processing
 intent using real selection and worker database operations with
 a controlled dispatcher.
 
+### ESC.111 — MariaDB batch failure isolation
+
+- Two isolated eligible notification intents: PASS
+- First dispatcher failure handled as Retry: PASS
+- First intent's partial InnoDB write rolled back: PASS
+- One-minute retry deadline persisted: PASS
+- Second intent independently entered Processing: PASS
+- Second intent's commit survived transaction reset: PASS
+- Second intent's retry budget unchanged: PASS
+- No delivery records created: PASS
+- Both temporary fixtures removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_111_BATCH_MARIADB_ISOLATION=PASS`
+
+### ESC.115D — MyISAM reporting transaction isolation
+
+- Native Error Log storage engine MyISAM: CONFIRMED
+- Notification Intent storage engine InnoDB: CONFIRMED
+- Sanitized Error Log persisted without explicit commit: PASS
+- Unrelated uncommitted InnoDB change rolled back: PASS
+- MyISAM Error Log survived rollback: PASS
+- Exactly one sanitized Error Log persisted: PASS
+- All temporary records removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_115D_REPORTING_TRANSACTION_ISOLATION=PASS`
+
+The earlier ESC.115 test was invalid because it expected MyISAM
+Error Log inserts to roll back. ESC.115D is the corrected proof.
+Production must verify its native table storage engine before
+relying on the same persistence semantics.
+
+### ESC.118 — Integrated batch error reporting
+
+- Two isolated eligible notification intents: PASS
+- Unhandled worker exception induced: PASS
+- Batch rolled back before reporting: PASS
+- Exactly one sanitized MyISAM Error Log created: PASS
+- Error Log identity included in batch outcome: PASS
+- Failed intent's partial InnoDB write absent: PASS
+- Second intent's Processing transaction committed: PASS
+- Error Log survived transaction reset: PASS
+- No email or Notification Log created: PASS
+- All temporary fixtures removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_118_BATCH_REPORTING_MARIADB=PASS`
+
+The failed intent remained Pending after an unhandled exception.
+Before scheduler activation, repeated unhandled failures require
+durable backoff or suppression to avoid repeated Error Logs
+and unnecessary batch-capacity consumption.
+
 ## 5. Implemented policy
 
 - Escalation due after ten elapsed minutes from ticket creation
@@ -234,12 +291,13 @@ before production activation.
 
 ## 7. Remaining development and verification
 
-- Batch worker and scheduler integration
-- Durable error classification and operational reporting
+- Activation-gated batch scheduler integration
+- Durable backoff or suppression for repeatedly unhandled batch failures
+- Final operational error classification and monitoring
 - Controlled scheduler activation verification
 - Coordinator War Room and Supervisor reporting
 - Customer portal status-transition guard
-- Synchronize operational worker source/tests into Git
+- Synchronize verified batch and reporting source/tests into Git
 - Complete PR review and required release gates
 
 ## 8. Production release rules
