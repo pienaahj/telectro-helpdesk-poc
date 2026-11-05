@@ -592,3 +592,115 @@ DEV MariaDB integration checkpoints: 15 accepted.
 Native RQ execution: verified separately.
 
 Production remains ON HOLD. Draft PR #415 remains unmerged.
+
+## 13. Real elapsed-time Coordinator escalation
+
+### ESC.157 — Committed DEV fixture
+
+- Isolated HD Ticket: `-157000001`
+- Subject: ESC.157 isolated Data Request wall-clock fixture
+- Created: 2026-11-05 17:18:35.581762 SAST
+- Ten-minute deadline: 2026-11-05 17:28:35.581762 SAST
+- Service Area: Data Request
+- Agent group: Data Provisioning
+- Status: Open
+- Actual MariaDB commit: PASS
+- No notification intents created during setup: PASS
+- Escalation and delivery activation disabled: PASS
+- Global scheduler disabled: PASS
+
+Evidence marker: `ESC_157_WALLCLOCK_FIXTURE_CREATED=PASS`
+
+### ESC.158 — Independent persisted fixture checkpoint
+
+- Actual observation: 2026-11-05 17:23:55.308093 SAST
+- Elapsed: 319.726 seconds
+- Fixture identity verified from persisted MariaDB state: PASS
+- No existing fixture notification intents: PASS
+- Isolated Data Request candidate window: PASS
+- Read-only inspection: PASS
+
+Evidence marker: `ESC_158_WALLCLOCK_CHECKPOINT=PASS`
+
+### ESC.159 — Real elapsed-time escalation execution
+
+Pre-deadline observations:
+
+- 17:26:17.168433 SAST: 461.587 seconds elapsed
+- 17:27:38.094096 SAST: 542.512 seconds elapsed
+- Both observations classified BEFORE_DUE
+- Test harness did not invoke the scheduler before the deadline
+
+Due-time observation:
+
+- Observed: 2026-11-05 17:29:44.657437 SAST
+- Actual elapsed time: 669.076 seconds
+- Real ten-minute threshold exceeded: PASS
+- Only the isolated test ticket was in the candidate window: PASS
+- Console-local escalation activation used temporarily
+- Persistent activation configuration unchanged
+- Direct invocation of published escalation scheduler: PASS
+
+First scheduler invocation:
+
+- State: processed
+- Scanned: 1
+- Inserted: 4
+- Four authorized Coordinator intents verified: PASS
+
+Second scheduler invocation:
+
+- State: processed
+- Scanned: 1
+- Inserted: 0
+- Idempotency: PASS
+
+After execution:
+
+- Escalation intent inserts rolled back: PASS
+- Original database counts restored: PASS
+- Console-local activation restored: PASS
+- Delivery activation remained disabled: PASS
+- Global scheduler remained disabled: PASS
+
+Evidence marker: `ESC_159_REAL_WALLCLOCK_ESCALATION=PASS`
+
+This proves eligibility and intent creation after more than
+ten minutes of actual elapsed wall-clock time. It does
+not prove execution at the exact ten-minute boundary,
+automatic cron dispatch or external email delivery.
+
+### ESC.160 — Committed fixture cleanup
+
+- Exact ticket identity and creation timestamp verified: PASS
+- Communication references: 0
+- File references: 0
+- ToDo references: 0
+- DocShare references: 0
+- No escalation intents remained for the test ticket: PASS
+- Exact fixture deletion committed: PASS
+- Post-commit fixture absence: PASS
+- Original HD Ticket count restored: 324
+- Original notification intent count restored: 1
+- Both activation settings remain disabled: PASS
+- Global DEV scheduler remains disabled: PASS
+
+Evidence marker: `ESC_160_WALLCLOCK_FIXTURE_CLEANUP=PASS`
+
+### Remaining acceptance boundaries
+
+- Automatic periodic cron dispatch remains unproven.
+- Exact ten-minute boundary timing was not observed.
+- Actual SMTP delivery was not exercised.
+- Normal ticket-save completion auditing remains to be exercised.
+- Coordinator War Room, Coordinator/Supervisor workspace additions
+  and the shared Data Request escalation report remain outstanding.
+- Production release must follow the committed release runbook
+  and its explicit human approval gates.
+
+Permanent regressions: 261 previously verified PASS.
+DEV MariaDB integration checkpoints: 15 accepted.
+Native RQ worker execution: PASS.
+Real elapsed-time escalation and cleanup: PASS.
+
+Production remains ON HOLD. Draft PR #415 remains unmerged.
