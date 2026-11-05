@@ -19,7 +19,7 @@ It is not a substitute for the production release runbook.
 
 ## 2. Published source checkpoint
 
-Current published HEAD: `f1e460b9076cd6d5a91ffa966efbc8dfd0b58cb8`
+Current published HEAD: `21fb00170f2b97f8d11afa9dc98cbd7041ba3b9f`
 
 Published scope:
 - Data Request arrival planner dependency recovery
@@ -30,6 +30,7 @@ Published scope:
 - Email Queue status reconciliation
 - Combined single-intent notification dispatcher
 - Permanent delivery regressions
+- Activation-gated one-minute notification delivery scheduler
 
 Foundational notification delivery was published in `c439a41`.
 The selection, retry policy and transactional worker were
@@ -38,6 +39,9 @@ Batch delivery, sanitized operational reporting and durable
 unhandled-failure backoff were recovered from canonical DEV
 and published in `f1e460b`.
 All six recovered file SHA-256 identities matched DEV.
+The scheduler hook, entry point and permanent scheduler regressions
+were recovered from canonical DEV with matching SHA-256 identities,
+then published in `21fb001` (ESC.134A–134E).
 
 ## 3. Permanent regression evidence
 
@@ -55,13 +59,16 @@ All six recovered file SHA-256 identities matched DEV.
 | Notification batch | 31 | PASS |
 | Operational reporting | 14 | PASS |
 | Unhandled-failure backoff | 15 | PASS |
-| Total | 249 | Previously verified PASS |
+| Scheduler entry point and hooks | 12 | PASS |
+| Total | 261 | Previously verified PASS |
 
 These are results of individual verified test runs,
-not a claim of one aggregate 249-test execution.
+not a claim of one aggregate 261-test execution.
 
 The selection, worker policy and transactional worker suites (54 tests) were recovered and published in commit `d518644`.
 The batch, reporting and unhandled-failure suites (60 tests) are now recovered and published in `f1e460b`.
+The 12 scheduler integration regressions passed in ESC.132
+and were published in `21fb001`.
 
 ## 4. MariaDB integration proofs
 
@@ -336,10 +343,21 @@ before production activation.
 
 ## 7. Remaining development and verification
 
-- Activation-gated batch scheduler integration
+- Controlled DEV scheduler execution verification
+- Real ten-minute Coordinator escalation lifecycle proof
+- Production Scheduled Job Type synchronization and release verification
 - Final operational error classification and monitoring
 - Controlled scheduler activation verification
-- Coordinator War Room and Supervisor reporting
+- Coordinator War Room: outstanding and escalated Data Request
+  visibility, live age and refresh-independent updates
+- Coordinator workspace: add entry points to the escalation
+  War Room and dedicated escalation report
+- Supervisor workspace: add access to the same dedicated
+  escalation report for governance and oversight
+- Dedicated Data Request escalation report: implement,
+  establish columns and filters, and verify access permissions
+- Verify Coordinator notification authority remains independent
+  of Supervisor workspace/report visibility
 - Customer portal status-transition guard
 - Complete PR review and required release gates
 
@@ -372,3 +390,88 @@ as separately archived machine-generated evidence files.
 
 No SMTP delivery to a real recipient has been proven.
 No production activation has occurred.
+
+## 10. Scheduler integration and DEV registration
+
+### ESC.131B–133 — Scheduler source and runtime
+
+- Existing one-minute cron expression retained: `*/1 * * * *`
+- Inbox polling, escalation and notification jobs each appear once: PASS
+- Notification entry point delegates to bounded delivery batch: PASS
+- Twelve permanent scheduler regressions: PASS (ESC.132)
+- Effective Frappe hook resolution: PASS (ESC.133)
+- Disabled activation returns a disabled result without dispatch: PASS
+- Notification delivery activation remains unset: PASS
+
+ESC.133 verifies effective Frappe hooks and direct entry-point
+resolution. It does not prove actual scheduler tick execution.
+
+### ESC.134A–134E — Canonical source recovery
+
+- Dry-run exact scope: three scheduler files, PASS
+- Mac-to-DEV SHA-256 identity for all three files: PASS
+- Exactly one modified tracked file and two new files: PASS
+- No unrelated source or fixture changes: PASS
+- Staged diff and commit scope: PASS
+- Published commit: `21fb00170f2b97f8d11afa9dc98cbd7041ba3b9f`
+- Remote Git identity and clean working tree: PASS
+
+### ESC.135–138A — Scheduler diagnostics and native contract
+
+- Effective hooks contain all three one-minute jobs: PASS
+- Existing inbox Scheduled Job Type initially present: PASS
+- Escalation and notification Scheduled Job Type initially missing
+- DEV scheduler disabled and inactive: confirmed by `bench doctor`
+- Two workers reported online; this does not prove scheduler execution
+- Native `sync_jobs()` implementation inspected
+- Native synchronization reloads the Scheduled Job Type DocType,
+  inserts or updates defined jobs, then clears ordinary undefined jobs
+- Targeted native `insert_single_event()` inspected as an alternative
+
+No full migration or broad job synchronization was executed
+during this DEV registration correction.
+
+### ESC.139–140A — Targeted database registration
+
+- DEV site: `frontend`
+- Initial Scheduled Job Type records: 92
+- Existing 92 records preserved unchanged: PASS
+- Escalation job registered as one-minute Cron: PASS
+- Notification delivery job registered as one-minute Cron: PASS
+- Transaction committed successfully: PASS
+- Fresh-console persistence verification: PASS
+- Total persisted Scheduled Job Type records: 94
+- All three relevant jobs registered once, not stopped: PASS
+- DEV scheduler remained disabled: PASS
+- Notification delivery activation remained disabled: PASS
+
+The targeted registration is DEV database state, not a
+production deployment artifact. Production must reconcile
+scheduler registration through the authorized release process.
+
+### Outstanding operational acceptance
+
+- Real scheduler tick/worker execution has not been proven.
+- Real ten-minute Coordinator escalation lifecycle has not
+  yet been proven end-to-end.
+- Coordinator War Room escalation visibility and live-age
+  updates remain unproven.
+- Coordinator and Supervisor workspace additions remain open.
+- The separate escalation report shared by those workspaces
+  is not implemented or accepted.
+- Report filters, columns, permissions and presentation still
+  require definition and acceptance.
+- Coordinator notification recipients must remain governed by
+  Coordinator Ops authorization, independently of workspace
+  and Supervisor report visibility.
+- DEV scheduler is intentionally disabled.
+- Notification delivery activation remains disabled.
+- No live SMTP delivery has been proven.
+- Production migration, scheduling and operational health
+  require separate runbook-controlled evidence.
+- Confirm elapsed-time versus working-hours policy before
+  enabling escalation in production.
+
+Production remains ON HOLD. Draft PR #415 remains unmerged.
+The committed production release runbook and its Phase 2
+human approval gate remain authoritative.
