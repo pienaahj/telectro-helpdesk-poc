@@ -229,3 +229,79 @@ def process_due_notification_intent(intent_name, *, now=None):
         except Exception:
             frappe.db.rollback()
             raise
+
+
+def record_unhandled_notification_failure(intent_name, *, now=None):
+    """Persist backoff after the caller rolls back a failed attempt.
+
+    The caller must roll back incomplete delivery work before invoking
+    this function. The function owns its new InnoDB transaction.
+
+    Eligibility is rechecked under the intent row lock to avoid
+    overwriting progress made by another worker.
+    """
+
+    name = str(intent_name or "").strip()
+
+    if not name:
+        raise ValueError("Notification intent identity required")
+
+    configured = frappe.conf.get(ACTIVATION_KEY)
+
+    if not configured:
+        return {
+            "intent": name,
+            "state": "disabled",
+        }
+
+    activation = frappe.utils.get_datetime(configured)
+
+    current = (
+        frappe.utils.get_datetime(now)
+        if now is not None
+        else frappe.utils.now_datetime()
+    )
+
+    if activation.tzinfo is not None or current.tzinfo is not None:
+        raise ValueError(
+            "Worker timestamps must be site-local naive datetimes"
+        )
+
+    try:
+        row = _lock_intent(name)
+
+        if row is None:
+            frappe.db.rollback()
+            return {
+                "intent": name,
+                "state": "missing",
+            }
+
+        if not _due(row, activation, current):
+            frappe.db.rollback()
+            return {
+                "intent": name,
+                "state": "superseded",
+            }
+
+        planned = plan_worker_failure(
+            now=current,
+            attempt_count=int(row.get("attempt_count") or 0),
+            failure_code="DISPATCH_ERROR",
+        )
+
+        frappe.db.set_value(DOCTYPE, name, planned)
+
+        frappe.db.commit()
+
+        return {
+            "intent": name,
+            "state": planned["delivery_state"],
+            "attempt_count": planned["attempt_count"],
+            "next_attempt_on": planned["next_attempt_on"],
+            "failure_code": "DISPATCH_ERROR",
+        }
+
+    except Exception:
+        frappe.db.rollback()
+        raise
