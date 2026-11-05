@@ -141,6 +141,64 @@ completed-state recheck. It does not prove simultaneous
 end-to-end execution of two worker processes or interrupted
 worker recovery.
 
+### ESC.103B — Simultaneous worker execution
+
+- Two independent DEV MariaDB worker connections: PASS
+- First worker held the intent row lock: PASS
+- Second worker attempted processing concurrently: PASS
+- First worker committed its Processing result: PASS
+- Second worker rejected redispatch: PASS
+- Exactly one controlled dispatch invocation: PASS
+- Five-minute polling deadline persisted: PASS
+- No email or Notification Log created: PASS
+- Temporary fixture removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_103B_SIMULTANEOUS_WORKERS=PASS`
+
+This proves overlapping worker execution, row-lock serialization,
+and single-dispatch behaviour with a controlled dispatcher.
+
+### ESC.104 — Interrupted worker recovery
+
+- Two independent DEV MariaDB worker connections: PASS
+- First worker made an uncommitted partial write: PASS
+- Second worker waited for the same intent lock: PASS
+- First worker interrupted using SystemExit: PASS
+- First transaction rolled back: PASS
+- Second worker recovered the intent: PASS
+- Uncommitted partial write did not survive: PASS
+- Recovery result committed: PASS
+- Retry budget remained unchanged: PASS
+- Five-minute polling deadline persisted: PASS
+- Temporary fixture removed: PASS
+
+Evidence marker: `ESC_104_INTERRUPTED_WORKER_RECOVERY=PASS`
+
+This simulates interruption followed by explicit connection cleanup.
+It is not an operating-system kill test.
+
+### ESC.105 — Committed stale Processing recovery
+
+- Previously committed Processing fixture: PASS
+- Intent excluded before recovery threshold: PASS
+- Stale intent selected after recovery threshold: PASS
+- Worker recovered the intent: PASS
+- Recovery state committed durably: PASS
+- Five-minute polling rescheduled: PASS
+- Retry budget unchanged: PASS
+- Premature redispatch prevented: PASS
+- Next polling deadline respected: PASS
+- No notification or email created: PASS
+- Temporary fixture removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_105_STALE_PROCESSING_RECOVERY=PASS`
+
+This proves recovery of an already committed stale Processing
+intent using real selection and worker database operations with
+a controlled dispatcher.
+
 ## 5. Implemented policy
 
 - Escalation due after ten elapsed minutes from ticket creation
@@ -176,7 +234,6 @@ before production activation.
 
 ## 7. Remaining development and verification
 
-- Real concurrent worker safety and interrupted recovery
 - Batch worker and scheduler integration
 - Durable error classification and operational reporting
 - Controlled scheduler activation verification
