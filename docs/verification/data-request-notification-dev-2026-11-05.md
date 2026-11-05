@@ -526,3 +526,69 @@ auditing was not exercised by this integration test.
 - No SMTP delivery was invoked by these tests
 
 Production remains ON HOLD. Draft PR #415 remains unmerged.
+
+## 12. Native scheduled-job worker execution
+
+### ESC.150–152 — Native execution contract and preflight
+
+- Frappe ScheduledJobType execution path inspected: PASS
+- Native queue execution and status logging inspected: PASS
+- Notification delivery job registered once: PASS
+- One-minute Cron configuration: PASS
+- Target RQ queue: default
+- Scheduled Job Log enabled: create_log = 1
+- Job not already queued: PASS
+- Global DEV scheduler disabled: PASS
+- Escalation and delivery activation disabled: PASS
+
+### ESC.153A — Native RQ enqueue
+
+- Exactly one notification delivery job enqueued: PASS
+- Explicit force=True used; no global scheduler activation
+- RQ job identity:
+  `scheduled_job::telephony.jobs.data_request_notification_delivery.run`
+- Both activation settings remained disabled: PASS
+- Enqueue acceptance did not assume worker completion
+
+Evidence marker: `ESC_153A_NATIVE_JOB_ENQUEUED=PASS`
+
+### ESC.153B — Persisted worker completion
+
+- Fresh DEV Bench console verification: PASS
+- Scheduled Job Log identity: `78pp7e7s3s`
+- Persisted execution status: Complete
+- Recorded execution time: 2026-11-05 17:10:58
+- Native worker execution: PASS
+- Persisted successful execution log: PASS
+- Existing Data Request tickets: 1, unchanged
+- Existing notification intents: 1, unchanged
+- Existing escalation intents: 0, unchanged
+- Escalation activation remained disabled: PASS
+- Notification delivery activation remained disabled: PASS
+- Global DEV scheduler remained disabled: PASS
+
+Evidence marker: `ESC_153B_WORKER_OUTCOME_INSPECTED=PASS`
+
+This proves native RQ worker execution of the registered
+activation-disabled notification delivery job.
+
+It does not prove automatic periodic cron dispatch,
+an activated delivery batch, real SMTP delivery,
+or real ten-minute wall-clock Coordinator escalation.
+
+### Outstanding operational acceptance
+
+- Automatic periodic cron dispatch remains unproven.
+- Real ten-minute elapsed-time escalation remains unproven.
+- Normal ticket-save completion auditing was not exercised
+  by the isolated ESC.146 completion-suppression fixture.
+- Coordinator War Room, Coordinator/Supervisor workspace
+  additions and shared escalation report remain outstanding.
+- Production scheduler configuration and runtime verification
+  must follow the authorized release runbook.
+
+Permanent regressions: 261 previously verified PASS.
+DEV MariaDB integration checkpoints: 15 accepted.
+Native RQ execution: verified separately.
+
+Production remains ON HOLD. Draft PR #415 remains unmerged.
