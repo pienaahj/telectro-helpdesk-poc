@@ -222,5 +222,33 @@
   "show_percentage_stats": 1,
   "stats_time_interval": "Daily",
   "type": "Custom"
+ },
+ {
+  "aggregate_function_based_on": "",
+  "background_color": null,
+  "color": "#DC2626",
+  "currency": "",
+  "docstatus": 0,
+  "doctype": "Number Card",
+  "document_type": "HD Ticket",
+  "dynamic_filters_json": null,
+  "filters_config": null,
+  "filters_json": "[]",
+  "function": "Count",
+  "is_public": 0,
+  "is_standard": 0,
+  "label": "TELECTRO Ops — Data Request Overdue",
+  "method": "telephony.ops_kpis.data_request_overdue_now",
+  "modified": "2026-11-05 18:49:41.016421",
+  "module": null,
+  "name": "TELECTRO Ops — Data Request Overdue",
+  "parent_document_type": null,
+  "report_field": null,
+  "report_function": "Sum",
+  "report_name": null,
+  "show_full_number": 0,
+  "show_percentage_stats": 1,
+  "stats_time_interval": "Daily",
+  "type": "Custom"
  }
 ]
