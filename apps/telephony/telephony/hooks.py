@@ -303,6 +303,10 @@ job_path = "telephony.jobs.pull_pilot_inboxes.run"
 if job_path not in minute_jobs:
     minute_jobs.append(job_path)
 
+escalation_job_path = "telephony.jobs.data_request_escalation.run"
+if escalation_job_path not in minute_jobs:
+    minute_jobs.append(escalation_job_path)
+
 cron_events[minute_expr] = minute_jobs
 scheduler_events["cron"] = cron_events
 
