@@ -475,3 +475,54 @@ scheduler registration through the authorized release process.
 Production remains ON HOLD. Draft PR #415 remains unmerged.
 The committed production release runbook and its Phase 2
 human approval gate remain authoritative.
+
+## 11. Escalation MariaDB integration
+
+### ESC.145B — Ten-minute decision boundary and idempotency
+
+- Real DEV MariaDB HD Ticket row and row-locking path: PASS
+- Isolated negative numeric BIGINT fixture: PASS
+- Actual Coordinator recipient resolver returned four users: PASS
+- At 9 minutes 59 seconds: no escalation intents, PASS
+- At exactly ten minutes: four escalation intents, PASS
+- Escalation recipients matched authorized Coordinators: PASS
+- Repeated capture produced no duplicate intents: PASS
+- Temporary ticket and intents rolled back: PASS
+- Original ticket and intent counts restored: PASS
+- Activation configuration unchanged: PASS
+
+Evidence marker: `ESC_145B_ESCALATION_INTEGRATION=PASS`
+
+This is the fourteenth accepted DEV MariaDB integration
+checkpoint. Controlled timestamps were used; real elapsed
+wall-clock time and background scheduler execution were not
+established.
+
+### ESC.146 — Completion suppression
+
+- Isolated on-time completion at five minutes: PASS
+- Isolated late completion at ten minutes five seconds: PASS
+- Both policy completion states correctly identified: PASS
+- No escalation intents created for either completed ticket: PASS
+- Temporary fixtures removed by transaction rollback: PASS
+- Original database counts restored: PASS
+- DEV scheduler remained disabled: PASS
+- Escalation and notification activation remained disabled: PASS
+
+Evidence marker: `ESC_146_COMPLETION_SUPPRESSION=PASS`
+
+This is the fifteenth accepted DEV MariaDB integration
+checkpoint. Completion timestamps were supplied directly
+in isolated test fixtures. Normal ticket-save completion
+auditing was not exercised by this integration test.
+
+### Current acceptance boundary
+
+- Permanent regressions: 261 previously verified PASS
+- DEV MariaDB integration checkpoints: 15 accepted
+- Real ten-minute wall-clock observation: outstanding
+- Background scheduler tick and worker execution: outstanding
+- Production deployment and operational acceptance: outstanding
+- No SMTP delivery was invoked by these tests
+
+Production remains ON HOLD. Draft PR #415 remains unmerged.
