@@ -101,6 +101,46 @@ The final three suites (54 tests) are DEV-only pending Git recovery.
 ESC.90 used an intercepted commit.
 It does NOT prove a durable committed worker transaction.
 
+### ESC.94 — Durable failure recovery
+
+- Real DEV MariaDB transactions: PASS
+- Persistent notification delivery activation disabled: PASS
+- Isolated test intent committed before worker execution: PASS
+- Injected dispatcher failure handled: PASS
+- Partial database write rolled back: PASS
+- Failure metadata committed separately: PASS
+- Intent transitioned to Retry: PASS
+- Failed attempt count incremented to one: PASS
+- One-minute retry deadline persisted: PASS
+- Failure state survived subsequent transaction rollback: PASS
+- No Notification Log or Email Queue created: PASS
+- Temporary intent removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_94_DURABLE_FAILURE_RECOVERY=PASS`
+
+This proves actual worker rollback and durable failure recording.
+It does not prove concurrent worker execution.
+
+### ESC.95 — Row-lock serialization
+
+- Two independent MariaDB sessions established: PASS
+- First session acquired exclusive intent row lock: PASS
+- Second session blocked by the existing lock: PASS
+- First session committed Complete state: PASS
+- Second session observed the committed state: PASS
+- Worker rejected redispatch of completed intent: PASS
+- No notification dispatch occurred: PASS
+- Temporary intent removed: PASS
+- Persistent activation unchanged: PASS
+
+Evidence marker: `ESC_95_ROW_LOCK_SERIALIZATION=PASS`
+
+This proves MariaDB row-lock serialization and the worker's
+completed-state recheck. It does not prove simultaneous
+end-to-end execution of two worker processes or interrupted
+worker recovery.
+
 ## 5. Implemented policy
 
 - Escalation due after ten elapsed minutes from ticket creation
@@ -136,7 +176,6 @@ before production activation.
 
 ## 7. Remaining development and verification
 
-- Real MariaDB worker failure transaction proof
 - Real concurrent worker safety and interrupted recovery
 - Batch worker and scheduler integration
 - Durable error classification and operational reporting
