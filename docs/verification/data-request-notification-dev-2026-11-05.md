@@ -19,7 +19,7 @@ It is not a substitute for the production release runbook.
 
 ## 2. Published source checkpoint
 
-Commit: c439a41a147fb81b57f622ca6dccc9f54039ccf0
+Current published HEAD: `f1e460b9076cd6d5a91ffa966efbc8dfd0b58cb8`
 
 Published scope:
 - Data Request arrival planner dependency recovery
@@ -31,7 +31,13 @@ Published scope:
 - Combined single-intent notification dispatcher
 - Permanent delivery regressions
 
-DEV-only operational worker work is NOT included in this commit.
+Foundational notification delivery was published in `c439a41`.
+The selection, retry policy and transactional worker were
+subsequently published in `d518644`.
+Batch delivery, sanitized operational reporting and durable
+unhandled-failure backoff were recovered from canonical DEV
+and published in `f1e460b`.
+All six recovered file SHA-256 identities matched DEV.
 
 ## 3. Permanent regression evidence
 
@@ -46,15 +52,16 @@ DEV-only operational worker work is NOT included in this commit.
 | Candidate selection | 16 | PASS |
 | Worker retry policy | 19 | PASS |
 | Transactional worker | 19 | PASS |
-| Notification batch | 27 | PASS |
+| Notification batch | 31 | PASS |
 | Operational reporting | 14 | PASS |
-| Total | 230 | Previously verified PASS |
+| Unhandled-failure backoff | 15 | PASS |
+| Total | 249 | Previously verified PASS |
 
 These are results of individual verified test runs,
-not a claim of one aggregate 189-test execution.
+not a claim of one aggregate 249-test execution.
 
 The selection, worker policy and transactional worker suites (54 tests) were recovered and published in commit `d518644`.
-The batch and reporting suites (41 tests) remain in canonical DEV pending controlled Git recovery.
+The batch, reporting and unhandled-failure suites (60 tests) are now recovered and published in `f1e460b`.
 
 ## 4. MariaDB integration proofs
 
@@ -251,10 +258,41 @@ relying on the same persistence semantics.
 
 Evidence marker: `ESC_118_BATCH_REPORTING_MARIADB=PASS`
 
-The failed intent remained Pending after an unhandled exception.
-Before scheduler activation, repeated unhandled failures require
-durable backoff or suppression to avoid repeated Error Logs
-and unnecessary batch-capacity consumption.
+ESC.118 established the original unhandled-error reporting
+behaviour before durable backoff was introduced.
+The repeated-failure gap was subsequently addressed and
+verified in ESC.122–126.
+
+### ESC.126 — Integrated durable unhandled-failure backoff
+
+- Two isolated eligible DEV notification intents: PASS
+- First worker's unhandled exception injected: PASS
+- Batch rollback preceded sanitized reporting: PASS
+- Actual durable backoff helper invoked: PASS
+- Failed intent transitioned to Retry: PASS
+- Failed attempt count incremented to one: PASS
+- One-minute retry deadline committed durably: PASS
+- Incomplete InnoDB write discarded: PASS
+- Second intent independently entered Processing: PASS
+- Second intent's five-minute polling deadline committed: PASS
+- Exactly one sanitized MyISAM Error Log persisted: PASS
+- Error Log survived subsequent transaction reset: PASS
+- No Notification Log or Email Queue created: PASS
+- Both intent fixtures and Error Log removed: PASS
+- Persistent activation remained disabled: PASS
+
+Evidence marker: `ESC_126_DURABLE_BACKOFF_MARIADB=PASS`
+
+ESC.126 initially encountered stale Python module objects in the
+interactive Bench console. ESC.126B established that canonical DEV
+source contained the function while the loaded worker did not.
+ESC.126C reloaded worker and then batch, verifying function
+identities without modifying source or database state.
+The subsequently executed ESC.126 integration proof passed.
+
+This is the thirteenth accepted DEV MariaDB integration checkpoint.
+It proves the integrated path with controlled candidate selection
+and notification dispatch; it does not prove live SMTP delivery.
 
 ## 5. Implemented policy
 
@@ -272,6 +310,11 @@ and unnecessary batch-capacity consumption.
 - Fifth unsuccessful attempt: terminal Failed
 - Revoked authorization: terminal Failed
 - Routine queue polling does not consume retry attempts
+- Unhandled batch failure: rollback before sanitized reporting
+- Native MyISAM Error Log persists without committing InnoDB work
+- Unhandled failure backoff reuses the existing retry policy
+- Row-locked eligibility recheck prevents overwriting progress
+- Reporting or backoff persistence failures propagate
 
 ## 6. Activation safeguards
 
@@ -285,6 +328,8 @@ Both mechanisms must fail closed when their respective
 activation key is absent.
 
 Historical backlog must not be indiscriminately notified.
+Production must independently verify the native Error Log
+storage engine before relying on MyISAM persistence.
 
 Working-hours versus elapsed-time policy must be confirmed
 before production activation.
@@ -292,12 +337,10 @@ before production activation.
 ## 7. Remaining development and verification
 
 - Activation-gated batch scheduler integration
-- Durable backoff or suppression for repeatedly unhandled batch failures
 - Final operational error classification and monitoring
 - Controlled scheduler activation verification
 - Coordinator War Room and Supervisor reporting
 - Customer portal status-transition guard
-- Synchronize verified batch and reporting source/tests into Git
 - Complete PR review and required release gates
 
 ## 8. Production release rules
