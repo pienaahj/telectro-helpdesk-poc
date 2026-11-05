@@ -1,5 +1,6 @@
 const DATA_REQUEST_WAR_ROOM_NAME = "Data Request Coordinator War Room";
 const DATA_REQUEST_OVERDUE_SECONDS = 600;
+const DATA_REQUEST_LIST_REFRESH_MS = 30000;
 
 function dataRequestFormatAge(rawSeconds) {
   const seconds = Math.max(0, Math.floor(Number(rawSeconds) || 0));
@@ -32,6 +33,18 @@ function dataRequestLiveAgeSeconds(element) {
   );
 
   return Math.max(0, initialSeconds + elapsed);
+}
+
+function dataRequestStopWarRoomTimers(report) {
+  if (report._dataRequestWarRoomClock) {
+    clearInterval(report._dataRequestWarRoomClock);
+    report._dataRequestWarRoomClock = null;
+  }
+
+  if (report._dataRequestWarRoomRefreshTimer) {
+    clearInterval(report._dataRequestWarRoomRefreshTimer);
+    report._dataRequestWarRoomRefreshTimer = null;
+  }
 }
 
 function dataRequestInstallWarRoomClock(report) {
@@ -85,8 +98,7 @@ function dataRequestInstallWarRoomClock(report) {
       route[0] !== "query-report" ||
       route[1] !== DATA_REQUEST_WAR_ROOM_NAME
     ) {
-      clearInterval(report._dataRequestWarRoomClock);
-      report._dataRequestWarRoomClock = null;
+      dataRequestStopWarRoomTimers(report);
       return;
     }
 
@@ -112,11 +124,104 @@ function dataRequestInstallWarRoomClock(report) {
   tick();
 }
 
+function dataRequestInstallWarRoomAutoRefresh(report) {
+  if (report._dataRequestWarRoomRefreshTimer) {
+    clearInterval(report._dataRequestWarRoomRefreshTimer);
+    report._dataRequestWarRoomRefreshTimer = null;
+  }
+
+  const poll = () => {
+    const route = frappe.get_route();
+
+    if (
+      route[0] !== "query-report" ||
+      route[1] !== DATA_REQUEST_WAR_ROOM_NAME
+    ) {
+      dataRequestStopWarRoomTimers(report);
+      return;
+    }
+
+    const request = report.last_ajax;
+
+    const pending = request && (
+      (typeof request.state === "function" &&
+        request.state() === "pending") ||
+      (typeof request.state !== "function" &&
+        typeof request.readyState === "number" &&
+        request.readyState > 0 &&
+        request.readyState < 4)
+    );
+
+    if (pending) {
+      return;
+    }
+
+    try {
+      Promise.resolve(report.refresh()).catch((error) => {
+        console.warn(
+          "Data Request War Room auto-refresh failed",
+          error
+        );
+      });
+    } catch (error) {
+      console.warn(
+        "Data Request War Room auto-refresh failed",
+        error
+      );
+    }
+  };
+
+  report._dataRequestWarRoomRefreshTimer = setInterval(
+    poll,
+    DATA_REQUEST_LIST_REFRESH_MS
+  );
+}
+
+function dataRequestBindWarRoomRoute(report) {
+  // One listener per report instance. It must survive navigation
+  // away so it can restore timers on re-entry.
+  if (report._dataRequestWarRoomRouteHandler) {
+    return;
+  }
+
+  if (typeof frappe.router?.on !== "function") {
+    throw new Error("Frappe route-change listener unavailable");
+  }
+
+  const onRouteChange = () => {
+    const route = frappe.get_route();
+
+    const active =
+      route[0] === "query-report" &&
+      route[1] === DATA_REQUEST_WAR_ROOM_NAME;
+
+    if (!active) {
+      dataRequestStopWarRoomTimers(report);
+      return;
+    }
+
+    // Frappe may reuse this report page without calling onload.
+    // Restore only missing timers; never duplicate running timers.
+    if (!report._dataRequestWarRoomClock) {
+      dataRequestInstallWarRoomClock(report);
+    }
+
+    if (!report._dataRequestWarRoomRefreshTimer) {
+      dataRequestInstallWarRoomAutoRefresh(report);
+    }
+  };
+
+  frappe.router.on("change", onRouteChange);
+  report._dataRequestWarRoomRouteHandler = onRouteChange;
+}
+
 frappe.query_reports[DATA_REQUEST_WAR_ROOM_NAME] = {
   filters: [],
 
   onload(report) {
+    dataRequestBindWarRoomRoute(report);
     dataRequestInstallWarRoomClock(report);
+    dataRequestInstallWarRoomAutoRefresh(report);
   },
 
   refresh(report) {
