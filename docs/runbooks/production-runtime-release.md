@@ -1100,6 +1100,12 @@ Automation may collect evidence for this decision, but migration relevance,
 production impact, and changed-artifact classification require explicit
 operator review.
 
+For releases containing Data Request scheduler or notification changes,
+review [Data Request scheduler readiness and controlled activation](data-request-scheduler-activation.md)
+during this human review gate. Record the operational impact and whether
+scheduler activation is authorized or deferred. The linked procedure does
+not replace any release phase or approval requirement.
+
 Compare the previous deployed commit with the candidate commit.
 
 Typical commands:
@@ -4150,6 +4156,12 @@ Do not close the contextual CCTV release as fully functionally verified until th
 ## Phase 20 — prove runtime and HTTP health after migration
 
 After database and functional validation, re-prove the complete runtime boundary.
+
+For Data Request scheduler releases, a running `scheduler` container
+does not prove that site-level scheduling is enabled or that jobs are
+executing automatically. Consult the [Data Request scheduler readiness note](data-request-scheduler-activation.md)
+for separate configuration, dispatch and execution evidence. Keep
+activation subject to the existing authorization gates.
 
 ### Runtime services
 
