@@ -1102,6 +1102,7 @@ operator review.
 
 For releases containing Data Request scheduler or notification changes,
 review [Data Request scheduler readiness and controlled activation](data-request-scheduler-activation.md)
+and [Data Request SMTP and notification delivery readiness](data-request-smtp-readiness.md)
 during this human review gate. Record the operational impact and whether
 scheduler activation is authorized or deferred. The linked procedure does
 not replace any release phase or approval requirement.
