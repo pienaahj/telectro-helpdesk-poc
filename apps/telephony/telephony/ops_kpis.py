@@ -91,3 +91,87 @@ def unclaimed_over_4h() -> dict:
 @frappe.whitelist()
 def unclaimed_pool_now() -> dict:
     return unassigned_now()
+
+_DATA_REQUEST_OVERSIGHT_ROLES = {
+    "System Manager",
+    "Pilot Admin",
+    "TELECTRO-POC Role - Coordinator Ops",
+    "TELECTRO-POC Role - Supervisor Governance",
+}
+
+
+@frappe.whitelist()
+def data_request_overdue_now() -> dict:
+    """Count overdue incomplete Data Requests visible to the caller."""
+    from datetime import timedelta
+    from frappe.utils import now_datetime
+
+    user = frappe.session.user
+
+    if not user or user == "Guest":
+        frappe.throw(
+            "Data Request oversight access is required.",
+            frappe.PermissionError,
+        )
+
+    if user != "Administrator":
+        roles = set(frappe.get_roles(user) or [])
+
+        if not roles.intersection(_DATA_REQUEST_OVERSIGHT_ROLES):
+            frappe.throw(
+                "Data Request oversight access is required.",
+                frappe.PermissionError,
+            )
+
+        account = frappe.db.get_value(
+            "User",
+            user,
+            ["enabled", "user_type"],
+            as_dict=True,
+        )
+
+        if (
+            not account
+            or not account.enabled
+            or account.user_type != "System User"
+        ):
+            frappe.throw(
+                "An enabled internal user is required.",
+                frappe.PermissionError,
+            )
+
+    cutoff = now_datetime() - timedelta(minutes=10)
+
+    # List-level permissions are applied by Frappe.
+    candidates = frappe.get_list(
+        "HD Ticket",
+        filters={
+            "custom_service_area": "Data Request",
+            "status": ["in", list(_ACTIVE_STATUSES)],
+            "creation": ["<=", cutoff],
+            "custom_data_request_first_completed_on": [
+                "is", "not set"
+            ],
+        },
+        fields=["name"],
+        limit_page_length=0,
+    )
+
+    visible_count = 0
+
+    for row in candidates:
+        ticket = frappe.get_doc("HD Ticket", row.name)
+
+        # Independently enforce document-level read permission.
+        if frappe.has_permission(
+            "HD Ticket",
+            ptype="read",
+            doc=ticket,
+            user=user,
+        ):
+            visible_count += 1
+
+    return _card(
+        visible_count,
+        "TELECTRO Ops Data Request Overdue",
+    )

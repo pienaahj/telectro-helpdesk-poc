@@ -55,7 +55,7 @@
       "fieldname": "event",
       "fieldtype": "Select",
       "label": "Event",
-      "options": "arrival",
+      "options": "arrival\nescalation",
       "default": "arrival",
       "reqd": 1,
       "read_only": 1
