@@ -48,6 +48,22 @@ class RecipientTests(unittest.TestCase):
 
         self.profiles = {}
 
+        self.mandatory = {
+            "christo@telectro.co.za",
+            "pierre@telectro.co.za",
+            "sean@telectro.co.za",
+        }
+
+        # These users are deliberately NOT added to self.users.
+        # Their escalation eligibility must not depend on
+        # Coordinator role membership.
+        for user in self.mandatory:
+            self.profiles[user] = SimpleNamespace(
+                enabled=1,
+                user_type="System User",
+                email=user,
+            )
+
         for user in self.users:
             if user in ("Administrator", "Guest"):
                 continue
@@ -137,16 +153,54 @@ class RecipientTests(unittest.TestCase):
             resolve(self.ticket),
         )
 
-    def test_non_coordinator_excluded(self):
+    def test_mandatory_recipients_without_coordinator_role(self):
         self.users = []
 
-        self.assertEqual(resolve(self.ticket), [])
+        self.assertEqual(
+            resolve(self.ticket),
+            sorted(self.mandatory),
+        )
 
     def test_other_service_area_excluded(self):
         ticket = Ticket("PABX")
 
         self.assertEqual(resolve(ticket), [])
         fake.get_all.assert_not_called()
+
+    def test_mandatory_recipient_deduplicated(self):
+        # Sean is mandatory and also holds the Coordinator role.
+        self.users.extend([
+            "sean@telectro.co.za",
+            "sean@telectro.co.za",
+        ])
+
+        result = resolve(self.ticket)
+
+        self.assertEqual(result, sorted(self.profiles))
+        self.assertEqual(
+            result.count("sean@telectro.co.za"),
+            1,
+        )
+
+    def test_mandatory_recipient_permission_denied(self):
+        # Mandatory inclusion must never bypass ticket privacy.
+        self.denied.add("pierre@telectro.co.za")
+
+        result = resolve(self.ticket)
+
+        self.assertNotIn("pierre@telectro.co.za", result)
+        self.assertIn("christo@telectro.co.za", result)
+        self.assertIn("sean@telectro.co.za", result)
+
+    def test_mandatory_recipient_disabled(self):
+        # Disabled accounts cannot receive notifications.
+        self.profiles["christo@telectro.co.za"].enabled = 0
+
+        result = resolve(self.ticket)
+
+        self.assertNotIn("christo@telectro.co.za", result)
+        self.assertIn("pierre@telectro.co.za", result)
+        self.assertIn("sean@telectro.co.za", result)
 
     def test_wrong_doctype_rejected(self):
         ticket = Ticket()
@@ -164,7 +218,7 @@ if __name__ == "__main__":
     result = unittest.TextTestRunner(verbosity=2).run(suite)
 
     assert result.wasSuccessful()
-    assert result.testsRun == 10
+    assert result.testsRun == 13
 
-    print("ESC_27_REGRESSION_COUNT=10")
+    print("ESC_27_REGRESSION_COUNT=13")
     print("ESC_27_RECIPIENT_AUTHORIZATION=PASS")

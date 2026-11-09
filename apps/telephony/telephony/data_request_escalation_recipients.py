@@ -5,6 +5,11 @@ import re
 import frappe
 
 COORDINATOR_ROLE = "TELECTRO-POC Role - Coordinator Ops"
+MANDATORY_ESCALATION_RECIPIENTS = frozenset({
+    "christo@telectro.co.za",
+    "pierre@telectro.co.za",
+    "sean@telectro.co.za",
+})
 SERVICE_AREA = "Data Request"
 
 EMAIL_PATTERN = re.compile(
@@ -32,7 +37,9 @@ def resolve_coordinator_recipients(ticket):
 
     recipients = []
 
-    for user in sorted(set(members)):
+    for user in sorted(
+        set(members) | MANDATORY_ESCALATION_RECIPIENTS
+    ):
         if not user or user in {"Administrator", "Guest"}:
             continue
 
