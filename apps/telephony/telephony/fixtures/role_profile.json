@@ -154,5 +154,38 @@
     "role": "TELECTRO-POC Role - Tech Workspace"
    }
   ]
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Role Profile",
+  "modified": "2026-11-10 20:54:05.824621",
+  "name": "TELECTRO-POC Profile - Coordinator",
+  "role_profile": "TELECTRO-POC Profile - Coordinator",
+  "roles": [
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Agent"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "Support Team"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Ops"
+   },
+   {
+    "parent": "TELECTRO-POC Profile - Coordinator",
+    "parentfield": "roles",
+    "parenttype": "Role Profile",
+    "role": "TELECTRO-POC Role - Coordinator Workspace"
+   }
+  ]
  }
 ]
