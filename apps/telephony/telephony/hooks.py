@@ -439,8 +439,10 @@ _append_hook(
 )
 
 # --- HD Ticket hooks ---
-_append_hook(doc_events["HD Ticket"], "before_insert", "telephony.telectro_intake.populate_from_email")
-
+_append_hook(doc_events["HD Ticket"], "before_insert", [
+    "telephony.telectro_intake.populate_from_email",
+    "telephony.data_request_intake.prepare_data_request_insert",
+])
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.telectro_round_robin.assign_after_insert")
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.docshare_guard.hd_ticket_after_insert")
 _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.data_request_arrival_outbox.capture_arrival_intents")
@@ -450,6 +452,7 @@ _append_hook(doc_events["HD Ticket"], "after_insert", "telephony.data_request_ar
 doc_events["HD Ticket"]["validate"] = [
     "telephony.customer_identity_sync.sync_ticket_customer_identity",
     "telephony.telectro_ticket_routing.seed_ticket_routing",
+    "telephony.data_request_intake.validate_data_request_intake",
     "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
     "telephony.telectro_site_guard.validate_site_fields",
     "telephony.telectro_equipment_guard.validate_affected_equipment",
