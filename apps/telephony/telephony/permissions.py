@@ -210,28 +210,23 @@ def get_customer_names_for_user(user: str | None = None) -> list[str]:
 
 
 def _customer_ticket_query_conditions(user: str) -> str:
-    escaped_user = frappe.db.escape(user)
-    customer_names = get_customer_names_for_user(user)
+    """Restrict Customer ticket lists to one current HD Customer."""
+    from helpdesk.utils import get_customer
 
-    # Safe fallback:
-    # If the Customer user is not linked to a Customer organisation yet, they
-    # should still see tickets they personally created / raised, but no broader
-    # customer-level visibility is granted.
-    personal_condition = f"""(
-        `tabHD Ticket`.`owner` = {escaped_user}
-        OR `tabHD Ticket`.`raised_by` = {escaped_user}
-    )"""
+    linked_customers = list(get_customer(user))
 
-    if not customer_names:
-        return personal_condition
+    # Match the Customer ticket-detail authorisation boundary.
+    if len(linked_customers) != 1:
+        return "1=0"
 
-    escaped_customers = ", ".join(frappe.db.escape(name) for name in customer_names)
+    customer = str(linked_customers[0] or "").strip()
+    if not customer:
+        return "1=0"
 
-    return f"""(
-        `tabHD Ticket`.`owner` = {escaped_user}
-        OR `tabHD Ticket`.`raised_by` = {escaped_user}
-        OR `tabHD Ticket`.`customer` IN ({escaped_customers})
-    )"""
+    return (
+        f"`tabHD Ticket`.`customer` = "
+        f"{frappe.db.escape(customer)}"
+    )
 
 
 def hd_ticket_query_conditions(user: str | None = None) -> str:
