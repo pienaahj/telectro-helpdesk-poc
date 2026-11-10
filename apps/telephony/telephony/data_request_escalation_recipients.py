@@ -1,15 +1,12 @@
-"""Authorized Coordinator recipients for Data Request escalation."""
+
+"""Authorized, site-configured Data Request escalation recipients."""
 
 import re
 
 import frappe
 
-COORDINATOR_ROLE = "TELECTRO-POC Role - Coordinator Ops"
-MANDATORY_ESCALATION_RECIPIENTS = frozenset({
-    "christo@telectro.co.za",
-    "pierre@telectro.co.za",
-    "sean@telectro.co.za",
-})
+
+RECIPIENTS_KEY = "telectro_data_request_escalation_recipients"
 SERVICE_AREA = "Data Request"
 
 EMAIL_PATTERN = re.compile(
@@ -17,8 +14,31 @@ EMAIL_PATTERN = re.compile(
 )
 
 
+def _configured_recipients():
+    """Read the explicit site allowlist. Missing means nobody."""
+
+    configured = frappe.conf.get(RECIPIENTS_KEY)
+
+    if configured is None:
+        return []
+
+    if (
+        not isinstance(configured, list)
+        or any(not isinstance(user, str) for user in configured)
+    ):
+        raise ValueError(
+            "Escalation recipients must be a JSON list of user IDs"
+        )
+
+    return sorted({
+        user.strip()
+        for user in configured
+        if user.strip()
+    })
+
+
 def resolve_coordinator_recipients(ticket):
-    """Return eligible Coordinators permitted to read this ticket."""
+    """Return configured recipients authorized to read this ticket."""
 
     if getattr(ticket, "doctype", None) != "HD Ticket":
         raise ValueError("HD Ticket document required")
@@ -26,21 +46,10 @@ def resolve_coordinator_recipients(ticket):
     if str(ticket.get("custom_service_area") or "").strip() != SERVICE_AREA:
         return []
 
-    members = frappe.get_all(
-        "Has Role",
-        filters={
-            "role": COORDINATOR_ROLE,
-            "parenttype": "User",
-        },
-        pluck="parent",
-    )
-
     recipients = []
 
-    for user in sorted(
-        set(members) | MANDATORY_ESCALATION_RECIPIENTS
-    ):
-        if not user or user in {"Administrator", "Guest"}:
+    for user in _configured_recipients():
+        if user in {"Administrator", "Guest"}:
             continue
 
         profile = frappe.db.get_value(
