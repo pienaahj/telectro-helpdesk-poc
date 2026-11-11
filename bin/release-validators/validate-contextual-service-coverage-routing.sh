@@ -257,10 +257,34 @@ require(
     "CCTV initial hold must be registered exactly once",
 )
 
+data_request_hook = (
+    "telephony.data_request_intake.validate_data_request_intake"
+)
+
+portal_type_hook = (
+    "telephony.customer_portal_ticket_type.validate_customer_portal_ticket_type"
+)
+
+for hook in (data_request_hook, portal_type_hook):
+    require(
+        validate_hooks.count(hook) == 1,
+        f"ticket validation hook must be registered exactly once: {hook}",
+    )
+
+required_sequence = [
+    routing_hook,
+    data_request_hook,
+    portal_type_hook,
+    hold_hook,
+]
+
+routing_index = validate_hooks.index(routing_hook)
+
 require(
-    validate_hooks.index(hold_hook)
-    == validate_hooks.index(routing_hook) + 1,
-    "CCTV initial hold must execute immediately after routing seeding",
+    validate_hooks[
+        routing_index:routing_index + len(required_sequence)
+    ] == required_sequence,
+    "CCTV initial hold must follow the exact routing and intake sequence",
 )
 
 hold_source, hold_tree = source_tree(
