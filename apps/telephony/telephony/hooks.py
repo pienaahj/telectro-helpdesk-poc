@@ -453,6 +453,7 @@ doc_events["HD Ticket"]["validate"] = [
     "telephony.customer_identity_sync.sync_ticket_customer_identity",
     "telephony.telectro_ticket_routing.seed_ticket_routing",
     "telephony.data_request_intake.validate_data_request_intake",
+    "telephony.customer_portal_ticket_type.validate_customer_portal_ticket_type",
     "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
     "telephony.telectro_site_guard.validate_site_fields",
     "telephony.telectro_equipment_guard.validate_affected_equipment",

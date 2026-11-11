@@ -72,6 +72,17 @@ def prepare_data_request_insert(doc, method=None):
 
     _require_customer_account(doc)
 
+    # Reject contradictory selections from the native Customer Portal
+    # before normalization could hide the submitted Ticket Type.
+    if (
+        doc.get("via_customer_portal")
+        and str(doc.get("ticket_type") or "").strip()
+        != "Service Request"
+    ):
+        raise frappe.ValidationError(
+            "Data Requests must be Service Requests."
+        )
+
     # Data Requests are Service Requests, not equipment faults.
     # Do not trust the Ticket Type supplied by the browser.
     doc.ticket_type = "Service Request"

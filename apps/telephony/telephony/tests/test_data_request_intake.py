@@ -6,6 +6,7 @@ from unittest import mock
 import frappe
 
 from telephony import data_request_intake as intake
+from telephony import customer_portal_ticket_type as portal_guard
 
 
 CUSTOMER_USER = "emerald.portal.test@example.com"
@@ -215,6 +216,67 @@ class TestDataRequestIntake(unittest.TestCase):
         self.assertEqual(doc.priority, "Medium")
         self.assertFalse(doc.flags.data_request_intake_prepared)
 
+    def test_portal_fault_data_request_rejected(self):
+        doc = self.ticket(
+            via_customer_portal=1,
+            ticket_type="Faults",
+            custom_request_type="Other",
+        )
+
+        with self.assertRaisesRegex(
+            frappe.ValidationError,
+            "Data Requests must be Service Requests",
+        ):
+            intake.prepare_data_request_insert(doc)
+
+        # Failed validation must not silently normalize the ticket.
+        self.assertEqual(doc.ticket_type, "Faults")
+        self.assertEqual(doc.priority, "Medium")
+        self.assertFalse(doc.flags.data_request_intake_prepared)
+
+    def test_portal_data_request_combined_classification(self):
+        """Verify both classification hooks accept a valid Data Request."""
+
+        def user_lookup(doctype, name, fieldname, **kwargs):
+            self.assertEqual(doctype, "User")
+            self.assertEqual(name, CUSTOMER_USER)
+
+            if fieldname == "user_type":
+                return "Website User"
+
+            if fieldname == ["enabled", "user_type"]:
+                return SimpleNamespace(
+                    enabled=1,
+                    user_type="Website User",
+                )
+
+            self.fail(f"Unexpected User lookup: {fieldname!r}")
+
+        self.db.get_value.side_effect = user_lookup
+
+        doc = self.ticket(
+            via_customer_portal=1,
+            ticket_type="Service Request",
+            custom_request_type="Other",
+            priority="Medium",
+        )
+
+        # First: existing before_insert preparation.
+        intake.prepare_data_request_insert(doc)
+
+        self.assertEqual(doc.ticket_type, "Service Request")
+        self.assertEqual(doc.priority, "High")
+        self.assertTrue(doc.flags.data_request_intake_prepared)
+
+        # Second: existing Data Request validation.
+        intake.validate_data_request_intake(doc)
+
+        # Third: new Customer Portal classification validation.
+        portal_guard.validate_customer_portal_ticket_type(doc)
+
+        self.assertEqual(doc.ticket_type, "Service Request")
+        self.assertEqual(doc.custom_request_type, "Other")
+        self.assertEqual(doc.priority, "High")
 
 if __name__ == "__main__":
     unittest.main()
