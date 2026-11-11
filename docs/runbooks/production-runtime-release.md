@@ -2727,6 +2727,66 @@ PRE_RECREATION_ONE_SHOT_STATE_CAPTURED
 PRODUCTION_RUNTIME_RECREATION_PRECHECK_OK
 ```
 
+### Mandatory RQ execution boundary before runtime recreation
+
+Before Phase 12 recreates the runtime services, establish an explicit
+RQ execution-protection boundary.
+
+This is required for releases where migration may enqueue background
+jobs, including the unsupported Helpdesk RediSearch indexer.
+
+The approved sequence is:
+
+1. Confirm the production maintenance boundary is active.
+2. Confirm the site scheduler is paused.
+3. Inspect all three RQ queues: short, default and long.
+4. Record queued and started job identities.
+5. Inspect registered workers and confirm no jobs are executing.
+6. Establish and independently verify RQ suspension.
+7. Gracefully stop both existing RQ worker containers.
+8. Verify both worker containers have stopped.
+9. Verify RQ suspension persists after worker shutdown.
+10. Confirm backend health and frontend routing remain acceptable.
+
+Do not discard queued jobs or reset notification state.
+
+For releases with active notification delivery, record the expected
+business impact and preserve all legitimate notification obligations.
+
+The historical 6 November procedure established this boundary before
+runtime recreation. Its evidence is retained in the corresponding
+release staging directory.
+
+Required evidence:
+
+```text
+RQ_SUSPENSION_PERSISTED=PASS
+RQ_WORKERS_IDLE_BEFORE_STOP=PASS
+RQ_QUEUES_DRAINED_BEFORE_STOP=PASS
+BOTH_RQ_WORKER_CONTAINERS_STOPPED=PASS
+RQ_SUSPENSION_AFTER_WORKER_STOP=PASS
+RQ_WORKER_EXECUTION_BOUNDARY=ESTABLISHED
+```
+
+These markers describe the historical protection contract. They must
+be established afresh for the current release.
+
+Runtime recreation may restart worker containers. Therefore, worker
+shutdown at this boundary does not by itself prove that RQ remains
+protected during subsequent migration.
+
+Verify continued RQ suspension and absence of executing jobs again
+at the Phase 16 migration boundary.
+
+The complete pre-reopening RediSearch safeguard is documented under
+"Controlled operational reopening — R0–R5".
+
+**STOP** if RQ suspension, worker execution state, queue inventory or
+maintenance protection cannot be independently verified.
+
+Do not continue to Phase 12 without an approved and proven execution
+boundary.
+
 ### Release-specific gate — contextual CCTV assignment before runtime recreation
 
 **Applies when:** The release introduces or changes `TELECTRO Assignment Policy`, contextual Service Coverage assignment, or CCTV automatic assignment behavior.
@@ -3341,6 +3401,44 @@ This phase is required when later proof depends on comparing old and new databas
 
 ## Phase 16 — run the production migration
 
+### Mandatory pre-migration RQ execution safety gate
+
+Before executing the production migration, independently verify that
+the RQ execution boundary established in Phase 11 remains effective.
+
+Phase 12 recreates the runtime services, potentially restarting RQ
+worker containers. The Phase 11 worker-stop evidence alone is therefore
+insufficient to establish migration-time protection.
+
+Required preconditions:
+
+1. Verify production maintenance mode remains enabled.
+2. Verify the site scheduler remains paused.
+3. Confirm RQ suspension remains effective in Redis.
+4. Inspect the short, default and long queues.
+5. Inspect registered workers and currently executing jobs.
+6. Confirm no worker can execute queued jobs during migration.
+7. Confirm legitimate queued notifications and other business jobs
+   have been inventoried and preserved.
+8. Confirm the approved Data Request automation configuration.
+9. Confirm the current RediSearch Scheduled Job Type state.
+10. Record the verified execution boundary in release evidence.
+
+If worker containers were recreated, do not assume that their
+previous stopped state persists.
+
+If workers are running, establish and verify an approved execution
+boundary before proceeding.
+
+**STOP** if queue suspension, worker execution state or application
+protection cannot be established.
+
+Do not execute migration while unsupported queued RediSearch indexing
+could be processed by an active worker.
+
+The migration must continue to use the existing replay-protected
+`bin/prod-migrate.sh` wrapper.
+
 Use the repository-controlled migration wrapper:
 
 ```bash
@@ -3448,6 +3546,36 @@ PRODUCTION_MIGRATION_COMMAND_OK
 must be treated as a post-migration state until proven otherwise.
 
 Do not automatically switch back to the previous image without evaluating database compatibility.
+
+### Mandatory post-migration RQ hold
+
+After migration completes, preserve RQ execution protection.
+
+Helpdesk's `after_migrate` hook may enqueue
+`helpdesk.search.build_index`, which requires unsupported RediSearch
+functionality on the current production Redis server.
+
+Before RQ resumes:
+
+1. Verify migration completion and retain its evidence.
+2. Confirm RQ remains suspended and no jobs are executing.
+3. Inventory the queued jobs across all three queues.
+4. Identify any Redis-backed Helpdesk indexing jobs.
+5. Apply the controlled pre-reopening RediSearch safeguard documented
+   under "Controlled operational reopening — R0–R5".
+6. Preserve legitimate SQLite indexing, notification and business jobs.
+7. Verify unsupported scheduled indexing remains disabled.
+8. Record the resulting queue inventory and any approved exclusions.
+
+The actual queued-job identification and cancellation procedure requires
+independent verification and explicit operator authorization.
+
+**Do not resume RQ automatically after migration.**
+
+Proceed toward the controlled R0–R5 reopening only after the
+post-migration safeguard has been accepted.
+
+Migration success does not itself authorize RQ resumption.
 
 ## Phase 17 — clear the production site cache
 
@@ -4714,6 +4842,522 @@ Required marker:
 ```text
 PRODUCTION_RELEASE_METADATA_RECONCILED
 ```
+
+## Controlled operational reopening — R0–R5
+
+This procedure governs the controlled restoration of normal ERPNext
+production operation after the candidate runtime, migration, database,
+functional, browser and release metadata gates have been reviewed.
+
+It is based on the verified reopening of production release
+`20261106-b02a46e` on 6 November 2026.
+
+The historical reopening evidence is retained under:
+
+```text
+/opt/telectro/erpnext/staging/20261106-b02a46e/app/
+```
+
+**This procedure is not automatic authorization to reopen production.**
+
+Do not execute reopening merely because migration or HTTP health checks
+have passed.
+
+The operator must explicitly approve the reopening boundary, including
+accepted limitations, automation side effects and rollback implications.
+
+### Reopening prerequisites
+
+Before R0:
+
+1. Confirm the approved release ID, source SHA and running image identity.
+2. Confirm successful completion of all required preceding release gates.
+3. Confirm production migration has completed successfully, if required.
+4. Confirm database and application validation results are acceptable.
+5. Record completed and deferred browser/role acceptance.
+6. Confirm the fresh production backup and rollback artifacts are retained.
+7. Confirm maintenance mode and scheduler protection states.
+8. Inspect the actual RQ queues and pending job identities.
+9. Inspect all enabled scheduled jobs and their potential side effects.
+10. Establish the current approved Data Request activation configuration.
+11. Verify the unsupported RediSearch indexing safeguard.
+12. Obtain explicit operator reopening approval.
+
+Any failed prerequisite requires investigation or an explicitly recorded
+human acceptance decision where the existing release runbook permits it.
+
+### Mandatory execution order
+
+```text
+R0 — Operator approval and protected-state verification
+ |
+ v
+R1 — Resume RQ processing
+ |
+ v
+R2 — Reconcile queued jobs and recover supported operation
+ |
+ v
+R3 — Disable maintenance mode and verify HTTP/HTTPS
+ |
+ v
+R4 — Resume scheduler and observe execution
+ |
+ v
+R5 — Verify final operational health and record evidence
+ |
+ v
+Phase 23 — Final evidence record
+ |
+ v
+Phase 24 — Operational closure
+```
+
+Do not change this order without a separately reviewed runbook amendment.
+
+### Mandatory pre-reopening RediSearch migration safeguard
+
+Production Redis does not support the `FT.CREATE` command used by
+Helpdesk's Redis-backed search indexing.
+
+Helpdesk registers two indexing entry points:
+
+- `helpdesk.search.build_index_in_background` through `after_migrate`.
+- `helpdesk.search.build_index_if_not_exists` through scheduler hooks.
+
+The migration hook can enqueue an unsupported indexing job even when
+the scheduled indexing job has `stopped=1`.
+
+**This safeguard must complete before R1 resumes RQ processing.**
+
+#### Before migration
+
+1. Establish the approved maintenance and scheduler protection.
+2. Suspend RQ processing through the established production mechanism.
+3. Verify registered workers are idle.
+4. Verify all three queue states and in-progress jobs.
+5. Stop the RQ worker containers gracefully.
+6. Confirm no workers can execute queued jobs during migration.
+7. Preserve existing legitimate jobs and their identities.
+
+Do not rely on maintenance mode alone to prevent asynchronous execution.
+
+The migration wrapper remains `bin/prod-migrate.sh`. Its replay
+protection and evidence contract must not be bypassed.
+
+#### After migration, before R0/R1
+
+While RQ remains protected:
+
+1. Confirm migration completed successfully.
+2. Enumerate the short, default and long RQ queues.
+3. Record each queued job's ID, site, queue, status, name and callable.
+4. Identify any unsupported Redis-backed Helpdesk indexing job.
+5. Independently verify its exact callable identity.
+6. Confirm the job belongs to the intended production site.
+7. Confirm it remains queued and has not started executing.
+8. Obtain explicit operator approval before cancellation.
+9. Cancel only the independently verified unsupported job.
+10. Verify its final state is `canceled` and it is no longer queued.
+11. Verify no unrelated job was cancelled.
+12. Verify `search.build_index_if_not_exists` remains stopped.
+13. Preserve SQLite indexing and all legitimate queued work.
+14. Record the post-migration queue inventory and exclusion evidence.
+
+The historical failed RediSearch job ID and Python memory address
+must never be reused as identification criteria.
+
+The expected callable identity is:
+
+`helpdesk.search.build_index`
+
+Validate the actual callable module and qualified name, site, queue,
+job name and status. Do not rely on a partial string match.
+
+Use the verified RQ `Job.cancel(enqueue_dependents=False)` API only
+after all identity and execution-state checks pass.
+
+`Queue.remove()` alone is not an approved substitute.
+
+**STOP** if:
+
+- The job's identity is ambiguous.
+- The job is already executing.
+- A worker is still capable of executing the job.
+- The queue or site differs from the approved target.
+- Other jobs would be affected.
+- Cancellation or independent verification fails.
+- The unsupported scheduled indexing job is unexpectedly enabled.
+
+Do not cancel or discard legitimate notification, email, SQLite
+indexing or other business jobs.
+
+#### Operational activation consideration
+
+Data Request notification delivery was separately activated in
+production on 10 November 2026.
+
+Before any future RQ suspension, explicitly assess legitimate queued
+notifications, delivery delays and business impact.
+
+Preserve the approved notification-delivery configuration.
+
+Ten-minute escalation activation remains a separate approval decision.
+
+#### Evidence required before R0
+
+Record:
+
+- Pre-migration RQ protection and worker state.
+- Migration completion evidence.
+- Exact post-migration queued-job inventory.
+- Unsupported job identity and approved disposition.
+- Cancellation verification, where applicable.
+- Preserved legitimate jobs.
+- Disabled RediSearch Scheduled Job Type.
+- Approved Data Request automation configuration.
+
+No queued RediSearch indexing job may remain eligible for execution
+when RQ processing is resumed.
+
+If the safeguard cannot be established, stop the release reopening
+and follow the approved incident/recovery procedure.
+
+### R0 — Authorization and protected-state verification
+
+Establish and record:
+
+- Release ID and operator identity.
+- Current maintenance mode.
+- Current scheduler pause state.
+- RQ suspension state.
+- Pending queue names, counts and job identities.
+- Data Request escalation activation state.
+- Data Request notification-delivery activation state.
+- Unsupported RediSearch scheduled-job state.
+- Accepted functional and browser limitations.
+- Explicit operator approval.
+- Stop conditions and rollback boundary.
+- Post-migration RediSearch queue inspection completed and independently verified.
+- Any unsupported queued indexing job safely excluded with explicit operator approval.
+- Legitimate queued jobs preserved and the unsupported Scheduled Job Type confirmed disabled.
+
+The 6 November reopening began with maintenance enabled, scheduler
+paused and RQ suspended.
+
+Those historical states are not substitutes for checking the actual
+state of a future candidate.
+
+The 6 November procedure deferred both Data Request automation gates.
+Subsequent production activation decisions may differ.
+
+Preserve the currently authorized configuration; do not blindly restore
+historical activation timestamps or disable an already approved service.
+
+Required evidence:
+
+```text
+OPERATOR_REOPENING_DECISION_RECORDED=PASS
+PRE_REOPENING_SAFETY_BOUNDARY=PASS
+CONTROLLED_REOPENING_STEP_R0=PASS
+```
+
+Do not approve reopening unless the mandatory post-migration RediSearch
+safeguard has been completed and its evidence reviewed.
+
+An outstanding unsupported indexing job is a release STOP condition,
+not an accepted operational limitation.
+
+**STOP** if approval, protection state or automation scope is ambiguous.
+
+### R1 — Resume RQ processing
+
+Before resuming:
+
+1. Verify maintenance remains enabled.
+2. Verify the scheduler remains paused.
+3. Verify the approved Data Request activation boundary.
+4. Inspect queued job identities and expected side effects.
+5. Confirm no unexpected job is awaiting execution.
+6. Verify the post-migration RediSearch exclusion safeguard is complete.
+7. Confirm no unsupported Redis-backed Helpdesk indexing job remains
+   eligible for execution.
+8. Confirm cancellation evidence, where applicable, was independently
+   verified and approved.
+
+**Mandatory R1 gate:** Do not remove RQ suspension while the
+post-migration RediSearch safeguard is incomplete.
+
+Preserve all legitimate queued notification, SQLite indexing and
+business jobs.
+
+Resume RQ using the verified production queue-control mechanism.
+
+Do not substitute a worker restart for the approved RQ resume operation.
+
+After resuming, verify that suspension has been removed.
+
+Historical evidence:
+
+```text
+R1_PRE_RESUME_BOUNDARY=PASS
+RQ_RESUME_RESULT=1
+RQ_SUSPENSION_REMOVED=PASS
+CONTROLLED_REOPENING_STEP_R1=PASS
+```
+
+The historical queue counts of four default and three long jobs are
+not fixed requirements for future releases.
+
+**STOP** if queue identity or execution behavior differs unexpectedly.
+
+### R2 — Reconcile RQ job outcomes
+
+Account for every queued job observed at R1.
+
+Classify each result:
+
+- Finished successfully.
+- Failed.
+- Still queued or processing.
+- Missing or unexpectedly replaced.
+- Unexpected side effect.
+
+Do not interpret removal from a queue as proof of successful execution.
+
+The historical 6 November reopening accounted for seven jobs:
+
+```text
+JOBS_FINISHED=6
+JOBS_FAILED=1
+JOBS_OTHER_STATUS=0
+JOBS_MISSING=0
+R2_SEVEN_JOB_IDENTITIES_ACCOUNTED_FOR=PASS
+```
+
+The failed job attempted unsupported RediSearch indexing using
+`FT.CREATE`.
+
+The historical recovery:
+
+1. Identified the failed indexing job.
+2. Verified the exact scheduled job:
+   `search.build_index_if_not_exists`.
+3. Verified its method:
+   `helpdesk.search.build_index_if_not_exists`.
+4. Disabled that specific scheduled job.
+5. Verified its committed `stopped=1` state.
+6. Confirmed the stale Helpdesk indexing cache flag.
+7. Cleared the stale flag.
+8. Preserved the functioning SQLite search path.
+9. Verified existing Role Profile integrity.
+
+Historical recovery markers:
+
+```text
+REDIS_SEARCH_SCHEDULED_JOB_DISABLED=PASS
+HELPDESK_STALE_INDEXING_FLAG_CLEARED=PASS
+POST_RQ_ROLE_PROFILE_INTEGRITY=PASS
+```
+
+**Important:** These actions recovered the 6 November release.
+They do not establish that a future migration cannot recreate or
+re-enable the unsupported indexing job.
+
+Before R4, verify the safeguard against the actual migrated candidate.
+
+Do not enable RediSearch indexing on production Redis unless the required
+capability has been independently established and approved.
+
+Do not clear cache flags or disable scheduled jobs indiscriminately.
+Any corrective change must be narrowly scoped, reviewed and verified.
+
+Proceed only after the operator has reviewed all failures and accepted
+the resulting operational state.
+
+### R3 — Disable maintenance mode
+
+Prerequisites:
+
+- RQ processing resumed and reconciled.
+- No unresolved unsafe job execution.
+- Required database and application state verified.
+- Approved automation boundaries preserved.
+- Scheduler still paused.
+
+Use the established production Bench mechanism to disable site
+maintenance mode.
+
+Then independently verify:
+
+```text
+MAINTENANCE_MODE=0
+PAUSE_SCHEDULER=1
+```
+
+The scheduler must remain paused during this stage.
+
+Verify:
+
+- Internal application routing.
+- Direct or internally routed API health as applicable.
+- External HTTPS/API health.
+- TLS verification.
+
+Historical markers:
+
+```text
+R3_MAINTENANCE_DISABLED=PASS
+R3_SCHEDULER_STILL_PAUSED=PASS
+R3_INTERNAL_HTTP=PASS
+R3A_PUBLIC_HTTPS_PING=PASS
+R3A_TLS_VERIFICATION=PASS
+```
+
+**STOP** if application access or routing fails.
+
+Do not advance to scheduler activation while application health
+is uncertain.
+
+### R4 — Resume the site scheduler
+
+Prerequisites:
+
+1. Maintenance mode disabled.
+2. RQ workers available.
+3. Unsupported RediSearch scheduled indexing remains disabled.
+4. Approved Data Request activation settings verified.
+5. Existing enabled scheduled jobs and side effects reviewed.
+6. Production SMTP, mailbox polling and notification side effects
+   considered where applicable.
+7. No unresolved reopening safety condition.
+
+Resume the site scheduler through the established production Bench
+procedure.
+
+Verify effective configuration:
+
+```text
+MAINTENANCE_MODE=0
+PAUSE_SCHEDULER=False
+```
+
+Also verify:
+
+- Scheduler is enabled through applicable Frappe settings.
+- Unsupported RediSearch indexing has not been re-enabled.
+- Data Request activation settings match the current approval.
+- RQ workers are registered and functioning.
+- Scheduled-job dispatch occurs.
+- Scheduled Job Logs show actual execution results.
+- No unexpected outgoing notifications or mailbox polling effects occur.
+
+The presence of a scheduled-job registration alone does not prove
+execution.
+
+Historical markers:
+
+```text
+R4_SCHEDULER_EFFECTIVELY_ACTIVE=PASS
+R4_UNSUPPORTED_SEARCH_JOB_REMAINS_DISABLED=PASS
+R4A_RQ_REGISTRATION_INSPECTED=PASS
+R4A_SCHEDULER_DISPATCH_OBSERVED=YES
+R4A_SCHEDULER_ACTIVITY_INSPECTION=PASS
+```
+
+Do not assume historical Data Request activation settings remain
+appropriate for the next release.
+
+**STOP** on unexpected jobs, failures or unauthorized automation.
+
+### R5 — Final operational health
+
+Independently verify:
+
+- All five application runtime services are running.
+- Backend health is acceptable.
+- No unexpected runtime container restarts.
+- Running image identities match the approved release.
+- Infrastructure services remain intact.
+- RQ workers are registered and operational.
+- Scheduler execution is observable.
+- Scheduled-job failures are reviewed and reconciled.
+- Unsupported RediSearch indexing remains disabled.
+- Data Request automation respects the approved activation boundary.
+- Public HTTPS and API health pass.
+- No unexpected permission or Role Profile changes occurred.
+
+Historical 6 November evidence:
+
+```text
+R5_RUNTIME_HEALTH=PASS
+R5_RQ_WORKERS=PASS
+SCHEDULED_LOGS_AFTER_BOUNDARY=40
+SCHEDULED_LOGS_COMPLETED=40
+SCHEDULED_LOGS_FAILED=0
+R5_SCHEDULER_EXECUTION=PASS
+R5_SCHEDULER_FAILURE_CHECK=PASS
+R5_PUBLIC_HTTPS=PASS
+CONTROLLED_REOPENING_STEP_R5=PASS
+```
+
+The historical count of 40 scheduled executions is evidence of that
+release, not a mandatory fixed count for all future releases.
+
+Verify sufficient real execution evidence for the current release.
+
+### Evidence and operational closure
+
+Preserve separate evidence for:
+
+```text
+R0 — Operator approval and starting protection
+R1 — RQ resume and queue identity
+R2 — Job outcomes and corrective actions
+R3 — Maintenance removal and HTTP recovery
+R4 — Scheduler restoration and execution
+R5 — Final health and operational validation
+```
+
+Store evidence under the current release's existing staging and
+deployment-evidence structure.
+
+Do not overwrite the 6 November reopening logs.
+
+Record:
+
+- Actual execution times and operator.
+- Release and image identities.
+- Configuration values before and after each approved change.
+- Job identities and outcomes.
+- Corrective actions and their independent verification.
+- Accepted limitations and deferred acceptance.
+- Active and inactive automation features.
+- Remaining operational risks.
+- Final health results.
+- Rollback boundary and retained artifacts.
+
+If reopening fails, stop, retain the evidence and apply the existing
+runbook's applicable rollback decision process.
+
+Do not automatically repeat migration or assume that an image-only
+rollback is safe after database migration.
+
+Proceed to Phase 23 only when the reopened operational state has been
+verified and any remaining limitations have been explicitly accepted.
+
+Phase 23 records final deployment evidence.
+
+Phase 24 records operational closure.
+
+The existing final release markers remain mandatory:
+
+```text
+FINAL_PRODUCTION_DEPLOYMENT_STATE_OK
+PRODUCTION_RELEASE_OPERATIONALLY_CLOSED
+```
+
+A healthy application alone is not sufficient for release closure.
 
 ## Phase 23 — write the final evidence record
 
