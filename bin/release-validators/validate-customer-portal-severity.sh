@@ -202,17 +202,32 @@ require(
 
 ticket_new_source = TICKET_NEW_PATH.read_text()
 
-require(
-    (
-        "!isCustomerPortal.value || "
-        "!f.hide_from_customer"
-    )
-    in ticket_new_source,
-    (
-        "Customer portal must continue rendering "
-        "template fields not hidden from customers"
-    ),
+start = ticket_new_source.find(
+    "const visibleFields = computed(() => {"
 )
+end = ticket_new_source.find(
+    "function handleOnFieldChange(", start
+)
+
+require(
+    start >= 0 and end > start,
+    "Customer Portal visibleFields implementation is missing",
+)
+
+visible_fields_source = ticket_new_source[start:end]
+
+required_markers = (
+    "if (!isCustomerPortal.value) {",
+    "if (field.hide_from_customer) {",
+    'customerTicketType.value !== "Faults"',
+    '["custom_severity", "custom_equipment_ref"].includes(',
+)
+
+for marker in required_markers:
+    require(
+        marker in visible_fields_source,
+        f"Customer Portal visibility contract missing: {marker}",
+    )
 
 print(
     "CUSTOMER_PORTAL_TEMPLATE_VISIBILITY_CONTRACT=PASS"

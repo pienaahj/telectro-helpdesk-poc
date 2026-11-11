@@ -52,7 +52,10 @@ class TestDataRequestNotificationIntentSchema(unittest.TestCase):
     def test_arrival_event(self):
         field = self.fields["event"]
         self.assertEqual(field["default"], "arrival")
-        self.assertEqual(field["options"], "arrival")
+        self.assertEqual(
+            field["options"].splitlines(),
+            ["arrival", "escalation"],
+        )
         self.assertEqual(field["reqd"], 1)
 
     def test_delivery_starts_pending(self):
