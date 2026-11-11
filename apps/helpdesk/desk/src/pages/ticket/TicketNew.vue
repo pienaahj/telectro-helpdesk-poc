@@ -68,6 +68,67 @@
         </div>
       </div>
 
+      <!-- Explicit Customer Portal ticket classification -->
+      <fieldset
+        v-if="isCustomerPortal"
+        class="rounded-xl border border-gray-200 bg-white p-4"
+      >
+        <legend class="px-1 text-sm font-semibold text-gray-800">
+          {{ __("What do you need help with?") }}
+          <span class="text-red-600">*</span>
+        </legend>
+
+        <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label
+            class="flex cursor-pointer gap-3 rounded-lg border border-gray-200 p-4"
+          >
+            <input
+              v-model="customerTicketType"
+              type="radio"
+              name="customer_ticket_type"
+              value="Faults"
+              class="mt-1"
+            />
+            <span>
+              <span class="block font-medium text-gray-800">
+                {{ __("Report a Fault") }}
+              </span>
+              <span class="mt-1 block text-sm text-gray-500">
+                {{
+                  __(
+                    "Something is broken, unavailable or not working correctly.",
+                  )
+                }}
+              </span>
+            </span>
+          </label>
+
+          <label
+            class="flex cursor-pointer gap-3 rounded-lg border border-gray-200 p-4"
+          >
+            <input
+              v-model="customerTicketType"
+              type="radio"
+              name="customer_ticket_type"
+              value="Service Request"
+              class="mt-1"
+            />
+            <span>
+              <span class="block font-medium text-gray-800">
+                {{ __("Request a Service") }}
+              </span>
+              <span class="mt-1 block text-sm text-gray-500">
+                {{
+                  __(
+                    "I need something supplied, changed, configured or arranged.",
+                  )
+                }}
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
       <!-- custom fields descriptions -->
       <div v-if="Boolean(template.data?.about)" class="">
         <div
@@ -97,20 +158,20 @@
         />
       </div>
 
-      <!-- Telectro Customer Fault Point prototype -->
+      <!-- Customer Campus and optional fault location -->
       <div
         v-if="isCustomerPortal"
         class="rounded border border-gray-200 bg-white p-4 space-y-3"
       >
         <div>
           <span class="block text-sm font-medium text-gray-700">
-            {{ __("Fault Point") }}
+            {{ __("Campus / Location") }}
           </span>
 
           <span class="block text-sm text-gray-500">
             {{
               __(
-                "Choose the affected Campus and location. Available options are limited to your Customer organisation.",
+                "Select the Campus associated with your request. Available locations are restricted to your Customer organisation.",
               )
             }}
           </span>
@@ -176,7 +237,7 @@
           class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
         >
           <div class="font-medium text-gray-900">
-            {{ __("Selected fault location") }}
+            {{ __("Selected Campus") }}
           </div>
 
           <div class="mt-1 text-base text-gray-900">
@@ -189,7 +250,7 @@
           <div class="mt-1 text-xs text-gray-500">
             {{
               __(
-                "This Customer reports faults at Campus level. The selected Campus will be sent to Telectro with this support request.",
+                "The selected Campus will be sent to Telectro with this support request.",
               )
             }}
           </div>
@@ -224,247 +285,86 @@
           </div>
         </div>
 
-        <div
-          v-if="!selectedCampusIsTerminal"
-          class="grid grid-cols-1 gap-3 sm:grid-cols-3"
-        >
-          <div class="flex flex-col gap-1">
-            <span class="text-sm text-gray-700">
-              {{ __("Category") }}
-            </span>
-
-            <select
-              v-model="faultPointCategory"
-              class="form-control rounded border border-gray-300 px-3 py-2 text-sm"
-              @change="handleFaultPointCategoryChange"
-            >
-              <option
-                v-for="category in faultPointCategories"
-                :key="category"
-                :value="category"
-              >
-                {{ category }}
-              </option>
-            </select>
-          </div>
-
-          <div class="flex flex-col gap-1 sm:col-span-2">
-            <span class="text-sm text-gray-700">
-              {{ __("Search") }}
-            </span>
-
-            <div class="flex gap-2">
-              <FormControl
-                v-model="faultPointSearch"
-                type="text"
-                :placeholder="
-                  __(
-                    'Search within the selected category, e.g. Bakery',
-                  )
-                "
-                @keyup.enter="searchFaultPoints"
-              />
-
-              <button
-                type="button"
-                class="inline-flex items-center rounded-lg bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                :style="portalPrimaryStyle"
-                :disabled="faultPointLoading || !selectedCampus"
-                @click="searchFaultPoints"
-              >
-                {{
-                  faultPointLoading
-                    ? __("Searching...")
-                    : __("Search")
-                }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Selected Fault Point -->
-        <div
-          v-if="selectedFaultPoint"
-          class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
-        >
-          <div class="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <div class="font-medium text-gray-900">
-                {{ selectedFaultPointLabel }}
-              </div>
-
-              <div class="text-xs text-gray-500">
-                {{
-                  selectedFaultPointIsNonPoint
-                    ? __(
-                        "This link or area will be sent to Telectro with your ticket.",
-                      )
-                    : __(
-                        "This location will be sent to Telectro with your ticket.",
-                      )
-                }}
-              </div>
-            </div>
-
-            <Button
-              :label="__('Clear')"
-              theme="gray"
-              variant="subtle"
-              @click="clearFaultPointSelection"
-            />
-          </div>
-
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <div>
-              <div
-                class="text-xs font-medium uppercase text-gray-500"
-              >
-                {{
-                  selectedFaultPointIsNonPoint
-                    ? __("Fault Asset")
-                    : __("Fault Point")
-                }}
-              </div>
-
-              <div class="text-gray-900">
-                {{ selectedFaultPoint.location_name }}
-              </div>
-            </div>
-
-            <div>
-              <div
-                class="text-xs font-medium uppercase text-gray-500"
-              >
-                {{ __("Category") }}
-              </div>
-
-              <div class="text-gray-900">
-                {{ faultPointCategory }}
-              </div>
-            </div>
-
-            <div>
-              <div
-                class="text-xs font-medium uppercase text-gray-500"
-              >
-                {{ __("Campus") }}
-              </div>
-
-              <div class="text-gray-900">
-                {{ selectedFaultPointCampus }}
-              </div>
-            </div>
-
-            <div>
-              <div
-                class="text-xs font-medium uppercase text-gray-500"
-              >
-                {{ __("Map") }}
-              </div>
-
-              <div class="text-gray-900">
-                <div
-                  v-if="selectedFaultPointHasCoordinates"
-                  class="flex flex-wrap gap-2"
-                >
-                  <RouterLink
-                    :to="{
-                      name: 'TicketCustomerLocationMap',
-                      params: {
-                        locationId: selectedFaultPoint.name,
-                      },
-                    }"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="rounded border border-gray-700 bg-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-                    :style="portalPrimaryStyle"
-                  >
-                    {{ __("Aerial view") }}
-                  </RouterLink>
-
-                  <a
-                    :href="selectedFaultPointMapUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    {{ __("Map view") }}
-                  </a>
-                </div>
-
-                <span v-else>
-                  {{
-                    selectedFaultPointIsNonPoint
-                      ? __("Not available for this geometry")
-                      : __("Not available")
-                  }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Telectro Customer Affected Equipment -->
-        <div
-          v-if="selectedFaultPoint"
-          class="space-y-3 rounded border border-gray-200 bg-gray-50 p-4"
-        >
-          <div>
-            <div class="font-medium text-gray-900">
-              {{ __("Affected Equipment") }}
-            </div>
-
-            <div class="text-xs text-gray-500">
-              {{
-                __(
-                  "If you know which installed equipment is faulty, select it here. This helps Telectro identify both where the fault is and what is affected.",
-                )
-              }}
-            </div>
-          </div>
-
-          <!-- Selected Equipment -->
+        <template v-if="customerTicketType === 'Faults'">
           <div
-            v-if="selectedEquipment"
-            class="rounded border border-gray-200 bg-white p-3"
+            v-if="!selectedCampusIsTerminal"
+            class="grid grid-cols-1 gap-3 sm:grid-cols-3"
           >
-            <div class="flex items-start justify-between gap-3">
+            <div class="flex flex-col gap-1">
+              <span class="text-sm text-gray-700">
+                {{ __("Category") }}
+              </span>
+
+              <select
+                v-model="faultPointCategory"
+                class="form-control rounded border border-gray-300 px-3 py-2 text-sm"
+                @change="handleFaultPointCategoryChange"
+              >
+                <option
+                  v-for="category in faultPointCategories"
+                  :key="category"
+                  :value="category"
+                >
+                  {{ category }}
+                </option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1 sm:col-span-2">
+              <span class="text-sm text-gray-700">
+                {{ __("Search") }}
+              </span>
+
+              <div class="flex gap-2">
+                <FormControl
+                  v-model="faultPointSearch"
+                  type="text"
+                  :placeholder="
+                    __(
+                      'Search within the selected category, e.g. Bakery',
+                    )
+                  "
+                  @keyup.enter="searchFaultPoints"
+                />
+
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded-lg bg-gray-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  :style="portalPrimaryStyle"
+                  :disabled="faultPointLoading || !selectedCampus"
+                  @click="searchFaultPoints"
+                >
+                  {{
+                    faultPointLoading
+                      ? __("Searching...")
+                      : __("Search")
+                  }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Fault Point -->
+          <div
+            v-if="selectedFaultPoint"
+            class="rounded border border-gray-200 bg-gray-50 p-4 text-sm"
+          >
+            <div class="mb-3 flex items-start justify-between gap-3">
               <div>
                 <div class="font-medium text-gray-900">
-                  {{ selectedEquipment.equipment_name }}
+                  {{ selectedFaultPointLabel }}
                 </div>
 
-                <div class="mt-1 text-xs text-gray-500">
-                  <span v-if="selectedEquipment.equipment_type">
-                    {{ selectedEquipment.equipment_type }}
-                  </span>
-
-                  <span
-                    v-if="
-                      selectedEquipment.equipment_type &&
-                      (selectedEquipment.manufacturer ||
-                        selectedEquipment.model)
-                    "
-                  >
-                    ·
-                  </span>
-
-                  <span v-if="selectedEquipment.manufacturer">
-                    {{ selectedEquipment.manufacturer }}
-                  </span>
-
-                  <span
-                    v-if="
-                      selectedEquipment.manufacturer &&
-                      selectedEquipment.model
-                    "
-                  >
-                    {{ " " }}
-                  </span>
-
-                  <span v-if="selectedEquipment.model">
-                    {{ selectedEquipment.model }}
-                  </span>
+                <div class="text-xs text-gray-500">
+                  {{
+                    selectedFaultPointIsNonPoint
+                      ? __(
+                          "This link or area will be sent to Telectro with your ticket.",
+                        )
+                      : __(
+                          "This location will be sent to Telectro with your ticket.",
+                        )
+                  }}
                 </div>
               </div>
 
@@ -472,153 +372,315 @@
                 :label="__('Clear')"
                 theme="gray"
                 variant="subtle"
-                @click="clearEquipmentSelection"
+                @click="clearFaultPointSelection"
               />
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div>
+                <div
+                  class="text-xs font-medium uppercase text-gray-500"
+                >
+                  {{
+                    selectedFaultPointIsNonPoint
+                      ? __("Fault Asset")
+                      : __("Fault Point")
+                  }}
+                </div>
+
+                <div class="text-gray-900">
+                  {{ selectedFaultPoint.location_name }}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  class="text-xs font-medium uppercase text-gray-500"
+                >
+                  {{ __("Category") }}
+                </div>
+
+                <div class="text-gray-900">
+                  {{ faultPointCategory }}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  class="text-xs font-medium uppercase text-gray-500"
+                >
+                  {{ __("Campus") }}
+                </div>
+
+                <div class="text-gray-900">
+                  {{ selectedFaultPointCampus }}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  class="text-xs font-medium uppercase text-gray-500"
+                >
+                  {{ __("Map") }}
+                </div>
+
+                <div class="text-gray-900">
+                  <div
+                    v-if="selectedFaultPointHasCoordinates"
+                    class="flex flex-wrap gap-2"
+                  >
+                    <RouterLink
+                      :to="{
+                        name: 'TicketCustomerLocationMap',
+                        params: {
+                          locationId: selectedFaultPoint.name,
+                        },
+                      }"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="rounded border border-gray-700 bg-gray-700 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                      :style="portalPrimaryStyle"
+                    >
+                      {{ __("Aerial view") }}
+                    </RouterLink>
+
+                    <a
+                      :href="selectedFaultPointMapUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      {{ __("Map view") }}
+                    </a>
+                  </div>
+
+                  <span v-else>
+                    {{
+                      selectedFaultPointIsNonPoint
+                        ? __("Not available for this geometry")
+                        : __("Not available")
+                    }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Equipment Search -->
-          <template v-else>
-            <div class="flex gap-2">
-              <input
-                v-model="equipmentSearch"
-                type="text"
-                class="form-control flex-1"
-                :placeholder="
-                  __('Search equipment at this location')
-                "
-                @keyup.enter="searchEquipment"
-              />
+          <!-- Telectro Customer Affected Equipment -->
+          <div
+            v-if="selectedFaultPoint"
+            class="space-y-3 rounded border border-gray-200 bg-gray-50 p-4"
+          >
+            <div>
+              <div class="font-medium text-gray-900">
+                {{ __("Affected Equipment") }}
+              </div>
 
-              <Button
-                :label="
-                  equipmentLoading
-                    ? __('Searching...')
-                    : __('Search')
+              <div class="text-xs text-gray-500">
+                {{
+                  __(
+                    "If you know which installed equipment is faulty, select it here. This helps Telectro identify both where the fault is and what is affected.",
+                  )
+                }}
+              </div>
+            </div>
+
+            <!-- Selected Equipment -->
+            <div
+              v-if="selectedEquipment"
+              class="rounded border border-gray-200 bg-white p-3"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="font-medium text-gray-900">
+                    {{ selectedEquipment.equipment_name }}
+                  </div>
+
+                  <div class="mt-1 text-xs text-gray-500">
+                    <span v-if="selectedEquipment.equipment_type">
+                      {{ selectedEquipment.equipment_type }}
+                    </span>
+
+                    <span
+                      v-if="
+                        selectedEquipment.equipment_type &&
+                        (selectedEquipment.manufacturer ||
+                          selectedEquipment.model)
+                      "
+                    >
+                      ·
+                    </span>
+
+                    <span v-if="selectedEquipment.manufacturer">
+                      {{ selectedEquipment.manufacturer }}
+                    </span>
+
+                    <span
+                      v-if="
+                        selectedEquipment.manufacturer &&
+                        selectedEquipment.model
+                      "
+                    >
+                      {{ " " }}
+                    </span>
+
+                    <span v-if="selectedEquipment.model">
+                      {{ selectedEquipment.model }}
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  :label="__('Clear')"
+                  theme="gray"
+                  variant="subtle"
+                  @click="clearEquipmentSelection"
+                />
+              </div>
+            </div>
+
+            <!-- Equipment Search -->
+            <template v-else>
+              <div class="flex gap-2">
+                <input
+                  v-model="equipmentSearch"
+                  type="text"
+                  class="form-control flex-1"
+                  :placeholder="
+                    __('Search equipment at this location')
+                  "
+                  @keyup.enter="searchEquipment"
+                />
+
+                <Button
+                  :label="
+                    equipmentLoading
+                      ? __('Searching...')
+                      : __('Search')
+                  "
+                  theme="gray"
+                  variant="subtle"
+                  :disabled="equipmentLoading"
+                  @click="searchEquipment"
+                />
+              </div>
+
+              <div
+                v-if="equipmentResults.length"
+                class="max-h-64 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+              >
+                <button
+                  v-for="row in equipmentResults"
+                  :key="row.name"
+                  type="button"
+                  class="block w-full rounded border border-gray-200 bg-white px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  @click="selectEquipment(row)"
+                >
+                  <span class="block font-medium text-gray-900">
+                    {{ row.equipment_name }}
+                  </span>
+
+                  <span class="block text-xs text-gray-500">
+                    {{ row.equipment_type || __("Equipment") }}
+
+                    <template
+                      v-if="row.manufacturer || row.model"
+                    >
+                      ·
+                      {{
+                        [row.manufacturer, row.model]
+                          .filter(Boolean)
+                          .join(" ")
+                      }}
+                    </template>
+                  </span>
+                </button>
+              </div>
+
+              <div
+                v-else-if="
+                  equipmentSearched && !equipmentLoading
                 "
-                theme="gray"
-                variant="subtle"
-                :disabled="equipmentLoading"
-                @click="searchEquipment"
-              />
+                class="text-sm text-gray-500"
+              >
+                {{
+                  __(
+                    "No customer-selectable equipment is registered at this location. You can still continue with the support request.",
+                  )
+                }}
+              </div>
+            </template>
+          </div>
+
+          <!-- Fault Point Loading -->
+          <div
+            v-if="faultPointLoading && !selectedFaultPoint"
+            class="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"
+          >
+            {{ __("Loading available fault points...") }}
+          </div>
+
+          <!-- Fault Point Results -->
+          <div
+            v-if="faultPointResults.length"
+            class="space-y-2"
+          >
+            <div class="text-xs text-gray-500">
+              {{
+                faultPointSearch
+                  ? __(
+                      "Matching fault points. Select the closest affected location.",
+                    )
+                  : __(
+                      "Available fault points. Scroll or search to find the closest affected location.",
+                    )
+              }}
             </div>
 
             <div
-              v-if="equipmentResults.length"
-              class="max-h-64 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
+              class="max-h-80 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
             >
               <button
-                v-for="row in equipmentResults"
+                v-for="row in faultPointResults"
                 :key="row.name"
                 type="button"
-                class="block w-full rounded border border-gray-200 bg-white px-3 py-2 text-left text-sm hover:bg-gray-50"
-                @click="selectEquipment(row)"
+                class="block w-full rounded border border-gray-200 px-3 py-2 text-left text-sm hover:bg-gray-50"
+                @click="selectFaultPoint(row)"
               >
                 <span class="block font-medium text-gray-900">
-                  {{ row.equipment_name }}
+                  {{ row.location_name }}
                 </span>
 
                 <span class="block text-xs text-gray-500">
-                  {{ row.equipment_type || __("Equipment") }}
-
-                  <template
-                    v-if="row.manufacturer || row.model"
-                  >
-                    ·
-                    {{
-                      [row.manufacturer, row.model]
-                        .filter(Boolean)
-                        .join(" ")
-                    }}
-                  </template>
+                  {{ row.parent_location }}
                 </span>
               </button>
             </div>
+          </div>
 
-            <div
-              v-else-if="
-                equipmentSearched && !equipmentLoading
-              "
-              class="text-sm text-gray-500"
-            >
+          <!-- No Fault Point Results -->
+          <div
+            v-else-if="
+              faultPointSearched &&
+              !faultPointLoading &&
+              !selectedFaultPoint
+            "
+            class="rounded border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800"
+          >
+            <div class="font-medium">
+              {{ __("No matching fault points found.") }}
+            </div>
+
+            <div class="mt-1">
               {{
                 __(
-                  "No customer-selectable equipment is registered at this location. You can still continue with the support request.",
+                  "Try a shorter search term, choose the nearest known location, or select the closest point you recognise and describe the exact place in the details below.",
                 )
               }}
             </div>
-          </template>
-        </div>
-
-        <!-- Fault Point Loading -->
-        <div
-          v-if="faultPointLoading && !selectedFaultPoint"
-          class="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700"
-        >
-          {{ __("Loading available fault points...") }}
-        </div>
-
-        <!-- Fault Point Results -->
-        <div
-          v-if="faultPointResults.length"
-          class="space-y-2"
-        >
-          <div class="text-xs text-gray-500">
-            {{
-              faultPointSearch
-                ? __(
-                    "Matching fault points. Select the closest affected location.",
-                  )
-                : __(
-                    "Available fault points. Scroll or search to find the closest affected location.",
-                  )
-            }}
           </div>
-
-          <div
-            class="max-h-80 space-y-2 overflow-y-auto rounded border border-gray-200 p-2"
-          >
-            <button
-              v-for="row in faultPointResults"
-              :key="row.name"
-              type="button"
-              class="block w-full rounded border border-gray-200 px-3 py-2 text-left text-sm hover:bg-gray-50"
-              @click="selectFaultPoint(row)"
-            >
-              <span class="block font-medium text-gray-900">
-                {{ row.location_name }}
-              </span>
-
-              <span class="block text-xs text-gray-500">
-                {{ row.parent_location }}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- No Fault Point Results -->
-        <div
-          v-else-if="
-            faultPointSearched &&
-            !faultPointLoading &&
-            !selectedFaultPoint
-          "
-          class="rounded border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800"
-        >
-          <div class="font-medium">
-            {{ __("No matching fault points found.") }}
-          </div>
-
-          <div class="mt-1">
-            {{
-              __(
-                "Try a shorter search term, choose the nearest known location, or select the closest point you recognise and describe the exact place in the details below.",
-              )
-            }}
-          </div>
-        </div>
+        </template>
       </div>
-
       <!-- existing fields -->
       <div
         class="flex flex-col"
@@ -775,6 +837,7 @@ const subject = ref("");
 const description = ref("");
 const attachments = ref([]);
 const templateFields = reactive({});
+const customerTicketType = ref<"" | "Faults" | "Service Request">("");
 
 const { profile: customerPortalProfile } = useCustomerPortalProfile();
 
@@ -931,11 +994,34 @@ function applyFilters(fieldname: string, filters: any = null) {
 const customOnChange = computed(() => template.data?._customOnChange);
 
 const visibleFields = computed(() => {
-  let _fields = template.data?.fields?.filter(
-    (f) => !isCustomerPortal.value || !f.hide_from_customer,
-  );
-  if (!_fields) return [];
-  return _fields.map((field) => parseField(field, templateFields));
+  const fields = template.data?.fields || [];
+
+  return fields
+    .filter((field) => {
+      // Internal ticket creation remains unchanged.
+      if (!isCustomerPortal.value) {
+        return true;
+      }
+
+      // Preserve the template's customer visibility rules.
+      if (field.hide_from_customer) {
+        return false;
+      }
+
+      // Fault-specific fields only apply when reporting a fault.
+      // Also hide them until the customer selects a Ticket Type.
+      if (
+        customerTicketType.value !== "Faults" &&
+        ["custom_severity", "custom_equipment_ref"].includes(
+          field.fieldname,
+        )
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .map((field) => parseField(field, templateFields));
 });
 
 function handleOnFieldChange(e: any, fieldname: string, fieldtype: string) {
@@ -1172,6 +1258,12 @@ function selectedFaultPointFields() {
       }
     : {};
 
+  // Service Requests retain their Campus, but must not inherit
+  // Fault Point, Fault Asset or equipment-specific classification.
+  if (customerTicketType.value !== "Faults") {
+    return campusFields;
+  }
+
   if (!selectedFaultPoint.value?.name) {
     return campusFields;
   }
@@ -1211,10 +1303,36 @@ const ticket = createResource({
       template: props.templateId,
       ...templateFields,
       ...selectedFaultPointFields(),
+
+      // Customer Portal classification is explicit.
+      // Internal agent creation retains its existing behaviour.
+      ...(isCustomerPortal.value
+        ? {
+            ticket_type: customerTicketType.value,
+            ...(customerTicketType.value === "Service Request"
+              ? {
+                  custom_request_type: "Other",
+                  custom_severity: "",
+                  custom_equipment_ref: "",
+                }
+              : {}),
+          }
+        : {}),
     },
     attachments: attachments.value,
   }),
   validate: (params) => {
+    if (isCustomerPortal.value && !customerTicketType.value) {
+      return __("Please choose Report a Fault or Request a Service.");
+    }
+
+    if (
+      isCustomerPortal.value &&
+      params.doc.custom_service_area === "Data Request" &&
+      customerTicketType.value !== "Service Request"
+    ) {
+      return __("Data Requests must be submitted as Service Requests.");
+    }
     if (isCustomerPortal.value && !selectedCampus.value) {
       return __("Please select the affected Campus.");
     }
