@@ -6,6 +6,111 @@
 - **Authoritative release procedure:** `docs/runbooks/production-runtime-release.md` (all phase gates, including explicit Phase 2 human review, remain mandatory)
 - **Related delivery:** Draft PR #415, `feat/2026-11-04-data-request-10min-escalation`, published HEAD `de160214c0417907ee67df9d0a60e1b9d2dbe91d` at capture time.
 
+## Production status update — 12 November 2026
+
+**Current status: PRODUCTION ACTIVE — AUTOMATIC EXECUTION ACCEPTED**
+
+This update supersedes the historical production `ON HOLD` and
+automatic-execution-unproven statements recorded during the
+6 November DEV investigation.
+
+Those statements accurately describe the situation at the time
+and are retained below as historical evidence.
+
+### Production release and scheduler recovery
+
+Production release: `20261111-3cca9a2`
+Site: `erp.telectro.co.za`
+
+Production runtime recovery checkpoints R1–R5 passed.
+
+The production scheduler was restored through an explicitly authorized
+operational procedure.
+
+The scheduler and RQ workers were verified operational, and the
+Data Request escalation and notification-delivery scheduled jobs
+were confirmed active.
+
+The pilot inbox polling job remained deliberately disabled because
+the four pilot incoming email accounts were not configured.
+
+The unsupported Helpdesk RediSearch indexing job remained disabled.
+
+Neither job was enabled merely to perform Data Request testing.
+
+### Automatic scheduler acceptance — HD Ticket #76
+
+The controlled production test on 12 November established actual
+automatic execution rather than merely registered scheduler hooks.
+
+| Checkpoint | Verified result |
+|---|---|
+| Escalation activation | 10:27:29 SAST |
+| Test ticket created | 10:34:04 SAST |
+| Ten-minute threshold | 10:44:04 SAST |
+| Automatic escalation execution | 10:44:49 SAST |
+| Escalation intents | 3/3 created |
+| Notification-delivery job | Automatically executing |
+| Native Email Queues | 3/3 Sent |
+| Notification intent reconciliation | 3/3 Complete |
+| Independent mailbox confirmation | 3/3 confirmed |
+| Test ticket final state | Resolved |
+
+The escalation scheduler executed approximately 45 seconds after
+the ten-minute threshold.
+
+Production Scheduled Job Logs showed successful recurring executions
+of `telephony.jobs.data_request_escalation.run`.
+
+Notification-delivery Scheduled Job Logs also showed successful
+recurring executions of
+`telephony.jobs.data_request_notification_delivery.run`.
+
+The delivery worker reconciled all three escalation intents to
+`Complete / Sent` at approximately 10:51:49 SAST.
+
+No manual execution of either scheduled job was required for
+this acceptance test.
+
+### Acceptance markers
+
+```text
+PRODUCTION_RELEASE=20261111-3cca9a2
+PRODUCTION_SCHEDULER_RECOVERY=PASS
+DATA_REQUEST_ESCALATION_JOB_AUTOMATIC=PASS
+DATA_REQUEST_NOTIFICATION_DELIVERY_JOB_AUTOMATIC=PASS
+DATA_REQUEST_ESCALATION_CRON_CADENCE=PASS
+DATA_REQUEST_ESCALATION_INTENTS=3_OF_3
+DATA_REQUEST_EMAIL_QUEUE_SENT=3_OF_3
+DATA_REQUEST_MAILBOX_CONFIRMATIONS=3_OF_3
+DATA_REQUEST_SCHEDULER_PRODUCTION_ACCEPTANCE=PASS
+```
+
+### Continuing operational controls
+
+The production scheduler must remain under the approved operational
+configuration.
+
+Do not re-enable disabled pilot inbox polling or unsupported
+RediSearch indexing merely because scheduler recovery succeeded.
+
+Do not repeat the successful ticket #76 acceptance test.
+
+For the complete escalation timeline, recipient configuration,
+delivery evidence and rollback procedure, see:
+
+`docs/runbooks/data-request-escalation-activation.md`
+
+For production release authority and outstanding formal closure,
+see:
+
+`docs/runbooks/production-runtime-release.md`
+
+**Formal Phase 23 final-state evidence and Phase 24 operational
+release closure remain outstanding.**
+
+---
+
 ## Purpose
 
 Preserve the exact scheduling dependency discovered in DEV so that a later production release does **not** assume running Compose services and registered cron hooks mean Data Request escalation will occur automatically. This document is a readiness note, **not** authorization to activate the scheduler or release the application.
