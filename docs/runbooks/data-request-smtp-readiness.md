@@ -6,6 +6,173 @@
 - **Related readiness note:** `docs/runbooks/data-request-scheduler-activation.md`
 - **Change:** Draft PR #415 (`feat/2026-11-04-data-request-10min-escalation`)
 
+## Production delivery acceptance — 12 November 2026
+
+**Current status: PRODUCTION NOTIFICATION DELIVERY ACCEPTED**
+
+**Site:** `erp.telectro.co.za`
+**Release:** `20261111-3cca9a2`
+**Acceptance ticket:** HD Ticket `#76`
+**Acceptance date:** 2026-11-12 (Africa/Johannesburg)
+
+This update supersedes the historical production-delivery-pending
+statements recorded during the 6 November DEV readiness investigation.
+
+The original DEV SMTP configuration findings remain preserved below.
+They must not be interpreted as descriptions of the current production
+mail infrastructure.
+
+### Production activation and delivery configuration
+
+The following effective production activation values were verified:
+
+- `telectro_data_request_notification_delivery_start_at`:
+  `2026-11-10 13:25:07`
+- `telectro_data_request_escalation_start_at`:
+  `2026-11-12 10:27:29`
+
+The notification-delivery activation was established independently
+of escalation activation and was not reset for this test.
+
+The production scheduler and RQ workers were operational.
+
+The following scheduled jobs executed automatically:
+
+- `telephony.jobs.data_request_escalation.run`
+- `telephony.jobs.data_request_notification_delivery.run`
+
+### Actual production email delivery
+
+A controlled Emerald Life customer portal test created HD Ticket
+`#76` at `2026-11-12 10:34:04.554836` SAST.
+
+The ticket remained incomplete beyond its ten-minute escalation
+threshold of `10:44:04.554836`.
+
+At approximately `10:44:49`, the automatic escalation job created
+three notification intents for the designated recipients.
+
+The notification-delivery pipeline subsequently created or reused
+the corresponding in-app Notification Logs and native Email Queues.
+
+Production inspection verified the following:
+
+| Recipient | Intent delivery | Native Email Queue | Independent receipt |
+|---|---|---|---|
+| `sean@telectro.co.za` | Complete / Sent | Sent | Confirmed |
+| `pierre@telectro.co.za` | Complete / Sent | Sent | Confirmed |
+| `christo@telectro.co.za` | Complete / Sent | Sent | Confirmed |
+
+All three recipient confirmations were obtained on 12 November 2026.
+
+Sean confirmed receipt at approximately 10:47 SAST.
+
+### Native queue and reconciliation evidence
+
+The native Email Queue records for all three recipients had status
+`Sent` and were last modified at approximately `10:46:51` SAST.
+
+At the 10:48 inspection, the associated notification intents still
+reported:
+
+- `delivery_state=Processing`
+- `email_state=Queued`
+
+The automatic notification-delivery scheduler continued executing.
+
+At `10:51:49`, all three intents were reconciled to:
+
+- `delivery_state=Complete`
+- `email_state=Sent`
+- `next_attempt_on=None`
+
+Each intent had:
+
+- An existing linked native Email Queue
+- An existing linked Notification Log
+- A matching authorized recipient
+
+All three native Email Queues were independently inspected and
+reported `Sent`.
+
+This proves successful application-level queue processing and
+subsequent notification-intent reconciliation.
+
+The separate confirmations from Sean, Pierre and Christo additionally
+prove actual recipient mailbox delivery for this controlled test.
+
+No manual notification-job replay or resend was required.
+
+### Acceptance markers
+
+```text
+PRODUCTION_RELEASE=20261111-3cca9a2
+DATA_REQUEST_NOTIFICATION_DELIVERY_ACTIVE=PASS
+DATA_REQUEST_DELIVERY_SCHEDULER_AUTOMATIC=PASS
+DATA_REQUEST_NOTIFICATION_LOGS_LINKED=3_OF_3
+DATA_REQUEST_NATIVE_EMAIL_QUEUES_SENT=3_OF_3
+DATA_REQUEST_INTENT_RECONCILIATION=3_OF_3
+DATA_REQUEST_MAILBOX_RECEIPT=3_OF_3
+DATA_REQUEST_NOTIFICATION_DELIVERY_PRODUCTION_ACCEPTANCE=PASS
+```
+
+### Scope and limitations of this acceptance
+
+The accepted production evidence establishes:
+
+1. Automatic notification-intent processing.
+2. Creation or reuse of linked in-app Notification Logs.
+3. Native Email Queue processing to `Sent`.
+4. Automatic reconciliation of notification intent states.
+5. Actual receipt of escalation emails by all three recipients.
+
+The test did not separately establish or document:
+
+- The production SMTP server's exact TLS configuration.
+- Certificate validation and negotiated encryption.
+- The SMTP authentication mechanism.
+- Mail transport security across every intermediate relay.
+- General delivery guarantees for recipients outside this test.
+
+Those properties must not be marked `PASS` solely because the
+three controlled messages were received.
+
+The historical DEV observation of an SMTP submission endpoint
+without STARTTLS is not evidence of equivalent production settings.
+
+If production SMTP security requires a separate review, perform it
+under an appropriately authorized operational procedure without
+unnecessarily repeating the accepted escalation test.
+
+### Continuing production state
+
+Data Request notification delivery remains active under its
+approved production configuration.
+
+Do not reset the delivery activation timestamp, resend completed
+notifications, manually replay successful jobs or alter SMTP
+configuration merely to complete documentation.
+
+The complete escalation activation, recipient selection, timeline,
+test-ticket resolution and rollback instructions are recorded in:
+
+`docs/runbooks/data-request-escalation-activation.md`
+
+Production scheduler recovery and automatic execution evidence
+are summarized in:
+
+`docs/runbooks/data-request-scheduler-activation.md`
+
+Formal Phase 23 final-state evidence and Phase 24 operational
+release closure remain outstanding under:
+
+`docs/runbooks/production-runtime-release.md`
+
+**Production notification-delivery acceptance is complete.
+Formal production release closure remains a separate requirement.**
+
+---
+
 ## Purpose and boundaries
 
 Preserve the accepted DEV evidence for the Data Request notification delivery path, identify the risks of actual outbound email, and specify production pre-activation checks. This document does **not** authorize deployment, scheduler activation, outbound notification activation, SMTP reconfiguration, or a production test send.

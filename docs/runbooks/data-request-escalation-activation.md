@@ -142,6 +142,207 @@ At completion of testing:
 - `telectro_data_request_escalation_recipients` = `["hendrik@local.test"]`
 - DEV site scheduler remains enabled
 
+## Production acceptance — 12 November 2026
+
+### Scope and outcome
+
+**Site:** `erp.telectro.co.za`
+**Release:** `20261111-3cca9a2`
+**Test ticket:** HD Ticket `#76`
+**Result:** **PASS — automatic ten-minute escalation and three-recipient email delivery.**
+
+This section records actual production behaviour observed on 12 November 2026.
+It supersedes earlier readiness statements describing production escalation
+as inactive or operationally unproven. Historical DEV findings remain valid.
+
+The controlled test was performed using an authorized Emerald Life customer
+portal account. The Data Provisioning team was informed and intentionally
+left the test ticket incomplete until escalation occurred.
+
+No manual escalation job was invoked.
+
+### Production activation
+
+Escalation was activated at **2026-11-12 10:27:29 SAST**.
+
+Effective production configuration:
+
+- `telectro_data_request_escalation_start_at`:
+  `2026-11-12 10:27:29`
+- `telectro_data_request_escalation_recipients`:
+  `["sean@telectro.co.za","pierre@telectro.co.za","christo@telectro.co.za"]`
+- `telectro_data_request_notification_delivery_start_at`:
+  `2026-11-10 13:25:07`
+
+All three recipient accounts were verified as enabled System Users.
+The production scheduler and queue workers had already been enabled
+and verified under the production runtime release procedure.
+
+The escalation activation timestamp excludes tickets created before
+activation. No historical Data Requests were retroactively escalated.
+
+**Production activation evidence:**
+
+`/opt/telectro/erpnext/staging/20261111-3cca9a2/data-request-escalation-activation.txt`
+
+SHA-256:
+
+`7eedc05193c38e7d5bb8f529c22554262d7d3ff419bfe1e673b88629f082831c`
+
+### Controlled production test — HD Ticket #76
+
+The customer portal successfully created ticket `#76` with:
+
+- Subject: `This is a test ticket`
+- Creation: `2026-11-12 10:34:04.554836` SAST
+- Customer: Emerald Life
+- Service Area: `Data Request`
+- Ticket Type: `Service Request`
+- Priority: `High`
+- Assigned team: `Data Provisioning`
+- Initial status: `Open`
+- First completion timestamp: `None`
+
+The ticket was created after escalation activation and remained
+incomplete beyond the ten-minute threshold.
+
+### Automatic escalation timeline
+
+| Event | Production time (SAST) |
+|---|---|
+| Ticket creation | 10:34:04 |
+| Ten-minute threshold | 10:44:04 |
+| Automatic escalation scheduler execution | 10:44:49 |
+| Three escalation intents created | 10:44:49 |
+| Native Email Queue records last modified | 10:46:51 |
+| Intent delivery reconciliation completed | 10:51:49 |
+
+The escalation scheduler executed automatically on its normal
+one-minute cron cadence.
+
+Exactly three escalation intents were created approximately
+45 seconds after the ten-minute threshold.
+
+The recipients matched the approved configuration:
+
+- `sean@telectro.co.za`
+- `pierre@telectro.co.za`
+- `christo@telectro.co.za`
+
+No additional recipient or duplicate escalation intent was observed
+in the ticket-specific inspection.
+
+The Data Request Escalation Report independently identified
+ticket `#76` as overdue while it was Open and assigned to
+Data Provisioning.
+
+### Notification delivery and mailbox acceptance
+
+| Recipient | Intent delivery | Native Email Queue | Independent mailbox receipt |
+|---|---|---|---|
+| Sean | Complete / Sent | Sent | Confirmed at 10:47 SAST |
+| Pierre | Complete / Sent | Sent | Confirmed |
+| Christo | Complete / Sent | Sent | Confirmed |
+
+For each recipient, production inspection verified:
+
+- Exactly one escalation intent for ticket `#76`
+- `delivery_state=Complete`
+- `email_state=Sent`
+- Linked native Email Queue with status `Sent`
+- Linked Notification Log
+- `next_attempt_on=None`
+
+At the earlier 10:48 inspection, the intents still reported
+`Processing / Queued` although native email delivery had progressed.
+
+The automatic notification-delivery scheduler subsequently reconciled
+all three records to `Complete / Sent` at approximately 10:51:49.
+
+All three designated recipients independently confirmed actual receipt
+of their escalation emails.
+
+This establishes mailbox delivery beyond Frappe's native
+Email Queue `Sent` status.
+
+### Final test-ticket state
+
+Ticket `#76` was subsequently **Resolved** through the
+normal operational workflow.
+
+The final Helpdesk screenshot confirms:
+
+- Status: `Resolved`
+- Ticket Type: `Service Request`
+- Service Area: `Data Request`
+
+Historical escalation intents, Notification Logs and Email Queue records
+are retained as operational audit evidence.
+
+### Acceptance markers
+
+```text
+RELEASE_ID=20261111-3cca9a2
+PRODUCTION_ACCEPTANCE_DATE=2026-11-12
+DATA_REQUEST_ESCALATION_ACTIVATED=PASS
+PRODUCTION_TEST_TICKET=76
+CUSTOMER_PORTAL_DATA_REQUEST_CREATION=PASS
+DATA_REQUEST_CLASSIFICATION=PASS
+AUTOMATIC_TEN_MINUTE_ESCALATION=PASS
+ESCALATION_INTENTS=3_OF_3
+ESCALATION_RECIPIENTS=3_OF_3
+ESCALATION_REPORT_OVERDUE=PASS
+NOTIFICATION_LOGS_LINKED=3_OF_3
+NATIVE_EMAIL_QUEUE_SENT=3_OF_3
+INTENT_DELIVERY_COMPLETE=3_OF_3
+INDEPENDENT_MAILBOX_CONFIRMATIONS=3_OF_3
+TEST_TICKET_RESOLVED=PASS
+DATA_REQUEST_PRODUCTION_ESCALATION_ACCEPTANCE=PASS
+```
+
+### Related customer submission incident
+
+Earlier on 12 November, a customer portal Data Request submission
+returned HTTP 417 with:
+
+`frappe.exceptions.ValidationError: Data Requests must be Service Requests.`
+
+The exception originated in
+`telephony/data_request_intake.py`,
+within `prepare_data_request_insert()`.
+
+A subsequent genuine Emerald Life Data Request, ticket `#74`,
+was successfully created and fulfilled, with customer activity,
+technician response, attachment and resolution.
+
+An outdated browser session is a possible explanation for the
+earlier rejection, but this was **not conclusively established**.
+
+No emergency production source correction or rollback was performed.
+
+If the rejection recurs, investigate the submitted Ticket Type,
+portal application version and request context before changing
+the intake validation guard.
+
+### Continuing production state and release boundary
+
+**Data Request escalation remains activated in production**, using
+the three explicitly configured recipients.
+
+The successful acceptance test does not authorize additional
+recipient changes, scheduler configuration changes, notification
+replay or new production test tickets.
+
+Production runtime recovery checkpoints R1–R5 passed.
+
+Formal Phase 23 final-state evidence and Phase 24 operational
+release closure remain outstanding under:
+
+`docs/runbooks/production-runtime-release.md`
+
+**Do not repeat the successful production escalation test merely
+to complete documentation.**
+
 ## Rollback
 
 If production escalation must be stopped, unset `telectro_data_request_escalation_start_at` using Frappe's parsed Python `None` value.
