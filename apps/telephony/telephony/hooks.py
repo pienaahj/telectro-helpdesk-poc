@@ -124,6 +124,7 @@ fixtures = [
         "dt": "Custom Field",
         "filters": [
             ["name", "in", [
+                "Timesheet-custom_telectro_booking_origin",
                 "Timesheet Detail-custom_work_context",
                 "Timesheet Detail-custom_hd_customer",
                 "Timesheet Detail-custom_hd_ticket",
