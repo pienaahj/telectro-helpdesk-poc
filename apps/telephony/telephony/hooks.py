@@ -124,6 +124,10 @@ fixtures = [
         "dt": "Custom Field",
         "filters": [
             ["name", "in", [
+                "Timesheet Detail-custom_work_context",
+                "Timesheet Detail-custom_hd_customer",
+                "Timesheet Detail-custom_hd_ticket",
+                "Timesheet Detail-custom_emergency",
                 "HD Ticket-custom_customer",
                 "HD Ticket-custom_site_group",
                 "HD Ticket-custom_fault_category",
