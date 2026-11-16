@@ -1,7 +1,7 @@
 """Private live Mapping bridge; no lifecycle or database integration."""
 
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from frappe.model.docstatus import DocStatus
 
@@ -94,12 +94,26 @@ class _CreationIntent:
 
 
 @dataclass(frozen=True, slots=True, eq=False, repr=False)
+class _FinalNameAbsence:
+    frame: object
+    document: object
+    name: str
+
+
+@dataclass
+class _AbsenceState:
+    attempted: bool = False
+    evidence: _FinalNameAbsence | None = None
+
+
+@dataclass(frozen=True, slots=True, eq=False, repr=False)
 class _InsertionFrame:
     document: object
     view: _TimesheetDocumentView
     identity: TechnicianBookingIdentity | None
     owner: tuple
     state: _CapabilityState
+    absence: _AbsenceState = field(default_factory=_AbsenceState)
 
 
 _intent: ContextVar[_CreationIntent | None] = ContextVar(
@@ -193,6 +207,7 @@ def _insertion_attempt(document: object) -> Iterator[_InsertionFrame]:
         else:
             yield frame
     finally:
+        frame.absence.evidence = None
         frame.state.active = False
         _frames.reset(token)
 
@@ -269,3 +284,56 @@ def _load_persisted_provenance(name: str) -> Mapping[str, object] | None:
         raise BookingProvenanceError()
     snapshot["docstatus"] = _normalize_docstatus(snapshot["docstatus"])
     return MappingProxyType(snapshot)
+
+
+def _absence_frame_name(frame: _InsertionFrame, document: object) -> str:
+    if (
+        type(frame) is not _InsertionFrame
+        or _current_insertion(document) is not frame
+        or frame.document is not document
+        or frame.identity is None
+        or frame.state.completed
+    ):
+        raise BookingProvenanceError()
+    name = frame.view["name"]
+    if type(name) is not str or not name.strip():
+        if frame.absence.attempted:
+            frame.absence.evidence = None
+        raise BookingProvenanceError()
+    return name
+
+
+def _require_final_name_absence(frame: _InsertionFrame, document: object) -> None:
+    """Require live attempt/name evidence, never grant creation authorization.
+
+    Future controller integration must call this before managed completion.
+    The current controller deliberately remains unchanged and does not do so.
+    """
+    name = _absence_frame_name(frame, document)
+    evidence = frame.absence.evidence
+    if (
+        not frame.absence.attempted
+        or type(evidence) is not _FinalNameAbsence
+        or evidence.frame is not frame
+        or evidence.document is not document
+        or evidence.name != name
+    ):
+        if frame.absence.attempted:
+            frame.absence.evidence = None
+        raise BookingProvenanceError()
+
+
+def _verify_final_name_absence(frame: _InsertionFrame, document: object) -> None:
+    """One locking read at the managed pre-write checkpoint; no retry or commit."""
+    name = _absence_frame_name(frame, document)
+    if frame.absence.attempted:
+        _require_final_name_absence(frame, document)
+        return
+    frame.absence.attempted = True
+    if _load_persisted_provenance(name) is not None:
+        raise BookingProvenanceError()
+    # A reader exception leaves attempted=True and no evidence. Recheck live
+    # binding/name after the read before recording any successful absence.
+    if _absence_frame_name(frame, document) != name:
+        raise BookingProvenanceError()
+    frame.absence.evidence = _FinalNameAbsence(frame, document, name)
