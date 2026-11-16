@@ -1,5 +1,178 @@
 # Pilot Phase 2 Enhancements
 
+## Accepted Phase 2 specification — 16 November 2026
+
+**Status: business scope approved for development planning; implementation and production deployment remain unauthorized.**
+
+### Business requirement and acceptance criterion
+
+Pierre's authoritative requirement is:
+
+> I would like to know what my technicians are busy with and how much time they spend on it.
+
+This is the primary acceptance criterion. Telectro needs lightweight employee
+time booking suited to a small, informally operated business. Evaluate every
+feature against this requirement. The booking interface must be simple and quick.
+
+This section defines the accepted functional scope and takes precedence over
+conflicting historical candidates below. The original material is retained for
+traceability. Phase 2 remains separate from the current pilot baseline and the
+current production correction release.
+
+### Time booking and work contexts
+
+Use native ERPNext Timesheet and Timesheet Detail. Technicians must be able to
+record actual working hours, identify their work, associate appropriate references,
+and view and correct their own bookings. Mistaken or duplicate entries must be
+correctable without an approval process.
+
+| Work context | Intended association |
+| --- | --- |
+| Helpdesk | HD Ticket |
+| Project | Lightweight ERPNext Project; Task optional |
+| Customer Support | Customer-related assistance without a required ticket or Project |
+| Internal | Administration, planning and other internal activities |
+
+Emergency/Unplanned is an independent classification, not another hours ledger
+or an additional work context. It must never duplicate booked hours. Retain native
+Activity Type and Description.
+
+### Operational customer identity and retention
+
+Reuse HD Customer, subject to appropriate authorization. An HD Customer may exist
+without an ERPNext Customer, User or Contact; this was functionally verified in
+DEV. Support more than 100 operational customers not yet onboarded into ERPNext,
+using the existing optional HD Customer → ERPNext Customer relationship.
+
+Preserve stable legacy/Gwizz identification when available. The precise
+migration-key mechanism remains an implementation decision.
+
+Booked hours must remain available when a referenced Project or ticket is
+completed, archived or subsequently removed. Prevent accidental loss of historical
+booking information. Exact deletion/archiving safeguards and the correction audit
+mechanism require design and verification; ordinary reference deletion must not
+silently erase the booking history.
+
+### Reporting
+
+The primary report is **Employee Booked Hours**, with progressive drill-down:
+
+Company → Employee → Work Context → Customer / Ticket / Project → Individual Time Entry.
+
+Support a work-first view where practical. Count each valid booking once, including
+native Draft Timesheet entries. Do not derive booked hours from native Project
+actual-time totals: these were verified to update on Timesheet submission.
+
+A secondary **Booking Completeness & Integrity** report may identify missing,
+duplicate, inconsistent or unclassified bookings. It is not an SLA performance
+report. Its detection rules remain to be designed without introducing expected
+hours or capacity targets.
+
+### Technical candidates and security requirements
+
+Native Timesheet Detail is the authoritative employee-hours ledger. Four proposed
+custom fields are implementation candidates only, not authorization to create them:
+
+- `custom_work_context`
+- `custom_hd_customer`
+- `custom_hd_ticket`
+- `custom_emergency`
+
+Native Timesheet fields continue to handle Employee, Company, Activity Type,
+Project, Task, duration and description. Use a narrowly scoped technician-facing
+interface; do not grant ordinary Technicians broad Projects User or HR roles.
+
+Preserve existing Telectro Helpdesk and customer privacy controls. Enforce:
+
+- Authenticated employee identity and technician access to their own bookings.
+- Server-side ticket-reference authorization.
+- Customer and Project reference consistency.
+- Restricted management-report access.
+- No unauthorized ticket details in lookups or reports.
+- No privileged native Timesheet access through alternate APIs.
+
+Existing Helpdesk permissions are unchanged by this specification update.
+
+### Explicit exclusions and historical disposition
+
+The minimum implementation excludes:
+
+- Timesheet submission, approval workflows and coordinator approval queues.
+- Expected working hours, employee capacity targets, productivity measurements
+  and employee scoring.
+- SLA performance calculations, stop-the-clock or jeopardy management,
+  explanations for SLA breaches and supplier-delay attribution.
+- Customer/contract/site time budgets.
+- Profitability, financial balancing and billing workflows.
+- Full Project Management and HR/payroll implementation.
+
+Earlier requirements are retained below with these explicit dispositions:
+
+| Historical requirement or option | Disposition for this build |
+| --- | --- |
+| Monthly budgets, budget remaining and budget-exceeded behavior | Deferred; booked-hour totals do not imply budget tracking |
+| Approval and submission questions | Superseded by own-booking correction without approval and Draft-inclusive reporting |
+| Ticket-only time logs, ticket child table or separate time-log DocType | Superseded by the native Timesheet Detail ledger across the four contexts |
+| Internal work and Project linkage question | Resolved by the accepted contexts; Project Tasks remain optional |
+| Billable/non-billable reporting and financial processes | Deferred; preserve native fields without introducing billing workflows |
+| Site/location and contract reporting extensions | Deferred beyond the minimum customer/ticket/Project drill-down |
+| Active versus waiting time, blocker fields and supplier attribution | Deferred; historical section 2 is outside this build |
+| Partner time, wider staff participation and Customer-visible time | Deferred; no additional access or participation is authorized |
+| Android application, automatic capture and external time tools | Deferred; historical section 3 is outside this build |
+
+Historical monthly employee/customer totals and ticket breakdowns remain useful
+booked-hours views, without capacity, productivity, SLA or budget interpretations.
+
+### Accepted DEV feasibility evidence — do not repeat
+
+The following are accepted prior demonstrations, not instructions to rerun tests:
+
+- Employee/User relationship established for Bravo.
+- Native Project created without Tasks.
+- Native Draft Timesheet persisted.
+- Correct duration and non-billable calculations.
+- Native submission tested and rolled back.
+- Project actual-time update on submission verified.
+- Standalone HD Customer creation and rollback verified.
+- HD Customer to ERPNext Customer mapping verified.
+- Existing ticket authorization interfaces identified.
+- Positive ticket visibility checked for Bravo.
+- Timesheet Detail has no existing custom fields.
+
+Persistent DEV Timesheet `TS-2026-00001` is Draft with 0.75 hours against
+`PROJ-0001`. Project actual hours are zero following the verified submission
+rollback. Submission feasibility does not add submission to the accepted scope.
+
+### Development boundary and remaining implementation decisions
+
+Canonical Telephony source remains inside the existing DEV backend container at
+`/home/frappe/frappe-bench/apps/telephony`. The Mac repository overlay must not be
+assumed synchronized. Future source synchronization uses
+`bin/pull-telephony-changes.sh`, with explicit `--include-new` paths for approved
+new source files; fixtures use the separate controlled fixture-export workflow.
+No synchronization is part of this documentation task.
+
+This runbook update belongs in the Mac Git repository. It authorizes no canonical
+DEV code, DocType, fixture, permission, database or container changes, and no
+production deployment.
+
+Implementation design still needs review of:
+
+- Context-specific required references and customer/Project consistency rules.
+- Employee identity resolution, management scope and alternate-API containment.
+- Simple booking interaction, time input and Draft grouping conventions.
+- Correction audit, duplicate handling and historical deletion/archiving safeguards.
+- Stable legacy/Gwizz migration keys.
+- Work-first presentation and optional integrity-report detection rules.
+
+---
+
+## Historical enhancement candidates — retained context
+
+The following original plan is preserved. Conflicts and broader requirements are
+superseded or deferred according to the accepted specification above; they are
+not additional requirements for the minimum Phase 2 build.
+
 ## Purpose
 
 This document captures important post-pilot enhancement candidates for the ERPNext / Helpdesk pilot.
