@@ -21,6 +21,7 @@ frappe.ui.form.on("HD Ticket", {
       hide_split_and_merge_section(frm);
       add_controlled_handoff_action(frm);
       add_share_ticket_context_action(frm);
+      add_revoke_worker_grant_action(frm);
       render_internal_customer_request_context(frm);
       render_internal_fault_location_context(frm);
     }, 300);
@@ -356,6 +357,70 @@ async function open_share_ticket_context_dialog(frm) {
     },
   });
 
+  dialog.show();
+}
+
+function add_revoke_worker_grant_action(frm) {
+  if (!frm.doc?.name || frm.is_new() || frm.doc.doctype !== "HD Ticket") return;
+  if (has_custom_button(frm, "Revoke Co-opted Worker")) return;
+  frm.add_custom_button("Revoke Co-opted Worker", () => {
+    open_revoke_worker_grant_dialog(frm);
+  });
+}
+
+async function open_revoke_worker_grant_dialog(frm) {
+  let grants;
+  try {
+    const response = await frappe.call({
+      method: "telephony.api.workspace.list_revocable_ticket_worker_grants",
+      args: { ticket_name: frm.doc.name },
+    });
+    grants = response.message || [];
+  } catch (error) {
+    frappe.msgprint("Unable to load active co-opted workers.");
+    return;
+  }
+  if (!grants.length) {
+    frappe.msgprint("No active co-opted workers available to revoke.");
+    return;
+  }
+  const grantOptions = grants.map((grant) => ({
+    label: `${grant.technician_user} (${grant.employee})`,
+    value: grant.grant_name,
+  }));
+  const dialog = new frappe.ui.Dialog({
+    title: "Revoke Co-opted Worker",
+    fields: [
+      { label: "Active Co-opted Technician", fieldname: "grant_name",
+        fieldtype: "Select", options: grantOptions, reqd: 1 },
+      { label: "Revocation Reason", fieldname: "reason",
+        fieldtype: "Small Text", reqd: 1 },
+    ],
+    primary_action_label: "Revoke",
+    async primary_action(values) {
+      if (!values.grant_name || !values.reason?.trim()) {
+        frappe.msgprint("Select a worker and enter a revocation reason.");
+        return;
+      }
+      frappe.confirm("Revoke this worker's time-booking authority?", async () => {
+        try {
+          await frappe.call({
+            method: "telephony.api.workspace.revoke_ticket_worker_grant",
+            type: "POST",
+            args: { ticket_name: frm.doc.name, grant_name: values.grant_name,
+              reason: values.reason.trim() },
+            freeze: true,
+          });
+          dialog.hide();
+          await open_revoke_worker_grant_dialog(frm);
+        } catch (error) {
+          frappe.msgprint("Revocation was not applied. Refresh the list and try again.");
+          dialog.hide();
+          await open_revoke_worker_grant_dialog(frm);
+        }
+      });
+    },
+  });
   dialog.show();
 }
 

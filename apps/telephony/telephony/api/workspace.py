@@ -84,6 +84,37 @@ def _create_ticket_context_share_notification(ticket, collaborator_doc, note: st
 
 
 @frappe.whitelist()
+def list_revocable_ticket_worker_grants(ticket_name):
+    """Return only active grants this actor may revoke on a visible ticket."""
+    from telephony.time_booking_cooption import BookingCooptionError, _identifier, _lock_ticket
+
+    actor = frappe.session.user
+    if (not _identifier(actor) or actor == "Guest" or not _identifier(ticket_name)):
+        raise BookingCooptionError()
+    _lock_ticket(ticket_name)
+    ticket = frappe.get_doc("HD Ticket", ticket_name, for_update=True)
+    try:
+        ticket.check_permission("read")
+    except frappe.PermissionError as exc:
+        raise BookingCooptionError() from exc
+    rows = frappe.db.sql(
+        "SELECT name, technician_user, employee, granted_by FROM "
+        "`tabTELECTRO Ticket Worker Grant` WHERE ticket = %s "
+        "AND state = 'Active' AND active_key IS NOT NULL AND revoked_at IS NULL "
+        "FOR UPDATE",
+        ticket_name, as_dict=True,
+    )
+    assignees = set(_parse_assigned_users(ticket.get("_assign")))
+    governance = bool(set(frappe.get_roles(actor) or []) & SHARE_CONTEXT_ROLES)
+    return [
+        {"grant_name": row["name"], "technician_user": row["technician_user"],
+         "employee": row["employee"]}
+        for row in rows
+        if actor == row.get("granted_by") or actor in assignees or governance
+    ]
+
+
+@frappe.whitelist()
 def revoke_ticket_worker_grant(ticket_name, grant_name, reason):
     """Revoke one persisted episode, leaving transaction ownership to the caller.
 
