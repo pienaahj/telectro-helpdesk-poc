@@ -285,6 +285,13 @@ async function open_share_ticket_context_dialog(frm) {
         },
       },
       {
+        label: "Co-opt as worker (allow time booking)",
+        fieldname: "coopt_as_worker",
+        fieldtype: "Check",
+        default: 0,
+        description: "Only eligible internal Technicians can be co-opted.",
+      },
+      {
         label: "Note / Reason",
         fieldname: "note",
         fieldtype: "Small Text",
@@ -311,6 +318,7 @@ async function open_share_ticket_context_dialog(frm) {
           ticket_name: frm.doc.name,
           collaborator: values.collaborator,
           note: values.note,
+          coopt_as_worker: Boolean(values.coopt_as_worker),
         },
         freeze: true,
         freeze_message: "Sharing ticket context...",

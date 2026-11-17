@@ -84,8 +84,38 @@ def _create_ticket_context_share_notification(ticket, collaborator_doc, note: st
 
 
 @frappe.whitelist()
-def share_ticket_context(ticket_name, collaborator, note):
-    ticket = _get_ticket_for_context_share(ticket_name)
+def share_ticket_context(ticket_name, collaborator, note, coopt_as_worker=False):
+    coopt_as_worker = _parse_context_share_cooption(coopt_as_worker)
+    if not coopt_as_worker:
+        return _share_ticket_context(ticket_name, collaborator, note)
+
+    # Enforce authority at the public boundary, including direct Python callers.
+    user = frappe.session.user
+    if (type(user) is not str or not user.strip() or user == "Guest"
+            or getattr(getattr(frappe.local, "request", None), "method", None) != "POST"):
+        frappe.throw(_("Worker co-option requires an authenticated POST."), frappe.PermissionError)
+
+    try:
+        return _share_ticket_context(ticket_name, collaborator, note, coopt_as_worker=True)
+    except BaseException:
+        # A grant and all sharing effects form one request transaction. Frappe
+        # owns the successful commit; failures must not retain partial effects.
+        frappe.db.rollback()
+        raise
+
+
+def _parse_context_share_cooption(value):
+    # Frappe form requests encode JavaScript booleans as these exact strings.
+    # Do not use truthiness/cint: malformed values must never enable a grant.
+    if type(value) is bool:
+        return value
+    if type(value) is str and value in ("true", "false"):
+        return value == "true"
+    frappe.throw(_("Co-opt as worker must be a boolean."), frappe.ValidationError)
+
+
+def _share_ticket_context(ticket_name, collaborator, note, *, coopt_as_worker=False):
+    ticket = _get_ticket_for_context_share(ticket_name, for_update=coopt_as_worker)
     collaborator_doc = _get_context_share_collaborator(collaborator)
     note = (note or "").strip()
 
@@ -94,6 +124,21 @@ def share_ticket_context(ticket_name, collaborator, note):
 
     _require_ticket_context_share_access(ticket)
 
+    worker_grant = None
+    if coopt_as_worker:
+        from telephony.customer_communication_privacy import classify_actor_roles
+        from telephony.time_booking_cooption import _grant_after_authorization
+
+        if classify_actor_roles(frappe.get_roles(frappe.session.user)) != "internal":
+            frappe.throw(_("Only internal users may co-opt a worker."), frappe.PermissionError)
+        ticket.check_permission("read")
+        if ticket.get("status") in ("Resolved", "Closed", "Archived"):
+            frappe.throw(_("Workers cannot be co-opted on a terminal ticket."), frappe.ValidationError)
+        worker_grant = _grant_after_authorization(
+            ticket=ticket.name, user=collaborator_doc.name,
+            issuer=frappe.session.user, reason=note,
+        )
+
     before_assign = ticket.get("_assign") or ""
 
     content = _build_ticket_context_share_comment(
@@ -101,6 +146,11 @@ def share_ticket_context(ticket_name, collaborator, note):
         collaborator_doc=collaborator_doc,
         note=note,
     )
+
+    if coopt_as_worker:
+        content += "<br>" + frappe.utils.escape_html(
+            _("Collaborator explicitly co-opted as worker (allow time booking).")
+        )
 
     frappe.get_doc(
         {
@@ -131,7 +181,7 @@ def share_ticket_context(ticket_name, collaborator, note):
         note=note,
     )
 
-    return {
+    result = {
         "ok": 1,
         "message": _("Ticket context shared."),
         "ticket": ticket.name,
@@ -140,6 +190,9 @@ def share_ticket_context(ticket_name, collaborator, note):
         "docshare": docshare_name,
         "notification": notification_name,
     }
+    if coopt_as_worker:
+        result["worker_grant"] = worker_grant
+    return result
 
 @frappe.whitelist()
 def internal_ticket_customer_request_context(ticket_name):
@@ -520,14 +573,14 @@ def _get_location_context(location_name):
         "map_url": map_url,
     }
     
-def _get_ticket_for_context_share(ticket_name):
+def _get_ticket_for_context_share(ticket_name, *, for_update=False):
     if not ticket_name:
         frappe.throw(_("A ticket is required."), frappe.ValidationError)
 
     if not frappe.db.exists("HD Ticket", ticket_name):
         frappe.throw(_("Ticket {0} was not found.").format(ticket_name))
 
-    return frappe.get_doc("HD Ticket", ticket_name)
+    return frappe.get_doc("HD Ticket", ticket_name, for_update=for_update)
 
 
 def _get_context_share_collaborator(collaborator):
