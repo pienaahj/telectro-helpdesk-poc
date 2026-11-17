@@ -12,6 +12,7 @@ from telephony.time_booking_provenance import BookingProvenanceError
 from telephony.time_booking_provenance_adapter import (
     _complete_insertion,
     _insertion_attempt,
+    _require_final_name_absence,
 )
 
 
@@ -45,5 +46,6 @@ class TelectroBookingTimesheet(Timesheet):
             if managed:
                 if result is not self:
                     raise BookingProvenanceError()
+                _require_final_name_absence(frame, self)
                 _complete_insertion(frame, self, frame.identity)
             return result
