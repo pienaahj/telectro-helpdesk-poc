@@ -6,6 +6,9 @@ authorization of references. Direct writes and native RPC containment remain
 separate integration requirements.
 """
 
+from contextlib import contextmanager, nullcontext
+from uuid import uuid4
+
 from erpnext.projects.doctype.timesheet.timesheet import Timesheet
 
 from telephony.time_booking_provenance import BookingProvenanceError
@@ -35,17 +38,69 @@ class TelectroBookingTimesheet(Timesheet):
                 # Print rendering sets doc.flags.in_print, not frappe.flags.
                 if self.flags.in_print or ignore_if_duplicate is not False:
                     raise BookingProvenanceError()
-            result = super().insert(
-                ignore_permissions=ignore_permissions,
-                ignore_links=ignore_links,
-                ignore_if_duplicate=ignore_if_duplicate,
-                ignore_mandatory=ignore_mandatory,
-                set_name=set_name,
-                set_child_names=set_child_names,
-            )
-            if managed:
-                if result is not self:
-                    raise BookingProvenanceError()
-                _require_final_name_absence(frame, self)
-                _complete_insertion(frame, self, frame.identity)
+            scope = _managed_insert_savepoint() if managed else nullcontext()
+            with scope:
+                result = super().insert(
+                    ignore_permissions=ignore_permissions,
+                    ignore_links=ignore_links,
+                    ignore_if_duplicate=ignore_if_duplicate,
+                    ignore_mandatory=ignore_mandatory,
+                    set_name=set_name,
+                    set_child_names=set_child_names,
+                )
+                if managed:
+                    if result is not self:
+                        raise BookingProvenanceError()
+                    _require_final_name_absence(frame, self)
+                    _complete_insertion(frame, self, frame.identity)
             return result
+
+
+class _ManagedSavepointCleanupError(RuntimeError):
+    """Cleanup failed: callers must abort the enclosing transaction/unit."""
+
+    def __init__(self, stage):
+        super().__init__(
+            f"Managed Timesheet savepoint {stage} failed; transaction state is uncertain."
+        )
+
+
+@contextmanager
+def _managed_insert_savepoint():
+    """Contain transactional DB writes only; never commit or retry.
+
+    Savepoint rollback does not unwind callback queues, realtime, jobs, files
+    or external effects. It cannot protect against intervening commits, implicit
+    transaction boundaries, lost connections or nontransactional tables. Other
+    writes inside this scope are also rolled back. Future trusted booking-service
+    transaction ownership remains mandatory; success is not a committed booking.
+    """
+    import frappe
+
+    # Retain the actual Database object rather than a dynamically rebound proxy.
+    db = frappe.local.db
+    name = "p2_ts_" + uuid4().hex
+    db.savepoint(name)
+    try:
+        yield
+    except BaseException:
+        try:
+            db.rollback(save_point=name)
+        except BaseException as cleanup_error:
+            raise _ManagedSavepointCleanupError("rollback") from cleanup_error
+        try:
+            db.release_savepoint(name)
+        except BaseException as cleanup_error:
+            raise _ManagedSavepointCleanupError("release") from cleanup_error
+        raise
+    else:
+        try:
+            db.release_savepoint(name)
+        except BaseException:
+            # Release failed after body success. Attempt rollback, but do not
+            # retry release. Abort the enclosing unit even if rollback succeeds.
+            try:
+                db.rollback(save_point=name)
+            except BaseException as cleanup_error:
+                raise _ManagedSavepointCleanupError("rollback after release") from cleanup_error
+            raise

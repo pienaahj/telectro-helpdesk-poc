@@ -3,7 +3,7 @@
 import copy
 import inspect
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 import frappe
 from erpnext.projects.doctype.timesheet.timesheet import Timesheet
@@ -19,6 +19,7 @@ from telephony.time_booking_provenance_adapter import (
     _phase2_creation_intent,
 )
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
+from telephony.time_booking_timesheet_controller import _ManagedSavepointCleanupError
 from telephony import time_booking_provenance_adapter as adapter
 from telephony import time_booking_provenance_lifecycle as lifecycle
 
@@ -26,6 +27,10 @@ from telephony import time_booking_provenance_lifecycle as lifecycle
 class TestTimesheetInsertWrapper(unittest.TestCase):
     def setUp(self):
         self.assertFalse(getattr(frappe.local, "site", None))
+        self.db = Mock(spec_set=["savepoint", "rollback", "release_savepoint", "commit"])
+        db_patch = patch.object(frappe.local, "db", self.db, create=True)
+        db_patch.start()
+        self.addCleanup(db_patch.stop)
         reader_patch = patch.object(adapter, "_load_persisted_provenance", return_value=None)
         self.reader = reader_patch.start()
         self.addCleanup(reader_patch.stop)
@@ -537,6 +542,304 @@ class TestTimesheetInsertWrapper(unittest.TestCase):
                     native.assert_called_once()
         self.assertFalse(captured[0].state.active)
         self.assertIsNone(captured[0].absence.evidence)
+
+    def assert_rollback_release(self):
+        name = self.db.savepoint.call_args.args[0]
+        self.assertEqual(self.db.mock_calls, [
+            call.savepoint(name), call.rollback(save_point=name), call.release_savepoint(name)
+        ])
+        self.db.commit.assert_not_called()
+
+    def test_savepoint_encloses_native_evidence_completion_then_release(self):
+        events, frames = [], []
+
+        def savepoint(name):
+            events.append("savepoint")
+
+        def native_insert(document, **kwargs):
+            self.assertEqual(events, ["savepoint"])
+            frames.append(_current_insertion(document))
+            self.lifecycle_success(document, **kwargs)
+            events.append("native return")
+            return document
+
+        def require(frame, document):
+            self.assertEqual(events, ["savepoint", "native return"])
+            adapter._require_final_name_absence(frame, document)
+            events.append("evidence")
+
+        def complete(frame, document, identity):
+            self.assertEqual(events, ["savepoint", "native return", "evidence"])
+            _complete_insertion(frame, document, identity)
+            events.append("complete")
+
+        def release(name):
+            self.assertEqual(events, ["savepoint", "native return", "evidence", "complete"])
+            self.assertTrue(frames[0].state.active)
+            self.assertTrue(frames[0].state.completed)
+            events.append("release")
+
+        self.db.savepoint.side_effect = savepoint
+        self.db.release_savepoint.side_effect = release
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=native_insert) as native:
+                with patch("telephony.time_booking_timesheet_controller._require_final_name_absence",
+                           side_effect=require):
+                    with patch("telephony.time_booking_timesheet_controller._complete_insertion",
+                               side_effect=complete):
+                        self.assertIs(self.document.insert(), self.document)
+                        native.assert_called_once()
+        self.assertEqual(events, ["savepoint", "native return", "evidence", "complete", "release"])
+        name = self.db.savepoint.call_args.args[0]
+        self.assertEqual(self.db.mock_calls, [call.savepoint(name), call.release_savepoint(name)])
+        self.reader.assert_called_once_with("TS")
+        self.assertFalse(frames[0].state.active)
+
+    def test_native_error_rolls_back_releases_and_preserves_exception(self):
+        error = RuntimeError("native failed")
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=error) as native:
+                with self.assertRaises(RuntimeError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception, error)
+                native.assert_called_once()
+                with self.denied():
+                    self.document.insert()
+        self.assert_rollback_release()
+        self.assertIsNone(_current_insertion(self.document))
+
+    def test_lifecycle_collision_rolls_back_and_releases(self):
+        self.reader.return_value = {"name": "TS"}
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True,
+                              side_effect=self.lifecycle_success) as native:
+                with self.denied():
+                    self.document.insert()
+                native.assert_called_once()
+        self.assert_rollback_release()
+
+    def test_checkpoint_database_and_lock_failures_roll_back_and_release(self):
+        for error in [RuntimeError("database failed"), TimeoutError("locking failed")]:
+            self.db.reset_mock()
+            self.reader.side_effect = error
+            with self.subTest(error=error):
+                with _phase2_creation_intent(self.document, self.identity):
+                    with patch.object(Timesheet, "insert", autospec=True,
+                                      side_effect=self.lifecycle_success) as native:
+                        with self.assertRaises(type(error)) as caught:
+                            self.document.insert()
+                        self.assertIs(caught.exception, error)
+                        native.assert_called_once()
+                self.assert_rollback_release()
+
+    def test_missing_evidence_after_native_return_rolls_back(self):
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True,
+                              return_value=self.document) as native:
+                with patch("telephony.time_booking_timesheet_controller._complete_insertion") as complete:
+                    with self.denied():
+                        self.document.insert()
+                    complete.assert_not_called()
+                    native.assert_called_once()
+        self.assert_rollback_release()
+
+    def test_changed_name_after_lifecycle_rolls_back(self):
+        def insert(document, **kwargs):
+            self.lifecycle_success(document, **kwargs)
+            document.name = "CHANGED"
+            return document
+
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=insert) as native:
+                with self.denied():
+                    self.document.insert()
+                native.assert_called_once()
+        self.assert_rollback_release()
+
+    def test_unexpected_native_result_rolls_back(self):
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, return_value=object()) as native:
+                with self.denied():
+                    self.document.insert()
+                native.assert_called_once()
+        self.assert_rollback_release()
+
+    def test_completion_failure_rolls_back_preserving_error_and_revokes_grant(self):
+        error, frames = RuntimeError("completion failed"), []
+
+        def insert(document, **kwargs):
+            self.lifecycle_success(document, **kwargs)
+            frames.append(_current_insertion(document))
+            return document
+
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=insert) as native:
+                with patch("telephony.time_booking_timesheet_controller._complete_insertion",
+                           side_effect=error) as complete:
+                    with self.assertRaises(RuntimeError) as caught:
+                        self.document.insert()
+                    self.assertIs(caught.exception, error)
+                    complete.assert_called_once()
+                    native.assert_called_once()
+                    with self.denied():
+                        self.check(frames[0])
+                    with self.denied():
+                        self.document.insert()
+        self.assert_rollback_release()
+        self.assertFalse(frames[0].state.active)
+
+    def test_savepoint_creation_failure_prevents_native_and_unknown_rollback(self):
+        error = RuntimeError("savepoint failed")
+        self.db.savepoint.side_effect = error
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True) as native:
+                with self.assertRaises(RuntimeError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception, error)
+                native.assert_not_called()
+                with self.denied():
+                    self.document.insert()
+        self.db.savepoint.assert_called_once()
+        self.db.rollback.assert_not_called()
+        self.db.release_savepoint.assert_not_called()
+        self.db.commit.assert_not_called()
+        self.assertIsNone(_current_insertion(self.document))
+
+    def test_rollback_failure_explicitly_retains_original_error_chain(self):
+        original, rollback_error = RuntimeError("native failed"), RuntimeError("rollback failed")
+        self.db.rollback.side_effect = rollback_error
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=original) as native:
+                with self.assertRaises(_ManagedSavepointCleanupError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception.__cause__, rollback_error)
+                self.assertIs(rollback_error.__context__, original)
+                self.assertIn("transaction state is uncertain", str(caught.exception))
+                native.assert_called_once()
+        self.db.rollback.assert_called_once_with(save_point=self.db.savepoint.call_args.args[0])
+        self.db.release_savepoint.assert_not_called()
+        self.db.commit.assert_not_called()
+
+    def test_release_failure_during_error_cleanup_preserves_both_failures(self):
+        original, release_error = RuntimeError("native failed"), RuntimeError("release failed")
+        self.db.release_savepoint.side_effect = release_error
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=original):
+                with self.assertRaises(_ManagedSavepointCleanupError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception.__cause__, release_error)
+                self.assertIs(release_error.__context__, original)
+        self.assert_rollback_release()
+
+    def test_release_failure_after_success_rolls_back_without_retrying_release(self):
+        error, frames = RuntimeError("release failed"), []
+        self.db.release_savepoint.side_effect = error
+
+        def insert(document, **kwargs):
+            self.lifecycle_success(document, **kwargs)
+            frames.append(_current_insertion(document))
+            return document
+
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=insert) as native:
+                with self.assertRaises(RuntimeError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception, error)
+                native.assert_called_once()
+                with self.denied():
+                    self.document.insert()
+        name = self.db.savepoint.call_args.args[0]
+        self.assertEqual(self.db.mock_calls, [call.savepoint(name), call.release_savepoint(name),
+                                              call.rollback(save_point=name)])
+        self.assertTrue(frames[0].state.completed)
+        self.assertFalse(frames[0].state.active)
+        with self.denied():
+            self.check(frames[0])
+
+    def test_release_then_rollback_failure_is_explicit_and_chained(self):
+        release_error, rollback_error = RuntimeError("release failed"), RuntimeError("rollback failed")
+        self.db.release_savepoint.side_effect = release_error
+        self.db.rollback.side_effect = rollback_error
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=self.lifecycle_success):
+                with self.assertRaises(_ManagedSavepointCleanupError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception.__cause__, rollback_error)
+                self.assertIs(rollback_error.__context__, release_error)
+        self.db.release_savepoint.assert_called_once()
+        self.db.rollback.assert_called_once()
+        self.db.commit.assert_not_called()
+
+    def test_distinct_attempts_use_unique_safe_savepoint_names(self):
+        with patch.object(Timesheet, "insert", autospec=True, side_effect=self.lifecycle_success) as native:
+            for _ in range(2):
+                with _phase2_creation_intent(self.document, self.identity):
+                    self.assertIs(self.document.insert(), self.document)
+            self.assertEqual(native.call_count, 2)
+        names = [c.args[0] for c in self.db.savepoint.call_args_list]
+        self.assertEqual(len(set(names)), 2)
+        for name in names:
+            self.assertRegex(name, r"^p2_ts_[0-9a-f]{32}$")
+        self.assertEqual([c.args[0] for c in self.db.release_savepoint.call_args_list], names)
+        self.db.commit.assert_not_called()
+        self.db.rollback.assert_not_called()
+
+    def test_native_print_duplicate_return_and_error_never_touch_transactions(self):
+        self.document.flags.in_print = True
+        returned = object()
+        with patch.object(Timesheet, "insert", autospec=True, return_value=returned) as native:
+            self.assertIs(self.document.insert(ignore_if_duplicate=True), returned)
+            native.assert_called_once()
+            self.assertTrue(native.call_args.kwargs["ignore_if_duplicate"])
+        error = RuntimeError("native error")
+        with patch.object(Timesheet, "insert", autospec=True, side_effect=error) as native:
+            with self.assertRaises(RuntimeError) as caught:
+                self.document.insert()
+            self.assertIs(caught.exception, error)
+            native.assert_called_once()
+        self.assertEqual(self.db.mock_calls, [])
+        self.reader.assert_not_called()
+
+    def test_base_exception_also_rolls_back_and_releases(self):
+        error = KeyboardInterrupt("interrupted")
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=error):
+                with self.assertRaises(KeyboardInterrupt) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception, error)
+        self.assert_rollback_release()
+
+    def test_managed_print_and_duplicate_guards_precede_savepoint(self):
+        for in_print, duplicate in [(True, False), (False, True)]:
+            self.document.flags.in_print = in_print
+            with _phase2_creation_intent(self.document, self.identity):
+                with patch.object(Timesheet, "insert", autospec=True) as native:
+                    with self.denied():
+                        self.document.insert(ignore_if_duplicate=duplicate)
+                    native.assert_not_called()
+        self.assertEqual(self.db.mock_calls, [])
+
+    def test_failure_rollback_and_release_run_before_frame_revocation(self):
+        error, frames = RuntimeError("native failed"), []
+
+        def insert(document, **kwargs):
+            frames.append(_current_insertion(document))
+            raise error
+
+        def cleanup(*args, **kwargs):
+            self.assertIs(_current_insertion(self.document), frames[0])
+            self.assertTrue(frames[0].state.active)
+            self.assertIsNone(self.check(frames[0]))
+
+        self.db.rollback.side_effect = cleanup
+        self.db.release_savepoint.side_effect = cleanup
+        with _phase2_creation_intent(self.document, self.identity):
+            with patch.object(Timesheet, "insert", autospec=True, side_effect=insert):
+                with self.assertRaises(RuntimeError) as caught:
+                    self.document.insert()
+                self.assertIs(caught.exception, error)
+        self.assertFalse(frames[0].state.active)
+        self.assert_rollback_release()
 
 
 if __name__ == "__main__":
