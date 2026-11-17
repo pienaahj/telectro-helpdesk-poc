@@ -84,6 +84,61 @@ def _create_ticket_context_share_notification(ticket, collaborator_doc, note: st
 
 
 @frappe.whitelist()
+def revoke_ticket_worker_grant(ticket_name, grant_name, reason):
+    """Revoke one persisted episode, leaving transaction ownership to the caller.
+
+    Duplicate/stale requests fail closed, including requests for an old episode
+    after the same worker has been granted a new one. No status restriction:
+    revocation remains available after ticket resolution or closure.
+    """
+    from telephony.time_booking_cooption import (
+        BookingCooptionError, _active_row, _identifier, _lock_ticket,
+        _revoke_after_authorization,
+    )
+
+    actor = frappe.session.user
+    if (not all(_identifier(v) for v in (actor, ticket_name, grant_name, reason))
+            or actor == "Guest"
+            or getattr(getattr(frappe.local, "request", None), "method", None) != "POST"):
+        raise BookingCooptionError()
+
+    # Match the foundation's lock order. Use current locking reads for both
+    # authority and episode identity, rather than transaction snapshot reads.
+    _lock_ticket(ticket_name)
+    tickets = frappe.db.sql(
+        "SELECT name, _assign FROM `tabHD Ticket` WHERE name = %s FOR UPDATE",
+        ticket_name, as_dict=True,
+    )
+    episodes = frappe.db.sql(
+        "SELECT name, ticket, technician_user, granted_by FROM "
+        "`tabTELECTRO Ticket Worker Grant` WHERE name = %s FOR UPDATE",
+        grant_name, as_dict=True,
+    )
+    if (len(tickets) != 1 or tickets[0].get("name") != ticket_name
+            or len(episodes) != 1 or episodes[0].get("name") != grant_name
+            or episodes[0].get("ticket") != ticket_name):
+        raise BookingCooptionError()
+    episode = episodes[0]
+    if (actor != episode.get("granted_by")
+            and actor not in _parse_assigned_users(tickets[0].get("_assign"))
+            and not set(frappe.get_roles(actor) or []) & SHARE_CONTEXT_ROLES):
+        raise BookingCooptionError()
+
+    current = _active_row(ticket_name, episode.get("technician_user"))
+    if current is None or current.get("name") != grant_name:
+        raise BookingCooptionError()
+    # The ticket lock is held through the caller's transaction, so the private
+    # helper cannot select a later episode from a cooperating grant writer.
+    revoked = _revoke_after_authorization(
+        ticket=ticket_name, user=episode["technician_user"],
+        revoker=actor, reason=reason.strip(),
+    )
+    if revoked != grant_name:
+        raise BookingCooptionError()
+    return {"ok": 1}
+
+
+@frappe.whitelist()
 def share_ticket_context(ticket_name, collaborator, note, coopt_as_worker=False):
     coopt_as_worker = _parse_context_share_cooption(coopt_as_worker)
     if not coopt_as_worker:
