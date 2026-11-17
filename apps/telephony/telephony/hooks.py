@@ -396,6 +396,24 @@ doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
 doc_events.setdefault("DocShare", {})
 
+# Register the reviewed Timesheet runtime. Managed creation still requires a
+# private one-use intent; no booking endpoint or feature activation is added.
+# Keep these declarations exact: the activation collector rejects extra,
+# missing, or reordered Timesheet handlers.
+override_doctype_class = dict(globals().get("override_doctype_class") or {})
+override_doctype_class.setdefault(
+    "Timesheet", "telephony.time_booking_timesheet_controller.TelectroBookingTimesheet"
+)
+_timesheet_provenance_handler = (
+    "telephony.time_booking_provenance_lifecycle._validate_timesheet_provenance"
+)
+doc_events.setdefault("Timesheet", {})
+for _timesheet_event in (
+    "before_insert", "before_validate", "before_save", "before_submit",
+    "before_cancel", "before_update_after_submit", "before_change",
+):
+    doc_events["Timesheet"].setdefault(_timesheet_event, _timesheet_provenance_handler)
+
 def _append_hook(target, event, handler):
     cur = target.get(event)
     if not cur:

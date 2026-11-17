@@ -34,6 +34,17 @@ class TelectroBookingTimesheet(Timesheet):
         with _insertion_attempt(self) as frame:
             managed = frame.identity is not None
             if managed:
+                # Registration is inert until a reviewed site explicitly enables
+                # booking and the exact live activation contract passes.
+                import frappe
+                from telephony.time_booking_activation_adapter import (
+                    _require_activation_configuration,
+                )
+                from telephony.time_booking_activation_policy import ACTIVE_RUNTIME
+
+                if frappe.conf.get("telectro_time_booking_enabled") not in (1, True, "1"):
+                    raise BookingProvenanceError()
+                _require_activation_configuration(mode=ACTIVE_RUNTIME)
                 # Native Document.insert checks this Document-local flag first.
                 # Print rendering sets doc.flags.in_print, not frappe.flags.
                 if self.flags.in_print or ignore_if_duplicate is not False:
