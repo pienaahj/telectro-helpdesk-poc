@@ -57,8 +57,11 @@ fixtures = [
                 [
                     "Customer",
                     "Location",
+                    "Activity Type",
                 ],
             ],
+        ],
+        "or_filters": [
             [
                 "role",
                 "in",
@@ -74,6 +77,7 @@ fixtures = [
                     "TELECTRO-POC Role - Tech Workspace",
                 ],
             ],
+            ["parent", "=", "Activity Type"],
         ],
     },
 
