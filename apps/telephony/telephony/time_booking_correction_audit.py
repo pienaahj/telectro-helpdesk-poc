@@ -72,8 +72,85 @@ def _snapshot(value):
     return json.dumps(frozen, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
-def record_correction_event(*, event_id, action, reason, before, after=None,
-                            replacement_timesheet=None):
+_REPLACEMENT_REQUEST_FIELDS = frozenset((
+    "work_context",
+    "from_time",
+    "to_time",
+    "duration_minutes",
+    "description",
+    "activity_type",
+    "ticket_name",
+    "project_name",
+    "task_name",
+    "customer_name",
+))
+
+
+def _validated_replacement_request(value):
+    """Accept only canonical, structurally valid replacement evidence."""
+    if not _text(value):
+        raise BookingCorrectionAuditError()
+
+    try:
+        data = json.loads(value)
+
+        canonical = json.dumps(
+            data,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise BookingCorrectionAuditError() from exc
+
+    if (
+        type(data) is not dict
+        or set(data) != _REPLACEMENT_REQUEST_FIELDS
+        or canonical != value
+    ):
+        raise BookingCorrectionAuditError()
+
+    if not all(
+        _text(data.get(field))
+        for field in (
+            "work_context",
+            "from_time",
+            "to_time",
+            "description",
+            "activity_type",
+        )
+    ):
+        raise BookingCorrectionAuditError()
+
+    minutes = data["duration_minutes"]
+
+    if type(minutes) is not int or not 0 < minutes <= 1440:
+        raise BookingCorrectionAuditError()
+
+    for field in (
+        "ticket_name",
+        "project_name",
+        "task_name",
+        "customer_name",
+    ):
+        reference = data[field]
+
+        if reference is not None and not _text(reference):
+            raise BookingCorrectionAuditError()
+
+    return canonical
+
+
+def record_correction_event(
+    *,
+    event_id,
+    action,
+    reason,
+    before,
+    after=None,
+    replacement_timesheet=None,
+    replacement_request_snapshot=None,
+):
     """Trusted caller supplies persisted snapshots; session supplies audit authority.
 
     No client endpoint, commit, delete, cancellation or Timesheet mutation lives
@@ -107,12 +184,21 @@ def record_correction_event(*, event_id, action, reason, before, after=None,
         raise BookingCorrectionAuditError()
     if (action == "Submitted Replacement") != (replacement_timesheet is not None):
         raise BookingCorrectionAuditError()
+    if action == "Submitted Replacement":
+        replacement_request_snapshot = _validated_replacement_request(
+            replacement_request_snapshot
+        )
+    elif replacement_request_snapshot is not None:
+        raise BookingCorrectionAuditError()
 
     rows = frappe.db.sql(
         "SELECT name, event_id, action, actor, reason, original_timesheet, "
-        "original_time_log, before_snapshot, after_snapshot, replacement_timesheet "
-        "FROM `tabTELECTRO Booking Correction Audit` WHERE event_id=%s FOR UPDATE",
-        event_id, as_dict=True,
+        "original_time_log, before_snapshot, after_snapshot, "
+        "replacement_timesheet, replacement_request_snapshot "
+        "FROM `tabTELECTRO Booking Correction Audit` "
+        "WHERE event_id=%s FOR UPDATE",
+        event_id,
+        as_dict=True,
     )
     if len(rows) > 1:
         raise BookingCorrectionAuditError()
@@ -122,6 +208,7 @@ def record_correction_event(*, event_id, action, reason, before, after=None,
         original_time_log=original["time_logs"][0]["name"],
         before_snapshot=before_json, after_snapshot=after_json,
         replacement_timesheet=replacement_timesheet,
+        replacement_request_snapshot=replacement_request_snapshot,
     )
     if rows:
         row = rows[0]

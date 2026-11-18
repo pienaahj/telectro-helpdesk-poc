@@ -18,7 +18,8 @@
     "original_time_log",
     "before_snapshot",
     "after_snapshot",
-    "replacement_timesheet"
+    "replacement_timesheet",
+    "replacement_request_snapshot"
   ],
   "fields": [
     {
@@ -94,6 +95,13 @@
       "fieldtype": "Data",
       "label": "Replacement Timesheet",
       "read_only": 1
+    },
+    {
+      "fieldname": "replacement_request_snapshot",
+      "fieldtype": "Code",
+      "label": "Replacement Request Snapshot",
+      "read_only": 1,
+      "options": "JSON"
     }
   ],
   "permissions": [],

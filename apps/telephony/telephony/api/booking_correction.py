@@ -18,7 +18,9 @@ from telephony.time_booking_transaction import (
     _active_booking,
     _top_level_booking_transaction,
 )
-
+from datetime import datetime
+from telephony.api.time_booking import _authorized_native_creation
+from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 
 PREFIX = "telephony.api.booking_correction."
 
@@ -41,6 +43,74 @@ def _audit(event_id):
         raise BookingOwnershipError()
     return rows[0] if rows else None
 
+def _replacement_audit(event_id):
+    """Retrieve immutable evidence for a Submitted Replacement retry."""
+    rows = frappe.db.sql(
+        "SELECT name, actor, action, reason, original_timesheet, "
+        "before_snapshot, after_snapshot, replacement_timesheet, "
+        "replacement_request_snapshot "
+        "FROM `tabTELECTRO Booking Correction Audit` "
+        "WHERE event_id=%s FOR UPDATE",
+        event_id,
+        as_dict=True,
+    )
+
+    if len(rows) > 1:
+        raise BookingOwnershipError()
+
+    return rows[0] if rows else None
+
+def _replacement_request_snapshot(
+    *,
+    work_context,
+    from_time,
+    duration_minutes,
+    description,
+    activity_type,
+    ticket_name=None,
+    project_name=None,
+    task_name=None,
+    customer_name=None,
+):
+    """Canonicalize validated replacement input for immutable retry evidence."""
+    if (
+        not _identifier(description)
+        or len(description) > 2000
+        or not _identifier(activity_type)
+    ):
+        raise BookingInputError()
+
+    start, end, minutes = _period(from_time, duration_minutes)
+
+    row = {
+        "custom_work_context": work_context,
+        "custom_hd_ticket": ticket_name,
+        "custom_hd_customer": customer_name,
+        "project": project_name,
+        "task": task_name,
+    }
+
+    validate_work_context(row)
+
+    request = {
+        "work_context": work_context,
+        "from_time": start.isoformat(),
+        "to_time": end.isoformat(),
+        "duration_minutes": minutes,
+        "description": description,
+        "activity_type": activity_type,
+        "ticket_name": ticket_name,
+        "project_name": project_name,
+        "task_name": task_name,
+        "customer_name": customer_name,
+    }
+
+    return json.dumps(
+        request,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
 
 def _owned(snapshot, identity):
     authorize_parent(identity, snapshot, operation="correct")
@@ -275,5 +345,238 @@ def cancel_submitted_booking(
 
         return {
             "timesheet": timesheet_name,
+            "audit": audit,
+        }
+
+@frappe.whitelist(methods=["POST"])
+def replace_submitted_booking(
+    *,
+    timesheet_name,
+    event_id,
+    reason,
+    expected_modified,
+    work_context,
+    from_time,
+    duration_minutes,
+    description,
+    activity_type,
+    ticket_name=None,
+    project_name=None,
+    task_name=None,
+    customer_name=None,
+):
+    """Submitted Replacement boundary; implementation not yet enabled."""
+    with _top_level_booking_transaction(
+        expected_command=PREFIX + "replace_submitted_booking"
+    ):
+        identity = _guard()
+
+        if (
+            not _identifier(timesheet_name)
+            or not _identifier(event_id)
+            or len(event_id) > 140
+            or not _identifier(reason)
+            or len(reason) > 2000
+            or not _identifier(expected_modified)
+        ):
+            raise BookingInputError()
+
+        # Serialize operations against the submitted original.
+        locked = frappe.db.sql(
+            "SELECT name FROM `tabTimesheet` WHERE name=%s FOR UPDATE",
+            timesheet_name,
+            as_dict=True,
+        )
+
+        if len(locked) != 1:
+            raise BookingOwnershipError()
+
+        prior = _replacement_audit(event_id)
+
+        if prior:
+            if (
+                prior["actor"] != identity.user
+                or prior["action"] != "Submitted Replacement"
+                or prior["reason"] != reason
+                or prior["original_timesheet"] != timesheet_name
+                or prior.get("after_snapshot") is not None
+                or not _identifier(prior.get("replacement_timesheet"))
+            ):
+                raise BookingOwnershipError()
+
+            before = json.loads(prior["before_snapshot"])
+
+            authorize_parent(
+                identity,
+                before,
+                operation="replace_submitted",
+            )
+
+            if len(before.get("time_logs", [])) != 1:
+                raise BookingOwnershipError()
+
+            authorize_child(
+                identity,
+                before,
+                before["time_logs"][0],
+                operation="replace_submitted",
+            )
+
+            if str(before.get("modified")) != str(expected_modified):
+                raise BookingOwnershipError()
+
+            requested = _replacement_request_snapshot(
+                work_context=work_context,
+                from_time=from_time,
+                duration_minutes=duration_minutes,
+                description=description,
+                activity_type=activity_type,
+                ticket_name=ticket_name,
+                project_name=project_name,
+                task_name=task_name,
+                customer_name=customer_name,
+            )
+
+            if prior.get("replacement_request_snapshot") != requested:
+                raise BookingOwnershipError()
+
+            # The original replacement was already committed.
+            # Return its immutable audit identity without loading
+            # or modifying either Timesheet.
+            return {
+                "original_timesheet": timesheet_name,
+                "replacement_timesheet": prior["replacement_timesheet"],
+                "audit": prior["name"],
+            }
+
+        doc = frappe.get_doc(
+            "Timesheet",
+            timesheet_name,
+            for_update=True,
+        )
+
+        if type(doc) is not TelectroBookingTimesheet:
+            raise BookingOwnershipError()
+
+        before = json.loads(_snapshot(doc.as_dict()))
+
+        authorize_parent(
+            identity,
+            before,
+            operation="replace_submitted",
+        )
+
+        if len(before.get("time_logs", [])) != 1:
+            raise BookingOwnershipError()
+
+        authorize_child(
+            identity,
+            before,
+            before["time_logs"][0],
+            operation="replace_submitted",
+        )
+
+        if str(before.get("modified")) != str(expected_modified):
+            raise BookingOwnershipError()
+
+        # Normalize the requested replacement before any lifecycle mutation.
+        requested = _replacement_request_snapshot(
+            work_context=work_context,
+            from_time=from_time,
+            duration_minutes=duration_minutes,
+            description=description,
+            activity_type=activity_type,
+            ticket_name=ticket_name,
+            project_name=project_name,
+            task_name=task_name,
+            customer_name=customer_name,
+        )
+
+        values = json.loads(requested)
+
+        row = {
+            "custom_work_context": values["work_context"],
+            "custom_hd_ticket": values["ticket_name"],
+            "custom_hd_customer": values["customer_name"],
+            "project": values["project_name"],
+            "task": values["task_name"],
+        }
+
+        # Preserve the original booking creation authorization boundary.
+        validate_work_context(row)
+        _authorize_references(row, identity.company)
+        _visible("Activity Type", values["activity_type"])
+
+        start = datetime.fromisoformat(values["from_time"])
+        end = datetime.fromisoformat(values["to_time"])
+        minutes = values["duration_minutes"]
+
+        # Original ownership, Submitted state and revision have already
+        # been verified against the locked persisted document.
+        #
+        # Native cancellation must occur before inserting the replacement
+        # so that ERPNext's time-overlap validation sees the cancelled
+        # original rather than a second concurrent booking.
+        with _authorized_native_cancellation(doc):
+            doc.cancel()
+
+        # Create a separate Draft, deliberately without amended_from.
+        # The correction audit records the original/replacement relation.
+        replacement = frappe.get_doc({
+            "doctype": "Timesheet",
+            "naming_series": "TS-.YYYY.-",
+            "custom_telectro_booking_origin": "Phase 2",
+            "employee": identity.employee,
+            "company": identity.company,
+            "user": identity.user,
+            "docstatus": 0,
+            "time_logs": [{
+                "doctype": "Timesheet Detail",
+                "activity_type": values["activity_type"],
+                "from_time": start,
+                "to_time": end,
+                "hours": minutes / 60,
+                "description": values["description"],
+                **row,
+            }],
+        })
+
+        if (
+            type(replacement) is not TelectroBookingTimesheet
+            or len(replacement.time_logs) != 1
+        ):
+            raise ActivationConfigurationError()
+
+        # Reuse the same one-use creation intent and narrowly scoped
+        # native permission elevation as ordinary Technician bookings.
+        with _phase2_creation_intent(replacement, identity):
+            with _authorized_native_creation(replacement, identity):
+                inserted = replacement.insert()
+
+        # Preserve the ordinary booking endpoint's post-insert checks.
+        if (
+            inserted is not replacement
+            or not _identifier(replacement.name)
+            or len(replacement.time_logs) != 1
+            or replacement.get("employee") != identity.employee
+            or replacement.get("company") != identity.company
+            or replacement.get("user") != identity.user
+            or replacement.get("owner") != identity.user
+        ):
+            raise ActivationConfigurationError()
+
+        # Both native permission scopes have ended before audit insertion.
+        audit = record_correction_event(
+            event_id=event_id,
+            action="Submitted Replacement",
+            reason=reason,
+            before=before,
+            replacement_timesheet=replacement.name,
+            replacement_request_snapshot=requested,
+        )
+
+        return {
+            "original_timesheet": timesheet_name,
+            "replacement_timesheet": replacement.name,
             "audit": audit,
         }

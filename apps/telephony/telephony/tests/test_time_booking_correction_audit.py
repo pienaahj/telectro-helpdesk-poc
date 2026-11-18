@@ -124,10 +124,59 @@ class TestAuditWriter(unittest.TestCase):
 
     def test_submitted_cancellation_and_replacement(self):
         before = snapshot(1)
-        self.assertEqual(self.call(action="Submitted Cancellation", before=before, after=None), "AUDIT-1")
-        self.assertEqual(self.call(event_id="correction-2", action="Submitted Replacement",
-                                   before=before, after=None, replacement_timesheet="TS-2"), "AUDIT-2")
+
+        self.assertEqual(
+            self.call(
+                action="Submitted Cancellation",
+                before=before,
+                after=None,
+            ),
+            "AUDIT-1",
+        )
+
+        request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+        }
+
+        evidence = json.dumps(
+            request,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+        self.assertEqual(
+            self.call(
+                event_id="correction-2",
+                action="Submitted Replacement",
+                before=before,
+                after=None,
+                replacement_timesheet="TS-2",
+                replacement_request_snapshot=evidence,
+            ),
+            "AUDIT-2",
+        )
+
         self.assertEqual(len(self.rows), 2)
+
+        self.assertEqual(
+            self.rows[1]["replacement_request_snapshot"],
+            evidence,
+        )
+
+        # Cancellation must not acquire replacement request evidence.
+        self.assertIsNone(
+            self.rows[0]["replacement_request_snapshot"]
+        )
 
     def test_action_status_and_snapshot_inconsistency_rejected(self):
         for updates in ({"action": "Unknown"}, {"action": "Submitted Cancellation", "after": None},
@@ -171,6 +220,178 @@ class TestAuditWriter(unittest.TestCase):
         for method in ("commit", "rollback", "delete", "set_value"):
             getattr(self.f.db, method).assert_not_called()
 
+    def test_submitted_replacement_requires_request_evidence(self):
+        before = snapshot(status=1)
+
+        with self.assertRaises(BookingCorrectionAuditError):
+            self.call(
+                event_id="replacement-missing-evidence",
+                action="Submitted Replacement",
+                reason="Incorrect submitted time",
+                before=before,
+                after=None,
+                replacement_timesheet="TS-2",
+            )
+
+        # An incomplete replacement audit must never be persisted.
+        self.assertEqual(self.rows, [])
+
+    def test_submitted_replacement_rejects_invalid_request_evidence(self):
+        request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+        }
+
+        def canonical(data):
+            return json.dumps(
+                data,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+
+        invalid = {
+            "invalid_json": "{invalid",
+            "json_list": canonical([request]),
+            "missing_field": canonical({
+                k: v for k, v in request.items()
+                if k != "to_time"
+            }),
+            "extra_field": canonical({
+                **request,
+                "unexpected": "value",
+            }),
+            "noncanonical_json": json.dumps(
+                request,
+                indent=2,
+            ),
+            "boolean_duration": canonical({
+                **request,
+                "duration_minutes": True,
+            }),
+            "negative_duration": canonical({
+                **request,
+                "duration_minutes": -10,
+            }),
+            "empty_description": canonical({
+                **request,
+                "description": "",
+            }),
+            "invalid_reference": canonical({
+                **request,
+                "ticket_name": 123,
+            }),
+        }
+
+        for label, evidence in invalid.items():
+            with self.subTest(case=label):
+                with self.assertRaises(BookingCorrectionAuditError):
+                    self.call(
+                        event_id=f"invalid-{label}",
+                        action="Submitted Replacement",
+                        before=snapshot(status=1),
+                        after=None,
+                        replacement_timesheet="TS-2",
+                        replacement_request_snapshot=evidence,
+                    )
+
+                # No invalid correction evidence may be persisted.
+                self.assertEqual(self.rows, [])
+
+        self.f.db.commit.assert_not_called()
+
+    def test_submitted_replacement_audit_retry_requires_exact_evidence(self):
+        before = snapshot(status=1)
+
+        request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+        }
+
+        def canonical(value):
+            return json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+
+        values = {
+            "event_id": "replacement-retry-1",
+            "action": "Submitted Replacement",
+            "reason": "Incorrect submitted time",
+            "before": before,
+            "after": None,
+            "replacement_timesheet": "TS-2",
+            "replacement_request_snapshot": canonical(request),
+        }
+
+        # First execution persists exactly one audit.
+        self.assertEqual(self.call(**values), "AUDIT-1")
+        self.assertEqual(len(self.rows), 1)
+
+        # An identical retry returns the same audit.
+        self.assertEqual(self.call(**values), "AUDIT-1")
+        self.assertEqual(len(self.rows), 1)
+
+        # Changing the requested replacement details must
+        # conflict with the immutable recorded evidence.
+        changed_request = {
+            **request,
+            "description": "Different repair description",
+        }
+
+        with self.assertRaises(BookingCorrectionAuditError):
+            self.call(
+                **{
+                    **values,
+                    "replacement_request_snapshot": canonical(
+                        changed_request
+                    ),
+                }
+            )
+
+        # Changing the replacement Timesheet identity must
+        # also be rejected for the same event_id.
+        with self.assertRaises(BookingCorrectionAuditError):
+            self.call(
+                **{
+                    **values,
+                    "replacement_timesheet": "TS-3",
+                }
+            )
+
+        # Neither conflicting retry may create a second audit.
+        self.assertEqual(len(self.rows), 1)
+
+        # The original persisted evidence remains unchanged.
+        self.assertEqual(
+            self.rows[0]["replacement_request_snapshot"],
+            canonical(request),
+        )
+        self.assertEqual(
+            self.rows[0]["replacement_timesheet"],
+            "TS-2",
+        )
+
+        # Audit writer never commits independently.
+        self.f.db.commit.assert_not_called()
 
 class TestAuditDocType(unittest.TestCase):
     def test_existing_record_cannot_be_saved_or_deleted(self):
