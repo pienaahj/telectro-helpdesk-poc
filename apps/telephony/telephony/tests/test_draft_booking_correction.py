@@ -19,6 +19,12 @@ class Doc:
         self.save = Mock()
         self.delete = Mock()
         self.check_permission = Mock()
+        self.flags = types.SimpleNamespace(ignore_permissions=None)
+
+    @property
+    def docstatus(self):
+        return self.state["docstatus"]
+
     def as_dict(self):
         return self.state
 
@@ -52,7 +58,11 @@ class TestDraftCorrection(unittest.TestCase):
         args = dict(name="TS-1", event_id="event", reason="repair entry",
                     action="Draft Withdrawal", expected_modified="2026-11-17T12:00:00")
         args.update(kw)
-        return api._execute(**args)
+        token = api._active_booking.set(True)
+        try:
+            return api._execute(**args)
+        finally:
+            api._active_booking.reset(token)
 
     def test_withdraw_snapshots_before_native_delete(self):
         self.assertEqual(self.call(), {"timesheet": "TS-1", "audit": "AUDIT-1"})
@@ -77,10 +87,58 @@ class TestDraftCorrection(unittest.TestCase):
             self.state[field] = original
         self.doc.delete.assert_not_called()
 
-    def test_denied_permission_escapes(self):
-        self.doc.check_permission.side_effect = PermissionError()
-        with self.assertRaises(PermissionError): self.call()
+    def test_owned_withdrawal_uses_scoped_native_permission(self):
+        self.doc.check_permission.side_effect = PermissionError(
+            "general Timesheet access denied"
+        )
+
+        def verify_delete_scope():
+            self.assertIs(self.doc.flags.ignore_permissions, True)
+
+        self.doc.delete.side_effect = verify_delete_scope
+
+        result = self.call()
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+        self.doc.check_permission.assert_not_called()
+        self.doc.delete.assert_called_once_with()
+        self.assertIsNone(self.doc.flags.ignore_permissions)
+
+    def test_owned_correction_uses_scoped_native_permission(self):
+        self.doc.check_permission.side_effect = PermissionError(
+            "general Timesheet access denied"
+        )
+
+        def verify_save_scope():
+            self.assertIs(self.doc.flags.ignore_permissions, True)
+
+        self.doc.save.side_effect = verify_save_scope
+
+        result = self.call(
+            action="Draft Correction",
+            values={"description": "Corrected"},
+        )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+        self.doc.check_permission.assert_not_called()
+        self.doc.save.assert_called_once_with()
+        self.assertIsNone(self.doc.flags.ignore_permissions)
+
+    def test_inherited_permission_elevation_is_rejected(self):
+        self.doc.flags.ignore_permissions = True
+
+        with self.assertRaises(BookingOwnershipError):
+            self.call()
+
+        self.doc.save.assert_not_called()
         self.doc.delete.assert_not_called()
+        self.assertIs(self.doc.flags.ignore_permissions, True)
 
     def test_audit_failure_prevents_withdrawal(self):
         with patch.object(api, "record_correction_event", side_effect=RuntimeError("audit")):
@@ -91,8 +149,11 @@ class TestDraftCorrection(unittest.TestCase):
         self.doc.save.side_effect = RuntimeError("save")
         with self.assertRaises(RuntimeError):
             self.call(action="Draft Correction", values={"description": "New"})
+        self.assertIsNone(self.doc.flags.ignore_permissions)
+
         self.doc.delete.side_effect = RuntimeError("delete")
         with self.assertRaises(RuntimeError): self.call()
+        self.assertIsNone(self.doc.flags.ignore_permissions)
 
     def test_retry_returns_same_event_without_mutation(self):
         import json

@@ -168,6 +168,15 @@ def _authorized_native_cancellation(doc):
     finally:
         flags.ignore_permissions = previous
 
+@contextmanager
+def _authorized_native_draft_mutation(doc):
+    """Permit native mutation only on a managed Draft booking."""
+    if getattr(doc, "docstatus", None) != 0:
+        raise BookingOwnershipError()
+    with _authorized_native_cancellation(doc):
+        yield
+
+
 def _execute(*, name, event_id, reason, action, values=None, expected_modified=None):
     identity = _guard()
     if (not _identifier(name) or not _identifier(event_id) or len(event_id) > 140
@@ -199,15 +208,15 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     doc = frappe.get_doc("Timesheet", name, for_update=True)
     if type(doc) is not TelectroBookingTimesheet:
         raise BookingOwnershipError()
-    doc.check_permission("read")
-    doc.check_permission("write" if values is not None else "delete")
+    # Managed ownership below is the authorization boundary.
     before = json.loads(_snapshot(doc.as_dict()))
     _owned(before, identity)
     if not _revision_matches(before.get("modified"), expected_modified):
         raise BookingOwnershipError()
     if values is not None:
         doc.time_logs[0].update(values)
-        doc.save()  # native overlap, link, permission and lifecycle checks
+        with _authorized_native_draft_mutation(doc):
+            doc.save()  # native validations and lifecycle checks
         after = json.loads(_snapshot(doc.as_dict()))
         _owned(after, identity)
         if after["time_logs"][0]["name"] != before["time_logs"][0]["name"]:
@@ -217,7 +226,8 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     else:
         audit = record_correction_event(event_id=event_id, action=action,
                                         reason=reason, before=before)
-        doc.delete()  # native permissions, links and lifecycle; no force flags
+        with _authorized_native_draft_mutation(doc):
+            doc.delete()  # native link and lifecycle checks; no force flags
     return {"timesheet": name, "audit": audit}
 
 
