@@ -1,4 +1,5 @@
-"""Owned single-row Draft correction and withdrawal; no internal commits."""
+"""Owned technician booking correction, withdrawal and cancellation; no internal commits."""
+from contextlib import contextmanager
 import json
 
 import frappe
@@ -13,7 +14,10 @@ from telephony.time_booking_ownership import authorize_parent, authorize_child, 
 from telephony.time_booking_policy import validate_work_context
 from telephony.time_booking_correction_audit import record_correction_event, _snapshot, DOCTYPE
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
-from telephony.time_booking_transaction import _top_level_booking_transaction
+from telephony.time_booking_transaction import (
+    _active_booking,
+    _top_level_booking_transaction,
+)
 
 
 PREFIX = "telephony.api.booking_correction."
@@ -44,6 +48,31 @@ def _owned(snapshot, identity):
         raise BookingOwnershipError()
     authorize_child(identity, snapshot, snapshot["time_logs"][0], operation="correct")
 
+@contextmanager
+def _authorized_native_cancellation(doc):
+    """Temporarily permit native operations on one authorized Timesheet."""
+    if (
+        not _active_booking.get()
+        or type(doc) is not TelectroBookingTimesheet
+    ):
+        raise BookingOwnershipError()
+
+    flags = getattr(doc, "flags", None)
+
+    if flags is None:
+        raise BookingOwnershipError()
+
+    previous = getattr(flags, "ignore_permissions", None)
+
+    # Never inherit an already elevated document.
+    if previous:
+        raise BookingOwnershipError()
+
+    try:
+        flags.ignore_permissions = True
+        yield
+    finally:
+        flags.ignore_permissions = previous
 
 def _execute(*, name, event_id, reason, action, values=None, expected_modified=None):
     identity = _guard()
@@ -126,3 +155,125 @@ def withdraw_draft_booking(*, timesheet_name, event_id, reason, expected_modifie
     with _top_level_booking_transaction(expected_command=PREFIX + "withdraw_draft_booking"):
         return _execute(name=timesheet_name, event_id=event_id, reason=reason,
                         action="Draft Withdrawal", expected_modified=expected_modified)
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_submitted_booking(
+    *,
+    timesheet_name,
+    event_id,
+    reason,
+    expected_modified=None,
+):
+    with _top_level_booking_transaction(
+        expected_command=PREFIX + "cancel_submitted_booking"
+    ):
+        identity = _guard()
+
+        if (
+            not _identifier(timesheet_name)
+            or not _identifier(event_id)
+            or len(event_id) > 140
+            or not _identifier(reason)
+            or len(reason) > 2000
+            or not _identifier(expected_modified)
+        ):
+            raise BookingInputError()
+
+        # Serialize operations against the original Timesheet.
+        locked = frappe.db.sql(
+            "SELECT name FROM `tabTimesheet` WHERE name=%s FOR UPDATE",
+            timesheet_name,
+            as_dict=True,
+        )
+
+        if len(locked) != 1:
+            raise BookingOwnershipError()
+
+        # A repeated event must match the original operation exactly.
+        prior = _audit(event_id)
+
+        if prior:
+            if (
+                prior["actor"] != identity.user
+                or prior["action"] != "Submitted Cancellation"
+                or prior["reason"] != reason
+                or prior["original_timesheet"] != timesheet_name
+            ):
+                raise BookingOwnershipError()
+
+            before = json.loads(prior["before_snapshot"])
+
+            authorize_parent(
+                identity,
+                before,
+                operation="cancel_submitted",
+            )
+
+            if len(before.get("time_logs", [])) != 1:
+                raise BookingOwnershipError()
+
+            authorize_child(
+                identity,
+                before,
+                before["time_logs"][0],
+                operation="cancel_submitted",
+            )
+
+            if str(before.get("modified")) != str(expected_modified):
+                raise BookingOwnershipError()
+
+            return {
+                "timesheet": timesheet_name,
+                "audit": prior["name"],
+            }
+
+        # First execution: use the current locked document.
+        doc = frappe.get_doc(
+            "Timesheet",
+            timesheet_name,
+            for_update=True,
+        )
+
+        if type(doc) is not TelectroBookingTimesheet:
+            raise BookingOwnershipError()
+
+        before = json.loads(_snapshot(doc.as_dict()))
+
+        authorize_parent(
+            identity,
+            before,
+            operation="cancel_submitted",
+        )
+
+        if len(before.get("time_logs", [])) != 1:
+            raise BookingOwnershipError()
+
+        authorize_child(
+            identity,
+            before,
+            before["time_logs"][0],
+            operation="cancel_submitted",
+        )
+
+        if str(before.get("modified")) != str(expected_modified):
+            raise BookingOwnershipError()
+
+        # Identity, ownership, state and revision are already authorized.
+        # Record the audit without elevated document permissions.
+        audit = record_correction_event(
+            event_id=event_id,
+            action="Submitted Cancellation",
+            reason=reason,
+            before=before,
+        )
+
+        # Elevate only this Timesheet instance for native cancellation.
+        # The permission flag is restored even if cancellation fails.
+        with _authorized_native_cancellation(doc):
+            doc.cancel()
+
+        return {
+            "timesheet": timesheet_name,
+            "audit": audit,
+        }
