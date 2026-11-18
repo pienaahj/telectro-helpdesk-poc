@@ -185,5 +185,49 @@ class TestBookingOwnership(unittest.TestCase):
                     authorize_parent(identity, self.parent)
 
 
+    def test_submitted_cancellation_and_replacement_authorization(self):
+        submitted = {**self.parent, "docstatus": 1}
+
+        for operation in ("cancel_submitted", "replace_submitted"):
+            with self.subTest(operation=operation):
+                self.assertIsNone(
+                    authorize_parent(
+                        self.identity,
+                        submitted,
+                        operation=operation,
+                    )
+                )
+                self.assertIsNone(
+                    authorize_child(
+                        self.identity,
+                        submitted,
+                        self.child,
+                        operation=operation,
+                    )
+                )
+
+    def test_submitted_operations_reject_invalid_state_and_identity(self):
+        for operation in ("cancel_submitted", "replace_submitted"):
+            for status in (0, 2):
+                with self.subTest(operation=operation, status=status):
+                    self.denied_parent(
+                        {**self.parent, "docstatus": status},
+                        operation=operation,
+                    )
+
+            submitted = {**self.parent, "docstatus": 1}
+
+            for field in (
+                "employee",
+                "company",
+                "user",
+                "custom_telectro_booking_origin",
+            ):
+                with self.subTest(operation=operation, field=field):
+                    self.denied_parent(
+                        {**submitted, field: "FOREIGN"},
+                        operation=operation,
+                    )
+
 if __name__ == "__main__":
     unittest.main()

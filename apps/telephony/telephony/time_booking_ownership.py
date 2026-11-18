@@ -53,10 +53,22 @@ def authorize_parent(
     Unmarked legacy documents are rejected without adoption or modification.
     Supplied owner fields are never authorization evidence.
     """
-    if operation not in ("read", "correct"):
+    if operation not in (
+        "read",
+        "correct",
+        "cancel_submitted",
+        "replace_submitted",
+    ):
         raise BookingOwnershipError()
+
     _check_parent(identity, persisted)
-    if operation == "correct" and persisted.get("docstatus") != 0:
+
+    status = persisted["docstatus"]
+
+    if operation == "correct" and status != 0:
+        raise BookingOwnershipError()
+
+    if operation in ("cancel_submitted", "replace_submitted") and status != 1:
         raise BookingOwnershipError()
     if proposed is not None:
         if operation != "correct":
