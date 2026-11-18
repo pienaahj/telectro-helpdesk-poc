@@ -1,5 +1,6 @@
 """Dedicated, gated Technician Timesheet creation endpoint."""
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 import re
 
@@ -7,11 +8,17 @@ import frappe
 
 from telephony.time_booking_activation_adapter import _require_activation_configuration
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
-from telephony.time_booking_identity import resolve_current_technician_identity
+from telephony.time_booking_identity import (
+    TechnicianBookingIdentity,
+    resolve_current_technician_identity,
+)
 from telephony.time_booking_policy import validate_work_context
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
-from telephony.time_booking_transaction import _top_level_booking_transaction
+from telephony.time_booking_transaction import (
+    _active_booking,
+    _top_level_booking_transaction,
+)
 
 
 COMMAND = "telephony.api.time_booking.book_technician_time"
@@ -84,6 +91,38 @@ def _period(from_time, duration_minutes):
         raise BookingInputError()
     return start, end, duration_minutes
 
+@contextmanager
+def _authorized_native_creation(timesheet, identity):
+    """Temporarily allow native insertion of one authorized Phase 2 Timesheet."""
+    if (
+        not _active_booking.get()
+        or type(timesheet) is not TelectroBookingTimesheet
+        or type(identity) is not TechnicianBookingIdentity
+        or timesheet.get("doctype") != "Timesheet"
+        or timesheet.get("custom_telectro_booking_origin") != "Phase 2"
+        or timesheet.get("employee") != identity.employee
+        or timesheet.get("company") != identity.company
+        or timesheet.get("user") != identity.user
+        or timesheet.get("docstatus") != 0
+        or len(timesheet.time_logs) != 1
+    ):
+        raise ActivationConfigurationError()
+
+    flags = getattr(timesheet, "flags", None)
+
+    if flags is None:
+        raise ActivationConfigurationError()
+
+    previous = getattr(flags, "ignore_permissions", None)
+
+    if previous:
+        raise ActivationConfigurationError()
+
+    try:
+        flags.ignore_permissions = True
+        yield
+    finally:
+        flags.ignore_permissions = previous
 
 @frappe.whitelist(methods=["POST"])
 def book_technician_time(*, work_context, from_time, duration_minutes,
@@ -129,7 +168,8 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
         if type(timesheet) is not TelectroBookingTimesheet or len(timesheet.time_logs) != 1:
             raise ActivationConfigurationError()
         with _phase2_creation_intent(timesheet, identity):
-            inserted = timesheet.insert()
+            with _authorized_native_creation(timesheet, identity):
+                inserted = timesheet.insert()
         if (inserted is not timesheet or not _identifier(timesheet.name)
                 or len(timesheet.time_logs) != 1
                 or timesheet.get("employee") != identity.employee

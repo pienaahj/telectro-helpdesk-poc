@@ -30,6 +30,9 @@ class FakeTimesheet(dict):
         self.time_logs = values["time_logs"]
         self.name = None
         self.db = db
+        self.flags = types.SimpleNamespace(
+            ignore_permissions=False
+        )
     def insert(self):
         self.db.writes.append(self)
         if self.db.fail_insert:
@@ -208,7 +211,34 @@ class TestBookingPost(unittest.TestCase):
 
     def test_insert_failure_rolls_back_full_request(self):
         self.db.fail_insert = True
-        with self.assertRaises(RuntimeError): self.call()
+
+        observed = []
+        original_insert = FakeTimesheet.insert
+
+        def observed_insert(doc):
+            observed.append(doc)
+
+            # Native insertion must execute inside the
+            # temporary document permission scope.
+            self.assertIs(doc.flags.ignore_permissions, True)
+
+            return original_insert(doc)
+
+        with patch.object(FakeTimesheet, "insert", observed_insert):
+            with self.assertRaisesRegex(
+                RuntimeError, "native validation failed"
+            ):
+                self.call()
+
+        self.assertEqual(len(observed), 1)
+
+        # The document must not remain elevated after failure.
+        self.assertIs(
+            observed[0].flags.ignore_permissions,
+            False,
+        )
+
+        # Existing full-request rollback protection remains intact.
         self.assertEqual(self.db.rollback_count, 1)
         self.assertEqual(self.db.writes, [])
 
@@ -219,3 +249,91 @@ class TestBookingPost(unittest.TestCase):
         self.f.get_doc = lambda *args: Wrong() if isinstance(args[0], dict) else original(*args)
         with self.assertRaises(ActivationConfigurationError): self.call()
         self.assertEqual(self.db.writes, [])
+
+    def test_managed_creation_uses_temporary_document_permission_scope(self):
+        class RestrictedTimesheet(FakeTimesheet):
+            def __init__(self, values, db):
+                super().__init__(values, db)
+                self.flags = types.SimpleNamespace(
+                    ignore_permissions=False
+                )
+                self.elevated_during_insert = False
+
+            def insert(self):
+                self.elevated_during_insert = (
+                    self.flags.ignore_permissions is True
+                )
+
+                if not self.elevated_during_insert:
+                    raise PermissionError(
+                        "Native Timesheet create permission denied"
+                    )
+
+                return super().insert()
+
+        original_get_doc = self.f.get_doc
+
+        def get_doc(*args):
+            if (
+                isinstance(args[0], dict)
+                and args[0].get("doctype") == "Timesheet"
+            ):
+                return RestrictedTimesheet(args[0], self.db)
+
+            return original_get_doc(*args)
+
+        self.f.get_doc = get_doc
+        self.m.TelectroBookingTimesheet = RestrictedTimesheet
+
+        result = self.call()
+
+        self.assertEqual(result, {"timesheet": "TS-001"})
+        self.assertEqual(len(self.db.writes), 1)
+
+        doc = self.db.writes[0]
+
+        # Native insertion must run with temporary permission elevation.
+        self.assertTrue(doc.elevated_during_insert)
+
+        # The permission override must not survive insertion.
+        self.assertIs(doc.flags.ignore_permissions, False)
+
+        # Existing managed creation authority remains required.
+        self.assertEqual(len(self.intent_documents), 1)
+        self.assertIs(self.intent_documents[0][0], doc)
+        self.assertIs(self.intent_documents[0][1], self.identity)
+
+        self.assertEqual(self.db.rollback_count, 0)
+
+    def test_pre_elevated_timesheet_is_rejected_before_insert(self):
+        original_get_doc = self.f.get_doc
+        created = []
+
+        def get_doc(*args):
+            doc = original_get_doc(*args)
+
+            if isinstance(args[0], dict):
+                doc.flags.ignore_permissions = True
+                created.append(doc)
+
+            return doc
+
+        self.f.get_doc = get_doc
+
+        with self.assertRaises(ActivationConfigurationError):
+            self.call()
+
+        # Exactly one Timesheet was constructed.
+        self.assertEqual(len(created), 1)
+
+        # The pre-existing elevated state is not silently modified.
+        self.assertIs(
+            created[0].flags.ignore_permissions,
+            True,
+        )
+
+        # Native insertion must never execute.
+        self.assertEqual(self.db.writes, [])
+
+        # The surrounding request must abort.
+        self.assertEqual(self.db.rollback_count, 1)
