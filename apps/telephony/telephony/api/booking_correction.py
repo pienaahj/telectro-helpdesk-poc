@@ -200,7 +200,14 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
                 stored = after["time_logs"][0].get(key)
                 if hasattr(value, "isoformat"):
                     value = value.isoformat()
-                if stored != value:
+                if key == "hours":
+                    if (
+                        type(stored) not in (int, float)
+                        or type(value) not in (int, float)
+                        or round(stored, 6) != round(value, 6)
+                    ):
+                        raise BookingOwnershipError()
+                elif stored != value:
                     raise BookingOwnershipError()
         return {"timesheet": name, "audit": prior["name"]}
     if len(locked) != 1:

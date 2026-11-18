@@ -204,6 +204,59 @@ class TestDraftCorrection(unittest.TestCase):
         with self.assertRaises(BookingOwnershipError): self.call(expected_modified=None)
         self.doc.delete.assert_not_called()
 
+    def test_retry_accepts_persisted_six_decimal_hours(self):
+        from datetime import datetime
+        from telephony.time_booking_correction_audit import _snapshot
+
+        before = copy.deepcopy(self.state)
+        after = copy.deepcopy(before)
+
+        after["time_logs"][0].update({
+            "from_time": "2026-11-18T19:00:00",
+            "to_time": "2026-11-18T19:20:00",
+            "hours": 0.333333,
+            "description": "20-minute corrected entry",
+        })
+
+        self.audit_row = dict(
+            name="AUDIT-1",
+            actor=self.identity.user,
+            action="Draft Correction",
+            reason="repair entry",
+            original_timesheet="TS-1",
+            before_snapshot=_snapshot(before),
+            after_snapshot=_snapshot(after),
+        )
+
+        values = {
+            "from_time": datetime(2026, 11, 18, 19, 0),
+            "to_time": datetime(2026, 11, 18, 19, 20),
+            "hours": 20 / 60,
+            "description": "20-minute corrected entry",
+        }
+
+        result = self.call(
+            action="Draft Correction",
+            values=values,
+        )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+
+        with self.assertRaises(BookingOwnershipError):
+            self.call(
+                action="Draft Correction",
+                values={**values, "hours": 19 / 60},
+            )
+
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+
     def test_correction_retry_and_conflicting_replacement(self):
         from telephony.time_booking_correction_audit import _snapshot
         before = copy.deepcopy(self.state)
