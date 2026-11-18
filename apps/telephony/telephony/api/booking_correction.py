@@ -24,6 +24,30 @@ from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 
 PREFIX = "telephony.api.booking_correction."
 
+def _revision_matches(persisted_modified, expected_modified):
+    """Compare exact revisions across Frappe and JSON datetime formats.
+
+    Audit snapshots use ISO timestamps with 'T', while Frappe normally
+    exposes modified timestamps with a space separator. Preserve
+    microsecond precision and reject malformed or timezone-aware values.
+    """
+    if (
+        type(persisted_modified) is not str
+        or type(expected_modified) is not str
+    ):
+        return False
+
+    try:
+        persisted = datetime.fromisoformat(persisted_modified)
+        expected = datetime.fromisoformat(expected_modified)
+    except ValueError:
+        return False
+
+    if persisted.tzinfo is not None or expected.tzinfo is not None:
+        return False
+
+    return persisted == expected
+
 
 def _guard():
     if frappe.conf.get("telectro_time_booking_enabled") not in (1, True, "1"):
@@ -159,7 +183,7 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
             raise BookingOwnershipError()
         before = json.loads(prior["before_snapshot"])
         _owned(before, identity)
-        if str(before.get("modified")) != str(expected_modified):
+        if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
         if values is not None:
             after = json.loads(prior["after_snapshot"])
@@ -179,8 +203,7 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     doc.check_permission("write" if values is not None else "delete")
     before = json.loads(_snapshot(doc.as_dict()))
     _owned(before, identity)
-    if (not expected_modified or not before.get("modified")
-            or str(before["modified"]) != str(expected_modified)):
+    if not _revision_matches(before.get("modified"), expected_modified):
         raise BookingOwnershipError()
     if values is not None:
         doc.time_logs[0].update(values)
@@ -290,7 +313,7 @@ def cancel_submitted_booking(
                 operation="cancel_submitted",
             )
 
-            if str(before.get("modified")) != str(expected_modified):
+            if not _revision_matches(before.get("modified"), expected_modified):
                 raise BookingOwnershipError()
 
             return {
@@ -326,7 +349,7 @@ def cancel_submitted_booking(
             operation="cancel_submitted",
         )
 
-        if str(before.get("modified")) != str(expected_modified):
+        if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
 
         # Identity, ownership, state and revision are already authorized.
@@ -422,7 +445,7 @@ def replace_submitted_booking(
                 operation="replace_submitted",
             )
 
-            if str(before.get("modified")) != str(expected_modified):
+            if not _revision_matches(before.get("modified"), expected_modified):
                 raise BookingOwnershipError()
 
             requested = _replacement_request_snapshot(
@@ -476,7 +499,7 @@ def replace_submitted_booking(
             operation="replace_submitted",
         )
 
-        if str(before.get("modified")) != str(expected_modified):
+        if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
 
         # Normalize the requested replacement before any lifecycle mutation.

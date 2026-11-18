@@ -11,6 +11,33 @@ from telephony.time_booking_transaction import BookingTransactionDenied
 
 class TestSubmittedBookingReplacement(unittest.TestCase):
 
+    def test_revision_matches_frappe_and_audit_formats(self):
+        from telephony.api.booking_correction import _revision_matches
+
+        iso = "2026-11-18T17:59:29.129381"
+        http = "2026-11-18 17:59:29.129381"
+
+        self.assertTrue(_revision_matches(iso, http))
+        self.assertTrue(_revision_matches(http, iso))
+
+        for stale in (
+            "2026-11-18 17:59:29.129380",
+            "2026-11-18 17:59:29.129382",
+            "2026-11-18 17:59:29",
+        ):
+            self.assertFalse(_revision_matches(iso, stale))
+
+        for invalid in (
+            None,
+            "",
+            "invalid",
+            123,
+            "2026-11-18T17:59:29.129381+02:00",
+        ):
+            self.assertFalse(_revision_matches(iso, invalid))
+
+        self.assertFalse(_revision_matches(None, http))
+
     def test_get_rejected_without_database_mutation(self):
         command = api.PREFIX + "replace_submitted_booking"
 
@@ -38,7 +65,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     timesheet_name="TS-1",
                     event_id="replacement-1",
                     reason="Incorrect submitted time",
-                    expected_modified="2026-11-17T12:00:00",
+                    expected_modified="2026-11-17 12:00:00",
                     work_context="Helpdesk",
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
@@ -300,6 +327,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         from telephony.time_booking_correction_audit import _snapshot
         from telephony.time_booking_identity import TechnicianBookingIdentity
         from telephony.time_booking_ownership import BookingOwnershipError
+        from telephony.api import time_booking as time_booking_api
 
         command = api.PREFIX + "replace_submitted_booking"
 
@@ -388,6 +416,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         with (
             patch.dict(sys.modules, {"frappe": fake_frappe}),
             patch.object(api, "frappe", fake_frappe),
+            patch.object(time_booking_api, "frappe", fake_frappe),
             patch.object(api, "_guard", return_value=identity),
             patch.object(api, "record_correction_event") as audit,
         ):
@@ -417,6 +446,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         from telephony.tests.test_time_booking_correction_audit import snapshot
         from telephony.time_booking_correction_audit import _snapshot
         from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.api import time_booking as time_booking_api
 
         command = api.PREFIX + "replace_submitted_booking"
 
@@ -498,6 +528,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         with (
             patch.dict(sys.modules, {"frappe": fake_frappe}),
             patch.object(api, "frappe", fake_frappe),
+            patch.object(time_booking_api, "frappe", fake_frappe),
             patch.object(api, "_guard", return_value=identity),
             patch.object(api, "record_correction_event") as audit,
         ):
@@ -730,7 +761,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 timesheet_name="TS-1",
                 event_id="replacement-1",
                 reason="Incorrect submitted time",
-                expected_modified="2026-11-17T12:00:00",
+                expected_modified="2026-11-17 12:00:00",
                 work_context="Helpdesk",
                 from_time="2026-11-16 09:00:00",
                 duration_minutes=90,
@@ -994,7 +1025,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     timesheet_name="TS-1",
                     event_id="replacement-audit-failure",
                     reason="Incorrect submitted time",
-                    expected_modified="2026-11-17T12:00:00",
+                    expected_modified="2026-11-17 12:00:00",
                     work_context="Helpdesk",
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
