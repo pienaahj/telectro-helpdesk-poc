@@ -1,9 +1,11 @@
 """Private assignment episodes; callers establish assignment transition authority."""
 
+from dataclasses import dataclass
 from datetime import datetime
 from hashlib import sha256
 
 from telephony.time_booking_cooption import _require_recipient_identity
+from telephony.time_booking_identity import TechnicianBookingIdentity
 
 DOCTYPE = "TELECTRO Ticket Assignment History"
 
@@ -169,3 +171,109 @@ def end_assignment(*, ticket, user, episode, actor, source, reason, event_id, ef
 # Future governance regularization must use a separate, authorized service
 # with mandatory evidence, actor and reason. This writer accepts only trusted
 # transition calls and does not infer participation from _assign or ToDo.
+
+
+# None means verified absence of Technician authority, never unresolved ownership.
+_UNKNOWN_AUTHORITY = object()
+
+
+@dataclass(frozen=True)
+class _ActiveAssignmentEpisode:
+    """Normalized active evidence, not a raw Frappe record.
+
+    The adapter must verify ticket membership, active state/key and provenance
+    before constructing this projection from a current locked read.
+    """
+
+    name: str
+    identity: TechnicianBookingIdentity
+    effective_start: datetime
+    recorded_start: datetime
+
+
+@dataclass(frozen=True)
+class _AssignmentTransitionPlan:
+    """End the specified episode, then start the identity at the exact timestamp."""
+
+    at: datetime
+    end_episode: str | None = None
+    start_owner: TechnicianBookingIdentity | None = None
+
+    @property
+    def is_noop(self):
+        return self.end_episode is None and self.start_owner is None
+
+
+def _normalized_owner(owner):
+    if owner is None:
+        return
+    if type(owner) is not TechnicianBookingIdentity or not all(
+        type(value) is str and bool(value.strip()) and value == value.strip()
+        for value in (owner.user, owner.employee, owner.company)
+    ):
+        raise AssignmentHistoryError()
+
+
+def _normalized_timestamp(value):
+    if type(value) is not datetime or value.tzinfo is not None:
+        raise AssignmentHistoryError()
+
+
+def _plan_assignment_transition(*, previous_owner, new_owner, active_episodes,
+                                at, supported_transition):
+    """Plan one trusted transition without reads, writes, or clock access.
+
+    Owners are validated TechnicianBookingIdentity objects or None (verified no
+    Technician authority, including Partner/non-Technician ownership). Unknown
+    ownership, represented by _UNKNOWN_AUTHORITY, always fails closed. The caller
+    establishes canonical owners, eligibility, authorization and ticket locking.
+
+    active_episodes is a list/tuple of _ActiveAssignmentEpisode projections for
+    this ticket. A prior Technician requires exactly one matching active episode;
+    no prior Technician requires none. Missing evidence never creates a baseline.
+    Even no-ops require consistent evidence and supported_transition is True.
+
+    All timestamps are exact naive site-local datetimes. Require effective_start
+    <= recorded_start <= at. An immediate end at the start timestamp is allowed,
+    matching the existing writer; it contributes no positive-duration coverage.
+    No implicit clock or inference from assignment mirrors/ToDo dates is used.
+
+    The immutable result explicitly identifies END and START work, or is_noop.
+    Handoff uses the same at for both. This plans current transitions, not replay
+    of completed events; the future recorder must resolve event retries first.
+    """
+    if type(supported_transition) is not bool or not supported_transition:
+        raise AssignmentHistoryError()
+    _normalized_timestamp(at)
+    _normalized_owner(previous_owner)
+    _normalized_owner(new_owner)
+    if type(active_episodes) not in (tuple, list) or len(active_episodes) > 1:
+        raise AssignmentHistoryError()
+    if previous_owner is None:
+        if active_episodes:
+            raise AssignmentHistoryError()
+    else:
+        if len(active_episodes) != 1:
+            raise AssignmentHistoryError()
+        episode = active_episodes[0]
+        if (type(episode) is not _ActiveAssignmentEpisode
+                or type(episode.name) is not str or not episode.name.strip()
+                or episode.name != episode.name.strip()):
+            raise AssignmentHistoryError()
+        _normalized_owner(episode.identity)
+        if episode.identity != previous_owner:
+            raise AssignmentHistoryError()
+        _normalized_timestamp(episode.effective_start)
+        _normalized_timestamp(episode.recorded_start)
+        if not episode.effective_start <= episode.recorded_start <= at:
+            raise AssignmentHistoryError()
+    if (previous_owner is not None and new_owner is not None
+            and previous_owner.user == new_owner.user and previous_owner != new_owner):
+        raise AssignmentHistoryError()
+    if previous_owner == new_owner:
+        return _AssignmentTransitionPlan(at=at)
+    return _AssignmentTransitionPlan(
+        at=at,
+        end_episode=active_episodes[0].name if previous_owner is not None else None,
+        start_owner=new_owner,
+    )
