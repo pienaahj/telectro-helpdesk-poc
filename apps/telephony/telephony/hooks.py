@@ -567,7 +567,7 @@ override_whitelisted_methods.update({
     "frappe.desk.form.assign_to.remove": "telephony.overrides.assign_to.remove",
     "frappe.desk.form.assign_to.remove_multiple": "telephony.overrides.assign_to.remove_multiple",
     "frappe.desk.form.assign_to.close_all_assignments": "telephony.overrides.assign_to.close_all_assignments",
-    
+
     # ✅ Redis search override (stops search on subject type of Customer site)
     "helpdesk.api.article.search": "telephony.api.customer_article_search",
 

@@ -77,6 +77,52 @@ class TestWorkContextPolicy(unittest.TestCase):
             self.row("Helpdesk", custom_hd_ticket="76", custom_hd_customer="C")
         ))
 
+    def test_customer_support_exactly_one_customer_identity(self):
+        cases = [
+            (
+                "existing customer",
+                {
+                    "custom_hd_customer": "Operational Customer",
+                    "custom_unlisted_customer_name": None,
+                },
+                True,
+            ),
+            (
+                "unlisted customer",
+                {
+                    "custom_hd_customer": None,
+                    "custom_unlisted_customer_name": "Prospective Customer",
+                },
+                True,
+            ),
+            (
+                "both identities",
+                {
+                    "custom_hd_customer": "Operational Customer",
+                    "custom_unlisted_customer_name": "Prospective Customer",
+                },
+                False,
+            ),
+            (
+                "neither identity",
+                {
+                    "custom_hd_customer": None,
+                    "custom_unlisted_customer_name": None,
+                },
+                False,
+            ),
+        ]
+
+        for name, references, valid in cases:
+            with self.subTest(case=name):
+                row = self.row("Customer Support", **references)
+
+                if valid:
+                    self.assertIsNone(validate_work_context(row))
+                else:
+                    with self.assertRaises(WorkContextValidationError):
+                        validate_work_context(row)
+
     def test_emergency_independence(self):
         for flag in [0, 1]:
             self.assertIsNone(validate_work_context(
@@ -162,6 +208,54 @@ class TestWorkContextPolicy(unittest.TestCase):
         self.assertIsNone(validate_work_context(row, untouched_historical=True))
         self.assertEqual(row, {"project": "legacy"})
 
+    def test_unlisted_customer_boundary_cases(self):
+        # Empty alternatives count as absent when an HD Customer exists.
+        for value in [None, "", "   "]:
+            with self.subTest(empty_unlisted=value):
+                self.assertIsNone(validate_work_context(self.row(
+                    "Customer Support",
+                    custom_hd_customer="Existing Customer",
+                    custom_unlisted_customer_name=value,
+                )))
+
+        # An unlisted customer name must be meaningful.
+        for value in [None, "", "   "]:
+            with self.subTest(missing_unlisted=value):
+                with self.assertRaises(WorkContextValidationError):
+                    validate_work_context(self.row(
+                        "Customer Support",
+                        custom_unlisted_customer_name=value,
+                    ))
+
+        # Reject invalid input types, even with a valid Customer link.
+        for value in [123, [], {}, True, 1.5]:
+            with self.subTest(invalid_type=value):
+                with self.assertRaisesRegex(
+                    WorkContextValidationError,
+                    "custom_unlisted_customer_name",
+                ):
+                    validate_work_context(self.row(
+                        "Customer Support",
+                        custom_hd_customer="Existing Customer",
+                        custom_unlisted_customer_name=value,
+                    ))
+
+        # Unlisted customer identities belong only to Customer Support.
+        for context, references in [
+            ("Helpdesk", {"custom_hd_ticket": "76"}),
+            ("Project", {"project": "PROJ-0001"}),
+            ("Internal", {}),
+        ]:
+            with self.subTest(prohibited_context=context):
+                with self.assertRaisesRegex(
+                    WorkContextValidationError,
+                    "custom_unlisted_customer_name",
+                ):
+                    validate_work_context(self.row(
+                        context,
+                        **references,
+                        custom_unlisted_customer_name="Prospective Customer",
+                    ))
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,7 @@ _RULES = {
     "Helpdesk": (("custom_hd_ticket",), ("project", "task")),
     "Project": (("project",), ("custom_hd_ticket",)),
     "Customer Support": (
-        ("custom_hd_customer",), ("custom_hd_ticket", "project", "task")
+        (), ("custom_hd_ticket", "project", "task")
     ),
     "Internal": (
         (), ("custom_hd_ticket", "custom_hd_customer", "project", "task")
@@ -60,3 +60,36 @@ def validate_work_context(
             raise WorkContextValidationError(f"{field} is required for {context}")
         if field in prohibited and present:
             raise WorkContextValidationError(f"{field} is prohibited for {context}")
+    unlisted = row.get("custom_unlisted_customer_name")
+
+    if unlisted is not None and not isinstance(unlisted, str):
+        raise WorkContextValidationError(
+            "custom_unlisted_customer_name must be a string or None"
+        )
+
+    unlisted_present = (
+        isinstance(unlisted, str) and bool(unlisted.strip())
+    )
+
+    if context == "Customer Support":
+        customer = row.get("custom_hd_customer")
+        customer_present = (
+            isinstance(customer, str) and bool(customer.strip())
+        )
+
+        if not customer_present and not unlisted_present:
+            raise WorkContextValidationError(
+                "custom_hd_customer or custom_unlisted_customer_name "
+                "is required for Customer Support"
+            )
+
+        if customer_present and unlisted_present:
+            raise WorkContextValidationError(
+                "custom_hd_customer and custom_unlisted_customer_name "
+                "are mutually exclusive"
+            )
+
+    elif unlisted_present:
+        raise WorkContextValidationError(
+            f"custom_unlisted_customer_name is prohibited for {context}"
+        )
