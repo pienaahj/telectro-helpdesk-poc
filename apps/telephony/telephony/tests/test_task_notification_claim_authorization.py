@@ -149,6 +149,8 @@ def compile_claim(case):
         and node.name == "telectro_claim_ticket"
     ]
     assert len(matches) == 1
+    atomic = next(copy.deepcopy(node) for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.name == "_atomic_claim")
 
     function = copy.deepcopy(matches[0])
     function.decorator_list = []
@@ -160,7 +162,7 @@ def compile_claim(case):
     ]
     assert len(helpers) == 1
     module = ast.Module(
-        body=[copy.deepcopy(helpers[0]), function], type_ignores=[]
+        body=[atomic, copy.deepcopy(helpers[0]), function], type_ignores=[]
     )
     ast.fix_missing_locations(module)
 
@@ -193,6 +195,7 @@ def compile_claim(case):
         throw=frappe_throw,
     )
     namespace = {
+        "_assignment_history_capture_enabled": lambda: False,
         "json": json,
         "frappe": frappe,
         "_normalize_assignment": normalize,

@@ -12,7 +12,7 @@ class TestClaimHistoryIntegration(unittest.TestCase):
     def setUp(self):
         source = Path(__file__).resolve().parents[1] / "telectro_claim.py"
         tree = ast.parse(source.read_text())
-        wanted = {"_assignment_history_capture_enabled", "telectro_claim_ticket",
+        wanted = {"_assignment_history_capture_enabled", "_atomic_claim", "telectro_claim_ticket",
                   "telectro_release_ticket", "telectro_handoff_ticket"}
         functions = []
         for node in tree.body:
@@ -36,6 +36,7 @@ class TestClaimHistoryIntegration(unittest.TestCase):
         p.start(); self.addCleanup(p.stop)
         self.ns["frappe"] = self.f
         self.ns.update(
+            _claim_with_assignment_capture=Mock(return_value={"ok": 1, "ticket": "T", "assigned_to": "tech"}),
             _require_claim_authorization=Mock(return_value={"agent_group": "team", "privileged": False}),
             _normalize_assignment=Mock(return_value="COMMENT-1"),
             _normalize_to_pool=Mock(return_value="COMMENT-2"),
@@ -72,22 +73,24 @@ class TestClaimHistoryIntegration(unittest.TestCase):
         self.f.db.table_exists.return_value = False
         with self.assertRaises(RuntimeError): self.ns["_assignment_history_capture_enabled"]()
 
-    def test_claim_starts_episode_after_confirmed_claim(self):
+    def test_claim_delegates_to_transactional_capture_path(self):
         self.assertEqual(self.ns["telectro_claim_ticket"]("T")["ok"], 1)
-        self.lock.assert_called_once_with("T")
-        self.ns["_record_assignment_start"].assert_called_once_with(
-            "T", "tech", "tech", "Claim", "Claim", "COMMENT-1", "2026-11-17 12:00:00")
-        self.f.db.commit.assert_called_once()
+        self.ns["_claim_with_assignment_capture"].assert_called_once_with("T")
+        self.ns["_record_assignment_start"].assert_not_called()
+        self.f.db.commit.assert_not_called()
 
-    def test_unclaimed_request_does_not_write_history(self):
+    def test_capture_disabled_contested_claim_does_not_write_history(self):
+        self.f.conf.clear()
         self.claimed = False
         self.ns["telectro_claim_ticket"]("T")
         self.ns["_record_assignment_start"].assert_not_called()
+        self.f.db.commit.assert_not_called()
 
-    def test_claim_capture_failure_rolls_back_without_commit(self):
-        self.ns["_record_assignment_start"].side_effect = RuntimeError("history")
-        with self.assertRaises(RuntimeError): self.ns["telectro_claim_ticket"]("T")
-        self.f.db.rollback.assert_called_once(); self.f.db.commit.assert_not_called()
+    def test_capture_path_failure_propagates_without_legacy_commit(self):
+        self.ns["_claim_with_assignment_capture"].side_effect = RuntimeError("history")
+        with self.assertRaises(RuntimeError):
+            self.ns["telectro_claim_ticket"]("T")
+        self.f.db.commit.assert_not_called()
 
     def test_release_ends_exact_episode(self):
         self.ns["telectro_release_ticket"]("T", "done")
