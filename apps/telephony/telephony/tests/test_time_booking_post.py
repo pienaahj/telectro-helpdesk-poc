@@ -763,3 +763,63 @@ class TestBookingPost(unittest.TestCase):
         self.assertIsNone(row["custom_work_location"])
         self.assertEqual(row["custom_work_origin"], "Direct / Ad-hoc")
         self.assertEqual(row["custom_emergency"], 0)
+
+    def test_helpdesk_accepts_canonical_numeric_ticket_name(self):
+        ticket = Reference(
+            "HD Ticket",
+            "965",
+            status="Closed",
+            custom_service_area="Data Request",
+        )
+
+        # Simulate the actual Frappe document representation.
+        ticket.name = 965
+
+        self.refs[("HD Ticket", "965")] = ticket
+
+        result = self.call(
+            ticket_name="965",
+            service_area=None,
+        )
+
+        self.assertEqual(result, {"timesheet": "TS-001"})
+        self.assertEqual(len(self.db.writes), 1)
+
+        row = self.db.writes[0].time_logs[0]
+
+        self.assertEqual(row["custom_hd_ticket"], "965")
+        self.assertEqual(row["custom_service_area"], "Data Request")
+
+    def test_helpdesk_rejects_noncanonical_numeric_ticket_names(self):
+        invalid_names = (
+            "0965",
+            "965.0",
+            "+965",
+            " 965",
+            "965 ",
+        )
+
+        for requested_name in invalid_names:
+            with self.subTest(requested_name=requested_name):
+                ticket = Reference(
+                    "HD Ticket",
+                    requested_name,
+                    status="Closed",
+                    custom_service_area="Data Request",
+                )
+
+                # Simulate Frappe returning the integer identity.
+                ticket.name = 965
+
+                self.refs[("HD Ticket", requested_name)] = ticket
+
+                with self.assertRaises(
+                    self.m.BookingReferenceDenied
+                ):
+                    self.call(
+                        ticket_name=requested_name,
+                        service_area=None,
+                    )
+
+                self.assertEqual(self.db.writes, [])
+                self.assertEqual(self.intent_documents, [])

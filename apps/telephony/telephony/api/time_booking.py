@@ -50,8 +50,20 @@ def _visible(doctype, name):
         doc.check_permission("read")
     except (frappe.DoesNotExistError, frappe.PermissionError) as exc:
         raise BookingReferenceDenied() from exc
-    if doc.doctype != doctype or doc.name != name:
+    if doc.doctype != doctype:
         raise BookingReferenceDenied()
+
+    if doc.name != name:
+        canonical_numeric_ticket = (
+            doctype == "HD Ticket"
+            and type(doc.name) is int
+            and doc.name > 0
+            and name == str(doc.name)
+        )
+
+        if not canonical_numeric_ticket:
+            raise BookingReferenceDenied()
+
     return doc
 
 
