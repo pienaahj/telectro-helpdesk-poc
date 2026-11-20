@@ -170,3 +170,54 @@ def normalize_emergency(value) -> int:
     raise BookingMetadataValidationError(
         "Emergency must be explicitly supplied as 0 or 1"
     )
+
+def normalize_booking_metadata(
+    *,
+    work_context,
+    service_area,
+    allowed_service_areas,
+    activity_type,
+    work_location,
+    work_origin,
+    external_reference,
+    other_origin_description,
+    emergency,
+) -> dict[str, object]:
+    """Validate and return complete canonical booking metadata."""
+
+    validate_service_area(
+        work_context=work_context,
+        service_area=service_area,
+        allowed_service_areas=allowed_service_areas,
+    )
+
+    validate_work_location(
+        activity_type=activity_type,
+        work_location=work_location,
+    )
+
+    validate_work_origin(
+        work_origin=work_origin,
+        external_reference=external_reference,
+        other_origin_description=other_origin_description,
+    )
+
+    normalized_emergency = normalize_emergency(emergency)
+
+    return {
+        "custom_service_area": (
+            None if service_area in (None, "") else service_area
+        ),
+        "custom_work_location": (
+            None if work_location in (None, "") else work_location
+        ),
+        "custom_work_origin": work_origin,
+        "custom_external_reference": (
+            None if external_reference in (None, "") else external_reference
+        ),
+        "custom_other_origin_description": (
+            None if other_origin_description in (None, "")
+            else other_origin_description
+        ),
+        "custom_emergency": normalized_emergency,
+    }

@@ -8,6 +8,7 @@ from telephony.time_booking_metadata_policy import (
     validate_work_location,
     validate_work_origin,
     normalize_emergency,
+    normalize_booking_metadata,
 )
 
 
@@ -332,6 +333,168 @@ class TestBookingMetadataPolicy(unittest.TestCase):
                     BookingMetadataValidationError
                 ):
                     normalize_emergency(supplied)
+
+    def test_normalized_metadata_clears_stale_origin_fields(self):
+        normalized = normalize_booking_metadata(
+            work_context="Project",
+            service_area="Routing",
+            allowed_service_areas=("Other", "Routing"),
+            activity_type="Technical Work",
+            work_location="Remote",
+            work_origin="Direct / Ad-hoc",
+            external_reference=None,
+            other_origin_description=None,
+            emergency=0,
+        )
+
+        expected = {
+            "custom_service_area": "Routing",
+            "custom_work_location": "Remote",
+            "custom_work_origin": "Direct / Ad-hoc",
+            "custom_external_reference": None,
+            "custom_other_origin_description": None,
+            "custom_emergency": 0,
+        }
+
+        self.assertEqual(normalized, expected)
+
+        previous = {
+            "custom_external_reference": "SNAP-1234",
+        }
+
+        previous.update(normalized)
+
+        self.assertIsNone(
+            previous["custom_external_reference"]
+        )
+
+    def test_normalized_internal_travel_metadata(self):
+        normalized = normalize_booking_metadata(
+            work_context="Internal",
+            service_area=None,
+            allowed_service_areas=("Other", "Routing"),
+            activity_type="Travel",
+            work_location=None,
+            work_origin="Direct / Ad-hoc",
+            external_reference=None,
+            other_origin_description=None,
+            emergency=True,
+        )
+
+        expected = {
+            "custom_service_area": None,
+            "custom_work_location": None,
+            "custom_work_origin": "Direct / Ad-hoc",
+            "custom_external_reference": None,
+            "custom_other_origin_description": None,
+            "custom_emergency": 1,
+        }
+
+        self.assertEqual(normalized, expected)
+
+    def test_normalized_origin_specific_metadata(self):
+        cases = (
+            (
+                "Snapfix",
+                "SNAP-1234",
+                None,
+                "SNAP-1234",
+                None,
+            ),
+            (
+                "Other",
+                None,
+                "Emergency maintenance",
+                None,
+                "Emergency maintenance",
+            ),
+        )
+
+        for (
+            origin,
+            external_reference,
+            other_description,
+            expected_reference,
+            expected_description,
+        ) in cases:
+            with self.subTest(origin=origin):
+                normalized = normalize_booking_metadata(
+                    work_context="Helpdesk",
+                    service_area="Routing",
+                    allowed_service_areas=("Other", "Routing"),
+                    activity_type="Technical Work",
+                    work_location="On-site",
+                    work_origin=origin,
+                    external_reference=external_reference,
+                    other_origin_description=other_description,
+                    emergency=0,
+                )
+
+                self.assertEqual(
+                    normalized["custom_work_origin"], origin
+                )
+                self.assertEqual(
+                    normalized["custom_external_reference"],
+                    expected_reference,
+                )
+                self.assertEqual(
+                    normalized["custom_other_origin_description"],
+                    expected_description,
+                )
+
+    def test_normalized_metadata_rejects_invalid_combinations(self):
+        valid = {
+            "work_context": "Project",
+            "service_area": "Routing",
+            "allowed_service_areas": ("Other", "Routing"),
+            "activity_type": "Technical Work",
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        invalid_cases = {
+            "missing_required_service_area": {
+                "service_area": None,
+            },
+            "travel_with_work_location": {
+                "activity_type": "Travel",
+                "work_location": "Remote",
+            },
+            "snapfix_without_reference": {
+                "work_origin": "Snapfix",
+            },
+            "snapfix_with_other_description": {
+                "work_origin": "Snapfix",
+                "external_reference": "SNAP-1234",
+                "other_origin_description": "Old description",
+            },
+            "other_without_description": {
+                "work_origin": "Other",
+            },
+            "other_with_external_reference": {
+                "work_origin": "Other",
+                "external_reference": "SNAP-1234",
+                "other_origin_description": "Other work",
+            },
+            "direct_with_stale_reference": {
+                "external_reference": "SNAP-1234",
+            },
+            "invalid_emergency": {
+                "emergency": "1",
+            },
+        }
+
+        for case, overrides in invalid_cases.items():
+            with self.subTest(case=case):
+                supplied = {**valid, **overrides}
+
+                with self.assertRaises(
+                    BookingMetadataValidationError
+                ):
+                    normalize_booking_metadata(**supplied)
 
 if __name__ == "__main__":
     unittest.main()
