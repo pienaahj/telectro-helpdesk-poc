@@ -665,3 +665,200 @@ class TestDraftCorrection(unittest.TestCase):
                 self.doc.save.assert_not_called()
                 self.doc.delete.assert_not_called()
                 self.assertFalse(hasattr(self, "recorded"))
+
+    def test_correction_endpoint_accepts_unlisted_customer_support_identity(self):
+        with (
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value=None,
+            ),
+            patch.object(api, "_visible"),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+        ):
+            result = self.endpoint(
+                work_context="Customer Support",
+                ticket_name=None,
+                project_name=None,
+                task_name=None,
+                customer_name=None,
+                unlisted_customer_name="Walk-in Customer",
+                service_area="Other",
+                work_location="Remote",
+                work_origin="Direct / Ad-hoc",
+                external_reference=None,
+                other_origin_description=None,
+                emergency=0,
+            )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        self.doc.save.assert_called_once_with()
+
+        row = self.recorded["after"]["time_logs"][0]
+
+        self.assertEqual(
+            row["custom_work_context"],
+            "Customer Support",
+        )
+        self.assertIsNone(row["custom_hd_customer"])
+        self.assertEqual(
+            row["custom_unlisted_customer_name"],
+            "Walk-in Customer",
+        )
+        self.assertEqual(row["custom_service_area"], "Other")
+
+    def test_correction_endpoint_rejects_invalid_customer_identities(self):
+        from telephony.time_booking_policy import WorkContextValidationError
+
+        cases = (
+            (
+                "both_identities",
+                "Customer Support",
+                "HD-CUST-1",
+                "Walk-in Customer",
+            ),
+            (
+                "neither_identity",
+                "Customer Support",
+                None,
+                None,
+            ),
+            (
+                "whitespace_only_unlisted",
+                "Customer Support",
+                None,
+                "   ",
+            ),
+            (
+                "unlisted_name_in_internal",
+                "Internal",
+                None,
+                "Walk-in Customer",
+            ),
+        )
+
+        for label, context, customer, unlisted in cases:
+            with self.subTest(case=label):
+                with (
+                    patch.object(
+                        api,
+                        "_authorize_references",
+                        return_value=None,
+                    ),
+                    patch.object(api, "_visible"),
+                    patch.object(
+                        api,
+                        "_allowed_service_areas",
+                        return_value=("Other", "Routing", "Data Request"),
+                    ),
+                ):
+                    with self.assertRaises(WorkContextValidationError):
+                        self.endpoint(
+                            work_context=context,
+                            ticket_name=None,
+                            project_name=None,
+                            task_name=None,
+                            customer_name=customer,
+                            unlisted_customer_name=unlisted,
+                            service_area=(
+                                None if context == "Internal" else "Other"
+                            ),
+                            work_location="Remote",
+                            work_origin="Direct / Ad-hoc",
+                            external_reference=None,
+                            other_origin_description=None,
+                            emergency=0,
+                        )
+
+                self.doc.save.assert_not_called()
+                self.doc.delete.assert_not_called()
+                self.assertFalse(hasattr(self, "recorded"))
+
+    def test_correction_retry_accepts_empty_unlisted_customer_name(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        before = copy.deepcopy(self.state)
+
+        before["time_logs"][0]["custom_unlisted_customer_name"] = None
+
+        after = copy.deepcopy(before)
+        after["time_logs"][0]["custom_unlisted_customer_name"] = ""
+
+        self.audit_row = dict(
+            name="AUDIT-1",
+            actor=self.identity.user,
+            action="Draft Correction",
+            reason="repair entry",
+            original_timesheet="TS-1",
+            before_snapshot=_snapshot(before),
+            after_snapshot=_snapshot(after),
+        )
+
+        result = self.call(
+            action="Draft Correction",
+            values={
+                "custom_unlisted_customer_name": None,
+            },
+        )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+
+    def test_correction_retry_rejects_changed_unlisted_customer_name(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        cases = (
+            ("name_changed", "Another Customer"),
+            ("name_cleared_none", None),
+            ("name_cleared_empty", ""),
+        )
+
+        for label, requested_name in cases:
+            with self.subTest(case=label):
+                before = copy.deepcopy(self.state)
+
+                before["time_logs"][0].update({
+                    "custom_work_context": "Customer Support",
+                    "custom_hd_ticket": None,
+                    "custom_hd_customer": None,
+                    "custom_unlisted_customer_name": "Walk-in Customer",
+                    "project": None,
+                    "task": None,
+                })
+
+                after = copy.deepcopy(before)
+
+                self.audit_row = dict(
+                    name="AUDIT-1",
+                    actor=self.identity.user,
+                    action="Draft Correction",
+                    reason="repair entry",
+                    original_timesheet="TS-1",
+                    before_snapshot=_snapshot(before),
+                    after_snapshot=_snapshot(after),
+                )
+
+                with self.assertRaises(BookingOwnershipError):
+                    self.call(
+                        action="Draft Correction",
+                        values={
+                            "custom_unlisted_customer_name": requested_name,
+                        },
+                    )
+
+                self.doc.save.assert_not_called()
+                self.doc.delete.assert_not_called()
+                self.assertFalse(hasattr(self, "recorded"))

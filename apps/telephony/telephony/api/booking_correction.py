@@ -224,6 +224,7 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
                         key in (
                             "custom_external_reference",
                             "custom_other_origin_description",
+                            "custom_unlisted_customer_name",
                         )
                         or (
                             key == "custom_service_area"
@@ -283,6 +284,7 @@ def correct_draft_booking(
     project_name=None,
     task_name=None,
     customer_name=None,
+    unlisted_customer_name=None,
     expected_modified=None,
     service_area=None,
     work_location=None,
@@ -305,6 +307,7 @@ def correct_draft_booking(
             custom_work_context=work_context,
             custom_hd_ticket=ticket_name,
             custom_hd_customer=customer_name,
+            custom_unlisted_customer_name=unlisted_customer_name,
             project=project_name,
             task=task_name,
         )
