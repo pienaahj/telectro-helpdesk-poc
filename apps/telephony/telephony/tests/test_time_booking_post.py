@@ -370,3 +370,121 @@ class TestBookingPost(unittest.TestCase):
             "Booking reference is unavailable.",
         )
         self.assertEqual(self.db.writes, [])
+
+    def test_customer_support_unlisted_identity_booking(self):
+        result = self.call(
+            work_context="Customer Support",
+            ticket_name=None,
+            customer_name=None,
+            unlisted_customer_name="Walk-in customer",
+        )
+
+        self.assertEqual(result, {"timesheet": "TS-001"})
+        self.assertEqual(len(self.db.writes), 1)
+
+        row = self.db.writes[0].time_logs[0]
+
+        self.assertEqual(
+            row["custom_work_context"],
+            "Customer Support",
+        )
+        self.assertIsNone(row["custom_hd_customer"])
+        self.assertEqual(
+            row["custom_unlisted_customer_name"],
+            "Walk-in customer",
+        )
+
+    def test_customer_support_requires_exactly_one_identity(self):
+        invalid_cases = (
+            {
+                "customer_name": None,
+                "unlisted_customer_name": None,
+            },
+            {
+                "customer_name": "C",
+                "unlisted_customer_name": "Walk-in customer",
+            },
+        )
+
+        for identity in invalid_cases:
+            with self.subTest(identity=identity):
+                with self.assertRaises(ValueError):
+                    self.call(
+                        work_context="Customer Support",
+                        ticket_name=None,
+                        **identity,
+                    )
+
+        self.assertEqual(self.db.writes, [])
+
+    def test_customer_support_rejects_invalid_unlisted_names(self):
+        invalid_names = (
+            "",
+            "   ",
+            0,
+            False,
+            [],
+            {},
+        )
+
+        for name in invalid_names:
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    self.call(
+                        work_context="Customer Support",
+                        ticket_name=None,
+                        customer_name=None,
+                        unlisted_customer_name=name,
+                    )
+
+                self.assertEqual(self.db.writes, [])
+
+    def test_customer_support_hidden_existing_customer_denied(self):
+        self.refs[("HD Customer", "C")].visible = False
+
+        with self.assertRaises(
+            self.m.BookingReferenceDenied
+        ) as caught:
+            self.call(
+                work_context="Customer Support",
+                ticket_name=None,
+                customer_name="C",
+                unlisted_customer_name=None,
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "Booking reference is unavailable.",
+        )
+        self.assertEqual(self.db.writes, [])
+
+    def test_creation_endpoint_remains_post_whitelisted(self):
+        import ast
+        from pathlib import Path
+
+        source = Path(self.m.__file__).read_text(encoding="utf-8")
+        module = ast.parse(source)
+
+        definitions = [
+            node
+            for node in module.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "book_technician_time"
+        ]
+
+        self.assertEqual(len(definitions), 1)
+
+        expected = ast.parse(
+            'frappe.whitelist(methods=["POST"])',
+            mode="eval",
+        ).body
+
+        actual = [
+            ast.dump(decorator, include_attributes=False)
+            for decorator in definitions[0].decorator_list
+        ]
+
+        self.assertIn(
+            ast.dump(expected, include_attributes=False),
+            actual,
+        )

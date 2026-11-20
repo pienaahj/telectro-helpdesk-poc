@@ -74,7 +74,8 @@ def _authorize_references(row, company):
         if row.get("custom_hd_customer"):
             _visible("HD Customer", row["custom_hd_customer"])
     elif context == "Customer Support":
-        _visible("HD Customer", row["custom_hd_customer"])
+        if row.get("custom_hd_customer"):
+            _visible("HD Customer", row["custom_hd_customer"])
     elif context != "Internal":
         raise BookingReferenceDenied()
 
@@ -137,7 +138,8 @@ def _authorized_native_creation(timesheet, identity):
 @frappe.whitelist(methods=["POST"])
 def book_technician_time(*, work_context, from_time, duration_minutes,
                          description, activity_type, ticket_name=None,
-                         project_name=None, task_name=None, customer_name=None):
+                         project_name=None, task_name=None, customer_name=None,
+                         unlisted_customer_name=None):
     with _top_level_booking_transaction(expected_command=COMMAND):
         # Source registration is not authorization. Require both the explicit
         # site enable switch and the complete live controller/hook invariant.
@@ -153,6 +155,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             "custom_work_context": work_context,
             "custom_hd_ticket": ticket_name,
             "custom_hd_customer": customer_name,
+            "custom_unlisted_customer_name": unlisted_customer_name,
             "project": project_name,
             "task": task_name,
         }
