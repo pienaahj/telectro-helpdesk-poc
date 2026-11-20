@@ -110,17 +110,20 @@ def compile_actual_claim(db, user, normalize, capture):
     ]
 
     assert len(matches) == 1
+    atomic = next(copy.deepcopy(node) for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.name == "_atomic_claim")
 
     function = copy.deepcopy(matches[0])
     function.decorator_list = []
 
     module = ast.Module(
-        body=[function],
+        body=[atomic, function],
         type_ignores=[],
     )
     ast.fix_missing_locations(module)
 
     namespace = {
+        "_assignment_history_capture_enabled": lambda: False,
         "json": json,
         "frappe": types.SimpleNamespace(
             db=db,

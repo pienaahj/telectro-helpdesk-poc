@@ -100,7 +100,42 @@ def _first_assignee(assign_val: str | None):
     return None
 
 
-def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None):
+def _assignment_history_capture_enabled():
+    """Explicit site gate; schema absence must fail once capture is enabled."""
+    value = frappe.conf.get("telectro_assignment_history_capture", 0)
+    if value in (0, None, False, "0"):
+        return False
+    if value not in (1, True, "1"):
+        raise RuntimeError("Invalid assignment history capture setting")
+    if not frappe.db.table_exists("TELECTRO Ticket Assignment History", cached=False):
+        raise RuntimeError("Assignment history schema is unavailable")
+    return True
+
+
+def _history_active_episode(ticket, user):
+    from telephony.time_booking_assignment_history import _active
+    row = _active(ticket, user)
+    if not row:
+        raise RuntimeError("Active assignment history is unavailable")
+    return row["name"]
+
+
+def _record_assignment_start(ticket, user, actor, source, reason, event_id, at):
+    from telephony.time_booking_assignment_history import start_assignment
+    return start_assignment(ticket=ticket, user=user, actor=actor,
+                            source=source, reason=reason, event_id=event_id,
+                            effective_start=at)
+
+
+def _record_assignment_end(ticket, user, episode, actor, source, reason, event_id, at):
+    from telephony.time_booking_assignment_history import end_assignment
+    return end_assignment(ticket=ticket, user=user, episode=episode, actor=actor,
+                          source=source, reason=reason, event_id=event_id,
+                          effective_end=at)
+
+
+def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None,
+                          *, comment_name: str | None = None):
     """
     Enforce pilot invariant:
       - HD Ticket._assign = JSON list with exactly one user
@@ -168,7 +203,12 @@ def _normalize_assignment(ticket: str, owner_email: str, note: str | None = None
                 "content": f"{note} | Assigned via TELECTRO pilot action",
             }
         )
-        comment.insert(ignore_permissions=True)
+        if comment_name is None:
+            comment.insert(ignore_permissions=True)
+        else:
+            # Claim reserves a random server event identity before capture begins.
+            # Frappe still enforces uniqueness; a collision aborts the operation.
+            comment.insert(ignore_permissions=True, set_name=comment_name)
         return comment.name
 
 
@@ -202,7 +242,7 @@ def _normalize_to_pool(ticket: str, note: str | None = None):
     frappe.db.set_value("HD Ticket", ticket, "_assign", json.dumps([]), update_modified=False)
 
     if note:
-        frappe.get_doc(
+        comment = frappe.get_doc(
             {
                 "doctype": "Comment",
                 "comment_type": "Info",
@@ -210,7 +250,9 @@ def _normalize_to_pool(ticket: str, note: str | None = None):
                 "reference_name": ticket,
                 "content": f"{note} | Released to TELECTRO pool",
             }
-        ).insert(ignore_permissions=True)
+        )
+        comment.insert(ignore_permissions=True)
+        return comment.name
 
 
 def _require_claim_authorization(ticket, user):
@@ -281,33 +323,8 @@ def _require_claim_authorization(ticket, user):
     return {"agent_group": team, "privileged": privileged}
 
 
-@frappe.whitelist(methods=["POST"])
-def telectro_claim_ticket(ticket: str):
-    ticket = (ticket or "").strip()
-    if not ticket:
-        return {"ok": 0, "reason": "missing_ticket"}
-
-    user = frappe.session.user
-    eligibility = _require_claim_authorization(ticket, user)
-    if eligibility is None:
-        return {"ok": 0, "reason": "not_authorized"}
-
-    # The new runtime can become active before site migration.
-    # Never acquire task ownership when the durable notification
-    # outbox schema is unavailable.
-    #
-    # Bypass the table-list cache so a completed migration becomes
-    # visible without requiring a backend process restart.
-    if not frappe.db.table_exists(
-        "TELECTRO Task Notification Intent",
-        cached=False,
-    ):
-        return {
-            "ok": 0,
-            "ticket": ticket,
-            "reason": "notification_schema_unavailable",
-        }
-
+def _atomic_claim(ticket, user, eligibility):
+    """Keep one conditional first-claim-wins mutation for both capture modes."""
     assign_json = json.dumps([user])
 
     # Atomic first-claim-wins from TRUE POOL only
@@ -353,6 +370,125 @@ def telectro_claim_ticket(ticket: str):
     )[0][0]
 
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
+    return claimed_rows, current
+
+
+class _ClaimCaptureRejected(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
+def _claim_with_assignment_capture(ticket):
+    """Capture only a verified first acquisition; no public request-id contract.
+
+    Each HTTP invocation reserves its own random Comment/event identity. Recorder
+    retries of that exact internal operation reuse its ID, timestamp and payload;
+    a repeated HTTP Claim is NOT a replay of the earlier successful request.
+    """
+    from uuid import uuid4
+    from telephony.time_booking_assignment_capture import (
+        _assignment_capture_operation, _record_assignment_history,
+    )
+    from telephony.time_booking_assignment_history import AssignmentHistoryError
+    from telephony.time_booking_cooption import _require_recipient_identity
+
+    user = frappe.session.user
+    account = frappe.db.get_value("User", user, ["enabled", "user_type"], as_dict=True)
+    if (not user or user == "Guest" or not account or not account.get("enabled")
+            or account.get("user_type") != "System User"):
+        return {"ok": 0, "reason": "not_authorized"}
+    eligibility = None
+
+    def authorize(locked_ticket, actor):
+        nonlocal eligibility
+        eligibility = _require_claim_authorization(locked_ticket, actor)
+        if eligibility is None:
+            raise _ClaimCaptureRejected({"ok": 0, "reason": "not_authorized"})
+        if not frappe.db.table_exists("TELECTRO Task Notification Intent", cached=False):
+            raise _ClaimCaptureRejected({"ok": 0, "ticket": ticket,
+                                         "reason": "notification_schema_unavailable"})
+        return True
+
+    def assignment_state():
+        # Locking reads of canonical Open ToDos; _assign must agree, never repair
+        # missing evidence from its mirror or infer authority from ToDo dates.
+        todos = frappe.db.sql(
+            "SELECT name, allocated_to FROM `tabToDo` WHERE reference_type='HD Ticket' "
+            "AND reference_name=%s AND status='Open' FOR UPDATE", ticket, as_dict=True)
+        rows = frappe.db.sql("SELECT name, _assign FROM `tabHD Ticket` WHERE name=%s FOR UPDATE",
+                             ticket, as_dict=True)
+        if len(rows) != 1 or rows[0].get("name") != ticket:
+            raise AssignmentHistoryError()
+        return todos, rows[0].get("_assign") or ""
+
+    try:
+        with _assignment_capture_operation(ticket=ticket, authorize=authorize) as operation:
+            event_id = uuid4().hex
+            at = now_datetime()
+
+            def claim_transition():
+                todos, mirror = assignment_state()
+                if todos or mirror not in ("", "[]"):
+                    raise _ClaimCaptureRejected({"ok": 0, "ticket": ticket,
+                        "assigned_to": mirror, "reason": "already_claimed"})
+                identity = _require_recipient_identity(user)
+                claimed_rows, current = _atomic_claim(ticket, user, eligibility)
+                if claimed_rows != 1 or current != json.dumps([user]):
+                    raise _ClaimCaptureRejected({"ok": 0, "ticket": ticket,
+                        "assigned_to": current, "reason": "already_claimed"})
+                comment = _normalize_assignment(ticket, user, note="Claim", comment_name=event_id)
+                todos, mirror = assignment_state()
+                if (comment != event_id or len(todos) != 1 or not todos[0].get("name")
+                        or todos[0].get("allocated_to") != user or mirror != json.dumps([user])):
+                    raise AssignmentHistoryError()
+                capture_verified_task_ownership_transition(
+                    ticket=ticket, action="claim", previous_owner="", recipient=user,
+                    event_id=event_id, transition_confirmed=True, actor_user=user, note="Claim")
+                return None, identity, True
+
+            _record_assignment_history(
+                operation, event_id=event_id, source="Claim", reason="Claim", at=at,
+                request_payload={"action": "claim", "ticket": ticket, "recipient": user},
+                resolve_transition=claim_transition)
+        # Scope has checked for capture failures; commit all effects only now.
+        frappe.db.commit()
+        return {"ok": 1, "ticket": ticket, "assigned_to": user}
+    except _ClaimCaptureRejected as rejected:
+        return rejected.response
+
+
+@frappe.whitelist(methods=["POST"])
+def telectro_claim_ticket(ticket: str):
+    ticket = (ticket or "").strip()
+    if not ticket:
+        return {"ok": 0, "reason": "missing_ticket"}
+
+    if _assignment_history_capture_enabled():
+        return _claim_with_assignment_capture(ticket)
+
+    user = frappe.session.user
+    eligibility = _require_claim_authorization(ticket, user)
+    if eligibility is None:
+        return {"ok": 0, "reason": "not_authorized"}
+
+    # The new runtime can become active before site migration.
+    # Never acquire task ownership when the durable notification
+    # outbox schema is unavailable.
+    #
+    # Bypass the table-list cache so a completed migration becomes
+    # visible without requiring a backend process restart.
+    if not frappe.db.table_exists(
+        "TELECTRO Task Notification Intent",
+        cached=False,
+    ):
+        return {
+            "ok": 0,
+            "ticket": ticket,
+            "reason": "notification_schema_unavailable",
+        }
+
+    claimed_rows, current = _atomic_claim(ticket, user, eligibility)
+    assign_json = json.dumps([user])
     if claimed_rows == 1 and current == assign_json:
         claim_event_id = _normalize_assignment(
             ticket, user, note="Claim"
@@ -388,6 +524,10 @@ def telectro_release_ticket(ticket: str, reason: str = ""):
     if not reason:
         return {"ok": 0, "reason": "missing_release_reason"}
 
+    history_enabled = _assignment_history_capture_enabled()
+    if history_enabled:
+        from telephony.time_booking_assignment_history import _lock_ticket
+        _lock_ticket(ticket)
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
     from_user = _first_assignee(current)
 
@@ -399,7 +539,19 @@ def telectro_release_ticket(ticket: str, reason: str = ""):
         return {"ok": 0, "reason": "not_owner", "from": from_user, "user": user}
 
     msg = f"Release: {from_user} -> Pool | Reason: {reason}"
-    _normalize_to_pool(ticket, note=msg)
+    if history_enabled:
+        try:
+            from frappe.utils import now_datetime
+            episode = _history_active_episode(ticket, from_user)
+            at = now_datetime()
+            event_id = _normalize_to_pool(ticket, note=msg)
+            _record_assignment_end(ticket, from_user, episode, user, "Release",
+                                   reason, event_id, at)
+        except BaseException:
+            frappe.db.rollback()
+            raise
+    else:
+        _normalize_to_pool(ticket, note=msg)
     frappe.db.commit()
 
     return {"ok": 1, "ticket": ticket, "from": from_user, "to": "Pool"}
@@ -489,6 +641,10 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
             "ticket": ticket,
         }
 
+    history_enabled = _assignment_history_capture_enabled()
+    if history_enabled:
+        from telephony.time_booking_assignment_history import _lock_ticket
+        _lock_ticket(ticket)
     current = frappe.db.get_value("HD Ticket", ticket, "_assign") or ""
     from_user = _first_assignee(current)
 
@@ -507,25 +663,33 @@ def telectro_handoff_ticket(ticket: str, to_user: str, reason: str = ""):
         user,
     )
 
-    _normalize_assignment(ticket, to_user, note=msg)
+    try:
+        if history_enabled:
+            from frappe.utils import now_datetime
+            episode = _history_active_episode(ticket, from_user) if from_user else None
+            at = now_datetime()
+            transition_id = _normalize_assignment(ticket, to_user, note=msg)
+            if from_user:
+                _record_assignment_end(ticket, from_user, episode, user,
+                                       "Controlled Handoff", reason, transition_id, at)
+            _record_assignment_start(ticket, to_user, user,
+                                     "Controlled Handoff", reason, transition_id, at)
+        else:
+            _normalize_assignment(ticket, to_user, note=msg)
 
-    _insert_handoff_audit_log(
-        ticket=ticket,
-        ticket_subject=doc.get("subject"),
-        changed_by=user,
-        from_user=from_user,
-        to_user=to_user,
-        reason=reason,
-        source="Controlled Handoff",
-    )
-
-    _notify_controlled_handoff_receiver(
-        ticket=ticket,
-        to_user=to_user,
-        from_user=from_user,
-        reason=reason,
-        changed_by=user,
-    )
+        _insert_handoff_audit_log(
+            ticket=ticket, ticket_subject=doc.get("subject"), changed_by=user,
+            from_user=from_user, to_user=to_user, reason=reason,
+            source="Controlled Handoff",
+        )
+        _notify_controlled_handoff_receiver(
+            ticket=ticket, to_user=to_user, from_user=from_user,
+            reason=reason, changed_by=user,
+        )
+    except BaseException:
+        if history_enabled:
+            frappe.db.rollback()
+        raise
 
     frappe.db.commit()
 

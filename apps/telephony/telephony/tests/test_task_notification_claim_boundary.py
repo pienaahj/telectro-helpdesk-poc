@@ -112,6 +112,8 @@ def load_actual_claim(db, user, normalize):
     ]
 
     assert len(functions) == 1
+    atomic = next(copy.deepcopy(node) for node in parsed.body
+                  if isinstance(node, ast.FunctionDef) and node.name == "_atomic_claim")
 
     function = copy.deepcopy(functions[0])
 
@@ -120,13 +122,14 @@ def load_actual_claim(db, user, normalize):
     function.decorator_list = []
 
     isolated = ast.Module(
-        body=[function],
+        body=[atomic, function],
         type_ignores=[],
     )
 
     ast.fix_missing_locations(isolated)
 
     namespace = {
+        "_assignment_history_capture_enabled": lambda: False,
         "json": json,
         "frappe": types.SimpleNamespace(
             db=db,
