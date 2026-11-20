@@ -55,16 +55,26 @@ def _authorize_references(row, company):
     context = row["custom_work_context"]
     if context == "Helpdesk":
         _visible("HD Ticket", row["custom_hd_ticket"])
-    elif context == "Customer Support":
-        _visible("HD Customer", row["custom_hd_customer"])
+
+        # An optional Customer reference requires independent authorization.
+        if row.get("custom_hd_customer"):
+            _visible("HD Customer", row["custom_hd_customer"])
     elif context == "Project":
         project = _visible("Project", row["project"])
+
         if project.get("company") != company:
             raise BookingReferenceDenied()
+
         if row.get("task"):
             task = _visible("Task", row["task"])
+
             if task.get("project") != project.name:
                 raise BookingReferenceDenied()
+        # Optional HD Customer requires independent read authorization.
+        if row.get("custom_hd_customer"):
+            _visible("HD Customer", row["custom_hd_customer"])
+    elif context == "Customer Support":
+        _visible("HD Customer", row["custom_hd_customer"])
     elif context != "Internal":
         raise BookingReferenceDenied()
 

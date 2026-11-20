@@ -337,3 +337,36 @@ class TestBookingPost(unittest.TestCase):
 
         # The surrounding request must abort.
         self.assertEqual(self.db.rollback_count, 1)
+
+    def test_helpdesk_hidden_optional_customer_denied_without_write(self):
+        self.refs[("HD Customer", "C")].visible = False
+
+        with self.assertRaises(
+            self.m.BookingReferenceDenied
+        ) as caught:
+            self.call(customer_name="C")
+
+        self.assertEqual(
+            str(caught.exception),
+            "Booking reference is unavailable.",
+        )
+        self.assertEqual(self.db.writes, [])
+
+    def test_project_hidden_optional_customer_denied_without_write(self):
+        self.refs[("HD Customer", "C")].visible = False
+
+        with self.assertRaises(
+            self.m.BookingReferenceDenied
+        ) as caught:
+            self.call(
+                work_context="Project",
+                ticket_name=None,
+                project_name="P",
+                customer_name="C",
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "Booking reference is unavailable.",
+        )
+        self.assertEqual(self.db.writes, [])
