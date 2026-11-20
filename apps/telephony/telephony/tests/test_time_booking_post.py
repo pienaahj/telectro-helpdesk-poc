@@ -57,7 +57,7 @@ class TestBookingPost(unittest.TestCase):
     def setUp(self):
         self.db = Database()
         self.refs = {
-            ("HD Ticket", "T"): Reference("HD Ticket", "T", status="Closed"),
+            ("HD Ticket", "T"): Reference("HD Ticket", "T", status="Closed", custom_service_area="Routing"),
             ("Project", "P"): Reference("Project", "P", company="Company A"),
             ("Task", "K"): Reference("Task", "K", project="P"),
             ("HD Customer", "C"): Reference("HD Customer", "C"),
@@ -76,6 +76,27 @@ class TestBookingPost(unittest.TestCase):
             db=self.db,
         )
         self.f.get_doc = self.get_doc
+        self.area_field = types.SimpleNamespace(
+            fieldtype="Select",
+            options=(
+                "\nOther\nRouting\nPABX\nSIM\nInternet Connection"
+                "\nFaults\nQuotes & Site Surveys\nCCTV\nData Request"
+            ),
+        )
+
+        def get_meta(doctype):
+            if doctype != "HD Ticket":
+                raise AssertionError(f"Unexpected metadata request: {doctype}")
+
+            return types.SimpleNamespace(
+                get_field=lambda name: (
+                    self.area_field
+                    if name == "custom_service_area"
+                    else None
+                ),
+            )
+
+        self.f.get_meta = get_meta
         module_patch = patch.dict(sys.modules, {"frappe": self.f})
         module_patch.start(); self.addCleanup(module_patch.stop)
         path = Path(__file__).resolve().parents[1] / "api/time_booking.py"
@@ -101,9 +122,20 @@ class TestBookingPost(unittest.TestCase):
             raise LookupError() from exc
 
     def call(self, **updates):
-        args = dict(work_context="Helpdesk", from_time="2026-11-16 09:00:00",
-                    duration_minutes=90, description="Repair", activity_type="Service",
-                    ticket_name="T")
+        args = dict(
+            work_context="Helpdesk",
+            from_time="2026-11-16 09:00:00",
+            duration_minutes=90,
+            description="Repair",
+            activity_type="Service",
+            ticket_name="T",
+            service_area="Routing",
+            work_location="Remote",
+            work_origin="Direct / Ad-hoc",
+            external_reference=None,
+            other_origin_description=None,
+            emergency=0,
+        )
         args.update(updates)
         return self.m.book_technician_time(**args)
 
@@ -488,3 +520,246 @@ class TestBookingPost(unittest.TestCase):
             ast.dump(expected, include_attributes=False),
             actual,
         )
+
+    def test_helpdesk_service_area_comes_from_ticket(self):
+        ticket = self.refs[("HD Ticket", "T")]
+        ticket["custom_service_area"] = "PABX"
+
+        result = self.call(
+            service_area=None,
+            work_location="Remote",
+            work_origin="Direct / Ad-hoc",
+            external_reference=None,
+            other_origin_description=None,
+            emergency=0,
+        )
+
+        self.assertEqual(result, {"timesheet": "TS-001"})
+        self.assertEqual(len(self.db.writes), 1)
+
+        row = self.db.writes[0].time_logs[0]
+
+        self.assertEqual(row["custom_service_area"], "PABX")
+        self.assertEqual(row["custom_work_location"], "Remote")
+        self.assertEqual(row["custom_work_origin"], "Direct / Ad-hoc")
+        self.assertEqual(row["custom_emergency"], 0)
+
+    def test_helpdesk_rejects_conflicting_service_area(self):
+        ticket = self.refs[("HD Ticket", "T")]
+        ticket["custom_service_area"] = "PABX"
+
+        with self.assertRaises(
+            self.m.BookingMetadataValidationError
+        ) as caught:
+            self.call(
+                service_area="Routing",
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            "Helpdesk Service Area must match its ticket",
+        )
+
+        self.assertEqual(self.db.writes, [])
+        self.assertEqual(self.intent_documents, [])
+
+    def test_helpdesk_rejects_invalid_ticket_service_area(self):
+        ticket = self.refs[("HD Ticket", "T")]
+
+        for invalid_area in (None, "", "Unknown Area"):
+            with self.subTest(ticket_area=invalid_area):
+                ticket["custom_service_area"] = invalid_area
+
+                with self.assertRaises(
+                    self.m.BookingMetadataValidationError
+                ):
+                    self.call(service_area=None)
+
+                self.assertEqual(self.db.writes, [])
+                self.assertEqual(self.intent_documents, [])
+
+    def test_creation_rejects_missing_mandatory_metadata(self):
+        invalid_cases = (
+            ("missing_location", {"work_location": None}),
+            ("empty_location", {"work_location": ""}),
+            ("missing_origin", {"work_origin": None}),
+            ("empty_origin", {"work_origin": ""}),
+            ("missing_emergency", {"emergency": None}),
+        )
+
+        for label, updates in invalid_cases:
+            with self.subTest(case=label):
+                with self.assertRaises(
+                    self.m.BookingMetadataValidationError
+                ):
+                    self.call(**updates)
+
+                self.assertEqual(self.db.writes, [])
+                self.assertEqual(self.intent_documents, [])
+
+    def test_creation_rejects_invalid_work_origin_metadata(self):
+        invalid_cases = (
+            (
+                "snapfix_missing_reference",
+                {
+                    "work_origin": "Snapfix",
+                    "external_reference": None,
+                },
+            ),
+            (
+                "snapfix_stale_other_description",
+                {
+                    "work_origin": "Snapfix",
+                    "external_reference": "SF-123",
+                    "other_origin_description": "Old description",
+                },
+            ),
+            (
+                "other_missing_description",
+                {
+                    "work_origin": "Other",
+                    "other_origin_description": None,
+                },
+            ),
+            (
+                "other_stale_external_reference",
+                {
+                    "work_origin": "Other",
+                    "other_origin_description": "Customer phone call",
+                    "external_reference": "SF-123",
+                },
+            ),
+            (
+                "direct_stale_external_reference",
+                {
+                    "work_origin": "Direct / Ad-hoc",
+                    "external_reference": "SF-123",
+                },
+            ),
+            (
+                "direct_stale_other_description",
+                {
+                    "work_origin": "Direct / Ad-hoc",
+                    "other_origin_description": "Old description",
+                },
+            ),
+        )
+
+        for label, updates in invalid_cases:
+            with self.subTest(case=label):
+                with self.assertRaises(
+                    self.m.BookingMetadataValidationError
+                ):
+                    self.call(**updates)
+
+                self.assertEqual(self.db.writes, [])
+                self.assertEqual(self.intent_documents, [])
+    def test_creation_accepts_valid_snapfix_and_other_origins(self):
+        cases = (
+            (
+                "Snapfix",
+                {
+                    "work_origin": "Snapfix",
+                    "external_reference": "SF-123",
+                    "other_origin_description": None,
+                },
+                "SF-123",
+                None,
+            ),
+            (
+                "Other",
+                {
+                    "work_origin": "Other",
+                    "external_reference": None,
+                    "other_origin_description": "Customer phone call",
+                },
+                None,
+                "Customer phone call",
+            ),
+        )
+
+        for origin, updates, reference, description in cases:
+            with self.subTest(origin=origin):
+                previous_writes = len(self.db.writes)
+
+                result = self.call(**updates)
+
+                self.assertEqual(result, {"timesheet": "TS-001"})
+                self.assertEqual(
+                    len(self.db.writes),
+                    previous_writes + 1,
+                )
+
+                row = self.db.writes[-1].time_logs[0]
+
+                self.assertEqual(row["custom_work_origin"], origin)
+                self.assertEqual(
+                    row["custom_external_reference"],
+                    reference,
+                )
+                self.assertEqual(
+                    row["custom_other_origin_description"],
+                    description,
+                )
+                self.assertEqual(row["custom_emergency"], 0)
+
+    def test_creation_rejects_invalid_service_area_configuration(self):
+        invalid_cases = (
+            ("wrong_field_type", "Data", "\nOther\nRouting"),
+            ("missing_options", "Select", None),
+            ("empty_options", "Select", "\n"),
+            ("duplicate_options", "Select", "\nRouting\nRouting"),
+        )
+
+        original_type = self.area_field.fieldtype
+        original_options = self.area_field.options
+
+        try:
+            for label, fieldtype, options in invalid_cases:
+                with self.subTest(case=label):
+                    self.area_field.fieldtype = fieldtype
+                    self.area_field.options = options
+
+                    with self.assertRaises(
+                        self.m.BookingMetadataValidationError
+                    ):
+                        self.call()
+
+                    self.assertEqual(self.db.writes, [])
+                    self.assertEqual(self.intent_documents, [])
+        finally:
+            self.area_field.fieldtype = original_type
+            self.area_field.options = original_options
+
+    def test_creation_enforces_travel_work_location_exception(self):
+        self.refs[("Activity Type", "Travel")] = Reference(
+            "Activity Type", "Travel"
+        )
+
+        # Travel must reject an explicitly selected Work Location.
+        with self.assertRaises(
+            self.m.BookingMetadataValidationError
+        ):
+            self.call(
+                activity_type="Travel",
+                work_location="On-site",
+            )
+
+        self.assertEqual(self.db.writes, [])
+        self.assertEqual(self.intent_documents, [])
+
+        # Travel with no Work Location is valid.
+        result = self.call(
+            activity_type="Travel",
+            work_location=None,
+        )
+
+        self.assertEqual(result, {"timesheet": "TS-001"})
+        self.assertEqual(len(self.db.writes), 1)
+
+        row = self.db.writes[0].time_logs[0]
+
+        self.assertEqual(row["activity_type"], "Travel")
+        self.assertIsNone(row["custom_work_location"])
+        self.assertEqual(row["custom_work_origin"], "Direct / Ad-hoc")
+        self.assertEqual(row["custom_emergency"], 0)

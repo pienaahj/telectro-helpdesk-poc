@@ -19,6 +19,10 @@ from telephony.time_booking_transaction import (
     _active_booking,
     _top_level_booking_transaction,
 )
+from telephony.time_booking_metadata_policy import (
+    BookingMetadataValidationError,
+    normalize_booking_metadata,
+)
 
 
 COMMAND = "telephony.api.time_booking.book_technician_time"
@@ -51,14 +55,41 @@ def _visible(doctype, name):
     return doc
 
 
+def _allowed_service_areas():
+    """Read permitted Service Areas from server-controlled HD Ticket metadata."""
+    field = frappe.get_meta("HD Ticket").get_field("custom_service_area")
+
+    if (
+        field is None
+        or field.fieldtype != "Select"
+        or type(field.options) is not str
+    ):
+        raise BookingMetadataValidationError(
+            "Invalid permitted Service Area configuration"
+        )
+
+    options = tuple(
+        value for value in field.options.splitlines()
+        if value
+    )
+
+    if len(options) != len(set(options)):
+        raise BookingMetadataValidationError(
+            "Invalid permitted Service Area configuration"
+        )
+
+    return options
+
+
 def _authorize_references(row, company):
     context = row["custom_work_context"]
     if context == "Helpdesk":
-        _visible("HD Ticket", row["custom_hd_ticket"])
+        ticket = _visible("HD Ticket", row["custom_hd_ticket"])
 
         # An optional Customer reference requires independent authorization.
         if row.get("custom_hd_customer"):
             _visible("HD Customer", row["custom_hd_customer"])
+        return ticket
     elif context == "Project":
         project = _visible("Project", row["project"])
 
@@ -139,7 +170,10 @@ def _authorized_native_creation(timesheet, identity):
 def book_technician_time(*, work_context, from_time, duration_minutes,
                          description, activity_type, ticket_name=None,
                          project_name=None, task_name=None, customer_name=None,
-                         unlisted_customer_name=None):
+                         unlisted_customer_name=None, service_area=None,
+                         work_location=None, work_origin=None,
+                         external_reference=None, other_origin_description=None,
+                         emergency=None):
     with _top_level_booking_transaction(expected_command=COMMAND):
         # Source registration is not authorization. Require both the explicit
         # site enable switch and the complete live controller/hook invariant.
@@ -160,8 +194,33 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             "task": task_name,
         }
         validate_work_context(row)
-        _authorize_references(row, identity.company)
+        ticket = _authorize_references(row, identity.company)
         _visible("Activity Type", activity_type)
+
+        if work_context == "Helpdesk":
+            ticket_area = ticket.get("custom_service_area")
+
+            if service_area not in (None, "", ticket_area):
+                raise BookingMetadataValidationError(
+                    "Helpdesk Service Area must match its ticket"
+                )
+
+            effective_service_area = ticket_area
+        else:
+            effective_service_area = service_area
+
+        row.update(normalize_booking_metadata(
+            work_context=work_context,
+            service_area=effective_service_area,
+            allowed_service_areas=_allowed_service_areas(),
+            activity_type=activity_type,
+            work_location=work_location,
+            work_origin=work_origin,
+            external_reference=external_reference,
+            other_origin_description=other_origin_description,
+            emergency=emergency,
+        ))
+
         timesheet = frappe.get_doc({
             "doctype": "Timesheet",
             "naming_series": "TS-.YYYY.-",
