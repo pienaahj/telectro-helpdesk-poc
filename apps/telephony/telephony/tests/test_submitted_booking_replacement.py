@@ -439,6 +439,127 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         db.commit.assert_not_called()
         db.rollback.assert_called_once()
 
+    def test_historical_replacement_retry_rejects_new_metadata(self):
+        import json
+        from datetime import datetime
+
+        from telephony.tests.test_time_booking_correction_audit import snapshot
+        from telephony.time_booking_correction_audit import _snapshot
+        from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.time_booking_ownership import BookingOwnershipError
+        from telephony.api import time_booking as time_booking_api
+
+        command = api.PREFIX + "replace_submitted_booking"
+
+        identity = TechnicianBookingIdentity(
+            "tech@example.com",
+            "EMP-1",
+            "Company A",
+        )
+
+        before = snapshot(status=1)
+        before["modified"] = "2026-11-17T12:00:00"
+
+        # The first successful operation requested 90 minutes.
+        original_request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+        }
+
+        evidence = json.dumps(
+            original_request,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+        prior = {
+            "name": "AUDIT-1",
+            "actor": identity.user,
+            "action": "Submitted Replacement",
+            "reason": "Incorrect submitted time",
+            "original_timesheet": "TS-1",
+            "before_snapshot": _snapshot(before),
+            "after_snapshot": None,
+            "replacement_timesheet": "TS-2",
+            "replacement_request_snapshot": evidence,
+        }
+
+        def sql(query, value, **kwargs):
+            self.assertIn("FOR UPDATE", query)
+
+            if "tabTimesheet" in query:
+                return [{"name": "TS-1"}]
+
+            if "tabTELECTRO Booking Correction Audit" in query:
+                self.assertIn("replacement_timesheet", query)
+                self.assertIn("replacement_request_snapshot", query)
+                return [prior]
+
+            raise AssertionError("Unexpected SQL query")
+
+        db = types.SimpleNamespace(
+            sql=Mock(side_effect=sql),
+            commit=Mock(),
+            rollback=Mock(),
+        )
+
+        fake_frappe = types.SimpleNamespace(
+            local=types.SimpleNamespace(
+                request=types.SimpleNamespace(
+                    method="POST",
+                    path="/api/method/" + command,
+                ),
+                form_dict=types.SimpleNamespace(cmd=command),
+                db=db,
+            ),
+            db=db,
+            session=types.SimpleNamespace(user=identity.user),
+            utils=types.SimpleNamespace(
+                now_datetime=lambda: datetime(2026, 11, 18, 12),
+            ),
+            get_doc=Mock(
+                side_effect=AssertionError(
+                    "Conflicting retry must not load a Timesheet"
+                )
+            ),
+        )
+
+        with (
+            patch.dict(sys.modules, {"frappe": fake_frappe}),
+            patch.object(api, "frappe", fake_frappe),
+            patch.object(time_booking_api, "frappe", fake_frappe),
+            patch.object(api, "_guard", return_value=identity),
+            patch.object(api, "record_correction_event") as audit,
+        ):
+            with self.assertRaises(BookingOwnershipError):
+                api.replace_submitted_booking.__wrapped__(
+                    timesheet_name="TS-1",
+                    event_id="replacement-1",
+                    reason="Incorrect submitted time",
+                    expected_modified="2026-11-17T12:00:00",
+                    work_context="Helpdesk",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes=90,  # Conflicts with original 90.
+                    description="Corrected repair duration",
+                    activity_type="Service",
+                    ticket_name="HD-1",
+                    emergency=0,
+                )
+
+        fake_frappe.get_doc.assert_not_called()
+        audit.assert_not_called()
+        db.commit.assert_not_called()
+        db.rollback.assert_called_once()
+
     def test_matching_replacement_retry_returns_existing_result(self):
         import json
         from datetime import datetime
@@ -564,6 +685,278 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         # No explicit transaction commit or rollback on success.
         db.commit.assert_not_called()
         db.rollback.assert_not_called()
+
+    def test_matching_extended_replacement_retry_returns_existing_result(self):
+        import json
+        from datetime import datetime
+
+        from telephony.tests.test_time_booking_correction_audit import snapshot
+        from telephony.time_booking_correction_audit import _snapshot
+        from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.api import time_booking as time_booking_api
+
+        command = api.PREFIX + "replace_submitted_booking"
+
+        identity = TechnicianBookingIdentity(
+            "tech@example.com",
+            "EMP-1",
+            "Company A",
+        )
+
+        before = snapshot(status=1)
+        before["modified"] = "2026-11-17T12:00:00"
+
+        original_request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+            "unlisted_customer_name": None,
+            "service_area": "Routing",
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        evidence = json.dumps(
+            original_request,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+        prior = {
+            "name": "AUDIT-1",
+            "actor": identity.user,
+            "action": "Submitted Replacement",
+            "reason": "Incorrect submitted time",
+            "original_timesheet": "TS-1",
+            "before_snapshot": _snapshot(before),
+            "after_snapshot": None,
+            "replacement_timesheet": "TS-2",
+            "replacement_request_snapshot": evidence,
+        }
+
+        def sql(query, value, **kwargs):
+            self.assertIn("FOR UPDATE", query)
+
+            if "tabTimesheet" in query:
+                return [{"name": "TS-1"}]
+
+            if "tabTELECTRO Booking Correction Audit" in query:
+                return [prior]
+
+            raise AssertionError("Unexpected SQL query")
+
+        db = types.SimpleNamespace(
+            sql=Mock(side_effect=sql),
+            commit=Mock(),
+            rollback=Mock(),
+        )
+
+        fake_frappe = types.SimpleNamespace(
+            local=types.SimpleNamespace(
+                request=types.SimpleNamespace(
+                    method="POST",
+                    path="/api/method/" + command,
+                ),
+                form_dict=types.SimpleNamespace(cmd=command),
+                db=db,
+            ),
+            db=db,
+            session=types.SimpleNamespace(user=identity.user),
+            utils=types.SimpleNamespace(
+                now_datetime=lambda: datetime(2026, 11, 18, 12),
+            ),
+            get_doc=Mock(),
+        )
+
+        with (
+            patch.dict(sys.modules, {"frappe": fake_frappe}),
+            patch.object(api, "frappe", fake_frappe),
+            patch.object(time_booking_api, "frappe", fake_frappe),
+            patch.object(api, "_guard", return_value=identity),
+            patch.object(api, "record_correction_event") as audit,
+        ):
+            result = api.replace_submitted_booking.__wrapped__(
+                timesheet_name="TS-1",
+                event_id="replacement-1",
+                reason="Incorrect submitted time",
+                expected_modified="2026-11-17T12:00:00",
+                work_context="Helpdesk",
+                from_time="2026-11-16 09:00:00",
+                duration_minutes="90",
+                description="Corrected repair duration",
+                activity_type="Service",
+                ticket_name="HD-1",
+                unlisted_customer_name=None,
+                service_area=None,
+                work_location="Remote",
+                work_origin="Direct / Ad-hoc",
+                external_reference=None,
+                other_origin_description=None,
+                emergency=0,
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "original_timesheet": "TS-1",
+                "replacement_timesheet": "TS-2",
+                "audit": "AUDIT-1",
+            },
+        )
+
+        # No second replacement or lifecycle operation.
+        fake_frappe.get_doc.assert_not_called()
+        audit.assert_not_called()
+
+        # Existing audit evidence is sufficient.
+        self.assertEqual(db.sql.call_count, 2)
+
+        # No explicit transaction commit or rollback on success.
+        db.commit.assert_not_called()
+        db.rollback.assert_not_called()
+
+    def test_conflicting_extended_replacement_metadata_retry_is_rejected(self):
+        import json
+        from datetime import datetime
+
+        from telephony.tests.test_time_booking_correction_audit import snapshot
+        from telephony.time_booking_correction_audit import _snapshot
+        from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.api import time_booking as time_booking_api
+        from telephony.time_booking_ownership import BookingOwnershipError
+
+        command = api.PREFIX + "replace_submitted_booking"
+
+        identity = TechnicianBookingIdentity(
+            "tech@example.com",
+            "EMP-1",
+            "Company A",
+        )
+
+        before = snapshot(status=1)
+        before["modified"] = "2026-11-17T12:00:00"
+
+        original_request = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+            "unlisted_customer_name": None,
+            "service_area": "Routing",
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        evidence = json.dumps(
+            original_request,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+
+        prior = {
+            "name": "AUDIT-1",
+            "actor": identity.user,
+            "action": "Submitted Replacement",
+            "reason": "Incorrect submitted time",
+            "original_timesheet": "TS-1",
+            "before_snapshot": _snapshot(before),
+            "after_snapshot": None,
+            "replacement_timesheet": "TS-2",
+            "replacement_request_snapshot": evidence,
+        }
+
+        def sql(query, value, **kwargs):
+            self.assertIn("FOR UPDATE", query)
+
+            if "tabTimesheet" in query:
+                return [{"name": "TS-1"}]
+
+            if "tabTELECTRO Booking Correction Audit" in query:
+                return [prior]
+
+            raise AssertionError("Unexpected SQL query")
+
+        db = types.SimpleNamespace(
+            sql=Mock(side_effect=sql),
+            commit=Mock(),
+            rollback=Mock(),
+        )
+
+        fake_frappe = types.SimpleNamespace(
+            local=types.SimpleNamespace(
+                request=types.SimpleNamespace(
+                    method="POST",
+                    path="/api/method/" + command,
+                ),
+                form_dict=types.SimpleNamespace(cmd=command),
+                db=db,
+            ),
+            db=db,
+            session=types.SimpleNamespace(user=identity.user),
+            utils=types.SimpleNamespace(
+                now_datetime=lambda: datetime(2026, 11, 18, 12),
+            ),
+            get_doc=Mock(),
+        )
+
+        with (
+            patch.dict(sys.modules, {"frappe": fake_frappe}),
+            patch.object(api, "frappe", fake_frappe),
+            patch.object(time_booking_api, "frappe", fake_frappe),
+            patch.object(api, "_guard", return_value=identity),
+            patch.object(api, "record_correction_event") as audit,
+        ):
+            with self.assertRaises(BookingOwnershipError):
+                api.replace_submitted_booking.__wrapped__(
+                    timesheet_name="TS-1",
+                    event_id="replacement-1",
+                    reason="Incorrect submitted time",
+                    expected_modified="2026-11-17T12:00:00",
+                    work_context="Helpdesk",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes="90",
+                    description="Corrected repair duration",
+                    activity_type="Service",
+                    ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area="Routing",
+                    work_location="Remote",
+                    work_origin="Direct / Ad-hoc",
+                    external_reference=None,
+                    other_origin_description=None,
+                    emergency=1,
+                )
+
+        # A conflicting retry must not access or mutate either Timesheet.
+        fake_frappe.get_doc.assert_not_called()
+
+        # No additional audit event or committed transaction.
+        audit.assert_not_called()
+        db.commit.assert_not_called()
+
+        # The rejected request must roll back.
+        db.rollback.assert_called_once()
 
     def test_owned_submitted_replacement_cancels_creates_and_audits(self):
         import json
@@ -711,6 +1104,22 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             )
             self.assertEqual(evidence["ticket_name"], "HD-1")
 
+            expected_evidence = {
+                "unlisted_customer_name": None,
+                "service_area": "Routing",
+                "work_location": "Remote",
+                "work_origin": "Snapfix",
+                "external_reference": "SF-123",
+                "other_origin_description": None,
+                "emergency": 0,
+            }
+
+            for field, expected in expected_evidence.items():
+                with self.subTest(audit_field=field):
+                    self.assertEqual(evidence[field], expected)
+
+            self.assertEqual(len(evidence), 17)
+
             # Both lifecycle operations must precede audit insertion.
             self.assertEqual(original["docstatus"], 2)
             self.assertEqual(len(created), 1)
@@ -738,7 +1147,16 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             patch.object(
                 api, "_period", return_value=(start, end, 90)
             ),
-            patch.object(api, "_authorize_references") as references,
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ) as references,
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
             patch.object(api, "_visible") as visible,
             patch.object(
                 api,
@@ -768,6 +1186,13 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 description="Corrected repair duration",
                 activity_type="Service",
                 ticket_name="HD-1",
+                unlisted_customer_name=None,
+                service_area=None,
+                work_location="Remote",
+                work_origin="Snapfix",
+                external_reference="SF-123",
+                other_origin_description=None,
+                emergency=0,
             )
 
         self.assertEqual(
@@ -801,10 +1226,25 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
 
         self.assertEqual(len(replacement.time_logs), 1)
         self.assertEqual(replacement.time_logs[0]["hours"], 1.5)
+        expected_detail = {
+            "custom_unlisted_customer_name": None,
+            "custom_service_area": "Routing",
+            "custom_work_location": "Remote",
+            "custom_work_origin": "Snapfix",
+            "custom_external_reference": "SF-123",
+            "custom_other_origin_description": None,
+            "custom_emergency": 0,
+        }
 
-        self.assertIs(
-            replacement.flags.ignore_permissions, False
-        )
+        for field, expected in expected_detail.items():
+            with self.subTest(detail_field=field):
+                self.assertEqual(
+                    replacement.time_logs[0][field],
+                    expected,
+                )
+            self.assertIs(
+                replacement.flags.ignore_permissions, False
+            )
 
         references.assert_called_once()
         visible.assert_called_once_with("Activity Type", "Service")
@@ -999,7 +1439,16 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 "_period",
                 return_value=(start, end, 90),
             ),
-            patch.object(api, "_authorize_references"),
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
             patch.object(api, "_visible"),
             patch.object(
                 api,
@@ -1032,6 +1481,13 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     description="Corrected repair duration",
                     activity_type="Service",
                     ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area=None,
+                    work_location="Remote",
+                    work_origin="Snapfix",
+                    external_reference="SF-123",
+                    other_origin_description=None,
+                    emergency=0,
                 )
 
         # Both native lifecycle operations preceded the audit failure.
@@ -1181,7 +1637,16 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 api, "_period",
                 return_value=(start, end, 90),
             ),
-            patch.object(api, "_authorize_references"),
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
             patch.object(api, "_visible"),
             patch.object(
                 api, "record_correction_event"
@@ -1202,6 +1667,13 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     description="Corrected repair duration",
                     activity_type="Service",
                     ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area=None,
+                    work_location="Remote",
+                    work_origin="Snapfix",
+                    external_reference="SF-123",
+                    other_origin_description=None,
+                    emergency=0,
                 )
 
         # Cancellation was attempted, then the enclosing
@@ -1389,7 +1861,16 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 api, "_period",
                 return_value=(start, end, 90),
             ),
-            patch.object(api, "_authorize_references"),
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
             patch.object(api, "_visible"),
             patch.object(
                 api, "_phase2_creation_intent", creation_intent
@@ -1417,6 +1898,13 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     description="Corrected repair duration",
                     activity_type="Service",
                     ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area=None,
+                    work_location="Remote",
+                    work_origin="Snapfix",
+                    external_reference="SF-123",
+                    other_origin_description=None,
+                    emergency=0,
                 )
 
         # Cancellation succeeds, insertion fails, then
@@ -1566,4 +2054,533 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         self.assertIs(
             original.flags.ignore_permissions,
             False,
+        )
+
+    def test_conflicting_helpdesk_service_area_prevents_cancellation(self):
+        from datetime import datetime
+
+        from telephony.tests.test_time_booking_correction_audit import snapshot
+        from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.time_booking_metadata_policy import (
+            BookingMetadataValidationError,
+        )
+
+        command = api.PREFIX + "replace_submitted_booking"
+
+        identity = TechnicianBookingIdentity(
+            "tech@example.com", "EMP-1", "Company A"
+        )
+
+        before = snapshot(status=1)
+        before["modified"] = "2026-11-17T12:00:00"
+
+        class SubmittedDoc:
+            def __init__(self):
+                self.flags = types.SimpleNamespace(
+                    ignore_permissions=False
+                )
+                self.cancel = Mock()
+
+            def as_dict(self):
+                return before
+
+        original = SubmittedDoc()
+
+        def sql(query, value, **kwargs):
+            self.assertIn("FOR UPDATE", query)
+
+            if "tabTimesheet" in query:
+                return [{"name": "TS-1"}]
+
+            if "tabTELECTRO Booking Correction Audit" in query:
+                return []
+
+            raise AssertionError(f"Unexpected SQL: {query}")
+
+        db = types.SimpleNamespace(
+            sql=Mock(side_effect=sql),
+            commit=Mock(),
+            rollback=Mock(),
+        )
+
+        fake_frappe = types.SimpleNamespace(
+            local=types.SimpleNamespace(
+                request=types.SimpleNamespace(
+                    method="POST",
+                    path="/api/method/" + command,
+                ),
+                form_dict=types.SimpleNamespace(cmd=command),
+                db=db,
+            ),
+            db=db,
+            session=types.SimpleNamespace(user=identity.user),
+            get_doc=Mock(return_value=original),
+        )
+
+        start = datetime(2026, 11, 16, 9)
+        end = datetime(2026, 11, 16, 10, 30)
+
+        with (
+            patch.dict(sys.modules, {"frappe": fake_frappe}),
+            patch.object(api, "frappe", fake_frappe),
+            patch.object(api, "_guard", return_value=identity),
+            patch.object(api, "TelectroBookingTimesheet", SubmittedDoc),
+            patch.object(
+                api,
+                "_period",
+                return_value=(start, end, 90),
+            ),
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ) as references,
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+            patch.object(api, "_visible") as visible,
+            patch.object(api, "record_correction_event") as audit,
+        ):
+            with self.assertRaises(BookingMetadataValidationError):
+                api.replace_submitted_booking.__wrapped__(
+                    timesheet_name="TS-1",
+                    event_id="replacement-conflicting-service-area",
+                    reason="Incorrect submitted time",
+                    expected_modified="2026-11-17T12:00:00",
+                    work_context="Helpdesk",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes=90,
+                    description="Corrected repair duration",
+                    activity_type="Service",
+                    ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area="Data Request",
+                    work_location="Remote",
+                    work_origin="Snapfix",
+                    external_reference="SF-123",
+                    other_origin_description=None,
+                    emergency=0,
+                )
+
+        # Reference authorization succeeded.
+        references.assert_called_once()
+        visible.assert_called_once_with("Activity Type", "Service")
+
+        # But the conflicting Service Area must prevent cancellation.
+        original.cancel.assert_not_called()
+        self.assertEqual(before["docstatus"], 1)
+
+        # Only the original Timesheet may have been loaded.
+        fake_frappe.get_doc.assert_called_once_with(
+            "Timesheet",
+            "TS-1",
+            for_update=True,
+        )
+
+        # No replacement audit or commit.
+        audit.assert_not_called()
+        db.commit.assert_not_called()
+
+        # The rejected transaction must roll back.
+        db.rollback.assert_called_once_with()
+
+        # Native permission state remains untouched.
+        self.assertIs(
+            original.flags.ignore_permissions,
+            False,
+        )
+
+    def test_missing_work_location_prevents_cancellation(self):
+        from datetime import datetime
+
+        from telephony.tests.test_time_booking_correction_audit import snapshot
+        from telephony.time_booking_identity import TechnicianBookingIdentity
+        from telephony.time_booking_metadata_policy import (
+            BookingMetadataValidationError,
+        )
+
+        command = api.PREFIX + "replace_submitted_booking"
+
+        identity = TechnicianBookingIdentity(
+            "tech@example.com", "EMP-1", "Company A"
+        )
+
+        before = snapshot(status=1)
+        before["modified"] = "2026-11-17T12:00:00"
+
+        class SubmittedDoc:
+            def __init__(self):
+                self.flags = types.SimpleNamespace(
+                    ignore_permissions=False
+                )
+                self.cancel = Mock()
+
+            def as_dict(self):
+                return before
+
+        original = SubmittedDoc()
+
+        def sql(query, value, **kwargs):
+            self.assertIn("FOR UPDATE", query)
+
+            if "tabTimesheet" in query:
+                return [{"name": "TS-1"}]
+
+            if "tabTELECTRO Booking Correction Audit" in query:
+                return []
+
+            raise AssertionError(f"Unexpected SQL: {query}")
+
+        db = types.SimpleNamespace(
+            sql=Mock(side_effect=sql),
+            commit=Mock(),
+            rollback=Mock(),
+        )
+
+        fake_frappe = types.SimpleNamespace(
+            local=types.SimpleNamespace(
+                request=types.SimpleNamespace(
+                    method="POST",
+                    path="/api/method/" + command,
+                ),
+                form_dict=types.SimpleNamespace(cmd=command),
+                db=db,
+            ),
+            db=db,
+            session=types.SimpleNamespace(user=identity.user),
+            get_doc=Mock(return_value=original),
+        )
+
+        start = datetime(2026, 11, 16, 9)
+        end = datetime(2026, 11, 16, 10, 30)
+
+        with (
+            patch.dict(sys.modules, {"frappe": fake_frappe}),
+            patch.object(api, "frappe", fake_frappe),
+            patch.object(api, "_guard", return_value=identity),
+            patch.object(api, "TelectroBookingTimesheet", SubmittedDoc),
+            patch.object(
+                api,
+                "_period",
+                return_value=(start, end, 90),
+            ),
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ) as references,
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+            patch.object(api, "_visible") as visible,
+            patch.object(api, "record_correction_event") as audit,
+        ):
+            with self.assertRaises(BookingMetadataValidationError):
+                api.replace_submitted_booking.__wrapped__(
+                    timesheet_name="TS-1",
+                    event_id="replacement-missing-work-location",
+                    reason="Incorrect submitted time",
+                    expected_modified="2026-11-17T12:00:00",
+                    work_context="Helpdesk",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes=90,
+                    description="Corrected repair duration",
+                    activity_type="Service",
+                    ticket_name="HD-1",
+                    unlisted_customer_name=None,
+                    service_area=None,
+                    work_location=None,
+                    work_origin="Snapfix",
+                    external_reference="SF-123",
+                    other_origin_description=None,
+                    emergency=0,
+                )
+
+        # Reference authorization succeeded.
+        references.assert_called_once()
+        visible.assert_called_once_with("Activity Type", "Service")
+
+        # But the conflicting Service Area must prevent cancellation.
+        original.cancel.assert_not_called()
+        self.assertEqual(before["docstatus"], 1)
+
+        # Only the original Timesheet may have been loaded.
+        fake_frappe.get_doc.assert_called_once_with(
+            "Timesheet",
+            "TS-1",
+            for_update=True,
+        )
+
+        # No replacement audit or commit.
+        audit.assert_not_called()
+        db.commit.assert_not_called()
+
+        # The rejected transaction must roll back.
+        db.rollback.assert_called_once_with()
+
+        # Native permission state remains untouched.
+        self.assertIs(
+            original.flags.ignore_permissions,
+            False,
+        )
+
+    def test_replacement_request_rejects_missing_mandatory_metadata(self):
+        from datetime import datetime
+
+        from telephony.time_booking_metadata_policy import (
+            BookingMetadataValidationError,
+        )
+
+        with (
+            patch.object(
+                api,
+                "_period",
+                return_value=(
+                    datetime(2026, 11, 16, 9),
+                    datetime(2026, 11, 16, 10),
+                    60,
+                ),
+            ),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+        ):
+            with self.assertRaises(BookingMetadataValidationError):
+                api._replacement_request_snapshot(
+                    work_context="Internal",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes=60,
+                    description="Corrected internal work",
+                    activity_type="Execution",
+                )
+
+    def test_replacement_request_audit_accepts_legacy_and_metadata_schemas(self):
+        import json
+
+        from telephony.time_booking_correction_audit import (
+            _validated_replacement_request,
+        )
+
+        def canonical(value):
+            return json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+
+        legacy = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+        }
+
+        metadata = {
+            **legacy,
+            "unlisted_customer_name": None,
+            "service_area": "Routing",
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        self.assertEqual(
+            _validated_replacement_request(canonical(legacy)),
+            canonical(legacy),
+        )
+
+        self.assertEqual(
+            _validated_replacement_request(canonical(metadata)),
+            canonical(metadata),
+        )
+
+    def test_replacement_request_audit_rejects_invalid_metadata(self):
+        import json
+
+        from telephony.time_booking_correction_audit import (
+            BookingCorrectionAuditError,
+            _validated_replacement_request,
+        )
+
+        def canonical(value):
+            return json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+
+        valid = {
+            "work_context": "Helpdesk",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:30:00",
+            "duration_minutes": 90,
+            "description": "Corrected repair duration",
+            "activity_type": "Service",
+            "ticket_name": "HD-1",
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+            "unlisted_customer_name": None,
+            "service_area": "Routing",
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        cases = (
+            (
+                "missing_emergency",
+                {k: v for k, v in valid.items() if k != "emergency"},
+            ),
+            (
+                "unexpected_field",
+                {**valid, "unexpected": "value"},
+            ),
+            (
+                "boolean_emergency",
+                {**valid, "emergency": True},
+            ),
+            (
+                "missing_work_location",
+                {**valid, "work_location": None},
+            ),
+            (
+                "missing_work_origin",
+                {**valid, "work_origin": None},
+            ),
+            (
+                "noncanonical_empty_reference",
+                {**valid, "external_reference": ""},
+            ),
+            (
+                "noncanonical_blank_unlisted_customer",
+                {**valid, "unlisted_customer_name": "   "},
+            ),
+            (
+                "snapfix_without_reference",
+                {**valid, "work_origin": "Snapfix"},
+            ),
+            (
+                "helpdesk_without_service_area",
+                {**valid, "service_area": None},
+            ),
+            (
+                "conflicting_customer_identities",
+                {
+                    **valid,
+                    "work_context": "Customer Support",
+                    "ticket_name": None,
+                    "customer_name": "HD-CUST-1",
+                    "unlisted_customer_name": "Walk-in Customer",
+                },
+            ),
+        )
+
+        for label, request in cases:
+            with self.subTest(case=label):
+                with self.assertRaises(BookingCorrectionAuditError):
+                    _validated_replacement_request(
+                        canonical(request)
+                    )
+
+    def test_replacement_request_snapshot_includes_canonical_metadata(self):
+        import json
+        from datetime import datetime
+
+        expected = {
+            "work_context": "Internal",
+            "from_time": "2026-11-16T09:00:00",
+            "to_time": "2026-11-16T10:00:00",
+            "duration_minutes": 60,
+            "description": "Corrected internal work",
+            "activity_type": "Execution",
+            "ticket_name": None,
+            "project_name": None,
+            "task_name": None,
+            "customer_name": None,
+            "unlisted_customer_name": None,
+            "service_area": None,
+            "work_location": "Remote",
+            "work_origin": "Direct / Ad-hoc",
+            "external_reference": None,
+            "other_origin_description": None,
+            "emergency": 0,
+        }
+
+        with (
+            patch.object(
+                api,
+                "_period",
+                return_value=(
+                    datetime(2026, 11, 16, 9),
+                    datetime(2026, 11, 16, 10),
+                    60,
+                ),
+            ),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing"),
+            ),
+        ):
+            requested = api._replacement_request_snapshot(
+                work_context="Internal",
+                from_time="2026-11-16 09:00:00",
+                duration_minutes=60,
+                description="Corrected internal work",
+                activity_type="Execution",
+                unlisted_customer_name=None,
+                service_area=None,
+                work_location="Remote",
+                work_origin="Direct / Ad-hoc",
+                external_reference=None,
+                other_origin_description=None,
+                emergency=0,
+            )
+            # An absent unlisted customer identity must not be
+            # preserved as whitespace in immutable request evidence.
+            with self.assertRaises(api.BookingInputError):
+                api._replacement_request_snapshot(
+                    work_context="Internal",
+                    from_time="2026-11-16 09:00:00",
+                    duration_minutes=60,
+                    description="Corrected internal work",
+                    activity_type="Execution",
+                    unlisted_customer_name="   ",
+                    service_area=None,
+                    work_location="Remote",
+                    work_origin="Direct / Ad-hoc",
+                    external_reference=None,
+                    other_origin_description=None,
+                    emergency=0,
+                )
+
+        self.assertEqual(json.loads(requested), expected)
+
+        self.assertEqual(
+            requested,
+            json.dumps(
+                expected,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ),
         )

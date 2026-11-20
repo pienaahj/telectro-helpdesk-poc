@@ -85,6 +85,20 @@ _REPLACEMENT_REQUEST_FIELDS = frozenset((
     "customer_name",
 ))
 
+_REPLACEMENT_REQUEST_METADATA_FIELDS = frozenset((
+    "unlisted_customer_name",
+    "service_area",
+    "work_location",
+    "work_origin",
+    "external_reference",
+    "other_origin_description",
+    "emergency",
+))
+
+_REPLACEMENT_REQUEST_EXTENDED_FIELDS = (
+    _REPLACEMENT_REQUEST_FIELDS
+    | _REPLACEMENT_REQUEST_METADATA_FIELDS
+)
 
 def _validated_replacement_request(value):
     """Accept only canonical, structurally valid replacement evidence."""
@@ -103,9 +117,16 @@ def _validated_replacement_request(value):
     except (TypeError, ValueError, OverflowError) as exc:
         raise BookingCorrectionAuditError() from exc
 
+    fields = set(data) if type(data) is dict else None
+
+    extended = fields == _REPLACEMENT_REQUEST_EXTENDED_FIELDS
+
     if (
         type(data) is not dict
-        or set(data) != _REPLACEMENT_REQUEST_FIELDS
+        or fields not in (
+            _REPLACEMENT_REQUEST_FIELDS,
+            _REPLACEMENT_REQUEST_EXTENDED_FIELDS,
+        )
         or canonical != value
     ):
         raise BookingCorrectionAuditError()
@@ -137,7 +158,83 @@ def _validated_replacement_request(value):
 
         if reference is not None and not _text(reference):
             raise BookingCorrectionAuditError()
+    if extended:
+        # A missing unlisted customer must be represented by None.
+        # Whitespace-only strings are not canonical audit evidence.
+        unlisted_name = data["unlisted_customer_name"]
 
+        if (
+            isinstance(unlisted_name, str)
+            and not unlisted_name.strip()
+        ):
+            raise BookingCorrectionAuditError()
+
+        from telephony.time_booking_policy import (
+            WorkContextValidationError,
+            validate_work_context,
+        )
+        from telephony.time_booking_metadata_policy import (
+            BookingMetadataValidationError,
+            normalize_booking_metadata,
+        )
+
+        try:
+            validate_work_context({
+                "custom_work_context": data["work_context"],
+                "custom_hd_ticket": data["ticket_name"],
+                "custom_hd_customer": data["customer_name"],
+                "custom_unlisted_customer_name": data["unlisted_customer_name"],
+                "project": data["project_name"],
+                "task": data["task_name"],
+            })
+
+            area = data["service_area"]
+
+            # Audit evidence must remain verifiable even when the
+            # server's configured Service Area options change later.
+            # Live membership authorization belongs to the endpoint.
+            audit_areas = (
+                (area,)
+                if type(area) is str and area.strip()
+                else ("Other",)
+            )
+
+            metadata = normalize_booking_metadata(
+                work_context=data["work_context"],
+                service_area=area,
+                allowed_service_areas=audit_areas,
+                activity_type=data["activity_type"],
+                work_location=data["work_location"],
+                work_origin=data["work_origin"],
+                external_reference=data["external_reference"],
+                other_origin_description=data["other_origin_description"],
+                emergency=data["emergency"],
+            )
+
+        except (
+            WorkContextValidationError,
+            BookingMetadataValidationError,
+        ) as exc:
+            raise BookingCorrectionAuditError() from exc
+
+        # Extended audit evidence must already contain canonical
+        # values; it must not be silently rewritten.
+        for request_field, detail_field in (
+            ("service_area", "custom_service_area"),
+            ("work_location", "custom_work_location"),
+            ("work_origin", "custom_work_origin"),
+            ("external_reference", "custom_external_reference"),
+            ("other_origin_description", "custom_other_origin_description"),
+            ("emergency", "custom_emergency"),
+        ):
+            actual = data[request_field]
+            expected = metadata[detail_field]
+
+            if (
+                actual != expected
+                or type(actual) is not type(expected)
+            ):
+                raise BookingCorrectionAuditError()
     return canonical
 
 

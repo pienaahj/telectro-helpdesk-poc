@@ -22,7 +22,14 @@ from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationC
 from telephony.time_booking_identity import resolve_current_technician_identity
 from telephony.time_booking_ownership import authorize_parent, authorize_child, BookingOwnershipError
 from telephony.time_booking_policy import validate_work_context
-from telephony.time_booking_correction_audit import record_correction_event, _snapshot, DOCTYPE
+from telephony.time_booking_correction_audit import (
+    record_correction_event,
+    _snapshot,
+    DOCTYPE,
+    _validated_replacement_request,
+    _REPLACEMENT_REQUEST_FIELDS,
+    BookingCorrectionAuditError,
+)
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
 from telephony.time_booking_transaction import (
     _active_booking,
@@ -104,12 +111,28 @@ def _replacement_request_snapshot(
     project_name=None,
     task_name=None,
     customer_name=None,
+    unlisted_customer_name=None,
+    service_area=None,
+    work_location=None,
+    work_origin=None,
+    external_reference=None,
+    other_origin_description=None,
+    emergency=None,
+    allowed_service_areas=None,
 ):
     """Canonicalize validated replacement input for immutable retry evidence."""
     if (
         not _identifier(description)
         or len(description) > 2000
         or not _identifier(activity_type)
+    ):
+        raise BookingInputError()
+
+    # An absent unlisted customer identity must be represented
+    # by None, never an empty or whitespace-only string.
+    if (
+        isinstance(unlisted_customer_name, str)
+        and not unlisted_customer_name.strip()
     ):
         raise BookingInputError()
 
@@ -121,9 +144,86 @@ def _replacement_request_snapshot(
         "custom_hd_customer": customer_name,
         "project": project_name,
         "task": task_name,
+        "custom_unlisted_customer_name": unlisted_customer_name,
     }
 
     validate_work_context(row)
+
+    permitted_areas = (
+        _allowed_service_areas()
+        if allowed_service_areas is None
+        else allowed_service_areas
+    )
+
+    metadata = normalize_booking_metadata(
+        work_context=work_context,
+        service_area=service_area,
+        allowed_service_areas=permitted_areas,
+        activity_type=activity_type,
+        work_location=work_location,
+        work_origin=work_origin,
+        external_reference=external_reference,
+        other_origin_description=other_origin_description,
+        emergency=emergency,
+    )
+
+    request = {
+        "work_context": work_context,
+        "from_time": start.isoformat(),
+        "to_time": end.isoformat(),
+        "duration_minutes": minutes,
+        "description": description,
+        "activity_type": activity_type,
+        "ticket_name": ticket_name,
+        "project_name": project_name,
+        "task_name": task_name,
+        "customer_name": customer_name,
+        "unlisted_customer_name": unlisted_customer_name,
+        "service_area": metadata["custom_service_area"],
+        "work_location": metadata["custom_work_location"],
+        "work_origin": metadata["custom_work_origin"],
+        "external_reference": metadata["custom_external_reference"],
+        "other_origin_description": metadata["custom_other_origin_description"],
+        "emergency": metadata["custom_emergency"],
+    }
+
+    return json.dumps(
+        request,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+
+def _legacy_replacement_request_snapshot(
+    *,
+    work_context,
+    from_time,
+    duration_minutes,
+    description,
+    activity_type,
+    ticket_name=None,
+    project_name=None,
+    task_name=None,
+    customer_name=None,
+):
+    """Reconstruct the immutable historical 10-field request contract."""
+
+    if (
+        not _identifier(description)
+        or len(description) > 2000
+        or not _identifier(activity_type)
+    ):
+        raise BookingInputError()
+
+    start, end, minutes = _period(from_time, duration_minutes)
+
+    validate_work_context({
+        "custom_work_context": work_context,
+        "custom_hd_ticket": ticket_name,
+        "custom_hd_customer": customer_name,
+        "project": project_name,
+        "task": task_name,
+    })
 
     request = {
         "work_context": work_context,
@@ -505,6 +605,13 @@ def replace_submitted_booking(
     project_name=None,
     task_name=None,
     customer_name=None,
+    unlisted_customer_name=None,
+    service_area=None,
+    work_location=None,
+    work_origin=None,
+    external_reference=None,
+    other_origin_description=None,
+    emergency=None,
 ):
     """Submitted Replacement boundary; implementation not yet enabled."""
     with _top_level_booking_transaction(
@@ -566,17 +673,89 @@ def replace_submitted_booking(
             if not _revision_matches(before.get("modified"), expected_modified):
                 raise BookingOwnershipError()
 
-            requested = _replacement_request_snapshot(
-                work_context=work_context,
-                from_time=from_time,
-                duration_minutes=duration_minutes,
-                description=description,
-                activity_type=activity_type,
-                ticket_name=ticket_name,
-                project_name=project_name,
-                task_name=task_name,
-                customer_name=customer_name,
+            evidence = prior.get("replacement_request_snapshot")
+
+            try:
+                canonical_evidence = _validated_replacement_request(evidence)
+            except BookingCorrectionAuditError as exc:
+                raise BookingOwnershipError() from exc
+
+            historical = (
+                set(json.loads(canonical_evidence))
+                == _REPLACEMENT_REQUEST_FIELDS
             )
+
+            if historical:
+                # A legacy retry must not silently ignore new metadata.
+                if any(
+                    value is not None
+                    for value in (
+                        unlisted_customer_name,
+                        service_area,
+                        work_location,
+                        work_origin,
+                        external_reference,
+                        other_origin_description,
+                        emergency,
+                    )
+                ):
+                    raise BookingOwnershipError()
+
+                requested = _legacy_replacement_request_snapshot(
+                    work_context=work_context,
+                    from_time=from_time,
+                    duration_minutes=duration_minutes,
+                    description=description,
+                    activity_type=activity_type,
+                    ticket_name=ticket_name,
+                    project_name=project_name,
+                    task_name=task_name,
+                    customer_name=customer_name,
+                )
+
+            else:
+                recorded = json.loads(canonical_evidence)
+                recorded_area = recorded["service_area"]
+
+                # Historical audit evidence is the authority for
+                # retry comparison, not current HD Ticket metadata.
+                retry_areas = (
+                    (recorded_area,)
+                    if recorded_area is not None
+                    else ("Other",)
+                )
+                # A Helpdesk caller may omit Service Area because the
+                # authorized ticket supplied it during first execution.
+                # Reuse immutable audit evidence; do not reload the ticket.
+                retry_service_area = service_area
+
+                if (
+                    work_context == "Helpdesk"
+                    and service_area in (None, "")
+                ):
+                    retry_service_area = recorded_area
+                try:
+                    requested = _replacement_request_snapshot(
+                        work_context=work_context,
+                        from_time=from_time,
+                        duration_minutes=duration_minutes,
+                        description=description,
+                        activity_type=activity_type,
+                        ticket_name=ticket_name,
+                        project_name=project_name,
+                        task_name=task_name,
+                        customer_name=customer_name,
+                        unlisted_customer_name=unlisted_customer_name,
+                        service_area=retry_service_area,
+                        work_location=work_location,
+                        work_origin=work_origin,
+                        external_reference=external_reference,
+                        other_origin_description=other_origin_description,
+                        emergency=emergency,
+                        allowed_service_areas=retry_areas,
+                    )
+                except BookingMetadataValidationError as exc:
+                    raise BookingOwnershipError() from exc
 
             if prior.get("replacement_request_snapshot") != requested:
                 raise BookingOwnershipError()
@@ -620,7 +799,39 @@ def replace_submitted_booking(
         if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
 
-        # Normalize the requested replacement before any lifecycle mutation.
+        # Authorize references before any lifecycle mutation.
+        reference_row = {
+            "custom_work_context": work_context,
+            "custom_hd_ticket": ticket_name,
+            "custom_hd_customer": customer_name,
+            "custom_unlisted_customer_name": unlisted_customer_name,
+            "project": project_name,
+            "task": task_name,
+        }
+
+        validate_work_context(reference_row)
+
+        ticket = _authorize_references(
+            reference_row,
+            identity.company,
+        )
+
+        _visible("Activity Type", activity_type)
+
+        # Helpdesk Service Area must come from the authorized ticket.
+        if work_context == "Helpdesk":
+            ticket_area = ticket.get("custom_service_area")
+
+            if service_area not in (None, "", ticket_area):
+                raise BookingMetadataValidationError(
+                    "Helpdesk Service Area must match its ticket"
+                )
+
+            effective_service_area = ticket_area
+        else:
+            effective_service_area = service_area
+
+        # Create complete, canonical replacement request evidence.
         requested = _replacement_request_snapshot(
             work_context=work_context,
             from_time=from_time,
@@ -631,22 +842,36 @@ def replace_submitted_booking(
             project_name=project_name,
             task_name=task_name,
             customer_name=customer_name,
+            unlisted_customer_name=unlisted_customer_name,
+            service_area=effective_service_area,
+            work_location=work_location,
+            work_origin=work_origin,
+            external_reference=external_reference,
+            other_origin_description=other_origin_description,
+            emergency=emergency,
         )
 
         values = json.loads(requested)
 
+        # The new Timesheet Detail must match the audit evidence.
         row = {
             "custom_work_context": values["work_context"],
             "custom_hd_ticket": values["ticket_name"],
             "custom_hd_customer": values["customer_name"],
+            "custom_unlisted_customer_name": values[
+                "unlisted_customer_name"
+            ],
             "project": values["project_name"],
             "task": values["task_name"],
+            "custom_service_area": values["service_area"],
+            "custom_work_location": values["work_location"],
+            "custom_work_origin": values["work_origin"],
+            "custom_external_reference": values["external_reference"],
+            "custom_other_origin_description": values[
+                "other_origin_description"
+            ],
+            "custom_emergency": values["emergency"],
         }
-
-        # Preserve the original booking creation authorization boundary.
-        validate_work_context(row)
-        _authorize_references(row, identity.company)
-        _visible("Activity Type", values["activity_type"])
 
         start = datetime.fromisoformat(values["from_time"])
         end = datetime.fromisoformat(values["to_time"])
