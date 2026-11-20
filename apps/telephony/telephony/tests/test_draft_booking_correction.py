@@ -312,8 +312,20 @@ class TestDraftCorrection(unittest.TestCase):
         args = dict(timesheet_name="TS-1", event_id="event", reason="reason",
                     expected_modified="2026-11-17T12:00:00")
         if correction:
-            args.update(work_context="Helpdesk", from_time="2026-11-16 09:00:00",
-                        duration_minutes=60, description="Corrected", activity_type="Service", ticket_name="T")
+            args.update(
+                work_context="Helpdesk",
+                from_time="2026-11-16 09:00:00",
+                duration_minutes=60,
+                description="Corrected",
+                activity_type="Service",
+                ticket_name="T",
+                service_area=None,
+                work_location="Remote",
+                work_origin="Direct / Ad-hoc",
+                external_reference=None,
+                other_origin_description=None,
+                emergency=0,
+            )
         args.update(updates)
         try:
             with patch.dict(sys.modules, {"frappe": self.f}), patch.object(time_booking, "frappe", self.f):
@@ -357,7 +369,19 @@ class TestDraftCorrection(unittest.TestCase):
     def test_native_and_audit_failures_restore_entire_request(self):
         original = copy.deepcopy(self.state)
         for failure in ("save", "audit", "delete"):
-            with patch.object(api, "_authorize_references"), patch.object(api, "_visible"):
+            with (
+                patch.object(
+                    api,
+                    "_authorize_references",
+                    return_value={"custom_service_area": "Routing"},
+                ),
+                patch.object(api, "_visible"),
+                patch.object(
+                    api,
+                    "_allowed_service_areas",
+                    return_value=("Other", "Routing", "Data Request"),
+                ),
+            ):
                 if failure == "save": self.doc.save.side_effect = RuntimeError("overlap")
                 if failure == "delete": self.doc.delete.side_effect = RuntimeError("linked")
                 context = patch.object(api, "record_correction_event", side_effect=RuntimeError("audit")) if failure == "audit" else patch.object(api, "_identifier", wraps=api._identifier)
@@ -367,3 +391,277 @@ class TestDraftCorrection(unittest.TestCase):
             self.assertFalse(hasattr(self, "recorded"))
             self.rollback.assert_called_once()
             self.doc.save.side_effect = None; self.doc.delete.side_effect = None
+
+    def test_correction_endpoint_rejects_missing_mandatory_metadata(self):
+        from telephony.time_booking_metadata_policy import (
+            BookingMetadataValidationError,
+        )
+
+        with (
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ),
+            patch.object(api, "_visible"),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+        ):
+            with self.assertRaises(
+                BookingMetadataValidationError
+            ):
+                self.endpoint(
+                    work_location=None,
+                    work_origin=None,
+                    emergency=None,
+                )
+
+        self.doc.save.assert_not_called()
+        self.assertFalse(hasattr(self, "recorded"))
+
+    def test_correction_endpoint_accepts_valid_booking_metadata(self):
+        with (
+            patch.object(
+                api,
+                "_authorize_references",
+                return_value={"custom_service_area": "Routing"},
+            ),
+            patch.object(api, "_visible"),
+            patch.object(
+                api,
+                "_allowed_service_areas",
+                return_value=("Other", "Routing", "Data Request"),
+            ),
+        ):
+            result = self.endpoint(
+                service_area=None,
+                work_location="Remote",
+                work_origin="Snapfix",
+                external_reference="SF-123",
+                other_origin_description=None,
+                emergency=0,
+            )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        self.doc.save.assert_called_once_with()
+
+        row = self.recorded["after"]["time_logs"][0]
+
+        expected = {
+            "custom_work_context": "Helpdesk",
+            "custom_service_area": "Routing",
+            "custom_work_location": "Remote",
+            "custom_work_origin": "Snapfix",
+            "custom_external_reference": "SF-123",
+            "custom_other_origin_description": None,
+            "custom_emergency": 0,
+        }
+
+        for field, value in expected.items():
+            with self.subTest(field=field):
+                self.assertEqual(row.get(field), value)
+
+        self.assertEqual(
+            self.recorded["action"],
+            "Draft Correction",
+        )
+
+    def test_correction_retry_accepts_empty_optional_metadata(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        before = copy.deepcopy(self.state)
+        after = copy.deepcopy(before)
+
+        before["time_logs"][0].update({
+            "custom_work_origin": "Direct / Ad-hoc",
+            "custom_external_reference": None,
+            "custom_other_origin_description": None,
+        })
+
+        after["time_logs"][0].update({
+            "custom_work_origin": "Direct / Ad-hoc",
+            "custom_external_reference": "",
+            "custom_other_origin_description": "",
+        })
+
+        self.audit_row = dict(
+            name="AUDIT-1",
+            actor=self.identity.user,
+            action="Draft Correction",
+            reason="repair entry",
+            original_timesheet="TS-1",
+            before_snapshot=_snapshot(before),
+            after_snapshot=_snapshot(after),
+        )
+
+        result = self.call(
+            action="Draft Correction",
+            values={
+                "custom_work_origin": "Direct / Ad-hoc",
+                "custom_external_reference": None,
+                "custom_other_origin_description": None,
+            },
+        )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        # A successful retry must never repeat the mutation.
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+
+    def test_correction_retry_rejects_changed_populated_metadata(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        cases = (
+            (
+                "snapfix_reference_changed",
+                "Snapfix",
+                "custom_external_reference",
+                "SF-456",
+            ),
+            (
+                "snapfix_reference_cleared",
+                "Snapfix",
+                "custom_external_reference",
+                None,
+            ),
+            (
+                "other_description_changed",
+                "Other",
+                "custom_other_origin_description",
+                "Different description",
+            ),
+            (
+                "other_description_cleared",
+                "Other",
+                "custom_other_origin_description",
+                "",
+            ),
+        )
+
+        for label, origin, field, requested in cases:
+            with self.subTest(case=label):
+                before = copy.deepcopy(self.state)
+                after = copy.deepcopy(before)
+
+                after["time_logs"][0].update({
+                    "custom_work_origin": origin,
+                    "custom_external_reference": (
+                        "SF-123" if origin == "Snapfix" else None
+                    ),
+                    "custom_other_origin_description": (
+                        "Customer phone call"
+                        if origin == "Other"
+                        else None
+                    ),
+                })
+
+                self.audit_row = dict(
+                    name="AUDIT-1",
+                    actor=self.identity.user,
+                    action="Draft Correction",
+                    reason="repair entry",
+                    original_timesheet="TS-1",
+                    before_snapshot=_snapshot(before),
+                    after_snapshot=_snapshot(after),
+                )
+
+                with self.assertRaises(BookingOwnershipError):
+                    self.call(
+                        action="Draft Correction",
+                        values={field: requested},
+                    )
+
+                self.doc.save.assert_not_called()
+                self.doc.delete.assert_not_called()
+                self.assertFalse(hasattr(self, "recorded"))
+
+    def test_correction_retry_accepts_empty_internal_service_area(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        before = copy.deepcopy(self.state)
+
+        before["time_logs"][0].update({
+            "custom_work_context": "Internal",
+            "custom_hd_ticket": None,
+            "custom_hd_customer": None,
+            "project": None,
+            "task": None,
+            "custom_service_area": None,
+        })
+
+        after = copy.deepcopy(before)
+        after["time_logs"][0]["custom_service_area"] = ""
+
+        self.audit_row = dict(
+            name="AUDIT-1",
+            actor=self.identity.user,
+            action="Draft Correction",
+            reason="repair entry",
+            original_timesheet="TS-1",
+            before_snapshot=_snapshot(before),
+            after_snapshot=_snapshot(after),
+        )
+
+        result = self.call(
+            action="Draft Correction",
+            values={"custom_service_area": None},
+        )
+
+        self.assertEqual(
+            result,
+            {"timesheet": "TS-1", "audit": "AUDIT-1"},
+        )
+
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+
+    def test_correction_retry_rejects_helpdesk_service_area_mismatch(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        cases = (
+            ("populated_area_cleared", "Routing", None),
+            ("empty_helpdesk_area_not_equivalent", "", None),
+        )
+
+        for label, stored_area, requested_area in cases:
+            with self.subTest(case=label):
+                before = copy.deepcopy(self.state)
+                after = copy.deepcopy(before)
+
+                after["time_logs"][0].update({
+                    "custom_work_context": "Helpdesk",
+                    "custom_service_area": stored_area,
+                })
+
+                self.audit_row = dict(
+                    name="AUDIT-1",
+                    actor=self.identity.user,
+                    action="Draft Correction",
+                    reason="repair entry",
+                    original_timesheet="TS-1",
+                    before_snapshot=_snapshot(before),
+                    after_snapshot=_snapshot(after),
+                )
+
+                with self.assertRaises(BookingOwnershipError):
+                    self.call(
+                        action="Draft Correction",
+                        values={
+                            "custom_service_area": requested_area,
+                        },
+                    )
+
+                self.doc.save.assert_not_called()
+                self.doc.delete.assert_not_called()
+                self.assertFalse(hasattr(self, "recorded"))

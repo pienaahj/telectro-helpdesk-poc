@@ -5,7 +5,17 @@ import json
 import frappe
 
 from telephony.api.time_booking import (
-    _identifier, _period, _visible, _authorize_references, BookingInputError,
+    _identifier,
+    _period,
+    _visible,
+    _authorize_references,
+    BookingInputError,
+    _authorized_native_creation,
+    _allowed_service_areas,
+)
+from telephony.time_booking_metadata_policy import (
+    BookingMetadataValidationError,
+    normalize_booking_metadata,
 )
 from telephony.time_booking_activation_adapter import _require_activation_configuration
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
@@ -19,7 +29,6 @@ from telephony.time_booking_transaction import (
     _top_level_booking_transaction,
 )
 from datetime import datetime
-from telephony.api.time_booking import _authorized_native_creation
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 
 PREFIX = "telephony.api.booking_correction."
@@ -198,8 +207,10 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
             after = json.loads(prior["after_snapshot"])
             for key, value in values.items():
                 stored = after["time_logs"][0].get(key)
+
                 if hasattr(value, "isoformat"):
                     value = value.isoformat()
+
                 if key == "hours":
                     if (
                         type(stored) not in (int, float)
@@ -207,6 +218,25 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
                         or round(stored, 6) != round(value, 6)
                     ):
                         raise BookingOwnershipError()
+
+                elif (
+                    (
+                        key in (
+                            "custom_external_reference",
+                            "custom_other_origin_description",
+                        )
+                        or (
+                            key == "custom_service_area"
+                            and after["time_logs"][0].get(
+                                "custom_work_context"
+                            ) == "Internal"
+                        )
+                    )
+                    and stored in (None, "")
+                    and value in (None, "")
+                ):
+                    continue
+
                 elif stored != value:
                     raise BookingOwnershipError()
         return {"timesheet": name, "audit": prior["name"]}
@@ -239,25 +269,93 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
 
 
 @frappe.whitelist(methods=["POST"])
-def correct_draft_booking(*, timesheet_name, event_id, reason, work_context,
-                          from_time, duration_minutes, description, activity_type,
-                          ticket_name=None, project_name=None, task_name=None,
-                          customer_name=None, expected_modified=None):
-    with _top_level_booking_transaction(expected_command=PREFIX + "correct_draft_booking"):
-        # Validate references under the same request boundary. No writes here.
+def correct_draft_booking(
+    *,
+    timesheet_name,
+    event_id,
+    reason,
+    work_context,
+    from_time,
+    duration_minutes,
+    description,
+    activity_type,
+    ticket_name=None,
+    project_name=None,
+    task_name=None,
+    customer_name=None,
+    expected_modified=None,
+    service_area=None,
+    work_location=None,
+    work_origin=None,
+    external_reference=None,
+    other_origin_description=None,
+    emergency=None,
+):
+    with _top_level_booking_transaction(
+        expected_command=PREFIX + "correct_draft_booking"
+    ):
         identity = _guard()
+
         if not _identifier(description) or len(description) > 2000:
             raise BookingInputError()
+
         start, end, minutes = _period(from_time, duration_minutes)
-        values = dict(custom_work_context=work_context, custom_hd_ticket=ticket_name,
-                      custom_hd_customer=customer_name, project=project_name, task=task_name)
+
+        values = dict(
+            custom_work_context=work_context,
+            custom_hd_ticket=ticket_name,
+            custom_hd_customer=customer_name,
+            project=project_name,
+            task=task_name,
+        )
+
         validate_work_context(values)
-        _authorize_references(values, identity.company)
+
+        ticket = _authorize_references(values, identity.company)
         _visible("Activity Type", activity_type)
-        values.update(from_time=start, to_time=end, hours=minutes / 60,
-                      description=description, activity_type=activity_type)
-        return _execute(name=timesheet_name, event_id=event_id, reason=reason,
-                        action="Draft Correction", values=values, expected_modified=expected_modified)
+
+        if work_context == "Helpdesk":
+            ticket_area = ticket.get("custom_service_area")
+
+            if service_area not in (None, "", ticket_area):
+                raise BookingMetadataValidationError(
+                    "Helpdesk Service Area must match its ticket"
+                )
+
+            effective_service_area = ticket_area
+        else:
+            effective_service_area = service_area
+
+        values.update(
+            normalize_booking_metadata(
+                work_context=work_context,
+                service_area=effective_service_area,
+                allowed_service_areas=_allowed_service_areas(),
+                activity_type=activity_type,
+                work_location=work_location,
+                work_origin=work_origin,
+                external_reference=external_reference,
+                other_origin_description=other_origin_description,
+                emergency=emergency,
+            )
+        )
+
+        values.update(
+            from_time=start,
+            to_time=end,
+            hours=minutes / 60,
+            description=description,
+            activity_type=activity_type,
+        )
+
+        return _execute(
+            name=timesheet_name,
+            event_id=event_id,
+            reason=reason,
+            action="Draft Correction",
+            values=values,
+            expected_modified=expected_modified,
+        )
 
 
 @frappe.whitelist(methods=["POST"])
