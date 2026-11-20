@@ -317,7 +317,7 @@ class TestDraftCorrection(unittest.TestCase):
                 from_time="2026-11-16 09:00:00",
                 duration_minutes=60,
                 description="Corrected",
-                activity_type="Service",
+                activity_type="Repair & Maintenance",
                 ticket_name="T",
                 service_area=None,
                 work_location="Remote",
@@ -357,6 +357,17 @@ class TestDraftCorrection(unittest.TestCase):
                 self.assertEqual(self.state, original)
                 self.doc.save.assert_not_called()
                 self.assertFalse(hasattr(self, "recorded"))
+
+    def test_correction_rejects_unapproved_activity_before_saving(self):
+        original = copy.deepcopy(self.state)
+        with patch.object(api, "_authorize_references"), patch.object(api, "_visible") as visible:
+            with self.assertRaises(api.BookingInputError):
+                self.endpoint(activity_type="Execution")
+
+        visible.assert_not_called()
+        self.doc.save.assert_not_called()
+        self.assertEqual(self.state, original)
+        self.assertFalse(hasattr(self, "recorded"))
 
     def test_denied_replacement_references_leave_original_unchanged(self):
         for helper in ("_authorize_references", "_visible"):

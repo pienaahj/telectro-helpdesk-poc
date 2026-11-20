@@ -144,6 +144,8 @@
     const snapfix = (values) => values.work_origin === "Snapfix";
     const otherOrigin = (values) => values.work_origin === "Other";
     const selectOptions = (values) => ["", ...values];
+    const previousActivity = booking?.activity_type;
+    const historicalActivity = previousActivity && !options.activity_types.includes(previousActivity);
 
     let ticketLookup = 0;
     let ticketArea;
@@ -218,7 +220,15 @@
         fieldname: "ticket_area", label: __("Service Area from Ticket"), fieldtype: "Data",
         read_only: 1, depends_on: inHelpdesk,
       },
-      { fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Link", options: "Activity Type", reqd: 1 },
+      {
+        fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Select",
+        options: selectOptions(options.activity_types), reqd: 1,
+        description: historicalActivity
+          ? __("Previous Activity Type: {0}. Select an approved Activity Type to save.", [
+            frappe.utils.escape_html(previousActivity),
+          ])
+          : undefined,
+      },
       {
         fieldname: "work_location", label: __("Work Location"), fieldtype: "Select",
         options: selectOptions(options.work_locations),
@@ -298,6 +308,7 @@
       const fill = async () => {
         for (const field of fields) {
           const key = field.fieldname;
+          if (key === "activity_type" && historicalActivity) continue;
           if (key === "emergency" && booking.emergency != null) {
             await dialog.set_value(key, booking.emergency ? "Yes" : "No");
           } else if (key && booking[key] != null) {
@@ -396,7 +407,8 @@
 
     try {
       const options = await get("get_booking_form");
-      if (!options || document.getElementById("telectro-time-bookings")) return;
+      if (!Array.isArray(options?.activity_types) ||
+          document.getElementById("telectro-time-bookings")) return;
       $("<button>", {
         id: "telectro-time-bookings",
         type: "button",

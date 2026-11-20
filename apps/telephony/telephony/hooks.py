@@ -402,6 +402,13 @@ if unassigned_notification_durability_after_migrate not in after_migrate:
         unassigned_notification_durability_after_migrate
     )
 
+booking_activity_type_durability_after_migrate = (
+    "telephony.setup.booking_activity_type_durability.after_migrate"
+)
+
+if booking_activity_type_durability_after_migrate not in after_migrate:
+    after_migrate.append(booking_activity_type_durability_after_migrate)
+
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
 doc_events.setdefault("DocShare", {})
@@ -528,7 +535,7 @@ app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
-    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-20-1",
+    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-20-2",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
     "/assets/telephony/js/partner_route_guard.js?v=2026-08-24-1",

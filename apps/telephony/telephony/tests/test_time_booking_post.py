@@ -9,6 +9,8 @@ import types
 import unittest
 from unittest.mock import Mock, patch
 
+from telephony.tests.test_time_booking_correction_audit import snapshot
+from telephony.time_booking_activity_types import BOOKING_ACTIVITY_TYPES
 from telephony.time_booking_activation_policy import ActivationConfigurationError
 from telephony.time_booking_identity import TechnicianBookingIdentity, TechnicianIdentityError
 from telephony import time_booking_provenance_adapter, time_booking_timesheet_controller
@@ -61,7 +63,8 @@ class TestBookingPost(unittest.TestCase):
             ("Project", "P"): Reference("Project", "P", company="Company A"),
             ("Task", "K"): Reference("Task", "K", project="P"),
             ("HD Customer", "C"): Reference("HD Customer", "C"),
-            ("Activity Type", "Service"): Reference("Activity Type", "Service"),
+            ("Activity Type", "Execution"): Reference("Activity Type", "Execution"),
+            ("Activity Type", "Repair & Maintenance"): Reference("Activity Type", "Repair & Maintenance"),
         }
         self.f = types.ModuleType("frappe")
         self.f.whitelist = lambda **kwargs: lambda fn: fn
@@ -127,7 +130,7 @@ class TestBookingPost(unittest.TestCase):
             from_time="2026-11-16 09:00:00",
             duration_minutes=90,
             description="Repair",
-            activity_type="Service",
+            activity_type="Repair & Maintenance",
             ticket_name="T",
             service_area="Routing",
             work_location="Remote",
@@ -138,6 +141,67 @@ class TestBookingPost(unittest.TestCase):
         )
         args.update(updates)
         return self.m.book_technician_time(**args)
+
+    def test_booking_form_returns_ordered_catalog_for_eligible_technician(self):
+        response = self.m.get_booking_form()
+
+        self.assertEqual(response["activity_types"], BOOKING_ACTIVITY_TYPES)
+        self.assertEqual(response["service_areas"], self.m._allowed_service_areas())
+
+    def test_booking_form_does_not_disclose_catalog_when_ineligible(self):
+        for mode in ("disabled", "invalid runtime", "ineligible identity"):
+            with self.subTest(mode=mode), patch.object(self.m, "_allowed_service_areas") as areas:
+                self.f.conf["telectro_time_booking_enabled"] = mode != "disabled"
+                self.m._require_activation_configuration.side_effect = (
+                    ActivationConfigurationError if mode == "invalid runtime" else None
+                )
+                self.m.resolve_current_technician_identity.side_effect = (
+                    TechnicianIdentityError if mode == "ineligible identity" else None
+                )
+
+                self.assertIsNone(self.m.get_booking_form())
+                areas.assert_not_called()
+
+    def test_creation_rejects_readable_execution_and_accepts_approved_activity(self):
+        self.refs["Activity Type", "Execution"].check_permission("read")
+
+        with self.assertRaises(self.m.BookingInputError):
+            self.call(activity_type="Execution")
+        self.assertEqual(self.db.writes, [])
+
+        self.call(activity_type="Repair & Maintenance")
+        self.assertEqual(self.db.writes[0].time_logs[0]["activity_type"], "Repair & Maintenance")
+
+    def test_creation_still_requires_read_permission_for_approved_activity(self):
+        self.refs["Activity Type", "Repair & Maintenance"].visible = False
+
+        with self.assertRaises(self.m.BookingReferenceDenied):
+            self.call()
+        self.assertEqual(self.db.writes, [])
+
+    def test_own_booking_history_keeps_historical_activity_type(self):
+        class Row(dict):
+            def __getattr__(self, key):
+                return self.get(key)
+
+        parent = snapshot()
+        parent["user"] = self.identity.user
+        row = Row(parent["time_logs"][0], activity_type="Execution")
+        parent["time_logs"] = [row]
+        doc = types.SimpleNamespace(
+            name=parent["name"],
+            docstatus=parent["docstatus"],
+            modified="2026-11-17 12:00:00",
+            time_logs=[row],
+            as_dict=lambda: Row(parent),
+        )
+        self.f.get_all = Mock(return_value=[doc.name])
+        self.f.get_doc = Mock(return_value=doc)
+
+        response = self.m.list_own_bookings()
+
+        self.assertEqual(len(response["bookings"]), 1)
+        self.assertEqual(response["bookings"][0]["activity_type"], "Execution")
 
     def test_terminal_ticket_retrospective_booking(self):
         self.assertEqual(self.call(), {"timesheet": "TS-001"})

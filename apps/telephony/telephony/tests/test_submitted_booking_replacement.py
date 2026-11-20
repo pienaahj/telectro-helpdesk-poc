@@ -586,7 +586,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             "to_time": "2026-11-16T10:30:00",
             "duration_minutes": 90,
             "description": "Corrected repair duration",
-            "activity_type": "Service",
+            "activity_type": "Execution",
             "ticket_name": "HD-1",
             "project_name": None,
             "task_name": None,
@@ -662,7 +662,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 from_time="2026-11-16 09:00:00",
                 duration_minutes="90",
                 description="Corrected repair duration",
-                activity_type="Service",
+                activity_type="Execution",
                 ticket_name="HD-1",
             )
 
@@ -712,7 +712,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             "to_time": "2026-11-16T10:30:00",
             "duration_minutes": 90,
             "description": "Corrected repair duration",
-            "activity_type": "Service",
+            "activity_type": "Execution",
             "ticket_name": "HD-1",
             "project_name": None,
             "task_name": None,
@@ -795,7 +795,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 from_time="2026-11-16 09:00:00",
                 duration_minutes="90",
                 description="Corrected repair duration",
-                activity_type="Service",
+                activity_type="Execution",
                 ticket_name="HD-1",
                 unlisted_customer_name=None,
                 service_area=None,
@@ -1184,7 +1184,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 from_time="2026-11-16 09:00:00",
                 duration_minutes=90,
                 description="Corrected repair duration",
-                activity_type="Service",
+                activity_type="Repair & Maintenance",
                 ticket_name="HD-1",
                 unlisted_customer_name=None,
                 service_area=None,
@@ -1247,7 +1247,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             )
 
         references.assert_called_once()
-        visible.assert_called_once_with("Activity Type", "Service")
+        visible.assert_called_once_with("Activity Type", "Repair & Maintenance")
         audit.assert_called_once()
 
         db.commit.assert_not_called()
@@ -1479,7 +1479,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type="Repair & Maintenance",
                     ticket_name="HD-1",
                     unlisted_customer_name=None,
                     service_area=None,
@@ -1665,7 +1665,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type="Repair & Maintenance",
                     ticket_name="HD-1",
                     unlisted_customer_name=None,
                     service_area=None,
@@ -1896,7 +1896,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type="Repair & Maintenance",
                     ticket_name="HD-1",
                     unlisted_customer_name=None,
                     service_area=None,
@@ -1941,11 +1941,28 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
         self.assertEqual(fake_frappe.get_doc.call_count, 2)
 
     def test_invalid_replacement_reference_prevents_cancellation(self):
+        from telephony.api.time_booking import BookingReferenceDenied
+
+        self.assert_replacement_rejected_before_cancellation(
+            activity_type="Repair & Maintenance",
+            reference_error=BookingReferenceDenied(),
+            expected_error=BookingReferenceDenied,
+        )
+
+    def test_unapproved_replacement_activity_prevents_cancellation(self):
+        self.assert_replacement_rejected_before_cancellation(
+            activity_type="Execution",
+            reference_error=None,
+            expected_error=api.BookingInputError,
+        )
+
+    def assert_replacement_rejected_before_cancellation(
+        self, *, activity_type, reference_error, expected_error,
+    ):
         from datetime import datetime
 
         from telephony.tests.test_time_booking_correction_audit import snapshot
         from telephony.time_booking_identity import TechnicianBookingIdentity
-        from telephony.api.time_booking import BookingReferenceDenied
 
         command = api.PREFIX + "replace_submitted_booking"
 
@@ -2013,12 +2030,12 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             ),
             patch.object(
                 api, "_authorize_references",
-                side_effect=BookingReferenceDenied(),
+                side_effect=reference_error,
             ) as references,
             patch.object(api, "_visible") as visible,
             patch.object(api, "record_correction_event") as audit,
         ):
-            with self.assertRaises(BookingReferenceDenied):
+            with self.assertRaises(expected_error):
                 api.replace_submitted_booking.__wrapped__(
                     timesheet_name="TS-1",
                     event_id="replacement-hidden-reference",
@@ -2028,7 +2045,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type=activity_type,
                     ticket_name="HD-HIDDEN",
                 )
 
@@ -2153,7 +2170,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type="Repair & Maintenance",
                     ticket_name="HD-1",
                     unlisted_customer_name=None,
                     service_area="Data Request",
@@ -2166,7 +2183,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
 
         # Reference authorization succeeded.
         references.assert_called_once()
-        visible.assert_called_once_with("Activity Type", "Service")
+        visible.assert_called_once_with("Activity Type", "Repair & Maintenance")
 
         # But the conflicting Service Area must prevent cancellation.
         original.cancel.assert_not_called()
@@ -2289,7 +2306,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                     from_time="2026-11-16 09:00:00",
                     duration_minutes=90,
                     description="Corrected repair duration",
-                    activity_type="Service",
+                    activity_type="Repair & Maintenance",
                     ticket_name="HD-1",
                     unlisted_customer_name=None,
                     service_area=None,
@@ -2302,7 +2319,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
 
         # Reference authorization succeeded.
         references.assert_called_once()
-        visible.assert_called_once_with("Activity Type", "Service")
+        visible.assert_called_once_with("Activity Type", "Repair & Maintenance")
 
         # But the conflicting Service Area must prevent cancellation.
         original.cancel.assert_not_called()

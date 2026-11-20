@@ -12,6 +12,7 @@ from telephony.api.time_booking import (
     BookingInputError,
     _authorized_native_creation,
     _allowed_service_areas,
+    _require_booking_activity_type,
 )
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
@@ -415,6 +416,7 @@ def correct_draft_booking(
         validate_work_context(values)
 
         ticket = _authorize_references(values, identity.company)
+        _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
 
         if work_context == "Helpdesk":
@@ -816,6 +818,7 @@ def replace_submitted_booking(
             identity.company,
         )
 
+        _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
 
         # Helpdesk Service Area must come from the authorized ticket.

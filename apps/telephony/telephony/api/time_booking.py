@@ -8,6 +8,7 @@ import frappe
 
 from telephony.time_booking_activation_adapter import _require_activation_configuration
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
+from telephony.time_booking_activity_types import BOOKING_ACTIVITY_TYPES
 from telephony.time_booking_identity import (
     TechnicianBookingIdentity,
     TechnicianIdentityError,
@@ -47,6 +48,11 @@ class BookingInputError(ValueError):
 
 def _identifier(value):
     return type(value) is str and bool(value.strip()) and value == value.strip()
+
+
+def _require_booking_activity_type(activity_type):
+    if type(activity_type) is not str or activity_type not in BOOKING_ACTIVITY_TYPES:
+        raise BookingInputError()
 
 
 def _visible(doctype, name):
@@ -202,6 +208,7 @@ def get_booking_form():
 
     return {
         "company": identity.company,
+        "activity_types": BOOKING_ACTIVITY_TYPES,
         "service_areas": _allowed_service_areas(),
         "work_locations": WORK_LOCATIONS,
         "work_origins": WORK_ORIGINS,
@@ -294,8 +301,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
         # Source registration is not authorization. Require both the explicit
         # site enable switch and the complete live controller/hook invariant.
         identity = _booking_identity()
-        if (not _identifier(description) or len(description) > 2000
-                or not _identifier(activity_type)):
+        if not _identifier(description) or len(description) > 2000:
             raise BookingInputError()
         start, end, minutes = _period(from_time, duration_minutes)
         row = {
@@ -308,6 +314,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
         }
         validate_work_context(row)
         ticket = _authorize_references(row, identity.company)
+        _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
 
         if work_context == "Helpdesk":
