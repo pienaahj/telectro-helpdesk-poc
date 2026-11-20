@@ -7,6 +7,7 @@ from telephony.time_booking_metadata_policy import (
     validate_service_area,
     validate_work_location,
     validate_work_origin,
+    normalize_emergency,
 )
 
 
@@ -310,6 +311,27 @@ class TestBookingMetadataPolicy(unittest.TestCase):
                         external_reference=reference,
                         other_origin_description=description,
                     )
+
+    def test_emergency_normalization(self):
+        valid = ((0, 0), (1, 1), (False, 0), (True, 1))
+
+        for supplied, expected in valid:
+            with self.subTest(valid=supplied):
+                actual = normalize_emergency(supplied)
+                self.assertEqual(actual, expected)
+                self.assertIs(type(actual), int)
+
+        invalid = (
+            None, "", "0", "1", "true", 2, -1,
+            0.0, 1.0, [], {},
+        )
+
+        for supplied in invalid:
+            with self.subTest(invalid=supplied):
+                with self.assertRaises(
+                    BookingMetadataValidationError
+                ):
+                    normalize_emergency(supplied)
 
 if __name__ == "__main__":
     unittest.main()

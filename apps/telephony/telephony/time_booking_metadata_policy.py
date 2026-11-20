@@ -157,3 +157,16 @@ def validate_work_origin(
             raise BookingMetadataValidationError(
                 "Direct work cannot have external origin metadata"
             )
+
+def normalize_emergency(value) -> int:
+    """Normalize an explicit Emergency Check to integer 0 or 1."""
+
+    if type(value) is bool:
+        return int(value)
+
+    if type(value) is int and value in (0, 1):
+        return value
+
+    raise BookingMetadataValidationError(
+        "Emergency must be explicitly supplied as 0 or 1"
+    )
