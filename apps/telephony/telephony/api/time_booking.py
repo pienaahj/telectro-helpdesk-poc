@@ -10,7 +10,12 @@ from telephony.time_booking_activation_adapter import _require_activation_config
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
 from telephony.time_booking_identity import (
     TechnicianBookingIdentity,
+    TechnicianIdentityError,
     resolve_current_technician_identity,
+)
+from telephony.time_booking_ownership import (
+    BookingOwnershipError,
+    authorize_child,
 )
 from telephony.time_booking_policy import validate_work_context
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
@@ -21,6 +26,8 @@ from telephony.time_booking_transaction import (
 )
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
+    WORK_LOCATIONS,
+    WORK_ORIGINS,
     normalize_booking_metadata,
 )
 
@@ -178,6 +185,103 @@ def _authorized_native_creation(timesheet, identity):
     finally:
         flags.ignore_permissions = previous
 
+def _booking_identity():
+    if frappe.conf.get("telectro_time_booking_enabled") not in (1, True, "1"):
+        raise ActivationConfigurationError()
+    _require_activation_configuration(mode=ACTIVE_RUNTIME)
+    return resolve_current_technician_identity()
+
+
+@frappe.whitelist(methods=["GET"])
+def get_booking_form():
+    """Return options only for a technician who can use managed booking."""
+    try:
+        identity = _booking_identity()
+    except (ActivationConfigurationError, TechnicianIdentityError):
+        return None
+
+    return {
+        "company": identity.company,
+        "service_areas": _allowed_service_areas(),
+        "work_locations": WORK_LOCATIONS,
+        "work_origins": WORK_ORIGINS,
+    }
+
+
+@frappe.whitelist(methods=["GET"])
+def get_booking_ticket_area(ticket_name):
+    """Expose only a readable ticket's Service Area to the booking form."""
+    _booking_identity()
+    ticket = _visible("HD Ticket", ticket_name)
+    return {"service_area": ticket.get("custom_service_area")}
+
+
+@frappe.whitelist(methods=["GET"])
+def list_own_bookings(start=0):
+    """List one page of managed entries without granting native Timesheet read."""
+    identity = _booking_identity()
+    if type(start) is str and re.fullmatch(r"[0-9]{1,7}", start):
+        start = int(start)
+    if type(start) is not int or not 0 <= start <= 9_999_999:
+        raise BookingInputError()
+
+    page_size = 20
+    names = frappe.get_all(
+        "Timesheet",
+        filters={
+            "custom_telectro_booking_origin": "Phase 2",
+            "user": identity.user,
+            "employee": identity.employee,
+            "company": identity.company,
+        },
+        pluck="name",
+        order_by="creation desc, name desc",
+        limit_start=start,
+        limit_page_length=page_size + 1,
+    )
+    bookings = []
+    for name in names[:page_size]:
+        try:
+            doc = frappe.get_doc("Timesheet", name)
+        except frappe.DoesNotExistError:
+            continue
+        if len(doc.time_logs) != 1:
+            continue
+        parent = doc.as_dict()
+        row = parent.time_logs[0]
+        try:
+            authorize_child(identity, parent, row)
+        except BookingOwnershipError:
+            continue
+
+        bookings.append({
+            "name": doc.name,
+            "docstatus": int(doc.docstatus),
+            "modified": str(doc.modified),
+            "from_time": str(row.from_time),
+            "duration_minutes": round(row.hours * 60),
+            "description": row.description,
+            "activity_type": row.activity_type,
+            "work_context": row.custom_work_context,
+            "ticket_name": str(row.custom_hd_ticket) if row.custom_hd_ticket else None,
+            "project_name": row.project,
+            "task_name": row.task,
+            "customer_name": row.custom_hd_customer,
+            "unlisted_customer_name": row.custom_unlisted_customer_name,
+            "service_area": row.custom_service_area,
+            "work_location": row.custom_work_location,
+            "work_origin": row.custom_work_origin,
+            "external_reference": row.custom_external_reference,
+            "other_origin_description": row.custom_other_origin_description,
+            "emergency": row.custom_emergency,
+        })
+    return {
+        "bookings": bookings,
+        "next_start": start + page_size if len(names) > page_size else None,
+        "previous_start": max(0, start - page_size) if start else None,
+    }
+
+
 @frappe.whitelist(methods=["POST"])
 def book_technician_time(*, work_context, from_time, duration_minutes,
                          description, activity_type, ticket_name=None,
@@ -189,10 +293,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
     with _top_level_booking_transaction(expected_command=COMMAND):
         # Source registration is not authorization. Require both the explicit
         # site enable switch and the complete live controller/hook invariant.
-        if frappe.conf.get("telectro_time_booking_enabled") not in (1, True, "1"):
-            raise ActivationConfigurationError()
-        _require_activation_configuration(mode=ACTIVE_RUNTIME)
-        identity = resolve_current_technician_identity()
+        identity = _booking_identity()
         if (not _identifier(description) or len(description) > 2000
                 or not _identifier(activity_type)):
             raise BookingInputError()

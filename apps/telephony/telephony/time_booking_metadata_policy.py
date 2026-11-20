@@ -54,11 +54,17 @@ def validate_service_area(
             "Invalid or missing Service Area"
         )
 
-_WORK_LOCATIONS = (
+WORK_LOCATIONS = (
     "On-site",
     "Remote",
     "Workshop / Internal",
 )
+
+
+DIRECT_ORIGIN = "Direct / Ad-hoc"
+SNAPFIX_ORIGIN = "Snapfix"
+OTHER_ORIGIN = "Other"
+WORK_ORIGINS = (DIRECT_ORIGIN, SNAPFIX_ORIGIN, OTHER_ORIGIN)
 
 
 def validate_work_location(
@@ -86,7 +92,7 @@ def validate_work_location(
 
     if (
         type(work_location) is not str
-        or work_location not in _WORK_LOCATIONS
+        or work_location not in WORK_LOCATIONS
     ):
         raise BookingMetadataValidationError(
             "Invalid or missing Work Location"
@@ -100,7 +106,7 @@ def validate_work_origin(
 ) -> None:
     """Validate Work Origin and its associated metadata."""
 
-    if work_origin == "Snapfix":
+    if work_origin == SNAPFIX_ORIGIN:
         # Snapfix requires a meaningful external reference.
         if (
             type(external_reference) is not str
@@ -122,7 +128,7 @@ def validate_work_origin(
 
         return
 
-    if work_origin == "Other":
+    if work_origin == OTHER_ORIGIN:
         # Other requires a meaningful description.
         if (
             type(other_origin_description) is not str
@@ -144,7 +150,7 @@ def validate_work_origin(
 
         return
 
-    if work_origin != "Direct / Ad-hoc":
+    if work_origin != DIRECT_ORIGIN:
         raise BookingMetadataValidationError(
             "Unsupported Work Origin"
         )
