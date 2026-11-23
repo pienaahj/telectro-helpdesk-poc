@@ -136,6 +136,17 @@
     return payload;
   }
 
+  function completedWorkInterval(values) {
+    const start = values.from_time;
+    const duration = String(values.duration_minutes ?? "");
+    if (!start || !/^[1-9][0-9]{0,3}$/.test(duration) || Number(duration) > 1440) return null;
+    // Compute site-local wall time without applying the browser's timezone or DST rules.
+    const end = moment.utc(start, dateFormat, true);
+    if (!end.isValid() || end.add(Number(duration), "minutes").format(dateFormat) >
+        frappe.datetime.system_datetime()) return null;
+    return { from_time: start, duration_minutes: Number(duration) };
+  }
+
   function openForm(options, booking, afterSave) {
     const inHelpdesk = (values) => values.work_context === "Helpdesk";
     const inProject = (values) => values.work_context === "Project";
@@ -150,6 +161,119 @@
     let ticketLookup = 0;
     let ticketArea;
     let dialog;
+    let restoring = Boolean(booking);
+    let projectContext = booking?.work_context === "Project";
+    let periodRevision = 0;
+    let periodKey;
+    const referenceRevision = { project_name: 0, task_name: 0 };
+    const referenceOptions = {};
+    const projectField = "project_name";
+    const taskField = "task_name";
+
+    function referenceScope(field, values) {
+      if (!inProject(values)) return null;
+      const interval = completedWorkInterval(values);
+      if (!interval) return null;
+      if (field === projectField) return interval;
+      return values.project_name ? { ...interval, project_name: values.project_name } : null;
+    }
+
+    const currentScope = (field) => referenceScope(field, {
+      work_context: dialog.get_value("work_context"),
+      from_time: dialog.get_value("from_time"),
+      duration_minutes: dialog.get_value("duration_minutes"),
+      project_name: dialog.get_value(projectField),
+    });
+
+    function renderReferences(field, items, selected) {
+      const control = dialog.fields_dict[field];
+      control.df.options = ["", ...items.map(({ id, label }) => ({
+        value: id,
+        label: frappe.utils.escape_html(label === id ? id : label + " (" + id + ")"),
+      }))];
+      control.set_options();
+      if (selected) control.$input.val(selected);
+    }
+
+    function clearReference(field) {
+      referenceRevision[field]++;
+      delete referenceOptions[field];
+      renderReferences(field, []);
+      return dialog.set_value(field, "");
+    }
+
+    async function loadReferences(field, name) {
+      const revision = ++referenceRevision[field];
+      const scope = currentScope(field);
+      if (!scope) return false;
+      const key = JSON.stringify(scope);
+      const isProject = field === projectField;
+      const search = name ? { name } : {
+        query: (dialog.get_value(isProject ? "project_search" : "task_search") || "").slice(0, 80),
+      };
+      let items;
+      try {
+        items = await get(isProject ? "get_booking_projects" : "get_booking_tasks", { ...scope, ...search });
+      } catch {
+        items = [];
+      }
+      if (revision !== referenceRevision[field] || key !== JSON.stringify(currentScope(field))) return false;
+
+      const selected = dialog.get_value(field);
+      const previous = referenceOptions[field];
+      const retained = previous?.key === key && previous.items.find((item) => item.id === selected);
+      items = Array.isArray(items) ? items : [];
+      if (retained && !items.some((item) => item.id === retained.id)) items = [retained, ...items];
+      referenceOptions[field] = { key, items };
+      renderReferences(field, items, retained?.id);
+      if (name && items.some((item) => item.id === name)) {
+        await dialog.set_value(field, name);
+        return true;
+      }
+      return false;
+    }
+
+    async function periodChanged() {
+      if (restoring) return;
+      const inScope = dialog.get_value("work_context") === "Project";
+      if (!projectContext && !inScope) return;
+      const key = JSON.stringify(currentScope(projectField));
+      if (projectContext === inScope && periodKey === key) return;
+      projectContext = inScope;
+      periodKey = key;
+      const revision = ++periodRevision;
+      await Promise.all([clearReference(taskField), clearReference(projectField)]);
+      if (revision === periodRevision) await loadReferences(projectField);
+    }
+
+    async function projectChanged() {
+      if (restoring) return;
+      const revision = referenceRevision[taskField] + 1;
+      await clearReference(taskField);
+      if (revision !== referenceRevision[taskField]) return;
+      if (dialog.get_value("task_search")) {
+        // Clearing a nonempty search triggers the Task lookup.
+        await dialog.set_value("task_search", "");
+      } else {
+        await loadReferences(taskField);
+      }
+    }
+
+    function formPayload(values) {
+      if (inProject(values)) {
+        for (const field of [projectField, taskField]) {
+          if (field === taskField && !values.task_name) continue;
+          const key = JSON.stringify(referenceScope(field, values));
+          const choices = referenceOptions[field];
+          if (choices?.key !== key || !choices.items.some((item) => item.id === values[field])) {
+            showError(__("Select an eligible Project and optional Task for the completed work interval."));
+            return null;
+          }
+        }
+      }
+      return bookingPayload(values, ticketArea, options);
+    }
+
     async function updateTicketArea() {
       const revision = ++ticketLookup;
       const ticket = String(dialog.get_value("ticket_name") ?? "");
@@ -181,7 +305,7 @@
         fieldname: "work_context", label: __("Work Context"), fieldtype: "Select",
         options: selectOptions(["Helpdesk", "Project", "Customer Support", "Internal"]),
         reqd: 1,
-        onchange: () => dialog && updateTicketArea(),
+        onchange: () => dialog && Promise.all([updateTicketArea(), periodChanged()]),
       },
       {
         fieldname: "ticket_name", label: __("Helpdesk Ticket"), fieldtype: "Link",
@@ -189,15 +313,24 @@
         onchange: () => dialog && updateTicketArea(),
       },
       {
-        fieldname: "project_name", label: __("Project"), fieldtype: "Link",
-        options: "Project", depends_on: inProject, mandatory_depends_on: inProject,
-        get_query: () => ({ filters: { company: options.company } }),
-        onchange: () => dialog?.set_value("task_name", ""),
+        fieldname: "project_search", label: __("Find Project"), fieldtype: "Data", length: 80,
+        depends_on: (values) => inProject(values) && !!completedWorkInterval(values),
+        onchange: () => dialog && !restoring && loadReferences(projectField),
       },
       {
-        fieldname: "task_name", label: __("Task"), fieldtype: "Link", options: "Task",
+        fieldname: projectField, label: __("Project"), fieldtype: "Select", options: [""],
+        depends_on: inProject, mandatory_depends_on: inProject,
+        description: __("Enter a completed work interval to load eligible Projects. Refine the search if needed."),
+        onchange: () => dialog && projectChanged(),
+      },
+      {
+        fieldname: "task_search", label: __("Find Task"), fieldtype: "Data", length: 80,
         depends_on: (values) => inProject(values) && !!values.project_name,
-        get_query: () => ({ filters: { project: dialog.get_value("project_name") } }),
+        onchange: () => dialog && !restoring && loadReferences(taskField),
+      },
+      {
+        fieldname: taskField, label: __("Task"), fieldtype: "Select", options: [""],
+        depends_on: (values) => inProject(values) && !!values.project_name,
       },
       {
         fieldname: "customer_name", label: __("Customer"), fieldtype: "Link",
@@ -254,9 +387,13 @@
       {
         fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Datetime", reqd: 1,
         options: { startDate: frappe.datetime.now_datetime(true) },
+        onchange: () => dialog && periodChanged(),
       },
       { fieldtype: "Column Break" },
-      { fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Data", reqd: 1 },
+      {
+        fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Data", reqd: 1,
+        onchange: () => dialog && periodChanged(),
+      },
       { fieldtype: "Section Break" },
       { fieldname: "description", label: __("Description"), fieldtype: "Small Text", reqd: 1 },
     ];
@@ -271,7 +408,7 @@
       no_submit_on_enter: true,
       primary_action_label: __("Save Booking"),
       primary_action: async (values) => {
-        const payload = bookingPayload(values, ticketArea, options);
+        const payload = formPayload(values);
         if (!payload) return;
         const button = dialog.get_primary_btn();
         if (button.prop("disabled")) return;
@@ -297,32 +434,50 @@
         replacing ? __("Replace Booking") : __("Save Correction"),
         correctionRequest(
           dialog, booking, replacing ? "replace_submitted_booking" : "correct_draft_booking",
-          (values) => bookingPayload(values, ticketArea, options), afterSave,
+          formPayload, afterSave,
         ),
       );
     }
-    dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+    dialog.$wrapper.one("hidden.bs.modal", () => {
+      periodRevision++;
+      referenceRevision[projectField]++;
+      referenceRevision[taskField]++;
+      dialog.$wrapper.remove();
+    });
     dialog.show();
 
     if (booking) {
-      // A Project change clears Task, so restore their saved values in order.
       const button = dialog.get_primary_btn();
       button.prop("disabled", true);
       const fill = async () => {
         for (const field of fields) {
           const key = field.fieldname;
-          if (key === "activity_type" && historicalActivity) continue;
+          if (key === projectField || key === taskField || (key === "activity_type" && historicalActivity)) continue;
           if (key === "emergency" && booking.emergency != null) {
             await dialog.set_value(key, booking.emergency ? "Yes" : "No");
           } else if (key && booking[key] != null) {
             await dialog.set_value(key, booking[key]);
           }
         }
+        if (booking.work_context === "Project") {
+          const restored = booking.project_name && await loadReferences(projectField, booking.project_name);
+          const taskRestored = !booking.task_name || (
+            restored && await loadReferences(taskField, booking.task_name)
+          );
+          await Promise.all([loadReferences(projectField), loadReferences(taskField)]);
+          if (!restored || !taskRestored) {
+            showError(__("Some saved references are unavailable for this work interval. Review the Project and Task."));
+          }
+        }
         dialog.refresh_dependency();
       };
       fill()
         .catch(() => showError(__("Some saved details could not be loaded. Check the fields before saving.")))
-        .finally(() => button.prop("disabled", false));
+        .finally(() => {
+          restoring = false;
+          periodKey = JSON.stringify(currentScope(projectField));
+          button.prop("disabled", false);
+        });
     }
   }
 

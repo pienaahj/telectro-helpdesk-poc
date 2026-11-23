@@ -23,6 +23,7 @@ from telephony.time_booking_project_grant import (
     ProjectBookingGrantError,
     require_project_booking_grant,
 )
+from telephony.time_booking_project_lookup import MAX_PAGE, project_options, task_options
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
 from telephony.time_booking_transaction import (
@@ -222,6 +223,45 @@ def get_booking_ticket_area(ticket_name):
     _booking_identity()
     ticket = _visible("HD Ticket", ticket_name)
     return {"service_area": ticket.get("custom_service_area")}
+
+
+def _booking_lookup(lookup, from_time, duration_minutes, query, page, name, **scope):
+    try:
+        identity = _booking_identity()
+        start, end, _ = _period(from_time, duration_minutes)
+    except (ActivationConfigurationError, TechnicianIdentityError, BookingInputError):
+        return []
+    if type(page) is str and re.fullmatch(r"[0-9]", page):
+        page = int(page)
+    if (
+        type(query) is not str or len(query) > 80
+        or type(page) is not int or not 0 <= page <= MAX_PAGE
+        or (name is not None and (not _identifier(name) or len(name) > 140 or query or page))
+    ):
+        return []
+    evaluated_at = frappe.utils.now_datetime()
+    if end > evaluated_at:
+        return []
+    return lookup(
+        identity=identity, start=start, end=end, evaluated_at=evaluated_at,
+        term=query.strip(), page=page, name=name, **scope,
+    )
+
+
+@frappe.whitelist(methods=["GET"])
+def get_booking_projects(from_time, duration_minutes, query="", page=0, name=None):
+    """Find entitled same-company Projects for a completed booking interval."""
+    return _booking_lookup(project_options, from_time, duration_minutes, query, page, name)
+
+
+@frappe.whitelist(methods=["GET"])
+def get_booking_tasks(project_name, from_time, duration_minutes, query="", page=0, name=None):
+    """Find explicitly entitled Tasks under one eligible booking Project."""
+    if not _identifier(project_name) or len(project_name) > 140:
+        return []
+    return _booking_lookup(
+        task_options, from_time, duration_minutes, query, page, name, project_name=project_name,
+    )
 
 
 @frappe.whitelist(methods=["GET"])

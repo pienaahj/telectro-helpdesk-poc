@@ -535,7 +535,7 @@ app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
-    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-20-2",
+    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-23-1",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
     "/assets/telephony/js/partner_route_guard.js?v=2026-08-24-1",

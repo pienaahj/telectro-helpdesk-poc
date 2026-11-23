@@ -223,11 +223,29 @@ def _resolve_tasks(project, tasks):
     return frozenset((name, _stored_time(created)) for name, _, created in rows)
 
 
+def _project_grant_periods(identity, project, project_created_at, *, for_update=False, limit=None):
+    import frappe
+
+    scope = _scope(identity, project)
+    records = frappe.db.get_values(
+        DOCTYPE, {**scope, "project_created_at": project_created_at},
+        [
+            *scope, "project_created_at", "permitted_tasks", "effective_start",
+            "effective_end", "granted_by", "grant_reason", "ended_by", "end_reason",
+            "active_key",
+        ],
+        as_dict=True, for_update=for_update, limit=limit + 1 if limit is not None else None,
+    )
+    if limit is not None and len(records) > limit:
+        raise ProjectBookingGrantError()
+    return [project_booking_grant_period(row) for row in records]
+
+
 def require_project_booking_grant(*, identity, project, task, start, end):
     """Authorize in the booking write transaction using current, locked reads."""
     import frappe
 
-    scope = _scope(identity, project)
+    _scope(identity, project)
     project_row = _lock_project(project)
     if not project_row or project_row.company != identity.company:
         raise ProjectBookingGrantError()
@@ -241,20 +259,12 @@ def require_project_booking_grant(*, identity, project, task, start, end):
 
     # The Project lock serializes us with grant transitions. Use a locking
     # read here too: identity or metadata reads may have opened a snapshot.
-    records = frappe.db.get_values(
-        DOCTYPE, {**scope, "project_created_at": project_created_at},
-        [
-            *scope, "project_created_at", "permitted_tasks", "effective_start",
-            "effective_end", "granted_by", "grant_reason", "ended_by", "end_reason",
-            "active_key",
-        ],
-        as_dict=True, for_update=True,
-    )
+    periods = _project_grant_periods(identity, project, project_created_at, for_update=True)
     if not covers_project_booking(
         identity=identity, project=project, project_company=project_row.company,
         project_created_at=project_created_at, task=task,
         task_project=project if task is not None else None, task_created_at=task_created_at,
-        start=start, end=end, periods=[project_booking_grant_period(row) for row in records],
+        start=start, end=end, periods=periods,
         evaluated_at=frappe.utils.now_datetime(),
     ):
         raise ProjectBookingGrantError()

@@ -14,29 +14,48 @@ const source = fs.readFileSync(
   path.join(appRoot, "telephony/public/js/telectro_time_booking.js"), "utf8",
 );
 
-function loadBookingForm() {
+function loadBookingForm(lookup = async () => []) {
+  const requests = [];
+  const submissions = [];
   const dialogs = [];
   class Dialog {
     constructor(config) {
       this.config = config;
       this.values = {};
-      this.fields_dict = { duration_minutes: { $input: { attr() {} } } };
+      this.fields_dict = Object.fromEntries(config.fields.filter((df) => df.fieldname).map((df) => [
+        df.fieldname, { df, $input: { attr() {}, val() {} }, set_options() {} },
+      ]));
       this.$wrapper = { one() {} };
       this.button = { prop() {} };
       dialogs.push(this);
     }
     show() {}
+    hide() {}
     get_primary_btn() { return this.button; }
     set_primary_action() {}
-    async set_value(key, value) { this.values[key] = value; }
+    get_value(key) { return this.values[key]; }
+    async set_value(key, value) {
+      if (value === this.values[key]) return;
+      this.values[key] = value;
+      await this.fields_dict[key]?.df.onchange?.();
+    }
     refresh_dependency() {}
   }
   const document = {};
   const context = {
     document,
     $: () => ({ on() {} }),
+    async fetch(url, options) {
+      submissions.push({ url, body: JSON.parse(options.body) });
+      return { ok: true, json: async () => ({ message: { timesheet: "TS-1" } }) };
+    },
     frappe: {
+      show_alert() {},
       ui: { Dialog },
+      async call(request) {
+        requests.push(request);
+        return { message: await lookup(request.method.split(".").at(-1), request.args) };
+      },
       datetime: {
         system_datetime: () => "2026-11-20 12:00:00",
         now_datetime(asDate) {
@@ -44,12 +63,21 @@ function loadBookingForm() {
           return new Date(2026, 10, 20, 12);
         },
       },
-      utils: { escape_html: (text) => text },
+      utils: { escape_html: (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;") },
       msgprint: (message) => assert.fail(message.message),
     },
     __: (text, values = []) =>
       text.replace(/\{(\d+)\}/g, (_, index) => values[index]),
-    moment: () => ({ isValid: () => true }),
+    moment: Object.assign(() => ({ isValid: () => true }), {
+      utc(value) {
+        let instant = new Date(value.replace(" ", "T") + "Z");
+        return {
+          isValid: () => Number.isFinite(instant.getTime()),
+          add(minutes) { instant = new Date(instant.getTime() + minutes * 60_000); return this; },
+          format: () => instant.toISOString().slice(0, 19).replace("T", " "),
+        };
+      },
+    }),
   };
   const testSource = source.replace(
     /\}\)\(\);\s*$/,
@@ -65,6 +93,8 @@ function loadBookingForm() {
     work_origins: ["Direct / Ad-hoc"],
   };
   return {
+    requests,
+    submissions,
     open(booking = null) {
       openForm(options, booking, () => {});
       return dialogs.at(-1);
@@ -145,4 +175,138 @@ test("Historical classifications appear as guidance without becoming choices", a
     assert.equal(dialog.values.activity_type, undefined);
   }
   assert.equal(approved.values.activity_type, approvedActivities[0]);
+});
+
+const project = { id: "P-1", label: "<Pilot>" };
+const otherProject = { id: "P-2", label: "Other Project" };
+const task = { id: "T-1", label: "Pilot Task" };
+const workStart = "2026-11-20 09:00:00";
+
+async function setProjectInterval(dialog) {
+  await dialog.set_value("work_context", "Project");
+  await dialog.set_value("from_time", workStart);
+  await dialog.set_value("duration_minutes", "30");
+}
+
+const optionIds = (dialog, fieldname) =>
+  Array.from(field(dialog, fieldname).options, (option) => option.value || option);
+
+test("Scoped Projects load only for completed work and preserve required validation", async () => {
+  const form = loadBookingForm(async () => [project]);
+  const dialog = form.open();
+  assert.equal(field(dialog, "project_name").fieldtype, "Select");
+  assert.equal(field(dialog, "task_name").fieldtype, "Select");
+  assert.equal(field(dialog, "project_name").mandatory_depends_on({ work_context: "Project" }), true);
+
+  await dialog.set_value("work_context", "Project");
+  await dialog.set_value("duration_minutes", "30");
+  await dialog.set_value("from_time", "2026-11-20 11:59:00");
+  assert.equal(form.requests.length, 0);
+  await dialog.set_value("from_time", workStart);
+  assert.equal(form.requests.at(-1).method, "telephony.api.time_booking.get_booking_projects");
+  assert.equal(form.requests.at(-1).args.from_time, workStart);
+  assert.equal(form.requests.at(-1).args.duration_minutes, 30);
+  assert.deepEqual(optionIds(dialog, "project_name"), ["", project.id]);
+  assert.equal(field(dialog, "project_name").options[1].label, "&lt;Pilot> (P-1)");
+});
+
+test("Changing Project, duration, or start clears dependent selections", async () => {
+  const form = loadBookingForm(async (method, args) => {
+    if (method === "get_booking_projects") return [project, otherProject];
+    assert.ok([project.id, otherProject.id].includes(args.project_name));
+    return args.project_name === project.id ? [task] : [];
+  });
+  const dialog = form.open();
+  await setProjectInterval(dialog);
+  await dialog.set_value("project_name", project.id);
+  await dialog.set_value("task_name", task.id);
+  await dialog.set_value("project_name", otherProject.id);
+  assert.equal(dialog.values.task_name, "");
+  assert.deepEqual(optionIds(dialog, "task_name"), [""]);
+  assert.equal(form.requests.at(-1).args.project_name, otherProject.id);
+
+  await dialog.set_value("project_name", project.id);
+  await dialog.set_value("task_name", task.id);
+  await dialog.set_value("duration_minutes", "45");
+  assert.equal(dialog.values.project_name, "");
+  assert.equal(dialog.values.task_name, "");
+  assert.equal(form.requests.at(-1).args.duration_minutes, 45);
+
+  await dialog.set_value("project_name", project.id);
+  await dialog.set_value("task_name", task.id);
+  await dialog.set_value("from_time", "2026-11-19 08:45:00");
+  assert.equal(dialog.values.project_name, "");
+  assert.equal(dialog.values.task_name, "");
+  assert.equal(form.requests.at(-1).args.from_time, "2026-11-19 08:45:00");
+});
+
+test("A stale Task response from the previous Project is discarded", async () => {
+  let finishOld;
+  const oldLookup = new Promise((resolve) => { finishOld = resolve; });
+  const form = loadBookingForm(async (method, args) => {
+    if (method === "get_booking_projects") return [project, otherProject];
+    return args.project_name === project.id ? oldLookup : [];
+  });
+  const dialog = form.open();
+  await setProjectInterval(dialog);
+  const pending = dialog.set_value("project_name", project.id);
+  await new Promise(setImmediate);
+  await dialog.set_value("project_name", otherProject.id);
+  finishOld([task]);
+  await pending;
+  assert.equal(dialog.values.project_name, otherProject.id);
+  assert.deepEqual(optionIds(dialog, "task_name"), [""]);
+});
+
+test("Corrections restore Projects and Tasks through exact scoped lookup after the interval", async () => {
+  const form = loadBookingForm(async (method, args) => {
+    assert.equal(args.from_time, workStart);
+    assert.equal(args.duration_minutes, 30);
+    return method === "get_booking_projects" ? [project] : [task];
+  });
+  const dialog = form.open({
+    docstatus: 1, work_context: "Project", from_time: workStart, duration_minutes: 30,
+    project_name: project.id, task_name: task.id,
+  });
+  await new Promise(setImmediate);
+  assert.equal(dialog.values.project_name, project.id);
+  assert.equal(dialog.values.task_name, task.id);
+  assert.equal(form.requests[0].args.name, project.id);
+  assert.equal(form.requests[1].args.name, task.id);
+  assert.equal(form.requests[1].args.project_name, project.id);
+});
+
+test("Non-Project intervals never call the scoped lookup endpoints", async () => {
+  const form = loadBookingForm();
+  const dialog = form.open();
+  for (const workContext of ["Helpdesk", "Customer Support", "Internal"]) {
+    await dialog.set_value("work_context", workContext);
+    await dialog.set_value("from_time", workStart);
+    await dialog.set_value("duration_minutes", "30");
+  }
+  assert.equal(form.requests.length, 0);
+  assert.equal(field(dialog, "ticket_name").options, "HD Ticket");
+  assert.equal(field(dialog, "customer_name").options, "HD Customer");
+});
+
+test("Save sends scoped IDs only and rejects selections for a stale interval", async () => {
+  const form = loadBookingForm(async (method) => method === "get_booking_projects" ? [project] : [task]);
+  const dialog = form.open();
+  await setProjectInterval(dialog);
+  await dialog.set_value("project_search", "Pilot");
+  await dialog.set_value("project_name", project.id);
+  await dialog.set_value("task_name", task.id);
+  const values = {
+    ...dialog.values, description: "Pilot work", activity_type: "Repair & Maintenance",
+    work_origin: "Direct / Ad-hoc", service_area: "Routing", work_location: "Remote", emergency: "No",
+  };
+  await assert.rejects(dialog.config.primary_action({ ...values, duration_minutes: "90" }), /Select an eligible Project/);
+  assert.equal(form.submissions.length, 0);
+  await dialog.config.primary_action(values);
+  const { url, body } = form.submissions[0];
+  assert.equal(url, "/api/method/telephony.api.time_booking.book_technician_time");
+  assert.equal(body.project_name, project.id);
+  assert.equal(body.task_name, task.id);
+  assert.equal(Object.hasOwn(body, "project_search"), false);
+  assert.equal(Object.hasOwn(body, "task_search"), false);
 });
