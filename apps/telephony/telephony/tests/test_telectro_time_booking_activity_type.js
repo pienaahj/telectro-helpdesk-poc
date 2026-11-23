@@ -37,7 +37,13 @@ function loadBookingForm() {
     $: () => ({ on() {} }),
     frappe: {
       ui: { Dialog },
-      datetime: { system_datetime: () => "2026-11-20 12:00:00" },
+      datetime: {
+        system_datetime: () => "2026-11-20 12:00:00",
+        now_datetime(asDate) {
+          assert.equal(asDate, true);
+          return new Date(2026, 10, 20, 12);
+        },
+      },
       utils: { escape_html: (text) => text },
       msgprint: (message) => assert.fail(message.message),
     },
@@ -81,6 +87,17 @@ function loadBookingForm() {
 function field(dialog, name) {
   return dialog.config.fields.find((item) => item.fieldname === name);
 }
+
+test("Start Date and Time opens on a valid date and starts blank and required", () => {
+  const dialog = loadBookingForm().open();
+  const start = field(dialog, "from_time");
+  assert.equal(start.fieldtype, "Datetime");
+  assert.equal(start.reqd, 1);
+  assert.equal(start.default, undefined);
+  assert.equal(dialog.values.from_time, undefined);
+  assert.ok(start.options.startDate instanceof Date);
+  assert.ok(Number.isFinite(start.options.startDate.getTime()));
+});
 
 test("Activity Type selector exposes the ordered catalog and starts blank", () => {
   const dialog = loadBookingForm().open();

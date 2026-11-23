@@ -251,7 +251,10 @@
         options: selectOptions(["No", "Yes"]), reqd: 1,
       },
       { fieldtype: "Section Break" },
-      { fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Datetime", reqd: 1 },
+      {
+        fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Datetime", reqd: 1,
+        options: { startDate: frappe.datetime.now_datetime(true) },
+      },
       { fieldtype: "Column Break" },
       { fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Data", reqd: 1 },
       { fieldtype: "Section Break" },
