@@ -25,9 +25,15 @@ def resolve_current_technician_identity() -> TechnicianBookingIdentity:
     This does not authorize bookings, references or management access.
     """
     import frappe
+
+    return _resolve_technician_identity(getattr(frappe.session, "user", None))
+
+
+def _resolve_technician_identity(user) -> TechnicianBookingIdentity:
+    """Shared identity validation for the session principal and private grant writers."""
+    import frappe
     from telephony.customer_communication_privacy import classify_actor_roles
 
-    user = getattr(frappe.session, "user", None)
     if (
         not isinstance(user, str)
         or not user.strip()

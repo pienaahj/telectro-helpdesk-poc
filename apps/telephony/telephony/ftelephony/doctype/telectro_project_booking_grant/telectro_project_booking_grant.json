@@ -1,0 +1,121 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Project Booking Grant",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": [
+    "technician_user",
+    "employee",
+    "company",
+    "project",
+    "project_created_at",
+    "permitted_tasks",
+    "effective_start",
+    "effective_end",
+    "granted_by",
+    "grant_reason",
+    "ended_by",
+    "end_reason",
+    "active_key"
+  ],
+  "fields": [
+    {
+      "fieldname": "technician_user",
+      "fieldtype": "Data",
+      "label": "Technician User",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "employee",
+      "fieldtype": "Data",
+      "label": "Employee",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "company",
+      "fieldtype": "Data",
+      "label": "Company",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "project",
+      "fieldtype": "Data",
+      "label": "Project",
+      "read_only": 1,
+      "reqd": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "project_created_at",
+      "fieldtype": "Datetime",
+      "label": "Project Created At",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "permitted_tasks",
+      "fieldtype": "Long Text",
+      "label": "Permitted Task IDs",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "effective_start",
+      "fieldtype": "Datetime",
+      "label": "Effective Start",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "effective_end",
+      "fieldtype": "Datetime",
+      "label": "Effective End",
+      "read_only": 1
+    },
+    {
+      "fieldname": "granted_by",
+      "fieldtype": "Data",
+      "label": "Granted By",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "grant_reason",
+      "fieldtype": "Small Text",
+      "label": "Grant Reason",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "ended_by",
+      "fieldtype": "Data",
+      "label": "Ended By",
+      "read_only": 1
+    },
+    {
+      "fieldname": "end_reason",
+      "fieldtype": "Small Text",
+      "label": "End Reason",
+      "read_only": 1
+    },
+    {
+      "fieldname": "active_key",
+      "fieldtype": "Data",
+      "label": "Active Key",
+      "read_only": 1,
+      "unique": 1,
+      "length": 64,
+      "hidden": 1,
+      "no_copy": 1
+    }
+  ],
+  "permissions": []
+}
