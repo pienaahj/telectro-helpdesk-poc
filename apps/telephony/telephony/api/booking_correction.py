@@ -10,6 +10,7 @@ from telephony.api.time_booking import (
     _visible,
     _authorize_references,
     BookingInputError,
+    BookingReferenceDenied,
     _authorized_native_creation,
     _allowed_service_areas,
     _require_booking_activity_type,
@@ -23,6 +24,7 @@ from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationC
 from telephony.time_booking_identity import resolve_current_technician_identity
 from telephony.time_booking_ownership import authorize_parent, authorize_child, BookingOwnershipError
 from telephony.time_booking_policy import validate_work_context
+from telephony.time_booking_project_grant import ProjectBookingGrantError, _lock_project
 from telephony.time_booking_correction_audit import (
     record_correction_event,
     _snapshot,
@@ -252,6 +254,22 @@ def _owned(snapshot, identity):
         raise BookingOwnershipError()
     authorize_child(identity, snapshot, snapshot["time_logs"][0], operation="correct")
 
+def _lock_projects_for_cancellation(original_project, replacement_project=None):
+    # Native cancellation writes Task before Project. Take any original
+    # Project lock first, ordered with a different replacement Project lock.
+    # When both references match, the entitlement check takes the sole lock.
+    if not original_project or original_project == replacement_project:
+        return
+    projects = {original_project}
+    if replacement_project:
+        projects.add(replacement_project)
+    try:
+        for project in sorted(projects):
+            _lock_project(project)
+    except ProjectBookingGrantError as exc:
+        raise BookingReferenceDenied() from exc
+
+
 @contextmanager
 def _authorized_native_cancellation(doc):
     """Temporarily permit native operations on one authorized Timesheet."""
@@ -353,6 +371,11 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     if not _revision_matches(before.get("modified"), expected_modified):
         raise BookingOwnershipError()
     if values is not None:
+        if values.get("custom_work_context") == "Project":
+            # Both correction paths lock the Timesheet before the Project.
+            _authorize_references(
+                values, identity, start=values["from_time"], end=values["to_time"],
+            )
         doc.time_logs[0].update(values)
         with _authorized_native_draft_mutation(doc):
             doc.save()  # native validations and lifecycle checks
@@ -415,7 +438,9 @@ def correct_draft_booking(
 
         validate_work_context(values)
 
-        ticket = _authorize_references(values, identity.company)
+        ticket = None
+        if work_context != "Project":
+            ticket = _authorize_references(values, identity)
         _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
 
@@ -573,6 +598,7 @@ def cancel_submitted_booking(
             raise BookingOwnershipError()
 
         # Identity, ownership, state and revision are already authorized.
+        _lock_projects_for_cancellation(before["time_logs"][0].get("project"))
         # Record the audit without elevated document permissions.
         audit = record_correction_event(
             event_id=event_id,
@@ -813,10 +839,9 @@ def replace_submitted_booking(
 
         validate_work_context(reference_row)
 
-        ticket = _authorize_references(
-            reference_row,
-            identity.company,
-        )
+        ticket = None
+        if work_context != "Project":
+            ticket = _authorize_references(reference_row, identity)
 
         _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
@@ -879,6 +904,11 @@ def replace_submitted_booking(
         start = datetime.fromisoformat(values["from_time"])
         end = datetime.fromisoformat(values["to_time"])
         minutes = values["duration_minutes"]
+        _lock_projects_for_cancellation(
+            before["time_logs"][0].get("project"), row["project"],
+        )
+        if work_context == "Project":
+            _authorize_references(reference_row, identity, start=start, end=end)
 
         # Original ownership, Submitted state and revision have already
         # been verified against the locked persisted document.

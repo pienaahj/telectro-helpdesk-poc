@@ -19,6 +19,10 @@ from telephony.time_booking_ownership import (
     authorize_child,
 )
 from telephony.time_booking_policy import validate_work_context
+from telephony.time_booking_project_grant import (
+    ProjectBookingGrantError,
+    require_project_booking_grant,
+)
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
 from telephony.time_booking_transaction import (
@@ -106,7 +110,7 @@ def _allowed_service_areas():
     return options
 
 
-def _authorize_references(row, company):
+def _authorize_references(row, identity, *, start=None, end=None):
     context = row["custom_work_context"]
     if context == "Helpdesk":
         ticket = _visible("HD Ticket", row["custom_hd_ticket"])
@@ -116,16 +120,13 @@ def _authorize_references(row, company):
             _visible("HD Customer", row["custom_hd_customer"])
         return ticket
     elif context == "Project":
-        project = _visible("Project", row["project"])
-
-        if project.get("company") != company:
-            raise BookingReferenceDenied()
-
-        if row.get("task"):
-            task = _visible("Task", row["task"])
-
-            if task.get("project") != project.name:
-                raise BookingReferenceDenied()
+        try:
+            require_project_booking_grant(
+                identity=identity, project=row["project"], task=row.get("task") or None,
+                start=start, end=end,
+            )
+        except ProjectBookingGrantError as exc:
+            raise BookingReferenceDenied() from exc
         # Optional HD Customer requires independent read authorization.
         if row.get("custom_hd_customer"):
             _visible("HD Customer", row["custom_hd_customer"])
@@ -313,7 +314,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             "task": task_name,
         }
         validate_work_context(row)
-        ticket = _authorize_references(row, identity.company)
+        ticket = _authorize_references(row, identity, start=start, end=end)
         _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
 

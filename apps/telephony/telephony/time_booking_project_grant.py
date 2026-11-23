@@ -223,6 +223,43 @@ def _resolve_tasks(project, tasks):
     return frozenset((name, _stored_time(created)) for name, _, created in rows)
 
 
+def require_project_booking_grant(*, identity, project, task, start, end):
+    """Authorize in the booking write transaction using current, locked reads."""
+    import frappe
+
+    scope = _scope(identity, project)
+    project_row = _lock_project(project)
+    if not project_row or project_row.company != identity.company:
+        raise ProjectBookingGrantError()
+    project_created_at = _stored_time(project_row.creation)
+
+    task_created_at = None
+    if task is not None:
+        if not _identifier(task):
+            raise ProjectBookingGrantError()
+        (_, task_created_at), = _resolve_tasks(project, frozenset((task,)))
+
+    # The Project lock serializes us with grant transitions. Use a locking
+    # read here too: identity or metadata reads may have opened a snapshot.
+    records = frappe.db.get_values(
+        DOCTYPE, {**scope, "project_created_at": project_created_at},
+        [
+            *scope, "project_created_at", "permitted_tasks", "effective_start",
+            "effective_end", "granted_by", "grant_reason", "ended_by", "end_reason",
+            "active_key",
+        ],
+        as_dict=True, for_update=True,
+    )
+    if not covers_project_booking(
+        identity=identity, project=project, project_company=project_row.company,
+        project_created_at=project_created_at, task=task,
+        task_project=project if task is not None else None, task_created_at=task_created_at,
+        start=start, end=end, periods=[project_booking_grant_period(row) for row in records],
+        evaluated_at=frappe.utils.now_datetime(),
+    ):
+        raise ProjectBookingGrantError()
+
+
 @contextmanager
 def _grant_savepoint():
     import frappe

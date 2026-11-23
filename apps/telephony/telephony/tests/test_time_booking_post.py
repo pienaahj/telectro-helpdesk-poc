@@ -60,8 +60,6 @@ class TestBookingPost(unittest.TestCase):
         self.db = Database()
         self.refs = {
             ("HD Ticket", "T"): Reference("HD Ticket", "T", status="Closed", custom_service_area="Routing"),
-            ("Project", "P"): Reference("Project", "P", company="Company A"),
-            ("Task", "K"): Reference("Task", "K", project="P"),
             ("HD Customer", "C"): Reference("HD Customer", "C"),
             ("Activity Type", "Execution"): Reference("Activity Type", "Execution"),
             ("Activity Type", "Repair & Maintenance"): Reference("Activity Type", "Repair & Maintenance"),
@@ -109,6 +107,7 @@ class TestBookingPost(unittest.TestCase):
         self.identity = TechnicianBookingIdentity("tech", "EMP-1", "Company A")
         self.m.resolve_current_technician_identity = Mock(return_value=self.identity)
         self.m._require_activation_configuration = Mock()
+        self.m.require_project_booking_grant = Mock()
         self.intent_documents = []
         @contextmanager
         def intent(doc, identity):
@@ -223,12 +222,13 @@ class TestBookingPost(unittest.TestCase):
         self.assertEqual(self.call(work_context="Project", ticket_name=None, project_name="P"),
                          {"timesheet": "TS-001"})
 
-    def test_task_booking_checks_project_membership(self):
+    def test_task_booking_passes_server_identity_and_work_interval(self):
         self.assertEqual(self.call(work_context="Project", ticket_name=None,
                                    project_name="P", task_name="K"), {"timesheet": "TS-001"})
-        self.refs[("Task", "K")]["project"] = "other"
-        with self.assertRaises(self.m.BookingReferenceDenied):
-            self.call(work_context="Project", ticket_name=None, project_name="P", task_name="K")
+        self.m.require_project_booking_grant.assert_called_once_with(
+            identity=self.identity, project="P", task="K",
+            start=datetime(2026, 11, 16, 9), end=datetime(2026, 11, 16, 10, 30),
+        )
 
     def test_customer_support_and_internal_contexts(self):
         self.assertEqual(self.call(work_context="Customer Support", ticket_name=None,
@@ -245,18 +245,11 @@ class TestBookingPost(unittest.TestCase):
                 self.assertEqual(str(caught.exception), "Booking reference is unavailable.")
                 self.assertEqual(self.db.writes, [])
 
-    def test_wrong_company_or_hidden_project_or_task_denied(self):
-        self.refs[("Project", "P")]["company"] = "Other"
-        with self.assertRaises(self.m.BookingReferenceDenied):
+    def test_project_grant_denial_is_generic_and_precedes_write(self):
+        self.m.require_project_booking_grant.side_effect = self.m.ProjectBookingGrantError()
+        with self.assertRaisesRegex(self.m.BookingReferenceDenied, "Booking reference is unavailable"):
             self.call(work_context="Project", ticket_name=None, project_name="P")
-        self.refs[("Project", "P")]["company"] = "Company A"
-        self.refs[("Project", "P")].visible = False
-        with self.assertRaises(self.m.BookingReferenceDenied):
-            self.call(work_context="Project", ticket_name=None, project_name="P")
-        self.refs[("Project", "P")].visible = True
-        self.refs[("Task", "K")].visible = False
-        with self.assertRaises(self.m.BookingReferenceDenied):
-            self.call(work_context="Project", ticket_name=None, project_name="P", task_name="K")
+        self.assertEqual(self.db.writes, [])
 
     def test_bad_context_and_mixed_references_denied(self):
         for updates in ({"work_context": "Unknown"}, {"project_name": "P"},
