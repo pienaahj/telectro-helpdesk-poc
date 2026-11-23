@@ -1,0 +1,36 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Supervisor Reporting Grant",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": [
+    "supervisor_user",
+    "employee",
+    "technician_user",
+    "company",
+    "granted_by",
+    "granted_at",
+    "grant_reason",
+    "revoked_by",
+    "revoked_at",
+    "revocation_reason",
+    "active_key"
+  ],
+  "fields": [
+    {"fieldname": "supervisor_user", "fieldtype": "Data", "label": "Supervisor User", "reqd": 1, "read_only": 1, "search_index": 1},
+    {"fieldname": "employee", "fieldtype": "Data", "label": "Employee", "reqd": 1, "read_only": 1},
+    {"fieldname": "technician_user", "fieldtype": "Data", "label": "Technician User", "reqd": 1, "read_only": 1},
+    {"fieldname": "company", "fieldtype": "Data", "label": "Company", "reqd": 1, "read_only": 1},
+    {"fieldname": "granted_by", "fieldtype": "Data", "label": "Granted By", "reqd": 1, "read_only": 1},
+    {"fieldname": "granted_at", "fieldtype": "Datetime", "label": "Granted At", "reqd": 1, "read_only": 1},
+    {"fieldname": "grant_reason", "fieldtype": "Small Text", "label": "Grant Reason", "reqd": 1, "read_only": 1},
+    {"fieldname": "revoked_by", "fieldtype": "Data", "label": "Revoked By", "read_only": 1},
+    {"fieldname": "revoked_at", "fieldtype": "Datetime", "label": "Revoked At", "read_only": 1},
+    {"fieldname": "revocation_reason", "fieldtype": "Small Text", "label": "Revocation Reason", "read_only": 1},
+    {"fieldname": "active_key", "fieldtype": "Data", "label": "Active Key", "length": 64, "unique": 1, "hidden": 1, "no_copy": 1, "read_only": 1}
+  ],
+  "permissions": []
+}
