@@ -467,6 +467,17 @@ _append_hook(
 # Gate debug-only instrumentation (default OFF)
 TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 
+# Supervisor exports and screen results must reauthorize on every execution.
+_report_override = "telephony.supervisor_report_runtime.TelectroReport"
+if "Report" in override_doctype_class and override_doctype_class["Report"] != _report_override:
+    raise RuntimeError(f"Conflicting Telephony Report override: {override_doctype_class['Report']!r}")
+override_doctype_class["Report"] = _report_override
+_append_hook(
+    doc_events.setdefault("Prepared Report", {}),
+    "validate",
+    "telephony.supervisor_report_runtime.prevent_supervisor_prepared_report",
+)
+
 # --- Partner Permissions ---
 permission_query_conditions = {
     "HD Ticket": "telephony.permissions.hd_ticket_query_conditions",
