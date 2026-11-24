@@ -202,7 +202,8 @@ def _lock_project(project):
     import frappe
 
     row = frappe.db.get_value(
-        "Project", project, ["name", "company", "creation"], as_dict=True, for_update=True
+        "Project", project, ["name", "company", "creation", "customer"],
+        as_dict=True, for_update=True,
     )
     if row and row.name != project:
         raise ProjectBookingGrantError()
@@ -242,7 +243,7 @@ def _project_grant_periods(identity, project, project_created_at, *, for_update=
 
 
 def require_project_booking_grant(*, identity, project, task, start, end):
-    """Authorize in the booking write transaction using current, locked reads."""
+    """Authorize with current, locked reads and return the Project Customer."""
     import frappe
 
     _scope(identity, project)
@@ -268,6 +269,7 @@ def require_project_booking_grant(*, identity, project, task, start, end):
         evaluated_at=frappe.utils.now_datetime(),
     ):
         raise ProjectBookingGrantError()
+    return project_row.customer
 
 
 @contextmanager

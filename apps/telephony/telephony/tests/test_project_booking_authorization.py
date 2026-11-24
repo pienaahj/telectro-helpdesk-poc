@@ -8,11 +8,15 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
+from frappe import QueryDeadlockError, QueryTimeoutError
+
 from telephony import time_booking_project_grant as grants
 from telephony.api import booking_correction, time_booking
 from telephony.tests.test_time_booking_correction_audit import snapshot
+from telephony.tests.test_time_booking_post import Reference, customer_mapping_sql
 from telephony.time_booking_correction_audit import DOCTYPE as AUDIT_DOCTYPE, _snapshot
 from telephony.time_booking_identity import TechnicianBookingIdentity
+from telephony.time_booking_ownership import BookingOwnershipError
 
 
 START = datetime(2026, 11, 16, 9)
@@ -33,16 +37,27 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         self.audit = {}
         self.inserted = []
         self.original = None
-        self.project = SimpleNamespace(name=PROJECT, company=IDENTITY.company, creation=CREATION)
+        self.project = SimpleNamespace(
+            name=PROJECT, company=IDENTITY.company, creation=CREATION, customer="ERP-C",
+        )
+        self.customer = Reference("HD Customer", "C", custom_erp_customer="ERP-C")
+        self.current_customer = Reference("HD Customer", "C", **self.customer)
+        self.ticket = Reference(
+            "HD Ticket", "HD-2", customer="C", custom_customer="ERP-C",
+            custom_service_area="Routing",
+        )
+        self.current_ticket = Reference("HD Ticket", self.ticket.name, **self.ticket)
         self.task = SimpleNamespace(name=TASK, project=PROJECT, creation=CREATION)
         self.history = [self.grant()]
         self.db = SimpleNamespace(
             get_value=self.get_value, get_values=self.get_values, sql=self.sql, rollback=Mock(),
+            db_type="mariadb",
         )
         self.frappe = SimpleNamespace(
             db=self.db, session=SimpleNamespace(user=IDENTITY.user),
             utils=SimpleNamespace(now_datetime=lambda: END + timedelta(days=2)),
-            get_doc=self.get_doc,
+            get_doc=self.get_doc, PermissionError=PermissionError, DoesNotExistError=LookupError,
+            QueryDeadlockError=QueryDeadlockError, QueryTimeoutError=QueryTimeoutError,
         )
         test = self
 
@@ -109,15 +124,32 @@ class TestProjectBookingAuthorization(unittest.TestCase):
             "end_reason": None if end is None else "Stopped",
         }
 
-    def get_value(self, doctype, name, fields, *, as_dict, for_update):
-        self.assertEqual((doctype, fields), ("Project", ["name", "company", "creation"]))
+    def get_value(self, doctype, name, fields, *, as_dict=False, for_update=False, **kwargs):
+        if (doctype, name, fields) == ("HD Ticket", self.ticket.name, "*"):
+            self.assertTrue(as_dict and for_update)
+            self.assertEqual(kwargs, {"order_by": None, "wait": False})
+            self.events.append("Ticket lock")
+            return self.current_ticket
+        if doctype == "Customer":
+            self.assertEqual(fields, "name")
+            self.assertTrue(for_update and not as_dict)
+            self.assertEqual(kwargs, {"order_by": None, "wait": False})
+            self.events.append("ERPNext Customer lock")
+            return name
+        if doctype == "HD Customer":
+            self.assertEqual((name, fields), ("C", "*"))
+            self.assertTrue(as_dict and for_update)
+            self.assertEqual(kwargs, {"order_by": None, "wait": False})
+            self.events.append("HD Customer lock")
+            return self.current_customer
+        self.assertEqual((doctype, fields), ("Project", ["name", "company", "creation", "customer"]))
         self.assertTrue(as_dict and for_update)
         self.events.append("Project")
         self.project_locks.append(name)
         if name == PROJECT:
             return self.project
         if name in ("PROJ-0", "PROJ-2"):
-            return SimpleNamespace(name=name, company=IDENTITY.company, creation=CREATION)
+            return SimpleNamespace(name=name, company=IDENTITY.company, creation=CREATION, customer=None)
         return None
 
     def get_values(self, doctype, filters, fields, *, for_update, **kwargs):
@@ -143,7 +175,12 @@ class TestProjectBookingAuthorization(unittest.TestCase):
             if all(record.get(field) == value for field, value in filters.items())
         ]
 
-    def sql(self, query, key, *, as_dict):
+    def sql(self, query, key=None, *, as_dict=False):
+        if "FOR UPDATE NOWAIT" in query:
+            self.events.append("reverse range lock")
+            return customer_mapping_sql(query, key)
+        if "FOR UPDATE" not in query:
+            return customer_mapping_sql(query, key)
         self.assertTrue(as_dict)
         self.assertIn("FOR UPDATE", query)
         if "tabTimesheet" in query:
@@ -154,11 +191,19 @@ class TestProjectBookingAuthorization(unittest.TestCase):
 
     def get_doc(self, doctype, name=None, *, for_update=False):
         if isinstance(doctype, dict):
+            if doctype["doctype"] == "HD Ticket":
+                return self.current_ticket
+            if doctype["doctype"] == "HD Customer":
+                return self.current_customer
             self.assertEqual(doctype["doctype"], "Timesheet")
             return self.Timesheet(doctype)
         if doctype == "Timesheet":
             self.assertTrue(for_update)
             return self.original
+        if (doctype, name) == ("HD Customer", "C"):
+            return self.customer
+        if (doctype, name) == ("HD Ticket", self.ticket.name):
+            return self.ticket
         self.assertEqual((doctype, name), ("Activity Type", ACTIVITY))
         return SimpleNamespace(doctype=doctype, name=name, check_permission=Mock())
 
@@ -216,6 +261,252 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         self.assertEqual(self.call(task_name=TASK), {"timesheet": "TS-2"})
         self.assertEqual(self.events, ["Project", "Task", grants.DOCTYPE])
         self.assertEqual(self.inserted[1].time_logs[0]["task"], TASK)
+
+    def test_creation_accepts_consistent_project_customer_after_task_grant(self):
+        self.history = [self.grant(tasks=(TASK,))]
+
+        self.assertEqual(self.call(task_name=TASK, customer_name="C"), {"timesheet": "TS-2"})
+
+        self.assertEqual(self.events, [
+            "Project", "Task", grants.DOCTYPE, "ERPNext Customer lock", "HD Customer lock", "reverse range lock",
+        ])
+        self.assertEqual(self.project_locks, [PROJECT])
+        self.assertEqual(self.mutations, ["insert"])
+        self.assertEqual(self.inserted[0].time_logs[0]["custom_hd_customer"], "C")
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_not_called()
+
+    def test_creation_rejects_inconsistent_project_customer_without_mutation(self):
+        self.project.customer = "ERP-OTHER"
+
+        with self.assertRaisesRegex(
+            time_booking.BookingReferenceDenied, r"^Booking reference is unavailable\.$",
+        ):
+            self.call(customer_name="C")
+
+        self.assertEqual(self.events, [
+            "Project", grants.DOCTYPE, "ERPNext Customer lock", "HD Customer lock",
+        ])
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_called_once_with()
+
+    def test_creation_denied_task_grant_skips_customer_consistency(self):
+        with (
+            patch.object(time_booking, "_validate_customer_consistency") as consistency,
+            self.assertRaises(time_booking.BookingReferenceDenied),
+        ):
+            self.call(task_name=TASK, customer_name="C")
+
+        consistency.assert_not_called()
+        self.assertEqual(self.events, ["Project", "Task", grants.DOCTYPE])
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_called_once_with()
+
+    def test_draft_correction_accepts_consistent_project_customer_after_task_grant(self):
+        self.history = [self.grant(tasks=(TASK,))]
+
+        result = self.call("correct", task_name=TASK, customer_name="C")
+
+        self.assertEqual(result, {"timesheet": "TS-1", "audit": "AUDIT-1"})
+        self.assertEqual(self.events, [
+            "Timesheet", "Project", "Task", grants.DOCTYPE,
+            "ERPNext Customer lock", "HD Customer lock", "reverse range lock",
+        ])
+        self.assertEqual(self.project_locks, [PROJECT])
+        self.assertEqual(self.mutations, ["save", "audit"])
+        self.assertEqual(self.original.time_logs[0]["custom_hd_customer"], "C")
+        self.db.rollback.assert_not_called()
+
+    def test_draft_correction_denied_task_grant_skips_customer_consistency(self):
+        with (
+            patch.object(booking_correction, "_validate_customer_consistency") as consistency,
+            self.assertRaises(time_booking.BookingReferenceDenied),
+        ):
+            self.call("correct", task_name=TASK, customer_name="C")
+
+        consistency.assert_not_called()
+        self.assertEqual(self.events, ["Timesheet", "Project", "Task", grants.DOCTYPE])
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_called_once_with()
+
+    def replace_helpdesk(self, **updates):
+        args = dict(work_context="Helpdesk", project_name=None, ticket_name=self.ticket.name)
+        args.update(updates)
+        return self.call("replace", **args)
+
+    def test_replacement_uses_locked_ticket_customer_over_snapshot(self):
+        self.ticket.update(customer="OTHER", custom_customer="ERP-OTHER")
+        with patch.object(self.frappe, "get_doc", wraps=self.get_doc) as get_doc:
+            result = self.replace_helpdesk(customer_name="C")
+
+        self.assertEqual(result, {
+            "original_timesheet": "TS-1", "replacement_timesheet": "TS-2", "audit": "AUDIT-1",
+        })
+        ticket_reads = [
+            call.args for call in get_doc.call_args_list if call.args[0] == "HD Ticket"
+        ]
+        self.assertEqual(ticket_reads, [("HD Ticket", self.ticket.name)])
+        self.assertEqual(self.events, [
+            "Timesheet", "Ticket lock", "ERPNext Customer lock", "HD Customer lock", "reverse range lock",
+        ])
+        self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
+        self.assertEqual(self.original["docstatus"], 2)
+        self.assertEqual(self.inserted[0]["docstatus"], 0)
+        self.assertEqual(self.inserted[0].time_logs[0]["custom_hd_customer"], "C")
+        self.assertNotIn("amended_from", self.inserted[0])
+        self.assertEqual(self.audit["replacement_timesheet"], "TS-2")
+        self.db.rollback.assert_not_called()
+
+    def test_replacement_accepts_consistent_project_customer_after_task_grant(self):
+        self.history = [self.grant(tasks=(TASK,))]
+
+        self.call("replace", task_name=TASK, customer_name="C")
+
+        self.assertEqual(self.events, [
+            "Timesheet", "Project", "Task", grants.DOCTYPE,
+            "ERPNext Customer lock", "HD Customer lock", "reverse range lock",
+        ])
+        self.assertEqual(self.project_locks, [PROJECT])
+        self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
+        self.assertEqual(self.inserted[0].time_logs[0]["custom_hd_customer"], "C")
+        self.db.rollback.assert_not_called()
+
+    def test_replacement_rejects_unchanged_customer_when_new_ticket_conflicts(self):
+        before = {**snapshot(status=1), "modified": REVISION}
+        before["time_logs"][0]["custom_hd_customer"] = "C"
+        self.original = self.Timesheet(deepcopy(before))
+        self.current_ticket["custom_customer"] = "ERP-OTHER"
+
+        with (
+            patch.object(self.frappe, "get_doc", wraps=self.get_doc) as get_doc,
+            patch.object(self.original, "cancel") as cancel,
+            patch.object(booking_correction, "_phase2_creation_intent") as intent,
+            self.assertRaisesRegex(
+                time_booking.BookingReferenceDenied, r"^Booking reference is unavailable\.$",
+            ),
+        ):
+            self.replace_helpdesk(customer_name="C")
+
+        self.assertEqual(self.original.as_dict(), before)
+        self.assertIs(self.original.flags.ignore_permissions, False)
+        self.assertFalse(any(
+            isinstance(call.args[0], dict) and call.args[0]["doctype"] == "Timesheet"
+            for call in get_doc.call_args_list
+        ))
+        cancel.assert_not_called()
+        intent.assert_not_called()
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertEqual(self.audit, {})
+        booking_correction.record_correction_event.assert_not_called()
+        self.db.rollback.assert_called_once_with()
+
+    def test_replacement_with_omitted_customer_keeps_existing_behavior(self):
+        self.ticket["custom_customer"] = "ERP-OTHER"
+
+        self.replace_helpdesk()
+
+        self.assertEqual(self.events, ["Timesheet"])
+        self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
+        self.assertIsNone(self.inserted[0].time_logs[0]["custom_hd_customer"])
+        self.db.rollback.assert_not_called()
+
+    def test_replacement_ownership_revision_and_reference_denials_precede_consistency(self):
+        cases = (
+            ({"user": "foreign"}, None, BookingOwnershipError),
+            ({"modified": END.isoformat()}, None, BookingOwnershipError),
+            ({}, self.ticket, time_booking.BookingReferenceDenied),
+            ({}, self.customer, time_booking.BookingReferenceDenied),
+        )
+        for changes, hidden, error in cases:
+            with self.subTest(changes=changes, hidden=getattr(hidden, "doctype", None)):
+                before = {**snapshot(status=1), "modified": REVISION, **changes}
+                self.original = self.Timesheet(deepcopy(before))
+                visibility = (
+                    patch.object(hidden, "visible", False) if hidden is not None else nullcontext()
+                )
+                self.db.rollback.reset_mock()
+                with (
+                    visibility,
+                    patch.object(booking_correction, "_validate_customer_consistency") as check,
+                    self.assertRaises(error),
+                ):
+                    self.replace_helpdesk(customer_name="C")
+                check.assert_not_called()
+                self.assertEqual(self.original.as_dict(), before)
+                self.db.rollback.assert_called_once_with()
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.audit, {})
+
+    def test_replacement_denied_task_grant_skips_customer_consistency(self):
+        with (
+            patch.object(booking_correction, "_validate_customer_consistency") as check,
+            self.assertRaises(time_booking.BookingReferenceDenied),
+        ):
+            self.call("replace", task_name=TASK, customer_name="C")
+
+        check.assert_not_called()
+        self.assertEqual(self.events, ["Timesheet", "Project", "Task", grants.DOCTYPE])
+        self.assertEqual(self.original["docstatus"], 1)
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_called_once_with()
+
+    def test_replacement_range_contention_rolls_back_before_cancellation(self):
+        before = {**snapshot(status=1), "modified": REVISION}
+        self.original = self.Timesheet(deepcopy(before))
+
+        def sql(query, *args, **kwargs):
+            if "FORCE INDEX" in query:
+                raise QueryTimeoutError()
+            return self.sql(query, *args, **kwargs)
+
+        with (
+            patch.object(self.db, "sql", side_effect=sql),
+            self.assertRaisesRegex(
+                time_booking.BookingReferenceDenied, r"^Booking reference is unavailable\.$",
+            ),
+        ):
+            self.replace_helpdesk(customer_name="C")
+
+        self.assertEqual(self.original.as_dict(), before)
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertEqual(self.audit, {})
+        self.db.rollback.assert_called_once_with()
+
+    def test_committed_replacement_replay_succeeds_after_customer_mapping_changes(self):
+        result = self.replace_helpdesk(customer_name="C")
+
+        stored_original = deepcopy(self.original.as_dict())
+        stored_replacement = deepcopy(self.inserted[0].as_dict())
+        stored_audit = deepcopy(self.audit)
+        self.customer["custom_erp_customer"] = "ERP-OTHER"
+        self.current_customer["custom_erp_customer"] = "ERP-OTHER"
+        self.events.clear()
+        self.mutations.clear()
+
+        with (
+            patch.object(self.frappe, "get_doc", wraps=self.get_doc) as get_doc,
+            patch.object(booking_correction, "_validate_customer_consistency") as check,
+        ):
+            self.assertEqual(self.replace_helpdesk(customer_name="C"), result)
+
+        get_doc.assert_not_called()
+        check.assert_not_called()
+        self.assertEqual(self.events, ["Timesheet"])
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.original.as_dict(), stored_original)
+        self.assertEqual([doc.as_dict() for doc in self.inserted], [stored_replacement])
+        self.assertEqual(self.audit, stored_audit)
+        booking_correction.record_correction_event.assert_called_once()
+        self.db.rollback.assert_not_called()
 
     def test_historical_work_before_or_at_revocation_remains_eligible(self):
         for revoke_at in (END, END + timedelta(hours=1)):

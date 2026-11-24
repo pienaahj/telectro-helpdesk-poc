@@ -112,6 +112,7 @@ def _allowed_service_areas():
 
 
 def _authorize_references(row, identity, *, start=None, end=None):
+    """Return the authorized Ticket or the Project Customer from the grant lock."""
     context = row["custom_work_context"]
     if context == "Helpdesk":
         ticket = _visible("HD Ticket", row["custom_hd_ticket"])
@@ -122,7 +123,7 @@ def _authorize_references(row, identity, *, start=None, end=None):
         return ticket
     elif context == "Project":
         try:
-            require_project_booking_grant(
+            project_customer = require_project_booking_grant(
                 identity=identity, project=row["project"], task=row.get("task") or None,
                 start=start, end=end,
             )
@@ -131,11 +132,127 @@ def _authorize_references(row, identity, *, start=None, end=None):
         # Optional HD Customer requires independent read authorization.
         if row.get("custom_hd_customer"):
             _visible("HD Customer", row["custom_hd_customer"])
+        return project_customer
     elif context == "Customer Support":
         if row.get("custom_hd_customer"):
             _visible("HD Customer", row["custom_hd_customer"])
     elif context != "Internal":
         raise BookingReferenceDenied()
+
+
+def _require_customer_mapping_transaction(db):
+    if db.db_type != "mariadb":
+        raise BookingReferenceDenied()
+    settings = dict(db.sql("""
+        SHOW SESSION VARIABLES
+        WHERE Variable_name IN (
+            'autocommit', 'in_transaction', 'innodb_snapshot_isolation', 'tx_isolation'
+        )
+    """))
+    if settings != {
+        "autocommit": "OFF",
+        "in_transaction": "1",
+        "innodb_snapshot_isolation": "OFF",
+        "tx_isolation": "REPEATABLE-READ",
+    }:
+        raise BookingReferenceDenied()
+
+
+def _require_customer_mapping_index(db):
+    # The range must use the full, visible, non-unique InnoDB index.
+    index = db.sql("""
+        SELECT s.SEQ_IN_INDEX, s.COLUMN_NAME, s.NON_UNIQUE, s.INDEX_TYPE,
+               s.SUB_PART, s.IGNORED, hd.ENGINE, erp.ENGINE
+        FROM information_schema.STATISTICS s
+        JOIN information_schema.TABLES hd
+          ON hd.TABLE_SCHEMA = s.TABLE_SCHEMA AND hd.TABLE_NAME = s.TABLE_NAME
+        JOIN information_schema.TABLES erp
+          ON erp.TABLE_SCHEMA = s.TABLE_SCHEMA AND erp.TABLE_NAME = 'tabCustomer'
+        WHERE s.TABLE_SCHEMA = DATABASE()
+          AND s.TABLE_NAME = 'tabHD Customer'
+          AND s.INDEX_NAME = 'custom_erp_customer_index'
+    """)
+    if index != ((1, "custom_erp_customer", 1, "BTREE", None, "NO", "InnoDB", "InnoDB"),):
+        raise BookingReferenceDenied()
+
+
+def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
+    """Validate an optional HD Customer after booking reference authorization."""
+    customer_name = row.get("custom_hd_customer")
+    if customer_name in (None, ""):
+        return
+
+    hd_customer = _visible("HD Customer", customer_name)
+    db = frappe.db
+    _require_customer_mapping_transaction(db)
+    authoritative_customer = None
+    context = row["custom_work_context"]
+
+    if context == "Helpdesk":
+        if ticket is None:
+            raise BookingReferenceDenied()
+        try:
+            locked = db.get_value(
+                "HD Ticket", str(ticket.name), "*", as_dict=True,
+                order_by=None, for_update=True, wait=False,
+            )
+            if not locked or str(locked.name) != str(ticket.name):
+                raise BookingReferenceDenied()
+            # Customer and assignment changes can also change Ticket visibility.
+            current_ticket = frappe.get_doc({**locked, "doctype": "HD Ticket"})
+            current_ticket.check_permission("read")
+        except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
+            raise BookingReferenceDenied() from exc
+        ticket_customer = current_ticket.get("customer")
+        if ticket_customer not in (None, "", customer_name):
+            raise BookingReferenceDenied()
+        authoritative_customer = current_ticket.get("custom_customer")
+    elif context == "Project":
+        if not _identifier(project_customer):
+            raise BookingReferenceDenied()
+        authoritative_customer = project_customer
+    elif context != "Customer Support":
+        raise BookingReferenceDenied()
+
+    # A snapshot forward link is only a candidate when the Project or Ticket
+    # supplied no ERPNext Customer. Lock in ERPNext Customer -> HD Customer order
+    # and reject a changed candidate, including an initially unmapped row.
+    candidate = authoritative_customer
+    if candidate in (None, ""):
+        candidate = hd_customer.get("custom_erp_customer")
+    if candidate == "":
+        candidate = None
+
+    try:
+        if candidate is not None and (
+            not _identifier(candidate)
+            or db.get_value(
+                "Customer", candidate, "name", order_by=None, for_update=True, wait=False,
+            ) != candidate
+        ):
+            raise BookingReferenceDenied()
+
+        locked = db.get_value(
+            "HD Customer", customer_name, "*", as_dict=True,
+            order_by=None, for_update=True, wait=False,
+        )
+        if not locked or locked.name != customer_name:
+            raise BookingReferenceDenied()
+        current_customer = frappe.get_doc({**locked, "doctype": "HD Customer"})
+        current_customer.check_permission("read")
+        current_mapping = current_customer.get("custom_erp_customer")
+        if (None if current_mapping == "" else current_mapping) != candidate:
+            raise BookingReferenceDenied()
+        _require_customer_mapping_index(db)
+
+        if candidate is not None and db.sql("""
+            SELECT name FROM `tabHD Customer` FORCE INDEX (custom_erp_customer_index)
+            WHERE custom_erp_customer = %s
+            FOR UPDATE NOWAIT
+        """, (candidate,)) != ((customer_name,),):
+            raise BookingReferenceDenied()
+    except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
+        raise BookingReferenceDenied() from exc
 
 
 def _period(from_time, duration_minutes):
@@ -354,9 +471,14 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             "task": task_name,
         }
         validate_work_context(row)
-        ticket = _authorize_references(row, identity, start=start, end=end)
+        authorized_reference = _authorize_references(row, identity, start=start, end=end)
+        ticket = authorized_reference if work_context == "Helpdesk" else None
         _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
+        _validate_customer_consistency(
+            row, ticket=ticket,
+            project_customer=authorized_reference if work_context == "Project" else None,
+        )
 
         if work_context == "Helpdesk":
             ticket_area = ticket.get("custom_service_area")

@@ -14,6 +14,7 @@ from telephony.api.time_booking import (
     _authorized_native_creation,
     _allowed_service_areas,
     _require_booking_activity_type,
+    _validate_customer_consistency,
 )
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
@@ -305,7 +306,7 @@ def _authorized_native_draft_mutation(doc):
         yield
 
 
-def _execute(*, name, event_id, reason, action, values=None, expected_modified=None):
+def _execute(*, name, event_id, reason, action, values=None, expected_modified=None, ticket=None):
     identity = _guard()
     if (not _identifier(name) or not _identifier(event_id) or len(event_id) > 140
             or not _identifier(reason) or len(reason) > 2000):
@@ -366,16 +367,23 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     if type(doc) is not TelectroBookingTimesheet:
         raise BookingOwnershipError()
     # Managed ownership below is the authorization boundary.
-    before = json.loads(_snapshot(doc.as_dict()))
+    current = doc.as_dict()
+    before = json.loads(_snapshot(current))
     _owned(before, identity)
     if not _revision_matches(before.get("modified"), expected_modified):
         raise BookingOwnershipError()
     if values is not None:
-        if values.get("custom_work_context") == "Project":
+        effective_row = {**current["time_logs"][0], **values}
+        project_customer = None
+        if effective_row.get("custom_work_context") == "Project":
             # Both correction paths lock the Timesheet before the Project.
-            _authorize_references(
-                values, identity, start=values["from_time"], end=values["to_time"],
+            project_customer = _authorize_references(
+                effective_row, identity,
+                start=effective_row["from_time"], end=effective_row["to_time"],
             )
+        _validate_customer_consistency(
+            effective_row, ticket=ticket, project_customer=project_customer,
+        )
         doc.time_logs[0].update(values)
         with _authorized_native_draft_mutation(doc):
             doc.save()  # native validations and lifecycle checks
@@ -485,6 +493,7 @@ def correct_draft_booking(
             action="Draft Correction",
             values=values,
             expected_modified=expected_modified,
+            ticket=ticket,
         )
 
 
@@ -907,8 +916,12 @@ def replace_submitted_booking(
         _lock_projects_for_cancellation(
             before["time_logs"][0].get("project"), row["project"],
         )
+        project_customer = None
         if work_context == "Project":
-            _authorize_references(reference_row, identity, start=start, end=end)
+            project_customer = _authorize_references(reference_row, identity, start=start, end=end)
+        _validate_customer_consistency(
+            row, ticket=ticket, project_customer=project_customer,
+        )
 
         # Original ownership, Submitted state and revision have already
         # been verified against the locked persisted document.

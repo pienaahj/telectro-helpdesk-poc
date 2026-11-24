@@ -7,7 +7,9 @@ from pathlib import Path
 import sys
 import types
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
+
+from frappe import QueryDeadlockError, QueryTimeoutError
 
 from telephony.tests.test_time_booking_correction_audit import snapshot
 from telephony.time_booking_activity_types import BOOKING_ACTIVITY_TYPES
@@ -24,6 +26,23 @@ class Reference(dict):
     def check_permission(self, permission):
         if not self.visible:
             raise PermissionError()
+
+
+def customer_mapping_sql(query, params=None, *, matches=(("C",),)):
+    statement = " ".join(query.split())
+    if statement.startswith("SHOW SESSION VARIABLES"):
+        return (
+            ("autocommit", "OFF"), ("in_transaction", "1"),
+            ("innodb_snapshot_isolation", "OFF"), ("tx_isolation", "REPEATABLE-READ"),
+        )
+    if "information_schema.STATISTICS" in statement:
+        return ((1, "custom_erp_customer", 1, "BTREE", None, "NO", "InnoDB", "InnoDB"),)
+    if statement == (
+        "SELECT name FROM `tabHD Customer` FORCE INDEX (custom_erp_customer_index) "
+        "WHERE custom_erp_customer = %s FOR UPDATE NOWAIT"
+    ) and params:
+        return matches
+    raise AssertionError(f"Unexpected SQL: {statement}")
 
 
 class FakeTimesheet(dict):
@@ -58,9 +77,12 @@ class Database:
 class TestBookingPost(unittest.TestCase):
     def setUp(self):
         self.db = Database()
+        self.db.db_type = "mariadb"
+        self.db.sql = Mock(side_effect=customer_mapping_sql)
+        self.db.get_value = self.get_locked_customer
         self.refs = {
             ("HD Ticket", "T"): Reference("HD Ticket", "T", status="Closed", custom_service_area="Routing"),
-            ("HD Customer", "C"): Reference("HD Customer", "C"),
+            ("HD Customer", "C"): Reference("HD Customer", "C", custom_erp_customer=None),
             ("Activity Type", "Execution"): Reference("Activity Type", "Execution"),
             ("Activity Type", "Repair & Maintenance"): Reference("Activity Type", "Repair & Maintenance"),
         }
@@ -68,6 +90,9 @@ class TestBookingPost(unittest.TestCase):
         self.f.whitelist = lambda **kwargs: lambda fn: fn
         self.f.DoesNotExistError = LookupError
         self.f.PermissionError = PermissionError
+        self.f.QueryDeadlockError = QueryDeadlockError
+        self.f.QueryTimeoutError = QueryTimeoutError
+        self.f.db = self.db
         self.f.conf = {"telectro_time_booking_enabled": 1}
         self.f.session = types.SimpleNamespace(user="tech")
         self.f.utils = types.SimpleNamespace(now_datetime=lambda: datetime(2026, 11, 17, 12))
@@ -117,11 +142,22 @@ class TestBookingPost(unittest.TestCase):
 
     def get_doc(self, *args):
         if isinstance(args[0], dict):
+            if args[0]["doctype"] == "HD Ticket":
+                return self.current_ticket
+            if args[0]["doctype"] == "HD Customer":
+                return self.refs[("HD Customer", "C")]
             return FakeTimesheet(args[0], self.db)
         try:
             return self.refs[args]
         except KeyError as exc:
             raise LookupError() from exc
+
+    def get_locked_customer(self, doctype, name, fields, **kwargs):
+        self.assertEqual((doctype, name, fields), ("HD Customer", "C", "*"))
+        self.assertEqual(kwargs, {
+            "as_dict": True, "order_by": None, "for_update": True, "wait": False,
+        })
+        return self.refs[(doctype, name)]
 
     def call(self, **updates):
         args = dict(
@@ -203,6 +239,9 @@ class TestBookingPost(unittest.TestCase):
         self.assertEqual(response["bookings"][0]["activity_type"], "Execution")
 
     def test_terminal_ticket_retrospective_booking(self):
+        self.refs[("HD Ticket", "T")].update(
+            customer="C", custom_customer="ERP-C",
+        )
         self.assertEqual(self.call(), {"timesheet": "TS-001"})
         doc = self.db.writes[0]
         self.assertEqual(len(self.db.writes), 1)
@@ -211,8 +250,66 @@ class TestBookingPost(unittest.TestCase):
         self.assertEqual(doc["company"], "Company A")
         self.assertEqual(doc["user"], "tech")
         self.assertEqual(doc.time_logs[0]["hours"], 1.5)
+        self.assertIsNone(doc.time_logs[0]["custom_hd_customer"])
         self.assertEqual(self.intent_documents[0][1], self.identity)
         self.m._require_activation_configuration.assert_called_once()
+
+    def test_creation_uses_locked_ticket_customer_over_snapshot(self):
+        ticket = self.refs[("HD Ticket", "T")]
+        ticket.update(customer="OTHER", custom_customer="ERP-OTHER")
+        self.current_ticket = Reference("HD Ticket", "T", customer="C", custom_customer="ERP-C")
+        self.refs[("HD Customer", "C")]["custom_erp_customer"] = "ERP-C"
+        self.db.get_value = Mock(side_effect=[
+            self.current_ticket, "ERP-C", self.refs[("HD Customer", "C")],
+        ])
+
+        with patch.object(self.f, "get_doc", wraps=self.f.get_doc) as get_doc:
+            self.assertEqual(self.call(customer_name="C"), {"timesheet": "TS-001"})
+
+        ticket_reads = [
+            call.args for call in get_doc.call_args_list if call.args[0] == "HD Ticket"
+        ]
+        self.assertEqual(ticket_reads, [("HD Ticket", "T")])
+        self.assertEqual(self.db.get_value.call_args_list, [
+            call("HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+            call("Customer", "ERP-C", "name", order_by=None, for_update=True, wait=False),
+            call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+        ])
+        self.assertEqual(self.db.sql.call_args.args[1], ("ERP-C",))
+        self.assertEqual(len(self.db.writes), 1)
+        self.assertEqual(self.db.writes[0].time_logs[0]["custom_hd_customer"], "C")
+        self.assertEqual(self.db.rollback_count, 0)
+
+    def test_creation_rejects_inconsistent_locked_ticket_before_construction(self):
+        self.refs[("HD Ticket", "T")].update(customer="C", custom_customer="ERP-C")
+        self.current_ticket = Reference("HD Ticket", "T", customer="C", custom_customer="ERP-OTHER")
+        self.refs[("HD Customer", "C")]["custom_erp_customer"] = "ERP-C"
+        self.db.get_value = Mock(side_effect=[
+            self.current_ticket, "ERP-OTHER", self.refs[("HD Customer", "C")],
+        ])
+
+        with (
+            patch.object(self.f, "get_doc", wraps=self.f.get_doc) as get_doc,
+            patch.object(FakeTimesheet, "insert") as insert,
+            self.assertRaisesRegex(
+                self.m.BookingReferenceDenied, r"^Booking reference is unavailable\.$",
+            ),
+        ):
+            self.call(customer_name="C")
+
+        self.assertFalse(any(
+            isinstance(entry.args[0], dict) and entry.args[0]["doctype"] == "Timesheet"
+            for entry in get_doc.call_args_list
+        ))
+        insert.assert_not_called()
+        self.assertEqual(self.db.get_value.call_args_list, [
+            call("HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+            call("Customer", "ERP-OTHER", "name", order_by=None, for_update=True, wait=False),
+            call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+        ])
+        self.assertEqual(self.db.writes, [])
+        self.assertEqual(self.intent_documents, [])
+        self.assertEqual(self.db.rollback_count, 1)
 
     def test_http_string_duration_is_accepted(self):
         self.assertEqual(self.call(duration_minutes="90"), {"timesheet": "TS-001"})
@@ -430,11 +527,13 @@ class TestBookingPost(unittest.TestCase):
     def test_helpdesk_hidden_optional_customer_denied_without_write(self):
         self.refs[("HD Customer", "C")].visible = False
 
-        with self.assertRaises(
-            self.m.BookingReferenceDenied
-        ) as caught:
+        with (
+            patch.object(self.m, "_validate_customer_consistency") as consistency,
+            self.assertRaises(self.m.BookingReferenceDenied) as caught,
+        ):
             self.call(customer_name="C")
 
+        consistency.assert_not_called()
         self.assertEqual(
             str(caught.exception),
             "Booking reference is unavailable.",

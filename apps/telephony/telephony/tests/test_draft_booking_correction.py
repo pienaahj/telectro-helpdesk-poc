@@ -1,11 +1,14 @@
 import copy
 import types
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
+
+from frappe import QueryDeadlockError, QueryTimeoutError
 
 from telephony.tests.test_time_booking_correction_audit import snapshot
 from telephony.api import booking_correction as api
 from telephony.tests.test_time_booking_correction_audit import snapshot
+from telephony.tests.test_time_booking_post import Reference, customer_mapping_sql
 REAL_GUARD = api._guard
 
 from telephony.time_booking_identity import TechnicianBookingIdentity
@@ -368,6 +371,179 @@ class TestDraftCorrection(unittest.TestCase):
         self.doc.save.assert_not_called()
         self.assertEqual(self.state, original)
         self.assertFalse(hasattr(self, "recorded"))
+
+    def ticket_customer_references(self):
+        ticket = Reference(
+            "HD Ticket", "T", customer="C", custom_customer="ERP-C",
+            custom_service_area="Routing",
+        )
+        self.current_ticket = Reference("HD Ticket", "T", **ticket)
+        customer = Reference("HD Customer", "C", custom_erp_customer="ERP-C")
+        self.current_customer = Reference("HD Customer", "C", **customer)
+        activity = Reference("Activity Type", "Repair & Maintenance")
+        references = {(doc.doctype, doc.name): doc for doc in (ticket, customer, activity)}
+
+        def get_doc(doctype, name=None, *, for_update=False):
+            if isinstance(doctype, dict):
+                if doctype["doctype"] == "HD Customer":
+                    return self.current_customer
+                self.assertEqual(doctype["doctype"], "HD Ticket")
+                return self.current_ticket
+            if (doctype, name) == ("Timesheet", "TS-1"):
+                self.assertTrue(for_update)
+                return self.doc
+            self.assertFalse(for_update)
+            return references[(doctype, name)]
+
+        def get_value(doctype, name, fields, **kwargs):
+            if doctype == "HD Ticket":
+                self.assertEqual((name, fields), ("T", "*"))
+                self.assertEqual(kwargs, {
+                    "as_dict": True, "order_by": None, "for_update": True, "wait": False,
+                })
+                return self.current_ticket
+            if doctype == "HD Customer":
+                self.assertEqual((name, fields), ("C", "*"))
+                self.assertEqual(kwargs, {
+                    "as_dict": True, "order_by": None, "for_update": True, "wait": False,
+                })
+                return self.current_customer
+            self.assertEqual((doctype, fields), ("Customer", "name"))
+            self.assertEqual(kwargs, {"order_by": None, "for_update": True, "wait": False})
+            return name
+
+        def sql(query, value=None, **kwargs):
+            if "FOR UPDATE NOWAIT" in query or "FOR UPDATE" not in query:
+                return customer_mapping_sql(query, value)
+            return self.sql(query, value, **kwargs)
+
+        self.f.get_doc.side_effect = get_doc
+        self.f.PermissionError = PermissionError
+        self.f.DoesNotExistError = LookupError
+        self.f.QueryDeadlockError = QueryDeadlockError
+        self.f.QueryTimeoutError = QueryTimeoutError
+        self.f.db.db_type = "mariadb"
+        self.f.db.sql = Mock(side_effect=sql)
+        self.f.db.get_value = Mock(side_effect=get_value)
+        areas = patch.object(api, "_allowed_service_areas", return_value=("Routing",))
+        areas.start()
+        self.addCleanup(areas.stop)
+        return ticket, customer
+
+    def test_correction_uses_locked_ticket_customer_over_snapshot(self):
+        ticket, _customer = self.ticket_customer_references()
+        ticket.update(customer="OTHER", custom_customer="ERP-OTHER")
+        result = self.endpoint(customer_name="C")
+
+        self.assertEqual(result, {"timesheet": "TS-1", "audit": "AUDIT-1"})
+        self.doc.save.assert_called_once_with()
+        self.assertIsNone(self.recorded["before"]["time_logs"][0]["custom_hd_customer"])
+        self.assertEqual(self.recorded["after"]["time_logs"][0]["custom_hd_customer"], "C")
+        ticket_reads = [
+            call.args for call in self.f.get_doc.call_args_list if call.args[0] == "HD Ticket"
+        ]
+        self.assertEqual(ticket_reads, [("HD Ticket", "T")])
+        self.assertEqual(self.f.db.get_value.call_args_list, [
+            call("HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+            call("Customer", "ERP-C", "name", order_by=None, for_update=True, wait=False),
+            call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+        ])
+        self.assertEqual(self.f.db.sql.call_args.args[1], ("ERP-C",))
+        self.rollback.assert_not_called()
+
+    def test_correction_rejects_unchanged_customer_when_new_ticket_conflicts(self):
+        self.ticket_customer_references()
+        original_row = self.doc.time_logs[0]
+        original_row["custom_hd_customer"] = "C"
+        self.current_ticket["custom_customer"] = "ERP-OTHER"
+        original = copy.deepcopy(self.state)
+
+        with self.assertRaisesRegex(
+            api.BookingReferenceDenied, r"^Booking reference is unavailable\.$",
+        ):
+            self.endpoint(ticket_name="T", customer_name="C")
+
+        self.assertEqual(original_row, original["time_logs"][0])
+        self.assertEqual(self.state, original)
+        self.doc.save.assert_not_called()
+        self.doc.delete.assert_not_called()
+        self.assertIsNone(self.audit_row)
+        api.record_correction_event.assert_not_called()
+        self.rollback.assert_called_once_with()
+
+    def test_correction_with_omitted_customer_keeps_existing_behavior(self):
+        ticket, _customer = self.ticket_customer_references()
+        self.doc.time_logs[0]["custom_hd_customer"] = "C"
+        ticket["custom_customer"] = "ERP-OTHER"
+
+        self.assertEqual(self.endpoint(), {"timesheet": "TS-1", "audit": "AUDIT-1"})
+
+        self.doc.save.assert_called_once_with()
+        self.assertIsNone(self.recorded["after"]["time_logs"][0]["custom_hd_customer"])
+        self.f.db.get_value.assert_not_called()
+        self.rollback.assert_not_called()
+
+    def test_correction_ownership_revision_and_reference_denials_precede_consistency(self):
+        ticket, customer = self.ticket_customer_references()
+        cases = (
+            ("user", "foreign", BookingOwnershipError),
+            ("modified", "2026-11-17T12:01:00", BookingOwnershipError),
+            ("ticket", False, api.BookingReferenceDenied),
+            ("customer", False, api.BookingReferenceDenied),
+        )
+        targets = {"ticket": ticket, "customer": customer}
+        for field, value, error in cases:
+            with self.subTest(field=field):
+                change = (
+                    patch.object(targets[field], "visible", value)
+                    if field in targets else patch.dict(self.state, {field: value})
+                )
+                with (
+                    change,
+                    patch.object(api, "_validate_customer_consistency") as consistency,
+                    self.assertRaises(error),
+                ):
+                    self.endpoint(customer_name="C")
+                consistency.assert_not_called()
+                self.rollback.assert_called_once_with()
+        self.doc.save.assert_not_called()
+        api.record_correction_event.assert_not_called()
+
+    def test_committed_correction_replay_succeeds_after_customer_mapping_changes(self):
+        from telephony.time_booking_correction_audit import _snapshot
+
+        _ticket, customer = self.ticket_customer_references()
+        result = self.endpoint(customer_name="C")
+
+        self.assertEqual(self.f.db.sql.call_args.args[1], ("ERP-C",))
+        self.audit_row = dict(
+            name=result["audit"], actor=self.identity.user, action=self.recorded["action"],
+            reason=self.recorded["reason"], original_timesheet="TS-1",
+            before_snapshot=_snapshot(self.recorded["before"]),
+            after_snapshot=_snapshot(self.recorded["after"]),
+        )
+        stored_audit = copy.deepcopy(self.audit_row)
+        stored_state = copy.deepcopy(self.state)
+        stored_evidence = copy.deepcopy(self.recorded)
+        customer["custom_erp_customer"] = "ERP-OTHER"
+        self.current_customer["custom_erp_customer"] = "ERP-OTHER"
+        self.f.get_doc.reset_mock()
+        self.f.db.get_value.reset_mock()
+
+        with patch.object(api, "_validate_customer_consistency") as consistency:
+            self.assertEqual(self.endpoint(customer_name="C"), result)
+
+        consistency.assert_not_called()
+        self.f.db.get_value.assert_not_called()
+        self.assertNotIn(
+            ("Timesheet", "TS-1"), [call.args for call in self.f.get_doc.call_args_list],
+        )
+        self.doc.save.assert_called_once_with()
+        api.record_correction_event.assert_called_once()
+        self.assertEqual(self.state, stored_state)
+        self.assertEqual(self.audit_row, stored_audit)
+        self.assertEqual(self.recorded, stored_evidence)
+        self.rollback.assert_not_called()
 
     def test_denied_replacement_references_leave_original_unchanged(self):
         for helper in ("_authorize_references", "_visible"):
