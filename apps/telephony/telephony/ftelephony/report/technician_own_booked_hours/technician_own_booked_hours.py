@@ -118,7 +118,7 @@ def execute(filters=None):
 def _can_read_reference(doctype, name):
     try:
         doc = frappe.get_doc(doctype, name)
-        return str(doc.name) == name and bool(doc.has_permission("read"))
+        return str(doc.name) == name and frappe.has_permission(doctype, "read", doc=doc, throw=False)
     except (frappe.DoesNotExistError, frappe.PermissionError):
         return False
 

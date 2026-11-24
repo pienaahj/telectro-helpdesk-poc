@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import frappe
+from frappe import permissions, share
 
 from telephony.ftelephony.report.technician_own_booked_hours import technician_own_booked_hours as report
 from telephony.time_booking_identity import TechnicianBookingIdentity, TechnicianIdentityError
@@ -46,6 +47,7 @@ class TestTechnicianOwnBookedHours(unittest.TestCase):
                 SimpleNamespace(
                     db=SimpleNamespace(sql=self.sql),
                     get_doc=self.get_doc,
+                    has_permission=self._has_permission,
                     throw=self._throw,
                     DoesNotExistError=frappe.DoesNotExistError,
                     PermissionError=frappe.PermissionError,
@@ -73,9 +75,11 @@ class TestTechnicianOwnBookedHours(unittest.TestCase):
     def _get_doc(self, doctype, name):
         if name == "missing":
             raise frappe.DoesNotExistError
-        return SimpleNamespace(name=name, has_permission=lambda operation: (
-            operation == "read" and (doctype, name) in self.readable
-        ))
+        return SimpleNamespace(doctype=doctype, name=name)
+
+    def _has_permission(self, doctype, operation, *, doc, throw):
+        self.assertEqual((doctype, operation, throw), (doc.doctype, "read", False))
+        return (doctype, doc.name) in self.readable
 
     def _booking(
         self, name, *, status=0, user="tech", employee="EMP-1", company="Company",
@@ -171,6 +175,29 @@ class TestTechnicianOwnBookedHours(unittest.TestCase):
         self.assertEqual(row["unlisted_customer"], "External")
         self.assertIsNone(row["ticket"])
         self.assertIsNone(row["project"])
+
+    def test_reference_permission_decisions_do_not_emit_messages(self):
+        doc = SimpleNamespace(doctype="Project", name="Project A")
+        doc.has_permission = lambda operation: permissions.has_permission(doc.doctype, operation, doc)
+        for allowed in (True, False):
+            with (
+                self.subTest(allowed=allowed),
+                patch.object(report, "frappe", frappe),
+                patch.dict(frappe.__dict__, {"flags": frappe._dict(), "session": frappe._dict(user="tech")}),
+                patch.object(frappe, "get_doc", return_value=doc),
+                patch.object(frappe, "get_meta"),
+                patch.object(frappe, "is_table", return_value=False),
+                patch.object(permissions, "_", lambda label: label),
+                patch.object(permissions, "get_doc_permissions", return_value={"read": allowed}),
+                patch.object(permissions, "get_role_permissions", return_value={"read": allowed}),
+                patch.object(share, "get_shared", return_value=[]),
+                patch.object(permissions, "msgprint") as permission_message,
+            ):
+                self.assertIs(report._can_read_reference(doc.doctype, doc.name), allowed)
+                permission_message.assert_not_called()
+                if not allowed:
+                    self.assertFalse(doc.has_permission("read"))
+                    permission_message.assert_called_once()
 
     def test_denied_reference_is_hidden_from_details_filters_and_totals(self):
         self._booking("private", context="Project", project="Private-P", task="Private-T",
