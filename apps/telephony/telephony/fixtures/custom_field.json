@@ -3526,5 +3526,26 @@
   "translatable": 0,
   "unique": 0,
   "width": null
+ },
+ {
+  "allow_in_quick_entry": 0,
+  "default": "0",
+  "description": "Server-managed evidence of creation through the authorized staff manual Ticket operation.",
+  "docstatus": 0,
+  "doctype": "Custom Field",
+  "dt": "HD Ticket",
+  "fieldname": "custom_telectro_manual_origin",
+  "fieldtype": "Check",
+  "hidden": 1,
+  "insert_after": "custom_request_source",
+  "label": "Verified Staff Manual Origin",
+  "modified": null,
+  "name": "HD Ticket-custom_telectro_manual_origin",
+  "no_copy": 1,
+  "permlevel": 0,
+  "print_hide": 1,
+  "read_only": 1,
+  "report_hide": 1,
+  "reqd": 0
  }
 ]

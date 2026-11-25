@@ -155,6 +155,7 @@ fixtures = [
                 "HD Ticket-custom_request_type",
                 "HD Ticket-custom_due_date",
                 "HD Ticket-custom_request_source",
+                "HD Ticket-custom_telectro_manual_origin",
                 "HD Ticket-custom_request_partner",
                 "HD Ticket-custom_section_break_kxmjz",
                 "HD Ticket-custom_column_break_pxt06",
@@ -490,6 +491,10 @@ _append_hook(
 )
 
 # --- HD Ticket hooks ---
+_append_hook(doc_events["HD Ticket"], "before_validate",
+             "telephony.hd_ticket_manual_origin.enforce_marker")
+_append_hook(doc_events["HD Ticket"], "before_change",
+             "telephony.hd_ticket_manual_origin.protect_direct_change")
 _append_hook(doc_events["HD Ticket"], "before_insert", [
     "telephony.telectro_intake.populate_from_email",
     "telephony.data_request_intake.prepare_data_request_insert",
@@ -541,12 +546,16 @@ customer_login_landing_js = (
 if customer_login_landing_js not in web_include_js:
     web_include_js.append(customer_login_landing_js)
 
+boot_session = [*globals().get("boot_session", []),
+                "telephony.hd_ticket_manual_origin.add_desk_capability"]
+
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
     "/assets/telephony/js/telectro_time_booking.js?v=2026-11-23-1",
+    "/assets/telephony/js/hd_ticket_manual_origin.js",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
     "/assets/telephony/js/partner_route_guard.js?v=2026-08-24-1",
