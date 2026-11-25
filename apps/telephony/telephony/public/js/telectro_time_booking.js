@@ -320,6 +320,7 @@
       {
         fieldname: "ticket_name", label: __("Helpdesk Ticket"), fieldtype: "Link",
         options: "HD Ticket", depends_on: inHelpdesk, mandatory_depends_on: inHelpdesk,
+        get_query: () => ({ query: api + "search_booking_tickets" }),
         onchange: () => dialog && updateTicketArea(),
       },
       {

@@ -88,6 +88,27 @@ class TestAuditWriter(unittest.TestCase):
         self.assertEqual(row["recorded_at"], datetime(2026, 11, 17, 13))
         self.assertEqual(DOCTYPE, "TELECTRO Booking Correction Audit")
 
+    def test_audit_canonicalizes_only_native_positive_integer_ticket_names(self):
+        before, after = snapshot(), snapshot()
+        before["time_logs"][0]["custom_hd_ticket"] = "969"
+        detail = after["time_logs"][0]
+        detail["custom_hd_ticket"] = 969
+        self.assertEqual(self.call(before=before, after=after), "AUDIT-1")
+        self.assertEqual(detail["custom_hd_ticket"], 969)
+        stored = json.loads(self.rows[0]["after_snapshot"])["time_logs"][0]
+        self.assertEqual(stored["custom_hd_ticket"], "969")
+        for invalid in (0, -1, True, 969.0):
+            detail["custom_hd_ticket"] = invalid
+            with self.subTest(invalid=invalid), self.assertRaises(BookingCorrectionAuditError):
+                self.call(event_id="invalid", before=before, after=after)
+        detail["custom_hd_ticket"] = 969
+        for reference in ("custom_hd_customer", "project", "task"):
+            detail[reference] = 969
+            with self.subTest(reference=reference), self.assertRaises(BookingCorrectionAuditError):
+                self.call(event_id="invalid", before=before, after=after)
+            detail[reference] = None
+        self.assertEqual(len(self.rows), 1)
+
     def test_same_event_is_idempotent(self):
         self.call()
         self.assertEqual(self.call(), "AUDIT-1")

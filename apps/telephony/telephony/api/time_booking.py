@@ -369,6 +369,19 @@ def get_booking_ticket_area(ticket_name):
     return {"service_area": ticket.get("custom_service_area")}
 
 
+@frappe.whitelist()
+def search_booking_tickets(doctype, txt, searchfield, start, page_len, filters):
+    '''Adapt native HD Ticket Link results for the booking dialog.'''
+    if doctype != "HD Ticket":
+        raise BookingReferenceDenied()
+    from frappe.desk.search import search_widget
+
+    _booking_identity()
+    results = search_widget(doctype, txt, start=start, page_length=page_len)
+    return [(str(name) if type(name) is int and name > 0 else name, *columns)
+            for name, *columns in results]
+
+
 def _booking_lookup(lookup, from_time, duration_minutes, query, page, name, **scope):
     try:
         identity = _booking_identity()

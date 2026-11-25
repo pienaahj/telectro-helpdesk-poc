@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from datetime import timedelta
+import json
 from types import MethodType, SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -338,6 +339,34 @@ class TestManagedAttributionIntegration(unittest.TestCase):
         self.assertEqual(row[FIELD], 1000001)
         self.assertEqual(row["hours"], 1.0)
 
+    def test_draft_audit_and_replay_after_native_numeric_ticket_link_validation(self):
+        self.booking.ticket.name = self.booking.current_ticket.name = "969"
+        old = self.original(False, 0)
+        detail = old.time_logs[0]
+        native_detail = SimpleNamespace(custom_hd_ticket=detail["custom_hd_ticket"])
+        native_detail.get = lambda field, default=None: getattr(native_detail, field, default)
+        link = frappe._dict(fieldname="custom_hd_ticket", fieldtype="Link", options="HD Ticket")
+        native_detail.meta = SimpleNamespace(get_link_fields=lambda: [link], get=lambda *_: [],
+                                             get_fields_to_fetch=lambda _: [])
+        ticket_meta = frappe._dict(istable=False, is_submittable=False)
+        native_db = SimpleNamespace(get_value=Mock(return_value=969))
+        save = old.save
+
+        def save_with_native_link_validation():
+            native_detail.custom_hd_ticket = detail["custom_hd_ticket"]
+            with (patch.object(frappe, "get_meta", return_value=ticket_meta),
+                  patch.object(frappe, "db", native_db),
+                  patch("frappe.model.base_document.notify_link_count")):
+                self.assertEqual(BaseDocument.get_invalid_links(native_detail, is_submittable=True), ([], []))
+            detail["custom_hd_ticket"] = native_detail.custom_hd_ticket
+            save()
+
+        with patch.object(old, "save", side_effect=save_with_native_link_validation):
+            result = self.booking.call_helpdesk("correct", description="description only")
+            self.assertIs(type(detail["custom_hd_ticket"]), int)
+            self.assertEqual(self.booking.call_helpdesk("correct", description="description only"), result)
+        self.assertEqual(self.booking.mutations, ["save", "audit"])
+
     def test_draft_unchanged_and_changed_work(self):
         old = self.original(False, 0)
         result = self.booking.call_helpdesk("correct", description="description only")
@@ -351,15 +380,21 @@ class TestManagedAttributionIntegration(unittest.TestCase):
         self.assertEqual(old.time_logs[0]["hours"], 1.0)
 
     def test_replacement_exact_carry_forward_and_replay(self):
+        self.booking.ticket.name = self.booking.current_ticket.name = "969"
         for value in (1000001, 0, -1):
             with self.subTest(value=value):
-                self.original(True, value)
+                original = self.original(True, value)
+                original.time_logs[0]["custom_hd_ticket"] = 969
                 self.booking.audit = {}
                 self.booking.mutations.clear()
                 self.booking.inserted.clear()
                 with patch.object(time_booking, "validate_ticket_interval") as validator:
                     result = self.booking.call_helpdesk("replace")
                     self.assertEqual(self.booking.inserted[0].time_logs[0][FIELD], value)
+                    before = json.loads(self.booking.audit["before_snapshot"])["time_logs"][0]
+                    request = json.loads(self.booking.audit["replacement_request_snapshot"])
+                    self.assertEqual(before["custom_hd_ticket"], "969")
+                    self.assertEqual(request["ticket_name"], "969")
                     self.assertEqual(self.booking.call_helpdesk("replace"), result)
                     validator.assert_not_called()
                 self.assertEqual(len(self.booking.inserted), 1)

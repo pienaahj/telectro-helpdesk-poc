@@ -119,6 +119,12 @@ function field(dialog, name) {
   return dialog.config.fields.find((item) => item.fieldname === name);
 }
 
+test("The Helpdesk Ticket Link uses the booking-specific native search adapter", () => {
+  const dialog = loadBookingForm().open();
+  assert.equal(field(dialog, "ticket_name").get_query().query,
+    "telephony.api.time_booking.search_booking_tickets");
+});
+
 test("Start Date and Time opens on a valid date and starts blank and required", () => {
   const dialog = loadBookingForm().open();
   const start = field(dialog, "from_time");

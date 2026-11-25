@@ -66,6 +66,10 @@ def _snapshot(value):
             or row["parenttype"] != "Timesheet" or row["parentfield"] != "time_logs"
             or type(row["hours"]) not in (int, float) or row["hours"] <= 0):
         raise BookingCorrectionAuditError()
+    # Native Link validation can replace the Ticket string on a saved detail.
+    ticket = value["time_logs"][0]["custom_hd_ticket"]
+    if type(ticket) is int and ticket > 0:
+        row["custom_hd_ticket"] = str(ticket)
     for field in ("custom_hd_ticket", "custom_hd_customer", "project", "task"):
         if row[field] is not None and type(row[field]) is not str:
             raise BookingCorrectionAuditError()
