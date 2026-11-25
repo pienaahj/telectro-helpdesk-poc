@@ -9,6 +9,11 @@ import frappe
 from telephony.time_booking_activation_adapter import _require_activation_configuration
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
 from telephony.time_booking_activity_types import BOOKING_ACTIVITY_TYPES
+from telephony.time_booking_attribution import (
+    attribution_response,
+    authorized_attribution,
+    prepare_attribution,
+)
 from telephony.time_booking_identity import (
     TechnicianBookingIdentity,
     TechnicianIdentityError,
@@ -461,6 +466,7 @@ def list_own_bookings(start=0):
             "external_reference": row.custom_external_reference,
             "other_origin_description": row.custom_other_origin_description,
             "emergency": row.custom_emergency,
+            **attribution_response(doc.time_logs[0]),
         })
     return {
         "bookings": bookings,
@@ -526,7 +532,9 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             emergency=emergency,
         ))
 
-        _validate_helpdesk_interval(row, ticket=ticket, locked_ticket=locked_ticket, start=start, end=end)
+        portion = _validate_helpdesk_interval(row, ticket=ticket, locked_ticket=locked_ticket, start=start, end=end)
+        attribution = prepare_attribution(row, start, end, portion=portion)
+        row.update(attribution)
 
         timesheet = frappe.get_doc({
             "doctype": "Timesheet",
@@ -547,7 +555,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
         if type(timesheet) is not TelectroBookingTimesheet or len(timesheet.time_logs) != 1:
             raise ActivationConfigurationError()
         with _phase2_creation_intent(timesheet, identity):
-            with _authorized_native_creation(timesheet, identity):
+            with _authorized_native_creation(timesheet, identity), authorized_attribution(timesheet, attribution):
                 inserted = timesheet.insert()
         if (inserted is not timesheet or not _identifier(timesheet.name)
                 or len(timesheet.time_logs) != 1
@@ -556,4 +564,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
                 or timesheet.get("user") != identity.user
                 or timesheet.get("owner") != identity.user):
             raise ActivationConfigurationError()
-        return {"timesheet": timesheet.name}
+        return {
+            "timesheet": timesheet.name,
+            **(attribution_response(timesheet.time_logs[0]) if attribution else {}),
+        }

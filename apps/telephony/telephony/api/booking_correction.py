@@ -17,6 +17,11 @@ from telephony.api.time_booking import (
     _validate_customer_consistency,
     _validate_helpdesk_interval,
 )
+from telephony.time_booking_attribution import (
+    authorized_attribution,
+    booking_snapshot,
+    prepare_attribution,
+)
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
     normalize_booking_metadata,
@@ -368,7 +373,7 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     if type(doc) is not TelectroBookingTimesheet:
         raise BookingOwnershipError()
     # Managed ownership below is the authorization boundary.
-    current = doc.as_dict()
+    current = booking_snapshot(doc)
     before = json.loads(_snapshot(current))
     _owned(before, identity)
     if not _revision_matches(before.get("modified"), expected_modified):
@@ -385,15 +390,17 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
         locked_ticket = _validate_customer_consistency(
             effective_row, ticket=ticket, project_customer=project_customer,
         )
-        _validate_helpdesk_interval(
+        previous = current["time_logs"][0]
+        start, end = effective_row["from_time"], effective_row["to_time"]
+        portion = _validate_helpdesk_interval(
             effective_row, ticket=ticket, locked_ticket=locked_ticket,
-            start=effective_row["from_time"], end=effective_row["to_time"],
-            previous=current["time_logs"][0],
+            start=start, end=end, previous=previous,
         )
-        doc.time_logs[0].update(values)
-        with _authorized_native_draft_mutation(doc):
+        attribution = prepare_attribution(effective_row, start, end, portion=portion, previous=previous)
+        doc.time_logs[0].update({**values, **attribution})
+        with _authorized_native_draft_mutation(doc), authorized_attribution(doc, attribution):
             doc.save()  # native validations and lifecycle checks
-        after = json.loads(_snapshot(doc.as_dict()))
+        after = json.loads(_snapshot(booking_snapshot(doc)))
         _owned(after, identity)
         if after["time_logs"][0]["name"] != before["time_logs"][0]["name"]:
             raise BookingOwnershipError()
@@ -591,7 +598,7 @@ def cancel_submitted_booking(
         if type(doc) is not TelectroBookingTimesheet:
             raise BookingOwnershipError()
 
-        before = json.loads(_snapshot(doc.as_dict()))
+        before = json.loads(_snapshot(booking_snapshot(doc)))
 
         authorize_parent(
             identity,
@@ -821,7 +828,7 @@ def replace_submitted_booking(
         if type(doc) is not TelectroBookingTimesheet:
             raise BookingOwnershipError()
 
-        before = json.loads(_snapshot(doc.as_dict()))
+        before = json.loads(_snapshot(booking_snapshot(doc)))
 
         authorize_parent(
             identity,
@@ -928,10 +935,13 @@ def replace_submitted_booking(
         locked_ticket = _validate_customer_consistency(
             row, ticket=ticket, project_customer=project_customer,
         )
-        _validate_helpdesk_interval(
+        previous = before["time_logs"][0]
+        portion = _validate_helpdesk_interval(
             row, ticket=ticket, locked_ticket=locked_ticket,
-            start=start, end=end, previous=before["time_logs"][0],
+            start=start, end=end, previous=previous,
         )
+        attribution = prepare_attribution(row, start, end, portion=portion, previous=previous)
+        row.update(attribution)
 
         # Original ownership, Submitted state and revision have already
         # been verified against the locked persisted document.
@@ -972,7 +982,7 @@ def replace_submitted_booking(
         # Reuse the same one-use creation intent and narrowly scoped
         # native permission elevation as ordinary Technician bookings.
         with _phase2_creation_intent(replacement, identity):
-            with _authorized_native_creation(replacement, identity):
+            with _authorized_native_creation(replacement, identity), authorized_attribution(replacement, attribution):
                 inserted = replacement.insert()
 
         # Preserve the ordinary booking endpoint's post-insert checks.

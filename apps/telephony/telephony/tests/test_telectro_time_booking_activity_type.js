@@ -81,10 +81,10 @@ function loadBookingForm(lookup = async () => []) {
   };
   const testSource = source.replace(
     /\}\)\(\);\s*$/,
-    "globalThis.bookingForm = { openForm, bookingPayload };})();",
+    "globalThis.bookingForm = { openForm, bookingPayload, preCreationText };})();",
   );
   vm.runInNewContext(testSource, context);
-  const { openForm, bookingPayload } = context.bookingForm;
+  const { openForm, bookingPayload, preCreationText } = context.bookingForm;
   const options = {
     company: "Company A",
     activity_types: approvedActivities,
@@ -95,6 +95,7 @@ function loadBookingForm(lookup = async () => []) {
   return {
     requests,
     submissions,
+    preCreationText,
     open(booking = null) {
       openForm(options, booking, () => {});
       return dialogs.at(-1);
@@ -309,4 +310,14 @@ test("Save sends scoped IDs only and rejects selections for a stale interval", a
   assert.equal(body.task_name, task.id);
   assert.equal(Object.hasOwn(body, "project_search"), false);
   assert.equal(Object.hasOwn(body, "task_search"), false);
+});
+
+test("Pre-creation presentation distinguishes exact duration, confirmed zero and unknown", () => {
+  const { preCreationText } = loadBookingForm();
+  assert.match(preCreationText(1000001), /1\.000001 seconds, included/);
+  assert.match(preCreationText(86400000000), /86400 seconds, included/);
+  assert.match(preCreationText(0), /0 seconds, included/);
+  for (const unknown of [null, undefined, -1, "0", 86400000001]) {
+    assert.match(preCreationText(unknown), /not established/);
+  }
 });

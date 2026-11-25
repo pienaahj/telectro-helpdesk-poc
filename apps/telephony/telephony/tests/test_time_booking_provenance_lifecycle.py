@@ -34,6 +34,9 @@ class TestProvenanceLifecycle(unittest.TestCase):
         p = patch.object(adapter, "_load_persisted_provenance", return_value=None)
         self.reader = p.start()
         self.addCleanup(p.stop)
+        p = patch("telephony.time_booking_attribution._native_schema_ready", return_value=False)
+        p.start()
+        self.addCleanup(p.stop)
 
     def denied(self):
         return self.assertRaisesRegex(BookingProvenanceError, r"^Booking provenance is not permitted\.$")

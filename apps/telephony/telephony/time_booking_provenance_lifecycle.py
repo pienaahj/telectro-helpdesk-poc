@@ -1,19 +1,14 @@
-"""Unregistered Timesheet provenance checks for supported pre-write events.
+"""Managed Timesheet provenance checks for supported pre-write events.
 
-LIMITATIONS: ignore_validate can skip before_cancel and
-before_update_after_submit. before_change protects db_set, not all writes.
-db_update_all, db_update, database setters and SQL bypass these events. Late
-trusted handlers may change state after checks. This is not complete lifecycle
-or ownership enforcement and grants no native Timesheet permissions.
-
-Before activation, install the marker separately, register the reviewed wrapper
-and events together, and require matching final-name evidence in controller
-integration before managed completion. No registration or activation occurs here.
+The parent hooks guard native child persistence. Standalone child writes also
+reach the attribution guard independently. Privileged database writes bypass
+document hooks. These checks grant no native Timesheet permissions.
 """
 
 from collections.abc import Mapping
 
 from telephony import time_booking_provenance_adapter as _adapter
+from telephony.time_booking_attribution import protect_parent
 from telephony.time_booking_provenance import (
     BookingProvenanceError,
     validate_provenance_transition,
@@ -39,10 +34,14 @@ def _validate_timesheet_provenance(doc, method=None) -> None:
     frame = _adapter._current_insertion(doc)
     if frame is not None:
         _validate_insertion_provenance(doc, method, frame)
+        protect_parent(doc, inserting=True, managed=frame.identity is not None, method=method)
     elif method == "before_insert":
         raise BookingProvenanceError()
     else:
         _validate_existing_provenance(doc)
+        protect_parent(
+            doc, inserting=False, managed=doc.get("custom_telectro_booking_origin") == "Phase 2", method=method,
+        )
 
 
 def _validate_existing_provenance(doc) -> None:

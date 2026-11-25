@@ -43,6 +43,7 @@ class TestDraftCorrection(unittest.TestCase):
             db=types.SimpleNamespace(sql=self.sql), get_doc=Mock(return_value=self.doc))
         self.patches = [patch.object(api, "frappe", self.f),
                         patch.object(api, "_guard", return_value=self.identity),
+                        patch.object(api, "prepare_attribution", return_value={}),
                         patch.object(api, "TelectroBookingTimesheet", Doc),
                         patch.object(api, "record_correction_event", side_effect=self.record)]
         for p in self.patches:

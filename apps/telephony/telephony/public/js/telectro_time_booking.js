@@ -24,6 +24,16 @@
     return (await response.json()).message;
   }
 
+  function preCreationText(value) {
+    if (!Number.isSafeInteger(value) || value < 0 || value > 86400000000) {
+      return __("Pre-creation portion: not established.");
+    }
+    const seconds = Math.floor(value / 1000000);
+    const fraction = String(value % 1000000).padStart(6, "0").replace(/0+$/, "");
+    const duration = fraction ? `${seconds}.${fraction}` : String(seconds);
+    return __("Pre-creation portion: {0} seconds, included in total booked time.", [duration]);
+  }
+
   function showError(message) {
     frappe.msgprint({ title: __("Time Booking"), message, indicator: "orange" });
   }
@@ -398,6 +408,9 @@
       { fieldname: "description", label: __("Description"), fieldtype: "Small Text", reqd: 1 },
     ];
     if (booking) {
+      if (booking.work_context === "Helpdesk") {
+        fields.push({ fieldname: "saved_pre_creation", fieldtype: "HTML" });
+      }
       fields.push({ fieldname: "reason", label: __("Correction Reason"), fieldtype: "Small Text", reqd: 1 });
     }
     const replacing = booking?.docstatus === 1;
@@ -416,8 +429,11 @@
         try {
           const result = await post(api + "book_technician_time", payload);
           dialog.hide();
+          const saved = __("Draft booking {0} saved.", [result.timesheet]);
           frappe.show_alert({
-            message: __("Draft booking {0} saved.", [result.timesheet]),
+            message: payload.work_context === "Helpdesk"
+              ? `${saved} ${preCreationText(result.pre_creation_us)}`
+              : saved,
             indicator: "green",
           });
           afterSave();
@@ -429,6 +445,11 @@
       },
     });
     dialog.fields_dict.duration_minutes.$input.attr("inputmode", "numeric");
+    if (dialog.fields_dict.saved_pre_creation) {
+      dialog.fields_dict.saved_pre_creation.$wrapper.text(
+        __("Saved booking: {0}", [preCreationText(booking.pre_creation_us)]),
+      );
+    }
     if (booking) {
       dialog.set_primary_action(
         replacing ? __("Replace Booking") : __("Save Correction"),
@@ -534,6 +555,9 @@
           const status = [__("Draft"), __("Submitted"), __("Cancelled")][booking.docstatus];
           $("<div>", { class: "text-muted mb-1", text: [booking.name, status, booking.activity_type].join(" · ") }).appendTo(item);
           $("<p>", { class: "mb-2 text-break", text: booking.description }).appendTo(item);
+          if (booking.work_context === "Helpdesk") {
+            $("<p>", { class: "text-muted mb-2", text: preCreationText(booking.pre_creation_us) }).appendTo(item);
+          }
           if (booking.docstatus !== 2) {
             action(
               booking.docstatus === 0 ? __("Correct Draft") : __("Replace Booking"),

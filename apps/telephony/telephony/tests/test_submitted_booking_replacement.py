@@ -11,6 +11,11 @@ from telephony.time_booking_transaction import BookingTransactionDenied
 
 class TestSubmittedBookingReplacement(unittest.TestCase):
 
+    def setUp(self):
+        preparer = patch.object(api, "prepare_attribution", return_value={})
+        preparer.start()
+        self.addCleanup(preparer.stop)
+
     def test_revision_matches_frappe_and_audit_formats(self):
         from telephony.api.booking_correction import _revision_matches
 

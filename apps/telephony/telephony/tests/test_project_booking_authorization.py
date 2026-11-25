@@ -100,6 +100,8 @@ class TestProjectBookingAuthorization(unittest.TestCase):
             patch.object(time_booking, "frappe", self.frappe),
             patch.object(booking_correction, "frappe", self.frappe),
             patch.object(time_booking, "_booking_identity", return_value=IDENTITY),
+            patch.object(time_booking, "prepare_attribution", return_value={}),
+            patch.object(booking_correction, "prepare_attribution", return_value={}),
             patch.object(booking_correction, "_guard", return_value=IDENTITY),
             patch.object(time_booking, "TelectroBookingTimesheet", Timesheet),
             patch.object(booking_correction, "TelectroBookingTimesheet", Timesheet),

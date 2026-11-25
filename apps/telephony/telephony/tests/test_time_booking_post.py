@@ -135,6 +135,8 @@ class TestBookingPost(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("booking_post_test", path)
         self.m = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.m)
         self.m.TelectroBookingTimesheet = FakeTimesheet
+        # The no-site tests below isolate the existing booking boundary.
+        self.m.prepare_attribution = Mock(return_value={})
         self.identity = TechnicianBookingIdentity("tech", "EMP-1", "Company A")
         self.m.resolve_current_technician_identity = Mock(return_value=self.identity)
         self.m._require_activation_configuration = Mock()

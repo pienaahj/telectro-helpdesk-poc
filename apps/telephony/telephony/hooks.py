@@ -132,6 +132,7 @@ fixtures = [
                 "Timesheet Detail-custom_work_context",
                 "Timesheet Detail-custom_hd_customer",
                 "Timesheet Detail-custom_hd_ticket",
+                "Timesheet Detail-custom_telectro_pre_creation_us",
                 "Timesheet Detail-custom_emergency",
                 "Timesheet Detail-custom_unlisted_customer_name",
                 "Timesheet Detail-custom_service_area",
@@ -432,6 +433,13 @@ for _timesheet_event in (
 ):
     doc_events["Timesheet"].setdefault(_timesheet_event, _timesheet_provenance_handler)
 
+from telephony.time_booking_attribution import CHILD_EVENTS as _attribution_child_events
+from telephony.time_booking_attribution import CHILD_HANDLER as _attribution_child_handler
+
+doc_events.setdefault("Timesheet Detail", {})
+for _attribution_child_event in _attribution_child_events:
+    doc_events["Timesheet Detail"].setdefault(_attribution_child_event, _attribution_child_handler)
+
 def _append_hook(target, event, handler):
     cur = target.get(event)
     if not cur:
@@ -554,7 +562,7 @@ app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
-    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-23-1",
+    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-25-1",
     "/assets/telephony/js/hd_ticket_manual_origin.js",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
