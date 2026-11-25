@@ -2,14 +2,21 @@
 
 from copy import deepcopy
 from datetime import timedelta
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
+import frappe
+from frappe.model.base_document import BaseDocument
+from frappe.model.document import Document
+
 from telephony import time_booking_attribution as attribution
+from telephony import time_booking_provenance_adapter as adapter
+from telephony import time_booking_provenance_lifecycle as lifecycle
 from telephony.api import booking_correction, time_booking
 from telephony.tests import test_project_booking_authorization as authorization
 from telephony.tests.test_time_booking_correction_audit import snapshot
+from telephony.time_booking_identity import TechnicianBookingIdentity
 from telephony.time_booking_provenance import BookingProvenanceError
 from telephony.time_booking_ticket_interval import ORIGIN_FIELD
 
@@ -135,7 +142,8 @@ class TestAttributionGuards(unittest.TestCase):
         for changes in (
             {FIELD: 0}, {FIELD: -1}, {FIELD: None}, {FIELD: 1000002},
             {"from_time": START + timedelta(seconds=1)}, {"to_time": END + timedelta(seconds=1)},
-            {"custom_hd_ticket": "2"}, {"custom_work_context": "Project"}, {"name": "SUBSTITUTE"},
+            {"custom_hd_ticket": 2}, {"custom_hd_ticket": "01"},
+            {"custom_work_context": "Project"}, {"name": "SUBSTITUTE"},
         ):
             self.row.clear()
             self.row.update(self.stored | changes)
@@ -169,6 +177,64 @@ class TestAttributionGuards(unittest.TestCase):
             attribution._stored_row.return_value = self.stored
         with self.assertRaises(BookingProvenanceError), attribution.authorized_attribution(self.doc, {FIELD: self.row[FIELD]}):
             attribution._stored_row.return_value = self.stored | {FIELD: 0}
+
+
+    def test_native_before_insert_after_numeric_ticket_link_validation(self):
+        class ReachedBeforeInsert(Exception):
+            pass
+
+        class LinkRow(Row):
+            @property
+            def custom_hd_ticket(self):
+                return self["custom_hd_ticket"]
+
+            @custom_hd_ticket.setter
+            def custom_hd_ticket(self, ticket):
+                self["custom_hd_ticket"] = ticket
+
+        identity = TechnicianBookingIdentity("tech", "EMP", "Company")
+        row = LinkRow(detail(name=None, parent=None, custom_hd_ticket="969", **{FIELD: 300000000}))
+        link = frappe._dict(fieldname="custom_hd_ticket", fieldtype="Link", options="HD Ticket")
+        row.meta = SimpleNamespace(get_link_fields=lambda: [link], get=lambda *_: [],
+                                   get_fields_to_fetch=lambda _: [])
+        row.get_invalid_links = MethodType(BaseDocument.get_invalid_links, row)
+        self.doc.update(doctype="Timesheet", name=None, employee=identity.employee,
+                        company=identity.company, user=identity.user, docstatus=0,
+                        custom_telectro_booking_origin="Phase 2", time_logs=[row])
+        self.doc.time_logs = [row]
+        self.doc.flags = frappe._dict()
+        self.doc.meta = SimpleNamespace(is_submittable=True)
+        self.doc._action = "save"
+        self.doc.get_all_children = lambda: [row]
+        self.doc.get_invalid_links = lambda: ([], [])
+        self.doc._validate_links = MethodType(Document._validate_links, self.doc)
+        for method in ("_set_defaults", "set_user_and_timestamp", "set_docstatus",
+                       "check_permission", "check_if_latest"):
+            setattr(self.doc, method, Mock())
+
+        def run_method(event):
+            self.assertEqual(event, "before_insert")
+            self.assertIs(type(row.custom_hd_ticket), int)
+            self.assertEqual(row.custom_hd_ticket, 969)
+            lifecycle._validate_timesheet_provenance(self.doc, event)
+            # Stop before naming or writes, after the full native pre-insert path.
+            raise ReachedBeforeInsert
+
+        self.doc.run_method = run_method
+        ticket_meta = frappe._dict(istable=False, is_submittable=False)
+        db = SimpleNamespace(get_value=Mock(return_value=969))
+        attribution._stored_row.return_value = None
+        with (
+            patch.object(frappe, "get_meta", return_value=ticket_meta),
+            patch.object(frappe, "db", db),
+            patch("frappe.model.base_document.notify_link_count"),
+            self.assertRaises(ReachedBeforeInsert),
+            adapter._phase2_creation_intent(self.doc, identity),
+            attribution.authorized_attribution(self.doc, {FIELD: 300000000}),
+            adapter._insertion_attempt(self.doc),
+        ):
+            Document.insert(self.doc)
+        db.get_value.assert_called_once_with("HD Ticket", "969", "name", cache=True)
 
     def test_scope_does_not_allow_a_different_child_or_outlive_the_write(self):
         self.row[FIELD] = 0

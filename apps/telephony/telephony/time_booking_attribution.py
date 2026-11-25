@@ -117,8 +117,12 @@ def attribution_response(row):
 
 
 def _bound_values(row):
+    ticket = row.get("custom_hd_ticket")
+    # Frappe's Link validation loads the integer HD Ticket name before before_insert.
+    if type(ticket) is int and ticket > 0:
+        ticket = str(ticket)
     return (
-        row.get("custom_work_context"), row.get("custom_hd_ticket"),
+        row.get("custom_work_context"), ticket,
         _timestamp(row.get("from_time")), _timestamp(row.get("to_time")), row.get(FIELD),
     )
 
