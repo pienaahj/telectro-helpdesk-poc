@@ -15,6 +15,7 @@ from telephony.api.time_booking import (
     _allowed_service_areas,
     _require_booking_activity_type,
     _validate_customer_consistency,
+    _validate_helpdesk_interval,
 )
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
@@ -381,8 +382,13 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
                 effective_row, identity,
                 start=effective_row["from_time"], end=effective_row["to_time"],
             )
-        _validate_customer_consistency(
+        locked_ticket = _validate_customer_consistency(
             effective_row, ticket=ticket, project_customer=project_customer,
+        )
+        _validate_helpdesk_interval(
+            effective_row, ticket=ticket, locked_ticket=locked_ticket,
+            start=effective_row["from_time"], end=effective_row["to_time"],
+            previous=current["time_logs"][0],
         )
         doc.time_logs[0].update(values)
         with _authorized_native_draft_mutation(doc):
@@ -919,8 +925,12 @@ def replace_submitted_booking(
         project_customer = None
         if work_context == "Project":
             project_customer = _authorize_references(reference_row, identity, start=start, end=end)
-        _validate_customer_consistency(
+        locked_ticket = _validate_customer_consistency(
             row, ticket=ticket, project_customer=project_customer,
+        )
+        _validate_helpdesk_interval(
+            row, ticket=ticket, locked_ticket=locked_ticket,
+            start=start, end=end, previous=before["time_logs"][0],
         )
 
         # Original ownership, Submitted state and revision have already

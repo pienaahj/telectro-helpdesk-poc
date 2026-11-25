@@ -19,6 +19,10 @@ from telephony.time_booking_ownership import (
     authorize_child,
 )
 from telephony.time_booking_policy import validate_work_context
+from telephony.time_booking_ticket_interval import (
+    ticket_interval_changed,
+    validate_ticket_interval,
+)
 from telephony.time_booking_project_grant import (
     ProjectBookingGrantError,
     require_project_booking_grant,
@@ -176,6 +180,35 @@ def _require_customer_mapping_index(db):
         raise BookingReferenceDenied()
 
 
+def _lock_booking_ticket(ticket):
+    """Reload and reauthorize the Ticket under its write-boundary row lock."""
+    if ticket is None:
+        raise BookingReferenceDenied()
+    try:
+        locked = frappe.db.get_value(
+            "HD Ticket", str(ticket.name), "*", as_dict=True,
+            order_by=None, for_update=True, wait=False,
+        )
+        if not locked or str(locked.name) != str(ticket.name):
+            raise BookingReferenceDenied()
+        current_ticket = frappe.get_doc({**locked, "doctype": "HD Ticket"})
+        current_ticket.check_permission("read")
+    except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
+        raise BookingReferenceDenied() from exc
+    return current_ticket
+
+
+def _validate_helpdesk_interval(row, *, ticket, locked_ticket, start, end, previous=None):
+    if row["custom_work_context"] != "Helpdesk" or not ticket_interval_changed(previous, row, start, end):
+        return None
+    if locked_ticket is None:
+        locked_ticket = _lock_booking_ticket(ticket)
+    try:
+        return validate_ticket_interval(locked_ticket, start, end, now=frappe.utils.now_datetime(), db=frappe.db)
+    except (frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
+        raise BookingReferenceDenied() from exc
+
+
 def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
     """Validate an optional HD Customer after booking reference authorization."""
     customer_name = row.get("custom_hd_customer")
@@ -186,23 +219,11 @@ def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
     db = frappe.db
     _require_customer_mapping_transaction(db)
     authoritative_customer = None
+    current_ticket = None
     context = row["custom_work_context"]
 
     if context == "Helpdesk":
-        if ticket is None:
-            raise BookingReferenceDenied()
-        try:
-            locked = db.get_value(
-                "HD Ticket", str(ticket.name), "*", as_dict=True,
-                order_by=None, for_update=True, wait=False,
-            )
-            if not locked or str(locked.name) != str(ticket.name):
-                raise BookingReferenceDenied()
-            # Customer and assignment changes can also change Ticket visibility.
-            current_ticket = frappe.get_doc({**locked, "doctype": "HD Ticket"})
-            current_ticket.check_permission("read")
-        except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
-            raise BookingReferenceDenied() from exc
+        current_ticket = _lock_booking_ticket(ticket)
         ticket_customer = current_ticket.get("customer")
         if ticket_customer not in (None, "", customer_name):
             raise BookingReferenceDenied()
@@ -253,6 +274,7 @@ def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
             raise BookingReferenceDenied()
     except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
         raise BookingReferenceDenied() from exc
+    return current_ticket
 
 
 def _period(from_time, duration_minutes):
@@ -475,7 +497,7 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
         ticket = authorized_reference if work_context == "Helpdesk" else None
         _require_booking_activity_type(activity_type)
         _visible("Activity Type", activity_type)
-        _validate_customer_consistency(
+        locked_ticket = _validate_customer_consistency(
             row, ticket=ticket,
             project_customer=authorized_reference if work_context == "Project" else None,
         )
@@ -503,6 +525,8 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             other_origin_description=other_origin_description,
             emergency=emergency,
         ))
+
+        _validate_helpdesk_interval(row, ticket=ticket, locked_ticket=locked_ticket, start=start, end=end)
 
         timesheet = frappe.get_doc({
             "doctype": "Timesheet",

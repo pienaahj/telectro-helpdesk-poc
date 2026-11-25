@@ -375,7 +375,8 @@ class TestDraftCorrection(unittest.TestCase):
     def ticket_customer_references(self):
         ticket = Reference(
             "HD Ticket", "T", customer="C", custom_customer="ERP-C",
-            custom_service_area="Routing",
+            custom_service_area="Routing", status="Open", status_category="Open",
+            creation="2026-11-15 09:00:00",
         )
         self.current_ticket = Reference("HD Ticket", "T", **ticket)
         customer = Reference("HD Customer", "C", custom_erp_customer="ERP-C")
@@ -448,7 +449,7 @@ class TestDraftCorrection(unittest.TestCase):
             call("Customer", "ERP-C", "name", order_by=None, for_update=True, wait=False),
             call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
         ])
-        self.assertEqual(self.f.db.sql.call_args.args[1], ("ERP-C",))
+        self.assertEqual(self.f.db.sql.call_args_list[-2].args[1], ("ERP-C",))
         self.rollback.assert_not_called()
 
     def test_correction_rejects_unchanged_customer_when_new_ticket_conflicts(self):
@@ -480,7 +481,9 @@ class TestDraftCorrection(unittest.TestCase):
 
         self.doc.save.assert_called_once_with()
         self.assertIsNone(self.recorded["after"]["time_logs"][0]["custom_hd_customer"])
-        self.f.db.get_value.assert_not_called()
+        self.f.db.get_value.assert_called_once_with(
+            "HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False,
+        )
         self.rollback.assert_not_called()
 
     def test_correction_ownership_revision_and_reference_denials_precede_consistency(self):
@@ -515,7 +518,7 @@ class TestDraftCorrection(unittest.TestCase):
         _ticket, customer = self.ticket_customer_references()
         result = self.endpoint(customer_name="C")
 
-        self.assertEqual(self.f.db.sql.call_args.args[1], ("ERP-C",))
+        self.assertEqual(self.f.db.sql.call_args_list[-2].args[1], ("ERP-C",))
         self.audit_row = dict(
             name=result["audit"], actor=self.identity.user, action=self.recorded["action"],
             reason=self.recorded["reason"], original_timesheet="TS-1",
@@ -554,6 +557,7 @@ class TestDraftCorrection(unittest.TestCase):
             self.assertFalse(hasattr(self, "recorded"))
 
     def test_native_and_audit_failures_restore_entire_request(self):
+        self.doc.time_logs[0]["custom_hd_ticket"] = "T"
         original = copy.deepcopy(self.state)
         for failure in ("save", "audit", "delete"):
             with (
@@ -610,6 +614,7 @@ class TestDraftCorrection(unittest.TestCase):
         self.assertFalse(hasattr(self, "recorded"))
 
     def test_correction_endpoint_accepts_valid_booking_metadata(self):
+        self.doc.time_logs[0]["custom_hd_ticket"] = "T"
         with (
             patch.object(
                 api,

@@ -17,6 +17,7 @@ from telephony.tests.test_time_booking_post import Reference, customer_mapping_s
 from telephony.time_booking_correction_audit import DOCTYPE as AUDIT_DOCTYPE, _snapshot
 from telephony.time_booking_identity import TechnicianBookingIdentity
 from telephony.time_booking_ownership import BookingOwnershipError
+from telephony.time_booking_ticket_interval import ORIGIN_FIELD, TicketIntervalError
 
 
 START = datetime(2026, 11, 16, 9)
@@ -44,7 +45,8 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         self.current_customer = Reference("HD Customer", "C", **self.customer)
         self.ticket = Reference(
             "HD Ticket", "HD-2", customer="C", custom_customer="ERP-C",
-            custom_service_area="Routing",
+            custom_service_area="Routing", status="Open", status_category="Open",
+            creation=CREATION,
         )
         self.current_ticket = Reference("HD Ticket", self.ticket.name, **self.ticket)
         self.task = SimpleNamespace(name=TASK, project=PROJECT, creation=CREATION)
@@ -176,6 +178,10 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         ]
 
     def sql(self, query, key=None, *, as_dict=False):
+        if "tabHD Ticket Status" in query:
+            self.assertIn("LOCK IN SHARE MODE NOWAIT", query)
+            self.events.append("Ticket status")
+            return ((key[0], {"Open": "Open", "Resolved": "Resolved"}[key[0]]),)
         if "FOR UPDATE NOWAIT" in query:
             self.events.append("reverse range lock")
             return customer_mapping_sql(query, key)
@@ -339,6 +345,100 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         args.update(updates)
         return self.call("replace", **args)
 
+    def call_helpdesk(self, operation, **updates):
+        return self.call(operation, work_context="Helpdesk", project_name=None,
+                         ticket_name=self.ticket.name, **updates)
+
+    def test_create_changed_draft_and_changed_replacement_use_the_same_locked_interval_policy(self):
+        self.current_ticket.update(creation=START + timedelta(minutes=30), **{ORIGIN_FIELD: 1})
+        from telephony.time_booking_ticket_interval import validate_ticket_interval
+
+        for operation, expected in (("create", ["insert"]), ("correct", ["save", "audit"]),
+                                    ("replace", ["cancel", "insert", "audit"])):
+            with self.subTest(operation=operation):
+                self.original = None
+                self.audit = {}
+                self.mutations.clear()
+                self.events.clear()
+                if operation != "create":
+                    before = {**snapshot(status=int(operation == "replace")), "modified": REVISION}
+                    before["time_logs"][0].update(
+                        custom_hd_ticket=self.ticket.name, from_time=START + timedelta(hours=1),
+                        to_time=END + timedelta(hours=1),
+                    )
+                    self.original = self.Timesheet(before)
+
+                def verify_locked(ticket, start, end, **kwargs):
+                    self.assertIs(ticket, self.current_ticket)
+                    self.assertEqual(self.events[-1], "Ticket lock")
+                    self.assertFalse(self.mutations)
+                    result = validate_ticket_interval(ticket, start, end, **kwargs)
+                    self.assertEqual(result, timedelta(minutes=30))
+                    return result
+
+                with patch.object(time_booking, "validate_ticket_interval", side_effect=verify_locked) as check:
+                    self.call_helpdesk(operation)
+                check.assert_called_once()
+                self.assertEqual(self.events[-2:], ["Ticket lock", "Ticket status"])
+                self.assertEqual(self.mutations, expected)
+
+    def test_description_only_draft_and_replacement_do_not_validate_stale_lifecycle(self):
+        self.current_ticket["creation"] = None
+        for operation in ("correct", "replace"):
+            with self.subTest(operation=operation):
+                before = {**snapshot(status=int(operation == "replace")), "modified": REVISION}
+                before["time_logs"][0].update(
+                    custom_hd_ticket=self.ticket.name, activity_type=ACTIVITY, custom_service_area="Routing",
+                    custom_work_location="Remote", custom_work_origin="Direct / Ad-hoc", custom_emergency=0,
+                )
+                self.original = self.Timesheet(before)
+                self.audit = {}
+                self.events.clear()
+                with patch.object(time_booking, "validate_ticket_interval") as check:
+                    self.call_helpdesk(operation, description="Description only", activity_type="Repair & Maintenance")
+                check.assert_not_called()
+                self.assertEqual(self.events, ["Timesheet"])
+
+    def test_changed_replacement_reference_rechecks_interval_before_cancellation(self):
+        before = {**snapshot(status=1), "modified": REVISION}
+        self.original = self.Timesheet(deepcopy(before))
+        self.current_ticket["creation"] = START + timedelta(microseconds=1)
+
+        with self.assertRaises(TicketIntervalError):
+            self.call_helpdesk("replace")
+
+        self.assertEqual(self.original.as_dict(), before)
+        self.assertEqual(self.mutations, [])
+        self.assertEqual(self.inserted, [])
+        self.assertFalse(self.audit)
+        booking_correction.record_correction_event.assert_not_called()
+        self.db.rollback.assert_called_once_with()
+
+    def test_lifecycle_is_never_read_for_unauthorized_helpdesk_references(self):
+        self.current_ticket["creation"] = None
+        self.ticket.visible = False
+        for operation in ("create", "correct", "replace"):
+            with self.subTest(operation=operation):
+                self.original = None
+                self.events.clear()
+                with patch.object(time_booking, "validate_ticket_interval") as check:
+                    with self.assertRaises(time_booking.BookingReferenceDenied):
+                        self.call_helpdesk(operation)
+                check.assert_not_called()
+                self.assertNotIn("Ticket lock", self.events)
+        self.assertEqual(self.mutations, [])
+
+    def test_lifecycle_is_never_read_when_locked_ticket_loses_read_permission(self):
+        self.current_ticket.visible = False
+        with (
+            patch.object(time_booking, "validate_ticket_interval") as check,
+            self.assertRaises(time_booking.BookingReferenceDenied),
+        ):
+            self.call_helpdesk("create")
+        check.assert_not_called()
+        self.assertEqual(self.events, ["Ticket lock"])
+        self.assertEqual(self.mutations, [])
+
     def test_replacement_uses_locked_ticket_customer_over_snapshot(self):
         self.ticket.update(customer="OTHER", custom_customer="ERP-OTHER")
         with patch.object(self.frappe, "get_doc", wraps=self.get_doc) as get_doc:
@@ -352,7 +452,7 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         ]
         self.assertEqual(ticket_reads, [("HD Ticket", self.ticket.name)])
         self.assertEqual(self.events, [
-            "Timesheet", "Ticket lock", "ERPNext Customer lock", "HD Customer lock", "reverse range lock",
+            "Timesheet", "Ticket lock", "ERPNext Customer lock", "HD Customer lock", "reverse range lock", "Ticket status",
         ])
         self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
         self.assertEqual(self.original["docstatus"], 2)
@@ -411,7 +511,7 @@ class TestProjectBookingAuthorization(unittest.TestCase):
 
         self.replace_helpdesk()
 
-        self.assertEqual(self.events, ["Timesheet"])
+        self.assertEqual(self.events, ["Timesheet", "Ticket lock", "Ticket status"])
         self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
         self.assertIsNone(self.inserted[0].time_logs[0]["custom_hd_customer"])
         self.db.rollback.assert_not_called()

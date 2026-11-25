@@ -1144,6 +1144,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             patch.object(api, "frappe", fake_frappe),
             patch.object(api, "_guard", return_value=identity),
             patch.object(api, "TelectroBookingTimesheet", TimesheetDoc),
+            patch.object(api, "_validate_helpdesk_interval"),
             patch.object(
                 api, "_period", return_value=(start, end, 90)
             ),
@@ -1434,6 +1435,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             patch.object(
                 api, "TelectroBookingTimesheet", TimesheetDoc
             ),
+            patch.object(api, "_validate_helpdesk_interval"),
             patch.object(
                 api,
                 "_period",
@@ -1633,6 +1635,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
                 api, "TelectroBookingTimesheet",
                 SubmittedDoc,
             ),
+            patch.object(api, "_validate_helpdesk_interval"),
             patch.object(
                 api, "_period",
                 return_value=(start, end, 90),
@@ -1857,6 +1860,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             patch.object(
                 api, "TelectroBookingTimesheet", TimesheetDoc
             ),
+            patch.object(api, "_validate_helpdesk_interval"),
             patch.object(
                 api, "_period",
                 return_value=(start, end, 90),

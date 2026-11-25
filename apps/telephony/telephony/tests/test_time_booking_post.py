@@ -9,7 +9,7 @@ import types
 import unittest
 from unittest.mock import Mock, call, patch
 
-from frappe import QueryDeadlockError, QueryTimeoutError
+from frappe import QueryDeadlockError, QueryTimeoutError, _dict
 
 from telephony.tests.test_time_booking_correction_audit import snapshot
 from telephony.time_booking_activity_types import BOOKING_ACTIVITY_TYPES
@@ -35,6 +35,8 @@ def customer_mapping_sql(query, params=None, *, matches=(("C",),)):
             ("autocommit", "OFF"), ("in_transaction", "1"),
             ("innodb_snapshot_isolation", "OFF"), ("tx_isolation", "REPEATABLE-READ"),
         )
+    if "tabHD Ticket Status" in statement:
+        return ((params[0], {"Open": "Open", "Resolved": "Resolved"}[params[0]]),)
     if "information_schema.STATISTICS" in statement:
         return ((1, "custom_erp_customer", 1, "BTREE", None, "NO", "InnoDB", "InnoDB"),)
     if statement == (
@@ -81,7 +83,11 @@ class TestBookingPost(unittest.TestCase):
         self.db.sql = Mock(side_effect=customer_mapping_sql)
         self.db.get_value = self.get_locked_customer
         self.refs = {
-            ("HD Ticket", "T"): Reference("HD Ticket", "T", status="Closed", custom_service_area="Routing"),
+            ("HD Ticket", "T"): Reference(
+                "HD Ticket", "T", status="Resolved", status_category="Resolved",
+                creation=datetime(2026, 11, 15), resolution_date=datetime(2026, 11, 16, 11),
+                custom_service_area="Routing",
+            ),
             ("HD Customer", "C"): Reference("HD Customer", "C", custom_erp_customer=None),
             ("Activity Type", "Execution"): Reference("Activity Type", "Execution"),
             ("Activity Type", "Repair & Maintenance"): Reference("Activity Type", "Repair & Maintenance"),
@@ -143,7 +149,9 @@ class TestBookingPost(unittest.TestCase):
     def get_doc(self, *args):
         if isinstance(args[0], dict):
             if args[0]["doctype"] == "HD Ticket":
-                return self.current_ticket
+                if hasattr(self, "current_ticket"):
+                    return self.current_ticket
+                return self.refs[("HD Ticket", str(args[0]["name"]))]
             if args[0]["doctype"] == "HD Customer":
                 return self.refs[("HD Customer", "C")]
             return FakeTimesheet(args[0], self.db)
@@ -153,11 +161,17 @@ class TestBookingPost(unittest.TestCase):
             raise LookupError() from exc
 
     def get_locked_customer(self, doctype, name, fields, **kwargs):
-        self.assertEqual((doctype, name, fields), ("HD Customer", "C", "*"))
+        self.assertEqual(fields, "*")
+        self.assertIn(doctype, ("HD Customer", "HD Ticket"))
+        if doctype == "HD Customer":
+            self.assertEqual(name, "C")
         self.assertEqual(kwargs, {
             "as_dict": True, "order_by": None, "for_update": True, "wait": False,
         })
-        return self.refs[(doctype, name)]
+        reference = self.refs[(doctype, name)]
+        if doctype == "HD Ticket":
+            return _dict(name=reference.name, **reference)
+        return reference
 
     def call(self, **updates):
         args = dict(
@@ -257,7 +271,7 @@ class TestBookingPost(unittest.TestCase):
     def test_creation_uses_locked_ticket_customer_over_snapshot(self):
         ticket = self.refs[("HD Ticket", "T")]
         ticket.update(customer="OTHER", custom_customer="ERP-OTHER")
-        self.current_ticket = Reference("HD Ticket", "T", customer="C", custom_customer="ERP-C")
+        self.current_ticket = Reference("HD Ticket", "T", **(dict(ticket) | dict(customer="C", custom_customer="ERP-C")))
         self.refs[("HD Customer", "C")]["custom_erp_customer"] = "ERP-C"
         self.db.get_value = Mock(side_effect=[
             self.current_ticket, "ERP-C", self.refs[("HD Customer", "C")],
@@ -275,7 +289,7 @@ class TestBookingPost(unittest.TestCase):
             call("Customer", "ERP-C", "name", order_by=None, for_update=True, wait=False),
             call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
         ])
-        self.assertEqual(self.db.sql.call_args.args[1], ("ERP-C",))
+        self.assertEqual(self.db.sql.call_args_list[-2].args[1], ("ERP-C",))
         self.assertEqual(len(self.db.writes), 1)
         self.assertEqual(self.db.writes[0].time_logs[0]["custom_hd_customer"], "C")
         self.assertEqual(self.db.rollback_count, 0)
@@ -432,7 +446,9 @@ class TestBookingPost(unittest.TestCase):
         class Wrong(dict):
             pass
         original = self.f.get_doc
-        self.f.get_doc = lambda *args: Wrong() if isinstance(args[0], dict) else original(*args)
+        self.f.get_doc = lambda *args: (
+            Wrong() if isinstance(args[0], dict) and args[0]["doctype"] == "Timesheet" else original(*args)
+        )
         with self.assertRaises(ActivationConfigurationError): self.call()
         self.assertEqual(self.db.writes, [])
 
@@ -498,7 +514,7 @@ class TestBookingPost(unittest.TestCase):
         def get_doc(*args):
             doc = original_get_doc(*args)
 
-            if isinstance(args[0], dict):
+            if isinstance(args[0], dict) and args[0]["doctype"] == "Timesheet":
                 doc.flags.ignore_permissions = True
                 created.append(doc)
 
@@ -924,7 +940,7 @@ class TestBookingPost(unittest.TestCase):
         ticket = Reference(
             "HD Ticket",
             "965",
-            status="Closed",
+            status="Open", status_category="Open", creation=datetime(2026, 11, 15),
             custom_service_area="Data Request",
         )
 
