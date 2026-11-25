@@ -14,10 +14,11 @@ This is the primary acceptance criterion. Telectro needs lightweight employee
 time booking suited to a small, informally operated business. Evaluate every
 feature against this requirement. The booking interface must be simple and quick.
 
-This section defines the accepted functional scope and takes precedence over
-conflicting historical candidates below. The original material is retained for
-traceability. Phase 2 remains separate from the current pilot baseline and the
-current production correction release.
+This section defines the original accepted functional scope and takes precedence
+over conflicting historical candidates below. The dated V1 revision that follows
+takes precedence on the decisions it explicitly updates. The original material
+is retained for traceability. Phase 2 remains separate from the current pilot
+baseline and the current production correction release.
 
 ### Time booking and work contexts
 
@@ -164,6 +165,136 @@ Implementation design still needs review of:
 - Correction audit, duplicate handling and historical deletion/archiving safeguards.
 - Stable legacy/Gwizz migration keys.
 - Work-first presentation and optional integrity-report detection rules.
+
+## Approved V1 Time Booking revision — 25 November 2026
+
+The owner accepted the B3.88A.2 source assessment and approved the business
+policy recorded here. The B3.88A.5 consolidation and roadmap were accepted with
+the B3.88A.5A qualifications below. This revision records business decisions
+and checkpoint order. Implementation, migration, dormant production deployment,
+and operational activation require their respective approvals.
+
+> Time Booking records the work that actually took place, not the administrative events surrounding that work. Ticket lifecycle, SLA performance and actual technical effort remain independent measurements.
+
+### Ticket lifetime and manual creation
+
+- Eligible Technicians can record their own actual work retrospectively against
+  an existing Ticket, subject to current Ticket authorization for new bookings.
+  Multiple eligible Technicians may record their contributions to the same Ticket.
+- Resolved is Telectro's operational completion state. Administrative closure is
+  optional. Use valid resolution evidence as the inclusive upper boundary for
+  completed Tickets. A reopened Ticket has one continuous lifetime, including
+  any earlier resolved gap. For active Tickets, including Paused, the full work
+  interval must end at or before the server's current site-local time. Future
+  work is prohibited in all cases.
+- Use Ticket creation as the lower boundary for Portal, Email and unverified
+  origins. A Ticket with positively verified manual origin permits work wholly
+  before or spanning its creation, including work prompted by monitoring. The
+  Ticket must exist at submission. Keep native Ticket creation, opening,
+  resolution and SLA timestamps intact.
+- Identify manual origin automatically. Preserve the existing Request Source
+  field's meaning, routing and edit behaviour. Reuse trusted creation metadata
+  where available, with a minimal server-owned creation marker as the next
+  option. Client-supplied values, copies and ordinary updates cannot establish
+  manual origin. Missing Portal or Email indicators alone are insufficient.
+  The Technician supplies no origin selection or additional mandatory input.
+  The solution requires no separate administration workflow or broad historical
+  classification. Consider a new DocType only if existing mechanisms prove
+  insufficient. A.6 will establish the trusted staff create path and verify the
+  provenance mechanism. Positive evidence of manual creation is sufficient for
+  V1, so exhaustive classification of creation routes is unnecessary.
+- Keep one work interval and count its total once. Derive its pre-creation
+  portion as `max(0, min(end, ticket_creation) - start)` and show the portion to
+  the Technician. Preserve the smallest stable server-owned attribution value
+  needed to retain the accepted portion after reference loss. A.7 will establish
+  the storage and audit mechanism. Keep the existing Activity Type, work
+  description, 1,440-minute maximum and overlap safeguards. There is no extra
+  investigation duration or justification field, mandatory Investigation
+  Activity Type, pre-creation lookback limit, or ratio to Ticket lifetime.
+
+### Historical maintenance, authorization and retention
+
+- Preserve established authority over owned historical bookings after Ticket
+  reassignment or resolution. A description-only correction with the same Ticket
+  and unchanged interval may use the existing booking's authorization without
+  revalidating that Ticket reference or interval solely because the description
+  changed. Apply the same principle to description-only submitted replacement.
+  Preserve Technician identity, managed provenance, ownership, revision,
+  Customer consistency, privacy and correction audit. Submitted replacement
+  must preserve atomicity and replay safeguards.
+- Keep historical booked hours and audit evidence after Ticket or Project
+  completion, archival or removal. Keep protected Ticket content and lookups
+  subject to current access. Historical booking visibility and maintenance confer
+  no broader Ticket read access or authority to create a new booking or select a
+  different Ticket. Verify retention and privacy, including missing references,
+  using the existing native safeguards and report access controls.
+- Preserve existing bookings when lifecycle evidence is missing or inconsistent.
+  Reject new or changed Ticket intervals when necessary evidence is unreliable.
+  Modification time, SLA deadlines and unrelated fields cannot substitute for
+  missing lifecycle evidence. Broad historical data repair is outside this work.
+- **Outstanding for A.8.** Decide whether and under what constraints an eligible
+  Technician who has lost Ticket read access can change the start time or
+  duration of an existing, legitimately authorized booking against the same
+  Ticket. A blanket restriction on those changes has not been approved. This
+  decision leaves A.6 and A.7 preparation open to proceed under their respective
+  approvals. It does not expand Ticket visibility or call for historical
+  assignment reconstruction.
+- Preserve Project and Task grant authorization and temporal coverage across the
+  booked interval. Retain the accepted Ticket assignment-history, worker-grant,
+  Assignment Capture Receipt and temporal coverage implementation. Initial V1
+  Ticket booking has no dependency on assignment capture, historical assignment
+  episode or worker-grant coverage, or historical-work attestation.
+
+### Role, reporting and superseded requirements
+
+A Coordinator is a Technician with selected additional operational privileges,
+including Ticket reassignment and visibility of selected Supervisor functions
+and reports. Intake organization, dispatch of all Tickets and managing
+Technicians are outside the inherent responsibilities of this role. Supervisor
+permissions remain explicitly scoped.
+
+The revision supersedes the B3.88A.2 proposal to use Ticket creation as a
+universal lower bound, any requirement to reconstruct individual reopened or
+assigned periods for initial Ticket booking, and any requirement to rerun Ticket
+authorization and lifetime checks for an unchanged reference and interval in a
+description-only correction. Historical rationale and accepted evidence remain
+part of the record.
+
+Retain Draft-inclusive reporting and the existing exclusions for available-hours
+reconciliation, artificial gap filling, capacity analysis, productivity scoring,
+individual rankings, priority-based time analysis, HR/payroll, and booking
+approval workflows. Routine Technician submission remains outside the V1 scope.
+Audited maintenance of an already submitted booking is covered by the historical
+correction requirements above.
+
+### Approved checkpoint roadmap and release gates
+
+| Checkpoint | Classification and dependency | Acceptance target |
+| --- | --- | --- |
+| **B3.88A.6 — Trusted manual origin** | Mandatory before activation. First independently verifiable implementation slice. | Automatic positive evidence from the verified manual create path. Portal, Email, copied, imported and unknown Tickets cannot qualify by default, payload or ordinary edit. |
+| **B3.88A.7 — Ticket interval and attribution** | Mandatory before activation. Depends on A.6. | One server-side interval policy covers creation, changed Draft corrections and changed submitted replacements, with visible and stable pre-creation attribution. Prove lifecycle boundaries, concurrency, Customer consistency and unchanged Project/Task coverage. |
+| **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Preparation can run alongside A.7. Finalize the open interval-correction boundary before implementing that case. | Prove description-only maintenance after loss of Ticket read access, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
+| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
+| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
+| **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
+| **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
+| **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
+
+Print Heading remains a release blocker. The known reimport would drop the
+unique `print_heading` index, change the module from Setup to Printing, remove
+explicit naming-rule metadata, and replace `Desk User` read permission with
+`All`. Both full DEV migration passes remain pending. Minimum dormant production
+scope keeps managed booking and assignment capture off. Existing Helpdesk and
+ordinary Timesheet paths remain available, and report and Workspace access stays
+within existing role and data scope.
+
+Customer and Project onboarding, documentation, training and management
+preparation run in parallel. Use native Frappe capabilities and existing
+Administrator grant workflows. Missing operational master data outside the
+release scope does not gate dormant deployment. Defer unrelated fixture cleanup,
+Supervisor grant browser actions (B3.87M.167D.2), correction-only deactivation,
+and Ticket assignment capture cutover beyond the initial release or activation
+where applicable.
 
 ---
 
