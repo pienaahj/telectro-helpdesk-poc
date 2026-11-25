@@ -261,14 +261,19 @@ class TestProjectBookingAuthorization(unittest.TestCase):
 
     def test_project_only_and_explicit_task_succeed_without_native_read(self):
         self.assertEqual(self.call(), {"timesheet": "TS-2"})
-        self.assertEqual(self.events, ["Project", grants.DOCTYPE])
+        self.assertEqual(self.events, [
+            "Project", grants.DOCTYPE, "ERPNext Customer lock", "reverse range lock", "HD Customer lock",
+        ])
         self.assertIsNone(self.inserted[0].time_logs[0]["task"])
 
         self.events.clear()
         self.history = [self.grant(tasks=(TASK,))]
         self.assertEqual(self.call(task_name=TASK), {"timesheet": "TS-2"})
-        self.assertEqual(self.events, ["Project", "Task", grants.DOCTYPE])
+        self.assertEqual(self.events, [
+            "Project", "Task", grants.DOCTYPE, "ERPNext Customer lock", "reverse range lock", "HD Customer lock",
+        ])
         self.assertEqual(self.inserted[1].time_logs[0]["task"], TASK)
+        self.assertEqual(self.inserted[1].time_logs[0]["custom_hd_customer"], "C")
 
     def test_creation_accepts_consistent_project_customer_after_task_grant(self):
         self.history = [self.grant(tasks=(TASK,))]
@@ -372,7 +377,7 @@ class TestProjectBookingAuthorization(unittest.TestCase):
 
                 def verify_locked(ticket, start, end, **kwargs):
                     self.assertIs(ticket, self.current_ticket)
-                    self.assertEqual(self.events[-1], "Ticket lock")
+                    self.assertIn("Ticket lock", self.events)
                     self.assertFalse(self.mutations)
                     result = validate_ticket_interval(ticket, start, end, **kwargs)
                     self.assertEqual(result, timedelta(minutes=30))
@@ -381,7 +386,8 @@ class TestProjectBookingAuthorization(unittest.TestCase):
                 with patch.object(time_booking, "validate_ticket_interval", side_effect=verify_locked) as check:
                     self.call_helpdesk(operation)
                 check.assert_called_once()
-                self.assertEqual(self.events[-2:], ["Ticket lock", "Ticket status"])
+                self.assertEqual(self.events.count("Ticket lock"), 1)
+                self.assertEqual(self.events[-1], "Ticket status")
                 self.assertEqual(self.mutations, expected)
 
     def test_description_only_draft_and_replacement_do_not_validate_stale_lifecycle(self):
@@ -508,14 +514,18 @@ class TestProjectBookingAuthorization(unittest.TestCase):
         booking_correction.record_correction_event.assert_not_called()
         self.db.rollback.assert_called_once_with()
 
-    def test_replacement_with_omitted_customer_keeps_existing_behavior(self):
+    def test_replacement_with_changed_ticket_inherits_customer_from_locked_ticket(self):
         self.ticket["custom_customer"] = "ERP-OTHER"
 
         self.replace_helpdesk()
 
-        self.assertEqual(self.events, ["Timesheet", "Ticket lock", "Ticket status"])
+        self.assertEqual(self.events, [
+            "Timesheet", "Ticket lock", "ERPNext Customer lock", "HD Customer lock",
+            "reverse range lock", "Ticket status",
+        ])
         self.assertEqual(self.mutations, ["cancel", "insert", "audit"])
-        self.assertIsNone(self.inserted[0].time_logs[0]["custom_hd_customer"])
+        self.assertEqual(self.inserted[0].time_logs[0]["custom_hd_customer"], "C")
+        self.assertEqual(self.replace_helpdesk()["replacement_timesheet"], "TS-2")
         self.db.rollback.assert_not_called()
 
     def test_replacement_ownership_revision_and_reference_denials_precede_consistency(self):
@@ -702,7 +712,10 @@ class TestProjectBookingAuthorization(unittest.TestCase):
                 self.call("replace", task_name=TASK)
                 self.assertEqual(self.project_locks, [*sorted((original_project, PROJECT)), PROJECT])
                 self.assertEqual(
-                    self.events, ["Timesheet", "Project", "Project", "Project", "Task", grants.DOCTYPE],
+                    self.events, [
+                        "Timesheet", "Project", "Project", "Project", "Task", grants.DOCTYPE,
+                        "ERPNext Customer lock", "reverse range lock", "HD Customer lock",
+                    ],
                 )
 
     def test_submitted_cancellation_locks_original_project_without_requiring_a_grant(self):

@@ -140,7 +140,7 @@ class TestBookingPost(unittest.TestCase):
         self.identity = TechnicianBookingIdentity("tech", "EMP-1", "Company A")
         self.m.resolve_current_technician_identity = Mock(return_value=self.identity)
         self.m._require_activation_configuration = Mock()
-        self.m.require_project_booking_grant = Mock()
+        self.m.require_project_booking_grant = Mock(return_value=None)
         self.intent_documents = []
         @contextmanager
         def intent(doc, identity):
@@ -163,6 +163,11 @@ class TestBookingPost(unittest.TestCase):
             raise LookupError() from exc
 
     def get_locked_customer(self, doctype, name, fields, **kwargs):
+        if doctype == "Customer":
+            self.assertEqual((name, fields, kwargs), (
+                "ERP-C", "name", {"order_by": None, "for_update": True, "wait": False},
+            ))
+            return name
         self.assertEqual(fields, "*")
         self.assertIn(doctype, ("HD Customer", "HD Ticket"))
         if doctype == "HD Customer":
@@ -258,6 +263,7 @@ class TestBookingPost(unittest.TestCase):
         self.refs[("HD Ticket", "T")].update(
             customer="C", custom_customer="ERP-C",
         )
+        self.refs[("HD Customer", "C")]["custom_erp_customer"] = "ERP-C"
         self.assertEqual(self.call(), {"timesheet": "TS-001"})
         doc = self.db.writes[0]
         self.assertEqual(len(self.db.writes), 1)
@@ -266,7 +272,7 @@ class TestBookingPost(unittest.TestCase):
         self.assertEqual(doc["company"], "Company A")
         self.assertEqual(doc["user"], "tech")
         self.assertEqual(doc.time_logs[0]["hours"], 1.5)
-        self.assertIsNone(doc.time_logs[0]["custom_hd_customer"])
+        self.assertEqual(doc.time_logs[0]["custom_hd_customer"], "C")
         self.assertEqual(self.intent_documents[0][1], self.identity)
         self.m._require_activation_configuration.assert_called_once()
 

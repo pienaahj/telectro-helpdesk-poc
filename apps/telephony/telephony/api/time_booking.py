@@ -51,8 +51,13 @@ COMMAND = "telephony.api.time_booking.book_technician_time"
 
 
 class BookingReferenceDenied(PermissionError):
+    def __init__(self, message="Booking reference is unavailable."):
+        super().__init__(message)
+
+
+class BookingCustomerConfigurationError(BookingReferenceDenied):
     def __init__(self):
-        super().__init__("Booking reference is unavailable.")
+        super().__init__("The Project's ERPNext Customer has no HD Customer mapping.")
 
 
 class BookingInputError(ValueError):
@@ -214,41 +219,55 @@ def _validate_helpdesk_interval(row, *, ticket, locked_ticket, start, end, previ
         raise BookingReferenceDenied() from exc
 
 
-def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
-    """Validate an optional HD Customer after booking reference authorization."""
-    customer_name = row.get("custom_hd_customer")
-    if customer_name in (None, ""):
+def _locked_hd_customer_names(db, erp_customer):
+    return db.sql("""
+        SELECT name FROM `tabHD Customer` FORCE INDEX (custom_erp_customer_index)
+        WHERE custom_erp_customer = %s
+        FOR UPDATE NOWAIT
+    """, (erp_customer,))
+
+
+def _validate_customer_consistency(row, *, ticket=None, project_customer=None, previous=None):
+    """Resolve and persist the operational HD Customer at the authorized write boundary."""
+    context = row["custom_work_context"]
+    customer_name = row.get("custom_hd_customer") or None
+    reference_field = {"Helpdesk": "custom_hd_ticket", "Project": "project"}.get(context)
+    if (reference_field and previous and previous["custom_work_context"] == context
+            and str(previous.get(reference_field)) == str(row.get(reference_field))
+            and customer_name in (None, previous.get("custom_hd_customer"))):
+        # A saved identity, including a legacy blank, survives changes to master data.
+        row["custom_hd_customer"] = previous.get("custom_hd_customer")
         return
 
-    hd_customer = _visible("HD Customer", customer_name)
+    # Retain the read checks before exact locks for an explicit selection.
+    hd_customer = _visible("HD Customer", customer_name) if customer_name else None
     db = frappe.db
-    _require_customer_mapping_transaction(db)
+    if customer_name:
+        _require_customer_mapping_transaction(db)
+
+    locked_ticket = None
     authoritative_customer = None
-    current_ticket = None
-    context = row["custom_work_context"]
-
     if context == "Helpdesk":
-        current_ticket = _lock_booking_ticket(ticket)
-        ticket_customer = current_ticket.get("customer")
-        if ticket_customer not in (None, "", customer_name):
+        locked_ticket = _lock_booking_ticket(ticket)
+        ticket_customer = locked_ticket.get("customer")
+        if ticket_customer and customer_name not in (None, ticket_customer):
             raise BookingReferenceDenied()
-        authoritative_customer = current_ticket.get("custom_customer")
+        customer_name = ticket_customer or customer_name
+        authoritative_customer = locked_ticket.get("custom_customer")
     elif context == "Project":
-        if not _identifier(project_customer):
-            raise BookingReferenceDenied()
         authoritative_customer = project_customer
-    elif context != "Customer Support":
-        raise BookingReferenceDenied()
+        if customer_name and not authoritative_customer:
+            raise BookingReferenceDenied()
 
-    # A snapshot forward link is only a candidate when the Project or Ticket
-    # supplied no ERPNext Customer. Lock in ERPNext Customer -> HD Customer order
-    # and reject a changed candidate, including an initially unmapped row.
-    candidate = authoritative_customer
-    if candidate in (None, ""):
-        candidate = hd_customer.get("custom_erp_customer")
-    if candidate == "":
-        candidate = None
+    if not customer_name and not authoritative_customer:
+        return locked_ticket
+    if hd_customer is None:
+        _require_customer_mapping_transaction(db)
+        if customer_name:
+            hd_customer = _visible("HD Customer", customer_name)
 
+    candidate = authoritative_customer or (hd_customer and hd_customer.get("custom_erp_customer")) or None
+    reverse_resolved = customer_name is None
     try:
         if candidate is not None and (
             not _identifier(candidate)
@@ -258,6 +277,16 @@ def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
         ):
             raise BookingReferenceDenied()
 
+        if reverse_resolved:
+            _require_customer_mapping_index(db)
+            matches = _locked_hd_customer_names(db, candidate)
+            if not matches and context == "Project":
+                raise BookingCustomerConfigurationError()
+            if len(matches) != 1:
+                raise BookingReferenceDenied()
+            customer_name = matches[0][0]
+            _visible("HD Customer", customer_name)
+
         locked = db.get_value(
             "HD Customer", customer_name, "*", as_dict=True,
             order_by=None, for_update=True, wait=False,
@@ -266,20 +295,23 @@ def _validate_customer_consistency(row, *, ticket=None, project_customer=None):
             raise BookingReferenceDenied()
         current_customer = frappe.get_doc({**locked, "doctype": "HD Customer"})
         current_customer.check_permission("read")
-        current_mapping = current_customer.get("custom_erp_customer")
-        if (None if current_mapping == "" else current_mapping) != candidate:
+        if (current_customer.get("custom_erp_customer") or None) != candidate:
             raise BookingReferenceDenied()
-        _require_customer_mapping_index(db)
 
-        if candidate is not None and db.sql("""
-            SELECT name FROM `tabHD Customer` FORCE INDEX (custom_erp_customer_index)
-            WHERE custom_erp_customer = %s
-            FOR UPDATE NOWAIT
-        """, (candidate,)) != ((customer_name,),):
-            raise BookingReferenceDenied()
+        if not reverse_resolved:
+            _require_customer_mapping_index(db)
+            if candidate is not None:
+                matches = _locked_hd_customer_names(db, candidate)
+                if not matches and context == "Project":
+                    raise BookingCustomerConfigurationError()
+                if matches != ((customer_name,),):
+                    raise BookingReferenceDenied()
+    except BookingCustomerConfigurationError:
+        raise
     except (frappe.PermissionError, frappe.QueryDeadlockError, frappe.QueryTimeoutError) as exc:
         raise BookingReferenceDenied() from exc
-    return current_ticket
+    row["custom_hd_customer"] = customer_name
+    return locked_ticket
 
 
 def _period(from_time, duration_minutes):
@@ -367,6 +399,27 @@ def get_booking_ticket_area(ticket_name):
     _booking_identity()
     ticket = _visible("HD Ticket", ticket_name)
     return {"service_area": ticket.get("custom_service_area")}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_booking_reference_customer(*, ticket_name=None, project_name=None, from_time=None, duration_minutes=None):
+    """Preview only the authorized operational Customer. Writes resolve it again."""
+    identity = _booking_identity()
+    if bool(ticket_name) == bool(project_name):
+        raise BookingInputError()
+    if ticket_name:
+        row = {"custom_work_context": "Helpdesk", "custom_hd_ticket": ticket_name}
+        ticket = _authorize_references(row, identity)
+        _validate_customer_consistency(row, ticket=ticket)
+    else:
+        start, end, _ = _period(from_time, duration_minutes)
+        row = {"custom_work_context": "Project", "project": project_name}
+        project_customer = _authorize_references(row, identity, start=start, end=end)
+        try:
+            _validate_customer_consistency(row, project_customer=project_customer)
+        except BookingCustomerConfigurationError as exc:
+            return {"configuration_error": str(exc)}
+    return {"customer_name": row.get("custom_hd_customer")}
 
 
 @frappe.whitelist()

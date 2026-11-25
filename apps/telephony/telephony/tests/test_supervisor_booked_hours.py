@@ -197,6 +197,18 @@ class TestSupervisorBookedHours(unittest.TestCase):
         self.reference("HD Customer", "Duplicate", custom_erp_customer="ERP-A")
         self.assertEqual(self.rows(), [])
 
+    def test_legacy_blank_counts_in_overall_hours_without_inheriting_mutable_customer(self):
+        self.reference("HD Customer", "A", custom_erp_customer="ERP-A", readable=False)
+        self.reference("HD Ticket", "42", customer="A", custom_customer="ERP-A", readable=False)
+        self.add("legacy-blank", context="Helpdesk", ticket=42)
+        row, = self.rows(detail=True)
+        self.assertEqual(row["booked_hours"], 1)
+        self.assertIsNone(row["customer"])
+        self.assertIsNone(row["ticket"])
+        self.assertEqual(self.rows(customer="A"), [])
+        self.permissions = {"HD Customer": [{"doc": "A", "applicable_for": "Timesheet"}]}
+        self.assertEqual(self.rows(), [])
+
     def test_unrelated_customer_rule_and_independent_linked_read_checks(self):
         self.reference("HD Customer", "A", custom_erp_customer="ERP-A")
         self.reference("Project", "P", company=TECH.company, customer="ERP-A", readable=False)

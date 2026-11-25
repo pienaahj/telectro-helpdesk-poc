@@ -152,6 +152,12 @@ def _customer_allowed(row, limits, load, customer_mapping):
     if row.unlisted_customer and (saved_customer or row.ticket or row.project):
         return False
 
+    if not saved_customer:
+        # Keep unattributed work in authorized overall totals without assigning
+        # a historical Customer from today's Ticket or Project mapping.
+        project, _ = load("Project", str(row.project)) if row.project else (None, False)
+        return project is None or project.get("company") == row.company
+
     hd_customer, erp_customer = saved_customer, None
     for field, doctype in (("ticket", "HD Ticket"), ("project", "Project")):
         if not row[field]:

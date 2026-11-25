@@ -143,7 +143,7 @@ class TestAttributionGuards(unittest.TestCase):
         for changes in (
             {FIELD: 0}, {FIELD: -1}, {FIELD: None}, {FIELD: 1000002},
             {"from_time": START + timedelta(seconds=1)}, {"to_time": END + timedelta(seconds=1)},
-            {"custom_hd_ticket": 2}, {"custom_hd_ticket": "01"},
+            {"custom_hd_ticket": 2}, {"custom_hd_ticket": "01"}, {"custom_hd_customer": "Different"},
             {"custom_work_context": "Project"}, {"name": "SUBSTITUTE"},
         ):
             self.row.clear()

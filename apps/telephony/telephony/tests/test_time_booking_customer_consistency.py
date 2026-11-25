@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import frappe
 
 from telephony.api.time_booking import (
-    BookingReferenceDenied,
+    BookingCustomerConfigurationError, BookingReferenceDenied,
     _validate_customer_consistency,
 )
 from telephony.tests.test_time_booking_post import Reference, customer_mapping_sql
@@ -92,14 +92,41 @@ class TestBookingCustomerConsistency(unittest.TestCase):
             self.validate(context)
         self.assertEqual(str(denied.exception), "Booking reference is unavailable.")
 
-    def test_omitted_customer_requires_no_reference_reads(self):
-        for context in ("Helpdesk", "Project", "Customer Support", "Internal"):
+    def test_omitted_unlinked_customer_requires_no_customer_reads(self):
+        for context in ("Project", "Customer Support", "Internal"):
             for supplied in ({}, {"custom_hd_customer": None}, {"custom_hd_customer": ""}):
                 with self.subTest(context=context, supplied=supplied):
                     _validate_customer_consistency({"custom_work_context": context, **supplied})
         self.get_doc.assert_not_called()
         self.db.get_value.assert_not_called()
         self.db.sql.assert_not_called()
+
+    def test_omitted_customer_inherits_ticket_hd_identity_or_unique_erp_mapping(self):
+        for hd_name, erp_name in (("HD-A", "ERP-A"), (None, "ERP-A"), ("HD-A", None)):
+            with self.subTest(hd_name=hd_name, erp_name=erp_name):
+                self.ticket_links.update(customer=hd_name, custom_customer=erp_name)
+                row = {"custom_work_context": "Helpdesk", "custom_hd_ticket": "T"}
+                _validate_customer_consistency(row, ticket=self.ticket)
+                self.assertEqual(row["custom_hd_customer"], "HD-A")
+
+    def test_project_inherits_unique_mapping_and_reports_missing_configuration(self):
+        row = {"custom_work_context": "Project", "project": "PROJECT-A"}
+        _validate_customer_consistency(row, project_customer="ERP-A")
+        self.assertEqual(row.pop("custom_hd_customer"), "HD-A")
+        for matches, error in (((), BookingCustomerConfigurationError),
+                               ((("HD-A",), ("HD-B",)), BookingReferenceDenied)):
+            with self.subTest(matches=matches), self.assertRaises(error):
+                self.reverse_matches = matches
+                _validate_customer_consistency(row, project_customer="ERP-A")
+
+    def test_same_reference_preserves_saved_customer_and_legacy_blank(self):
+        for name in ("HD-A", None):
+            with self.subTest(name=name):
+                row = {"custom_work_context": "Helpdesk", "custom_hd_ticket": "969"}
+                previous = {**row, "custom_hd_ticket": 969, "custom_hd_customer": name}
+                _validate_customer_consistency(row, previous=previous)
+                self.assertEqual(row["custom_hd_customer"], name)
+        self.db.get_value.assert_not_called()
 
     def test_ticket_accepts_canonical_links_together_or_independently(self):
         for hd_name, erp_name in (
@@ -153,7 +180,11 @@ class TestBookingCustomerConsistency(unittest.TestCase):
             with self.subTest(matches=matches):
                 self.reverse_matches = matches
                 self.assert_denied()
-                self.assert_denied("Project")
+                if matches:
+                    self.assert_denied("Project")
+                else:
+                    with self.assertRaises(BookingCustomerConfigurationError):
+                        self.validate("Project")
 
     def test_project_accepts_matching_customer_and_unique_reverse_mapping(self):
         self.validate("Project")

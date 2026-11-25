@@ -170,6 +170,9 @@
 
     let ticketLookup = 0;
     let ticketArea;
+    let customerLookup = 0;
+    let customerReference;
+    let customerPreview;
     let dialog;
     let restoring = Boolean(booking);
     let projectContext = booking?.work_context === "Project";
@@ -269,6 +272,62 @@
       }
     }
 
+    function linkedCustomer(values) {
+      if (inHelpdesk(values) && values.ticket_name) {
+        return { ticket_name: String(values.ticket_name) };
+      }
+      if (inProject(values) && values.project_name) {
+        const interval = completedWorkInterval(values);
+        if (interval) return { ...interval, project_name: values.project_name };
+      }
+      return null;
+    }
+
+    async function updateCustomer() {
+      const values = Object.fromEntries(
+        ["work_context", "ticket_name", projectField, "from_time", "duration_minutes"]
+          .map((name) => [name, dialog.get_value(name)]),
+      );
+      const reference = linkedCustomer(values);
+      const key = JSON.stringify(reference);
+      if (customerReference === key) return;
+      const hadReference = customerReference && customerReference !== "null";
+      customerReference = key;
+      const revision = ++customerLookup;
+      customerPreview = null;
+      if (reference || hadReference) await dialog.set_value("customer_name", "");
+      if (revision !== customerLookup) return;
+      if (!reference) {
+        await dialog.set_value("derived_customer", "");
+        dialog.refresh_dependency();
+        return;
+      }
+      const historical = booking?.work_context === values.work_context && (
+        inHelpdesk(values) ? String(booking.ticket_name) === reference.ticket_name
+          : booking.project_name === reference.project_name
+      );
+      await dialog.set_value("derived_customer", __("Loading…"));
+      dialog.refresh_dependency();
+      let preview;
+      try {
+        preview = historical
+          ? { customer_name: booking.customer_name, historical: true }
+          : await get("get_booking_reference_customer", reference);
+      } catch {
+        preview = { configuration_error: __("Customer could not be resolved for this reference.") };
+      }
+      if (revision !== customerLookup) return;
+      customerPreview = preview;
+      await dialog.set_value("derived_customer",
+        preview.configuration_error || preview.customer_name || __("No Customer recorded."));
+      dialog.refresh_dependency();
+    }
+
+    const maySelectCustomer = (values) => values.work_context === "Customer Support" || (
+      inHelpdesk(values) && linkedCustomer(values) && customerPreview
+      && !customerPreview.customer_name && !customerPreview.historical && !customerPreview.configuration_error
+    );
+
     function formPayload(values) {
       if (inProject(values)) {
         for (const field of [projectField, taskField]) {
@@ -281,7 +340,14 @@
           }
         }
       }
-      return bookingPayload(values, ticketArea, options);
+      const reference = linkedCustomer(values);
+      if (reference && (customerReference !== JSON.stringify(reference) || !customerPreview
+          || customerPreview.configuration_error)) {
+        showError(customerPreview?.configuration_error || __("Wait for the Customer to load."));
+        return null;
+      }
+      const customerName = maySelectCustomer(values) ? values.customer_name : undefined;
+      return bookingPayload({ ...values, customer_name: customerName }, ticketArea, options);
     }
 
     async function updateTicketArea() {
@@ -315,13 +381,13 @@
         fieldname: "work_context", label: __("Work Context"), fieldtype: "Select",
         options: selectOptions(["Helpdesk", "Project", "Customer Support", "Internal"]),
         reqd: 1,
-        onchange: () => dialog && Promise.all([updateTicketArea(), periodChanged()]),
+        onchange: () => dialog && Promise.all([updateTicketArea(), periodChanged(), updateCustomer()]),
       },
       {
         fieldname: "ticket_name", label: __("Helpdesk Ticket"), fieldtype: "Link",
         options: "HD Ticket", depends_on: inHelpdesk, mandatory_depends_on: inHelpdesk,
         get_query: () => ({ query: api + "search_booking_tickets" }),
-        onchange: () => dialog && updateTicketArea(),
+        onchange: () => dialog && Promise.all([updateTicketArea(), updateCustomer()]),
       },
       {
         fieldname: "project_search", label: __("Find Project"), fieldtype: "Data", length: 80,
@@ -332,7 +398,7 @@
         fieldname: projectField, label: __("Project"), fieldtype: "Select", options: [""],
         depends_on: inProject, mandatory_depends_on: inProject,
         description: __("Enter a completed work interval to load eligible Projects. Refine the search if needed."),
-        onchange: () => dialog && projectChanged(),
+        onchange: () => dialog && Promise.all([projectChanged(), updateCustomer()]),
       },
       {
         fieldname: "task_search", label: __("Find Task"), fieldtype: "Data", length: 80,
@@ -346,7 +412,11 @@
       {
         fieldname: "customer_name", label: __("Customer"), fieldtype: "Link",
         options: "HD Customer",
-        depends_on: (values) => !!values.work_context && values.work_context !== "Internal",
+        depends_on: maySelectCustomer,
+      },
+      {
+        fieldname: "derived_customer", label: __("Customer from Ticket or Project"), fieldtype: "Data",
+        read_only: 1, depends_on: (values) => linkedCustomer(values) && !maySelectCustomer(values),
       },
       {
         fieldname: "unlisted_customer_name", label: __("Unlisted Customer Name"), fieldtype: "Data",
@@ -462,6 +532,7 @@
     }
     dialog.$wrapper.one("hidden.bs.modal", () => {
       periodRevision++;
+      customerLookup++;
       referenceRevision[projectField]++;
       referenceRevision[taskField]++;
       dialog.$wrapper.remove();
@@ -474,7 +545,8 @@
       const fill = async () => {
         for (const field of fields) {
           const key = field.fieldname;
-          if (key === projectField || key === taskField || (key === "activity_type" && historicalActivity)) continue;
+          if (key === projectField || key === taskField || (key === "activity_type" && historicalActivity)
+              || (key === "customer_name" && (inHelpdesk(booking) || inProject(booking)))) continue;
           if (key === "emergency" && booking.emergency != null) {
             await dialog.set_value(key, booking.emergency ? "Yes" : "No");
           } else if (key && booking[key] != null) {

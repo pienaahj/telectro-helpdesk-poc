@@ -21,7 +21,7 @@ CHILD_EVENTS = (
     "before_cancel", "before_update_after_submit", "before_change", "on_trash",
 )
 _ORIGIN = "custom_telectro_booking_origin"
-_BOUND = ("custom_work_context", "custom_hd_ticket", "from_time", "to_time", FIELD)
+_BOUND = ("custom_work_context", "custom_hd_ticket", "from_time", "to_time", FIELD, "custom_hd_customer")
 _CHILD_FIELDS = ("name", "parent", "parenttype", "parentfield", *_BOUND)
 _write = ContextVar("telectro_attribution_write", default=None)
 
@@ -124,6 +124,7 @@ def _bound_values(row):
     return (
         row.get("custom_work_context"), ticket,
         _timestamp(row.get("from_time")), _timestamp(row.get("to_time")), row.get(FIELD),
+        row.get("custom_hd_customer") or None,
     )
 
 

@@ -473,18 +473,21 @@ class TestDraftCorrection(unittest.TestCase):
         api.record_correction_event.assert_not_called()
         self.rollback.assert_called_once_with()
 
-    def test_correction_with_omitted_customer_keeps_existing_behavior(self):
+    def test_changed_ticket_inherits_customer_despite_stale_snapshot(self):
         ticket, _customer = self.ticket_customer_references()
-        self.doc.time_logs[0]["custom_hd_customer"] = "C"
         ticket["custom_customer"] = "ERP-OTHER"
 
-        self.assertEqual(self.endpoint(), {"timesheet": "TS-1", "audit": "AUDIT-1"})
+        result = self.endpoint()
 
+        self.assertEqual(result, {"timesheet": "TS-1", "audit": "AUDIT-1"})
         self.doc.save.assert_called_once_with()
-        self.assertIsNone(self.recorded["after"]["time_logs"][0]["custom_hd_customer"])
-        self.f.db.get_value.assert_called_once_with(
-            "HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False,
-        )
+        self.assertEqual(self.recorded["after"]["time_logs"][0]["custom_hd_customer"], "C")
+        self.assertIsNone(self.recorded["after"]["requested_customer_name"])
+        self.assertEqual(self.f.db.get_value.call_args_list, [
+            call("HD Ticket", "T", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+            call("Customer", "ERP-C", "name", order_by=None, for_update=True, wait=False),
+            call("HD Customer", "C", "*", as_dict=True, order_by=None, for_update=True, wait=False),
+        ])
         self.rollback.assert_not_called()
 
     def test_correction_ownership_revision_and_reference_denials_precede_consistency(self):

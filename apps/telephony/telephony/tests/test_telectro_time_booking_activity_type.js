@@ -54,7 +54,10 @@ function loadBookingForm(lookup = async () => []) {
       ui: { Dialog },
       async call(request) {
         requests.push(request);
-        return { message: await lookup(request.method.split(".").at(-1), request.args) };
+        const method = request.method.split(".").at(-1);
+        const result = await lookup(method, request.args);
+        return { message: method === "get_booking_reference_customer" && Array.isArray(result)
+          ? { customer_name: null } : result };
       },
       datetime: {
         system_datetime: () => "2026-11-20 12:00:00",
@@ -198,6 +201,34 @@ async function setProjectInterval(dialog) {
 const optionIds = (dialog, fieldname) =>
   Array.from(field(dialog, fieldname).options, (option) => option.value || option);
 
+test("Linked Customer follows the reference and clears stale selection", async () => {
+  const form = loadBookingForm(async (method, args) => {
+    if (method === "get_booking_ticket_area") return { service_area: "Routing" };
+    if (method === "get_booking_projects") return [project, otherProject];
+    if (method === "get_booking_tasks") return [];
+    if (args.ticket_name === "973" || args.project_name === project.id) {
+      return { customer_name: "Boschendal" };
+    }
+    return { customer_name: null };
+  });
+  const dialog = form.open();
+  await dialog.set_value("work_context", "Helpdesk");
+  await dialog.set_value("ticket_name", "973");
+  assert.equal(dialog.values.derived_customer, "Boschendal");
+  assert.equal(field(dialog, "customer_name").depends_on(dialog.values), false);
+  await dialog.set_value("ticket_name", "972");
+  assert.equal(field(dialog, "customer_name").depends_on(dialog.values), true);
+  await dialog.set_value("customer_name", "Selected Customer");
+  await dialog.set_value("ticket_name", "973");
+  assert.equal(dialog.values.customer_name, "");
+  await setProjectInterval(dialog);
+  await dialog.set_value("project_name", project.id);
+  assert.equal(dialog.values.derived_customer, "Boschendal");
+  await dialog.set_value("project_name", otherProject.id);
+  assert.equal(dialog.values.customer_name, "");
+  assert.equal(dialog.values.derived_customer, "No Customer recorded.");
+});
+
 test("Scoped Projects load only for completed work and preserve required validation", async () => {
   const form = loadBookingForm(async () => [project]);
   const dialog = form.open();
@@ -220,6 +251,7 @@ test("Scoped Projects load only for completed work and preserve required validat
 test("Changing Project, duration, or start clears dependent selections", async () => {
   const form = loadBookingForm(async (method, args) => {
     if (method === "get_booking_projects") return [project, otherProject];
+    if (method === "get_booking_reference_customer") return { customer_name: null };
     assert.ok([project.id, otherProject.id].includes(args.project_name));
     return args.project_name === project.id ? [task] : [];
   });
@@ -252,6 +284,7 @@ test("A stale Task response from the previous Project is discarded", async () =>
   const oldLookup = new Promise((resolve) => { finishOld = resolve; });
   const form = loadBookingForm(async (method, args) => {
     if (method === "get_booking_projects") return [project, otherProject];
+    if (method === "get_booking_reference_customer") return { customer_name: null };
     return args.project_name === project.id ? oldLookup : [];
   });
   const dialog = form.open();

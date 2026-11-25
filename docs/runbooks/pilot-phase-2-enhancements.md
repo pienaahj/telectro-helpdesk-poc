@@ -45,6 +45,10 @@ without an ERPNext Customer, User or Contact; this was functionally verified in
 DEV. Support more than 100 operational customers not yet onboarded into ERPNext,
 using the existing optional HD Customer → ERPNext Customer relationship.
 
+The [Customer identity decision](customer-location-and-organisation-model.md#customer-identity-decision)
+records the implemented Ticket mapping and the functional booking inheritance
+and reporting requirements that must pass before activation.
+
 Preserve stable legacy/Gwizz identification when available. The precise
 migration-key mechanism remains an implementation decision.
 

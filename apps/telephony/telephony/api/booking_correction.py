@@ -333,6 +333,8 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
             after = json.loads(prior["after_snapshot"])
             for key, value in values.items():
                 stored = after["time_logs"][0].get(key)
+                if key == "custom_hd_customer" and "requested_customer_name" in after:
+                    stored = after["requested_customer_name"]
 
                 if hasattr(value, "isoformat"):
                     value = value.isoformat()
@@ -387,23 +389,29 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
                 effective_row, identity,
                 start=effective_row["from_time"], end=effective_row["to_time"],
             )
-        locked_ticket = _validate_customer_consistency(
-            effective_row, ticket=ticket, project_customer=project_customer,
-        )
         previous = current["time_logs"][0]
+        locked_ticket = _validate_customer_consistency(
+            effective_row, ticket=ticket, project_customer=project_customer, previous=previous,
+        )
         start, end = effective_row["from_time"], effective_row["to_time"]
         portion = _validate_helpdesk_interval(
             effective_row, ticket=ticket, locked_ticket=locked_ticket,
             start=start, end=end, previous=previous,
         )
         attribution = prepare_attribution(effective_row, start, end, portion=portion, previous=previous)
-        doc.time_logs[0].update({**values, **attribution})
+        requested_customer = values.get("custom_hd_customer")
+        doc.time_logs[0].update({
+            **values, **attribution, "custom_hd_customer": effective_row.get("custom_hd_customer"),
+        })
         with _authorized_native_draft_mutation(doc), authorized_attribution(doc, attribution):
             doc.save()  # native validations and lifecycle checks
         after = json.loads(_snapshot(booking_snapshot(doc)))
         _owned(after, identity)
         if after["time_logs"][0]["name"] != before["time_logs"][0]["name"]:
             raise BookingOwnershipError()
+        if requested_customer != after["time_logs"][0]["custom_hd_customer"]:
+            # Keep request identity independent of the resolved Customer for replay.
+            after["requested_customer_name"] = requested_customer
         audit = record_correction_event(event_id=event_id, action=action,
                                         reason=reason, before=before, after=after)
     else:
@@ -903,7 +911,7 @@ def replace_submitted_booking(
 
         values = json.loads(requested)
 
-        # The new Timesheet Detail must match the audit evidence.
+        # Keep requested Customer evidence intact and resolve the persisted identity separately.
         row = {
             "custom_work_context": values["work_context"],
             "custom_hd_ticket": values["ticket_name"],
@@ -932,10 +940,10 @@ def replace_submitted_booking(
         project_customer = None
         if work_context == "Project":
             project_customer = _authorize_references(reference_row, identity, start=start, end=end)
-        locked_ticket = _validate_customer_consistency(
-            row, ticket=ticket, project_customer=project_customer,
-        )
         previous = before["time_logs"][0]
+        locked_ticket = _validate_customer_consistency(
+            row, ticket=ticket, project_customer=project_customer, previous=previous,
+        )
         portion = _validate_helpdesk_interval(
             row, ticket=ticket, locked_ticket=locked_ticket,
             start=start, end=end, previous=previous,
