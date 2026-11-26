@@ -87,6 +87,9 @@ authorization also applies to exports. Reference filters match exact authorized
 display identities and offer no unrestricted master-data suggestions. The
 existing Ops Workspace report link remains the entry point.
 
+The 26 November owner decision retains this report and register as the first
+pillar of the [approved management intelligence specification](#approved-management-intelligence-specification--26-november-2026).
+
 A secondary **Booking Completeness & Integrity** report may identify missing,
 duplicate, inconsistent or unclassified bookings. It is not an SLA performance
 report. Its detection rules remain to be designed without introducing expected
@@ -129,6 +132,11 @@ The minimum implementation excludes:
 - Customer/contract/site time budgets.
 - Profitability, financial balancing and billing workflows.
 - Full Project Management and HR/payroll implementation.
+
+The 26 November approval adds the narrow Customer Labour Cost Analysis
+exception described below. It authorizes operational exports and local Excel
+analysis with manual financial inputs. The original accounting, billing,
+payroll and full-profitability exclusions remain in force.
 
 Earlier requirements are retained below with these explicit dispositions:
 
@@ -307,10 +315,14 @@ correction requirements above.
 | **B3.88A.6 — Trusted manual origin** | Mandatory before activation. First independently verifiable implementation slice. | Automatic positive evidence from the verified manual create path. Portal, Email, copied, imported and unknown Tickets cannot qualify by default, payload or ordinary edit. |
 | **B3.88A.7 — Ticket interval and attribution** | Mandatory before activation. Depends on A.6. | One server-side interval policy covers creation, changed Draft corrections and changed submitted replacements, with visible and stable pre-creation attribution. Prove lifecycle boundaries, concurrency, Customer consistency and unchanged Project/Task coverage. |
 | **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Owner approved A.8A on 26 November 2026. | Prove description and bounded interval corrections after loss of Ticket read access, immutable original creation evidence, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
+| **REP-01–06 — Supervisor Booked Hours formal closure** | Existing DEV implementation and technical evidence retained. | Complete the outstanding owner browser and functional closure checks. Record Pierre’s business acceptance separately. |
+| **DASH-01–10 — Technician Work Overview** | Approved scope. Management usability is intended for operational activation. An otherwise-authorized dormant deployment can proceed independently. | Reconcile with Supervisor Booked Hours and pass the owner browser usability check. Obtain Pierre’s feedback separately. |
+| **COST-01–08 — Customer Labour Cost Analysis** | Approved scope. The owner sets the delivery milestone and sequence. | Reconcile authorized operational hours and pass owner workbook acceptance with local manual financial inputs. |
+| **UI-01–12 — Consolidated Technician UI improvements** | Existing register remains a separate workstream. | Retain prior decisions, evidence and outstanding acceptance items. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
-| **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
+| **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
 
 Print Heading remains a release blocker. The known reimport would drop the
@@ -328,6 +340,107 @@ release scope does not gate dormant deployment. Defer unrelated fixture cleanup,
 Supervisor grant browser actions (B3.87M.167D.2), correction-only deactivation,
 and Ticket assignment capture cutover beyond the initial release or activation
 where applicable.
+
+---
+
+## Approved management intelligence specification — 26 November 2026
+
+The owner approved **B3.88REP.2** on Thursday, 26 November 2026. This
+extends the Phase 2 business specification with three complementary pillars.
+Management needs to see where recorded work was spent, inspect the contributing
+entries and assess the commercial implications. Clear visual presentation and
+practical navigation are functional acceptance requirements. The owner approved
+the visual and interactive direction demonstrated in ChatGPT.
+
+### Shared reporting authority and population
+
+All three pillars use the native Timesheet ledger and the same authorized
+booking population. Apply existing Supervisor Reporting Grants, Company and
+Customer restrictions, saved historical Customer identity, and server-side
+reference and description redaction. Reuse site-local date clipping and exact
+aggregation. Include Draft and Submitted bookings, exclude Cancelled and
+withdrawn bookings, and count replacements once. Emergency and pre-creation
+work remain subsets of booked time. Preserve the existing reporting service,
+authorization model and Helpdesk privacy throughout.
+
+### Pillar 1 — REP-01–06 Supervisor Booked Hours
+
+Retain Daily Summary, Technician Breakdown, Customer Breakdown, Work Context
+Breakdown, Project / Reference Breakdown, Service Area Breakdown, Activity
+Breakdown, and Booking Detail. Preserve comprehensive filters, authorized
+descriptions, detail navigation, and Excel and CSV exports. The dashboard links
+to the report for detailed analysis while preserving its existing capabilities.
+
+The DEV implementation and technical evidence at
+`d77d2b3338a63220f6e4a935d8a97e40eca19aad` remain accepted evidence for
+the [REP-01–06 register](#rep-0106-management-reporting-acceptance-register).
+Formal owner browser and functional acceptance and Pierre’s personal business
+acceptance remain distinct.
+
+### Pillar 2 — DASH-01–10 Technician Work Overview
+
+| ID | Approved requirement and acceptance check |
+| --- | --- |
+| DASH-01 | Show useful information on open using a sensible default period. Display actual recorded booked time with meaningful Technician and Customer summaries within scope. Management can start with the overview before filtering. Live activity inference is outside scope. |
+| DASH-02 | Show Technician names and readable hours and minutes. Preserve stable Employee and Company identities and exact underlying values. |
+| DASH-03 | Show visual distributions by Technician, Customer and Work Context so managers can see where work time was spent. Employee rankings and performance scores remain excluded. |
+| DASH-04 | Let management explore by Technician, Customer, Work Context, Project, Service Area, Activity Type and permitted work reference, including Snapfix. Reveal detail progressively using familiar labels. |
+| DASH-05 | Expand or drill into individual authorized work entries and show the full permitted description. Keep reference and description redaction and make detail readable without unnecessary horizontal scrolling. |
+| DASH-06 | Offer Today, This Week, Last Week, This Month and Custom presets. Use the site timezone and show the dates actually selected. |
+| DASH-07 | Open Supervisor Booked Hours with the applicable date range and active filters carried forward. Preserve all existing report and export capabilities. |
+| DASH-08 | Reconcile dashboard totals and drill-down to Supervisor Booked Hours for the same scope and period. Aggregate precise underlying durations before display rounding. Count Emergency and pre-creation time within booked time. |
+| DASH-09 | Reuse the existing authorized reporting population and projection. Enforce Supervisor, Company, Customer and reference restrictions on the server for summaries, selectors, detail and response data. |
+| DASH-10 | In owner browser acceptance, demonstrate that management can readily determine each Technician’s recorded work, time spent supporting Boschendal, work performed on Projects, what a Technician did for a Customer, and where technical effort was spent. These tasks must be usable without knowledge of Timesheets, Employee identifiers or database reference types. Obtain Pierre’s feedback separately. |
+
+### Pillar 3 — COST-01–08 Customer Labour Cost Analysis
+
+The approved commercial analysis compares recorded technical labour with
+Customer account revenue for the same reporting period. It supports Customer
+comparison, support contract review and analysis of labour contribution.
+
+| ID | Approved requirement and acceptance check |
+| --- | --- |
+| COST-01 | Show one summary row per authorized Customer with recorded work during the period. Include permitted Helpdesk, Project and Customer Support work, standalone and unlisted Customers, and use the saved operational identity. Leave missing historical identities unattributed. |
+| COST-02 | Show contributing Technician hours for each Customer and support individual hourly labour rates. Key the calculation by stable Employee and Company identity and use human-readable names for display. |
+| COST-03 | Export authorized Technician identities and booked hours with blank hourly labour cost input cells for management to fill in Excel. Supply no estimated costs or salaries. ERPNext rate storage is outside the approved scope. |
+| COST-04 | Provide one blank revenue input per Customer and label the reporting period. Recommend revenue excluding VAT. Blank revenue is unknown and explicit zero is a valid entry. Revenue retrieval, inference and ERPNext storage are outside scope. |
+| COST-05 | Prefer three worksheets named **Technician Rates**, **Customer Labour Breakdown** and **Customer Financial Summary**. Populate authorized operational data automatically and leave financial inputs blank. Generate trusted formulas for labour cost, effective hourly revenue, revenue less labour cost, labour cost as a percentage of revenue, and labour contribution margin. Leave calculated amounts blank until required inputs are supplied. Missing rates represent unknown costs. Handle zero revenue and hours safely and keep calculable values numeric. |
+| COST-06 | Compare and sort Customers by booked hours, labour cost, revenue, labour contribution in Rand, labour contribution margin percentage and effective hourly revenue. Show Rand and percentage contribution distinctly and label revenue less labour cost as labour contribution. Other direct costs and overheads are outside that measure. A future manual Other Direct Costs input remains a candidate. |
+| COST-07 | Separately reconcile Customer-attributed, Internal and unattributed historical work to all authorized booked time and keep Emergency within that total. Leave Internal and unattributed time unallocated to Customer accounts. Identify the export’s scope and label a restricted Supervisor’s results as scoped labour figures. |
+| COST-08 | Use the existing authorized population and verify Supervisor roster, Company and Customer restrictions, aggregation by Technician and Customer, Cancelled and replacement treatment, exact hours reconciliation, numeric cells, blank inputs, missing rates, formulas, and zero denominators. Protect spreadsheet text from formula execution, limit formulas to generated calculation cells, and verify protection of descriptions and references and absence of financial write-back. Actual owner workbook acceptance is required. |
+
+### Financial scope exception and implementation direction
+
+The earlier commercial-analysis exclusion has one explicit exception.
+Authorized operational labour data may be exported with blank financial
+inputs for local Excel calculations and Customer comparison. Financial inputs
+and calculations stay in the workbook. Payroll integration, stored salaries
+or financial labour rates, ERPNext revenue capture, accounting transactions,
+automatic billing, full profitability calculation, automatic overhead
+allocation, productivity scoring and financial write-back remain outside
+the approved scope.
+
+Prefer a native Frappe Desk page in the existing Telephony app and reuse the
+reporting service. Inspect the native export path first. A focused custom
+multi-sheet workbook exporter is approved in principle if native exports
+cannot meet COST-05 and COST-08. The design remains subject to focused
+technical inspection. A new application, database, container service or
+frontend framework requires a demonstrated need.
+
+### Delivery and release boundaries
+
+The approved Phase 2 roadmap retains REP formal closure, the DASH and COST
+workstreams, consolidated Technician UI work, A.9 migration disposition,
+two-pass DEV migration, an immutable dormant production candidate,
+operational preparation and activation, and the separate A.12 structured
+email intake and templates rollout. Dashboard management usability is
+intended for operational activation. An otherwise-authorized dormant
+infrastructure deployment can proceed independently of presentation work.
+The owner will prioritize the COST milestone and implementation sequence.
+Existing release gates and approvals continue to apply.
+
+This documentation checkpoint records business approval. Implementation
+of DASH and COST and their acceptance checks await focused instructions.
 
 ---
 
