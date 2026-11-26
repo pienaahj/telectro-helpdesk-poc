@@ -1,12 +1,14 @@
 import copy
+import json
 import types
 import unittest
 from unittest.mock import Mock, call, patch
 
 from frappe import QueryDeadlockError, QueryTimeoutError
+from werkzeug.wrappers import Request
 
 from telephony.tests.test_time_booking_correction_audit import snapshot
-from telephony.api import booking_correction as api
+from telephony.api import booking_correction as api, time_booking
 from telephony.tests.test_time_booking_correction_audit import snapshot
 from telephony.tests.test_time_booking_post import Reference, customer_mapping_sql
 REAL_GUARD = api._guard
@@ -1058,3 +1060,55 @@ class TestDraftCorrection(unittest.TestCase):
                 self.doc.save.assert_not_called()
                 self.doc.delete.assert_not_called()
                 self.assertFalse(hasattr(self, "recorded"))
+
+
+class TestBookingHttpErrors(unittest.TestCase):
+    def invoke(self, error, request=None):
+        @time_booking._booking_http_errors
+        def fail():
+            raise error
+
+        local = types.SimpleNamespace(request=request)
+        with patch.object(time_booking, "frappe", types.SimpleNamespace(local=local, _=lambda text: text)):
+            return fail()
+
+    def test_owned_creation_boundary_returns_safe_json(self):
+        response = self.invoke(
+            time_booking.OriginalBookingCreationExceeded("Internal timestamp"), Request.from_values(method="POST"),
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(json.loads(response.data), {
+            "error": {
+                "code": "original_creation_exceeded",
+                "message": "The corrected work must end on or before the original booking creation time. "
+                           "Please adjust the start time or duration.",
+            },
+        })
+
+    def test_restricted_lifecycle_error_has_its_own_generic_response(self):
+        response = self.invoke(time_booking.SavedTicketIntervalDenied("Protected Ticket details"), Request.from_values())
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(json.loads(response.data)["error"]["code"], "invalid_ticket_interval")
+        self.assertNotIn(b"Protected Ticket details", response.data)
+
+    def test_reference_denial_stays_forbidden(self):
+        response = self.invoke(time_booking.BookingReferenceDenied("Protected Ticket details"), Request.from_values())
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn(b"Protected Ticket details", response.data)
+
+    def test_unexpected_and_non_http_exceptions_propagate(self):
+        with self.assertRaisesRegex(RuntimeError, "unexpected"):
+            self.invoke(RuntimeError("unexpected"), Request.from_values())
+        with self.assertRaises(time_booking.OriginalBookingCreationExceeded):
+            self.invoke(time_booking.OriginalBookingCreationExceeded())
+
+    def test_internal_permission_messages_preserve_outer_message_log(self):
+        messages = ["outer message"]
+        local = types.SimpleNamespace(message_log=messages)
+        with patch.object(time_booking, "frappe", types.SimpleNamespace(local=local)):
+            with self.assertRaisesRegex(RuntimeError, "unexpected"):
+                with time_booking._discard_internal_permission_messages():
+                    local.message_log.append("internal Ticket message")
+                    raise RuntimeError("unexpected")
+        self.assertIs(local.message_log, messages)
+        self.assertEqual(messages, ["outer message"])

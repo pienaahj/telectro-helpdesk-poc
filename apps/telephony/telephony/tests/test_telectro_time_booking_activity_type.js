@@ -15,7 +15,7 @@ const source = fs.readFileSync(
   path.join(appRoot, "telephony/public/js/telectro_time_booking.js"), "utf8",
 );
 
-function loadBookingForm(lookup = async () => []) {
+function loadBookingForm(lookup = async () => [], response = null) {
   const requests = [];
   const submissions = [];
   const dialogs = [];
@@ -49,7 +49,7 @@ function loadBookingForm(lookup = async () => []) {
     $: () => ({ on() {} }),
     async fetch(url, options) {
       submissions.push({ url, body: JSON.parse(options.body) });
-      return { ok: true, json: async () => ({ message: { timesheet: "TS-1" } }) };
+      return response || { ok: true, json: async () => ({ message: { timesheet: "TS-1" } }) };
     },
     frappe: {
       show_alert() {},
@@ -86,10 +86,10 @@ function loadBookingForm(lookup = async () => []) {
   };
   const testSource = source.replace(
     /\}\)\(\);\s*$/,
-    "globalThis.bookingForm = { openForm, openSavedWork, bookingPayload, preCreationText };})();",
+    "globalThis.bookingForm = { openForm, openSavedWork, bookingPayload, preCreationText, post };})();",
   );
   vm.runInNewContext(testSource, context);
-  const { openForm, openSavedWork, bookingPayload, preCreationText } = context.bookingForm;
+  const { openForm, openSavedWork, bookingPayload, preCreationText, post } = context.bookingForm;
   const options = {
     company: "Company A",
     activity_types: approvedActivities,
@@ -101,6 +101,7 @@ function loadBookingForm(lookup = async () => []) {
     requests,
     submissions,
     preCreationText,
+    post,
     openSaved(booking) {
       openSavedWork(booking, () => {});
       return dialogs.at(-1);
@@ -388,4 +389,25 @@ test("Saved Helpdesk work posts only owned-booking inputs and preserves fraction
   assert.equal(note.body.saved_work, true);
   assert.equal(interval.body.from_time, "2026-11-20 10:00:00.123456");
   assert.equal(interval.body.duration_minutes, 25);
+});
+
+
+test("Recognized booking errors show actionable feedback with escaped text", async () => {
+  const { post } = loadBookingForm(undefined, {
+    ok: false, status: 422,
+    json: async () => ({ error: { code: "original_creation_exceeded", message: "Adjust the start <time>." } }),
+  });
+  await assert.rejects(post("correction", {}), { message: "Adjust the start &lt;time>." });
+});
+
+test("Unknown booking codes and server errors use the generic feedback", async () => {
+  for (const [status, code] of [[422, "toString"], [500, "original_creation_exceeded"]]) {
+    const { post } = loadBookingForm(undefined, {
+      ok: false, status,
+      json: async () => ({ error: { code, message: "Internal error" } }),
+    });
+    await assert.rejects(post("correction", {}), {
+      message: "Unable to save the booking. Check the details and try again.",
+    });
+  }
 });

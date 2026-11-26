@@ -1,10 +1,21 @@
 """Dedicated, gated Technician Timesheet creation endpoint."""
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
+from functools import wraps
+import json
 import re
 
 import frappe
+from erpnext.projects.doctype.timesheet.timesheet import OverlapError
+from frappe.exceptions import (
+    CancelledLinkError,
+    LinkExistsError,
+    LinkValidationError,
+    PermissionError as FrappePermissionError,
+    TimestampMismatchError,
+)
+from werkzeug.wrappers import Request, Response
 
 from telephony.time_booking_activation_adapter import _require_activation_configuration
 from telephony.time_booking_activation_policy import ACTIVE_RUNTIME, ActivationConfigurationError
@@ -23,8 +34,9 @@ from telephony.time_booking_ownership import (
     BookingOwnershipError,
     authorize_child,
 )
-from telephony.time_booking_policy import validate_work_context
+from telephony.time_booking_policy import WorkContextValidationError, validate_work_context
 from telephony.time_booking_ticket_interval import (
+    TicketIntervalError,
     ticket_interval_changed,
     validate_ticket_interval,
 )
@@ -36,6 +48,7 @@ from telephony.time_booking_project_lookup import MAX_PAGE, project_options, tas
 from telephony.time_booking_provenance_adapter import _phase2_creation_intent
 from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
 from telephony.time_booking_transaction import (
+    BookingTransactionDenied,
     _active_booking,
     _top_level_booking_transaction,
 )
@@ -65,6 +78,89 @@ class BookingInputError(ValueError):
         super().__init__("Booking input is invalid.")
 
 
+class OriginalBookingCreationExceeded(BookingReferenceDenied):
+    pass
+
+
+class SavedTicketIntervalDenied(BookingReferenceDenied):
+    pass
+
+
+_INPUT_ERROR = (
+    422, "invalid_booking", "Check the booking details, work dates, and duration, then try again.",
+)
+_ACCESS_ERROR = (
+    403, "booking_access_denied", "Booking access is unavailable. Reload My Time Bookings and check your access.",
+)
+_REFERENCE_ERROR = (
+    403, "booking_reference_denied", "This reference is unavailable. Select a reference you can access.",
+)
+_INTERVAL_ERROR = (
+    422, "invalid_ticket_interval", "The Ticket cannot validate this interval. Check the work dates and duration.",
+)
+
+_BOOKING_ERRORS = {
+    OriginalBookingCreationExceeded: (
+        422, "original_creation_exceeded",
+        "The corrected work must end on or before the original booking creation time. "
+        "Please adjust the start time or duration.",
+    ),
+    SavedTicketIntervalDenied: _INTERVAL_ERROR,
+    TicketIntervalError: _INTERVAL_ERROR,
+    BookingInputError: _INPUT_ERROR,
+    WorkContextValidationError: _INPUT_ERROR,
+    BookingMetadataValidationError: _INPUT_ERROR,
+    BookingOwnershipError: _ACCESS_ERROR,
+    TechnicianIdentityError: _ACCESS_ERROR,
+    BookingTransactionDenied: _ACCESS_ERROR,
+    FrappePermissionError: _ACCESS_ERROR,
+    BookingReferenceDenied: _REFERENCE_ERROR,
+    BookingCustomerConfigurationError: _REFERENCE_ERROR,
+    OverlapError: (
+        409, "booking_overlap", "This work overlaps another Timesheet entry. Adjust the start time or duration.",
+    ),
+    TimestampMismatchError: (
+        409, "booking_changed", "The booking changed. Reload My Time Bookings before trying again.",
+    ),
+    LinkValidationError: _REFERENCE_ERROR,
+    CancelledLinkError: _REFERENCE_ERROR,
+    LinkExistsError: (
+        409, "booking_linked", "Another record is linked to this booking. Ask an administrator to review the link.",
+    ),
+}
+_EXPECTED_BOOKING_ERRORS = tuple(_BOOKING_ERRORS)
+
+
+def _booking_http_errors(method):
+    """Render recognized business errors after the booking transaction rolls back."""
+    @wraps(method)
+    def respond(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except _EXPECTED_BOOKING_ERRORS as exc:
+            error = _BOOKING_ERRORS.get(type(exc))
+            if error is None or not isinstance(getattr(frappe.local, "request", None), Request):
+                raise
+            status, code, message = error
+            return Response(
+                json.dumps({"error": {"code": code, "message": frappe._(message)}}),
+                status=status,
+                mimetype="application/json",
+            )
+    return respond
+
+
+@contextmanager
+def _discard_internal_permission_messages():
+    # Native controller permission checks may add a message even on a boolean read check.
+    previous = frappe.local.message_log
+    frappe.local.message_log = []
+    try:
+        yield
+    finally:
+        frappe.local.message_log = previous
+
+
 def _identifier(value):
     return type(value) is str and bool(value.strip()) and value == value.strip()
 
@@ -78,12 +174,13 @@ def _visible(doctype, name, *, silent=False):
     if not _identifier(name):
         raise BookingReferenceDenied()
     try:
-        doc = frappe.get_doc(doctype, name)
-        if silent:
-            if not doc.has_permission("read"):
-                raise BookingReferenceDenied()
-        else:
-            doc.check_permission("read")
+        with _discard_internal_permission_messages() if silent else nullcontext():
+            doc = frappe.get_doc(doctype, name)
+            if silent:
+                if not doc.has_permission("read"):
+                    raise BookingReferenceDenied()
+            else:
+                doc.check_permission("read")
     except (frappe.DoesNotExistError, frappe.PermissionError) as exc:
         raise BookingReferenceDenied() from exc
     if doc.doctype != doctype:
@@ -548,6 +645,7 @@ def list_own_bookings(start=0):
 
 
 @frappe.whitelist(methods=["POST"])
+@_booking_http_errors
 def book_technician_time(*, work_context, from_time, duration_minutes,
                          description, activity_type, ticket_name=None,
                          project_name=None, task_name=None, customer_name=None,

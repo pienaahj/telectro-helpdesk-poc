@@ -11,6 +11,9 @@ from telephony.api.time_booking import (
     _authorize_references,
     BookingInputError,
     BookingReferenceDenied,
+    OriginalBookingCreationExceeded,
+    SavedTicketIntervalDenied,
+    _booking_http_errors,
     _authorized_native_creation,
     _allowed_service_areas,
     _require_booking_activity_type,
@@ -337,9 +340,14 @@ def _saved_ticket_portion(booking, row, start, end, identity):
 
     now = frappe.utils.now_datetime()
     try:
-        creation = _original_creation(booking, identity)
-        if end > creation or creation > now:
-            raise TicketIntervalError()
+        try:
+            creation = _original_creation(booking, identity)
+        except BookingReferenceDenied:
+            raise SavedTicketIntervalDenied() from None
+        if creation > now:
+            raise SavedTicketIntervalDenied()
+        if end > creation:
+            raise OriginalBookingCreationExceeded()
         locked = frappe.db.get_value(
             "HD Ticket", ticket_name,
             ("name", "creation", "status", "status_category", "resolution_date", ORIGIN_FIELD),
@@ -349,9 +357,7 @@ def _saved_ticket_portion(booking, row, start, end, identity):
             raise TicketIntervalError()
         return validate_ticket_interval(locked, start, end, now=now, db=frappe.db)
     except (TicketIntervalError, frappe.QueryDeadlockError, frappe.QueryTimeoutError):
-        raise BookingReferenceDenied(
-            "The saved Ticket cannot validate this interval. Check the work dates and duration."
-        ) from None
+        raise SavedTicketIntervalDenied() from None
 
 
 def _saved_work_values(before, identity, request):
@@ -555,6 +561,7 @@ def _execute(
 
 
 @frappe.whitelist(methods=["POST"])
+@_booking_http_errors
 def correct_draft_booking(
     *,
     timesheet_name,
@@ -660,6 +667,7 @@ def correct_draft_booking(
 
 
 @frappe.whitelist(methods=["POST"])
+@_booking_http_errors
 def withdraw_draft_booking(*, timesheet_name, event_id, reason, expected_modified=None):
     with _top_level_booking_transaction(expected_command=PREFIX + "withdraw_draft_booking"):
         return _execute(name=timesheet_name, event_id=event_id, reason=reason,
@@ -667,6 +675,7 @@ def withdraw_draft_booking(*, timesheet_name, event_id, reason, expected_modifie
 
 
 @frappe.whitelist(methods=["POST"])
+@_booking_http_errors
 def cancel_submitted_booking(
     *,
     timesheet_name,
@@ -789,6 +798,7 @@ def cancel_submitted_booking(
         }
 
 @frappe.whitelist(methods=["POST"])
+@_booking_http_errors
 def replace_submitted_booking(
     *,
     timesheet_name,

@@ -3,6 +3,10 @@
   const corrections = "telephony.api.booking_correction.";
   const technicianRole = "TELECTRO-POC Role - Tech";
   const dateFormat = "YYYY-MM-DD HH:mm:ss";
+  const bookingErrorCodes = new Set([
+    "original_creation_exceeded", "invalid_ticket_interval", "invalid_booking", "booking_access_denied",
+    "booking_reference_denied", "booking_overlap", "booking_changed", "booking_linked",
+  ]);
 
   const get = async (method, args) =>
     (await frappe.call({ method: api + method, type: "GET", args })).message;
@@ -19,7 +23,16 @@
       body: JSON.stringify(args),
     });
     if (!response.ok) {
-      throw new Error(__("Unable to save the booking. Check the details and try again."));
+      const fallback = __("Unable to save the booking. Check the details and try again.");
+      let error;
+      if (response.status >= 400 && response.status < 500) {
+        const body = await response.json().catch(() => null);
+        error = body?.error;
+      }
+      if (bookingErrorCodes.has(error?.code) && typeof error.message === "string") {
+        throw new Error(frappe.utils.escape_html(error.message));
+      }
+      throw new Error(fallback);
     }
     return (await response.json()).message;
   }
