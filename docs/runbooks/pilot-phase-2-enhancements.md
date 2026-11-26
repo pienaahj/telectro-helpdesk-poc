@@ -236,13 +236,23 @@ and operational activation require their respective approvals.
   Reject new or changed Ticket intervals when necessary evidence is unreliable.
   Modification time, SLA deadlines and unrelated fields cannot substitute for
   missing lifecycle evidence. Broad historical data repair is outside this work.
-- **Outstanding for A.8.** Decide whether and under what constraints an eligible
-  Technician who has lost Ticket read access can change the start time or
-  duration of an existing, legitimately authorized booking against the same
-  Ticket. A blanket restriction on those changes has not been approved. This
-  decision leaves A.6 and A.7 preparation open to proceed under their respective
-  approvals. It does not expand Ticket visibility or call for historical
-  assignment reconstruction.
+- **A.8A — Owner approved on 26 November 2026 (Africa/Johannesburg).** An
+  eligible Technician may correct the start time or duration of their own
+  legitimate historical booking against its saved Ticket after losing Ticket
+  read access. The corrected end must be at or before both the applicable A.7
+  lifecycle upper bound and the server-owned creation timestamp of the original
+  logical booking. Repeated Draft corrections and submitted replacements
+  preserve that boundary. Current Ticket access permits ordinary corrections
+  under the existing A.7 rules. The decision preserves historical maintenance
+  independently of live reference authority, with no correction age limit or
+  reconstruction of assignment history.
+- Restricted lifecycle validation follows ownership, managed provenance and
+  revision checks and uses only the saved Ticket. Missing or unreliable
+  lifecycle evidence blocks a changed interval. Description maintenance
+  preserves the saved work and Customer identity, including a historical blank,
+  and its attribution. New bookings and changed references require current
+  authorization. Project and Task interval changes still require full grant
+  coverage.
 - Preserve Project and Task grant authorization and temporal coverage across the
   booked interval. Retain the accepted Ticket assignment-history, worker-grant,
   Assignment Capture Receipt and temporal coverage implementation. Initial V1
@@ -277,7 +287,7 @@ correction requirements above.
 | --- | --- | --- |
 | **B3.88A.6 — Trusted manual origin** | Mandatory before activation. First independently verifiable implementation slice. | Automatic positive evidence from the verified manual create path. Portal, Email, copied, imported and unknown Tickets cannot qualify by default, payload or ordinary edit. |
 | **B3.88A.7 — Ticket interval and attribution** | Mandatory before activation. Depends on A.6. | One server-side interval policy covers creation, changed Draft corrections and changed submitted replacements, with visible and stable pre-creation attribution. Prove lifecycle boundaries, concurrency, Customer consistency and unchanged Project/Task coverage. |
-| **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Preparation can run alongside A.7. Finalize the open interval-correction boundary before implementing that case. | Prove description-only maintenance after loss of Ticket read access, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
+| **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Owner approved A.8A on 26 November 2026. | Prove description and bounded interval corrections after loss of Ticket read access, immutable original creation evidence, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |

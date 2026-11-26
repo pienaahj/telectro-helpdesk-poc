@@ -9,6 +9,7 @@ from collections.abc import Mapping
 
 from telephony import time_booking_provenance_adapter as _adapter
 from telephony.time_booking_attribution import protect_parent
+from telephony.time_booking_ticket_interval import _timestamp
 from telephony.time_booking_provenance import (
     BookingProvenanceError,
     validate_provenance_transition,
@@ -45,7 +46,7 @@ def _validate_timesheet_provenance(doc, method=None) -> None:
 
 
 def _validate_existing_provenance(doc) -> None:
-    """Require a fresh six-field persisted snapshot, never a client previous row."""
+    """Require a fresh persisted snapshot, never a client previous row."""
     view = _adapter._TimesheetDocumentView(doc)
     if type(view["doctype"]) is not str or view["doctype"] != "Timesheet":
         raise BookingProvenanceError()
@@ -69,6 +70,12 @@ def _validate_existing_provenance(doc) -> None:
         if value is not None and type(value) is not str:
             raise BookingProvenanceError()
     validate_provenance_transition(view, persisted=persisted)
+    if persisted["custom_telectro_booking_origin"] == "Phase 2":
+        creation = _timestamp(persisted["creation"])
+        if creation != _timestamp(doc.get("creation")) or (
+            creation is None and persisted["creation"] != doc.get("creation")
+        ):
+            raise BookingProvenanceError()
 
 
 def _validate_insertion_provenance(doc, method, frame) -> None:

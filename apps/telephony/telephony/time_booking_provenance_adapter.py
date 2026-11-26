@@ -245,6 +245,7 @@ def _complete_insertion(
 
 _PERSISTED_FIELDS = (
     "name", "custom_telectro_booking_origin", "employee", "company", "user", "docstatus",
+    "creation",
 )
 
 

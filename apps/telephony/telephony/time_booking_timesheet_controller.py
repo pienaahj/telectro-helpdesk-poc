@@ -7,6 +7,7 @@ separate integration requirements.
 """
 
 from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from uuid import uuid4
 
 from erpnext.projects.doctype.timesheet.timesheet import Timesheet
@@ -19,8 +20,58 @@ from telephony.time_booking_provenance_adapter import (
 )
 
 
+_retained_links = ContextVar("telectro_retained_booking_links", default=None)
+
+
+@contextmanager
+def retain_missing_booking_links(doc, previous):
+    """Retain only missing Link values on the authorized, unchanged work row."""
+    import frappe
+
+    row, = doc.time_logs
+    missing = {}
+    for field, doctype in (
+        ("custom_hd_ticket", "HD Ticket"), ("custom_hd_customer", "HD Customer"),
+        ("project", "Project"), ("task", "Task"),
+    ):
+        value = previous.get(field)
+        if value and str(row.get(field)) == str(value) and not frappe.db.exists(doctype, value):
+            missing[field] = row.get(field)
+    token = _retained_links.set((doc, row, missing))
+    try:
+        yield
+    finally:
+        _retained_links.reset(token)
+
+
 class TelectroBookingTimesheet(Timesheet):
     """Preserve native behavior while bounding one trusted insertion attempt."""
+
+    @contextmanager
+    def _omit_missing_booking_links(self, fields):
+        scope = _retained_links.get()
+        if not scope or scope[0] is not self or len(self.time_logs) != 1 or self.time_logs[0] is not scope[1]:
+            yield
+            return
+        _, row, missing = scope
+        values = {
+            field: value for field, value in missing.items()
+            if field in fields and str(row.get(field)) == str(value)
+        }
+        try:
+            for field in values:
+                row.set(field, None)
+            yield
+        finally:
+            row.update(values)
+
+    def _validate_links(self):
+        with self._omit_missing_booking_links(("custom_hd_ticket", "custom_hd_customer", "project", "task")):
+            return super()._validate_links()
+
+    def update_task_and_project(self):
+        with self._omit_missing_booking_links(("project", "task")):
+            return super().update_task_and_project()
 
     def insert(
         self,

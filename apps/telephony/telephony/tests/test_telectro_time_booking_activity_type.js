@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const { webcrypto } = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -32,7 +33,7 @@ function loadBookingForm(lookup = async () => []) {
     show() {}
     hide() {}
     get_primary_btn() { return this.button; }
-    set_primary_action() {}
+    set_primary_action(label, action) { this.action = action; }
     get_value(key) { return this.values[key]; }
     async set_value(key, value) {
       if (value === this.values[key]) return;
@@ -44,6 +45,7 @@ function loadBookingForm(lookup = async () => []) {
   const document = {};
   const context = {
     document,
+    crypto: webcrypto,
     $: () => ({ on() {} }),
     async fetch(url, options) {
       submissions.push({ url, body: JSON.parse(options.body) });
@@ -84,10 +86,10 @@ function loadBookingForm(lookup = async () => []) {
   };
   const testSource = source.replace(
     /\}\)\(\);\s*$/,
-    "globalThis.bookingForm = { openForm, bookingPayload, preCreationText };})();",
+    "globalThis.bookingForm = { openForm, openSavedWork, bookingPayload, preCreationText };})();",
   );
   vm.runInNewContext(testSource, context);
-  const { openForm, bookingPayload, preCreationText } = context.bookingForm;
+  const { openForm, openSavedWork, bookingPayload, preCreationText } = context.bookingForm;
   const options = {
     company: "Company A",
     activity_types: approvedActivities,
@@ -99,6 +101,10 @@ function loadBookingForm(lookup = async () => []) {
     requests,
     submissions,
     preCreationText,
+    openSaved(booking) {
+      openSavedWork(booking, () => {});
+      return dialogs.at(-1);
+    },
     open(booking = null) {
       openForm(options, booking, () => {});
       return dialogs.at(-1);
@@ -359,4 +365,27 @@ test("Pre-creation presentation distinguishes exact duration, confirmed zero and
   for (const unknown of [null, undefined, -1, "0", 86400000001]) {
     assert.match(preCreationText(unknown), /not established/);
   }
+});
+
+
+test("Saved Helpdesk work posts only owned-booking inputs and preserves fractional seconds", async () => {
+  const { openSaved, requests, submissions } = loadBookingForm();
+  const dialog = openSaved({
+    work_context: "Helpdesk", docstatus: 1, name: "TS-1", modified: "2026-11-20 12:00:00",
+    description: "Original note", from_time: "2026-11-20 10:00:00.123456",
+    duration_minutes: 20, ticket_name: "42", customer_name: "Saved Customer",
+  });
+  await dialog.action({ description: "Updated note", reason: "Correct wording" });
+  await dialog.action({
+    description: "Updated note", reason: "Correct duration", change_interval: 1,
+    from_time: "2026-11-20 10:00:00.123456", duration_minutes: 25,
+  });
+  assert.deepEqual(requests, []);
+  const [note, interval] = submissions;
+  assert.ok(note.url.endsWith(".replace_submitted_booking"));
+  assert.deepEqual(Object.keys(note.body).sort(),
+    ["description", "event_id", "expected_modified", "reason", "saved_work", "timesheet_name"]);
+  assert.equal(note.body.saved_work, true);
+  assert.equal(interval.body.from_time, "2026-11-20 10:00:00.123456");
+  assert.equal(interval.body.duration_minutes, 25);
 });

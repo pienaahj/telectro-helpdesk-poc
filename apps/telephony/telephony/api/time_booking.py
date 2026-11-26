@@ -74,12 +74,16 @@ def _require_booking_activity_type(activity_type):
         raise BookingInputError()
 
 
-def _visible(doctype, name):
+def _visible(doctype, name, *, silent=False):
     if not _identifier(name):
         raise BookingReferenceDenied()
     try:
         doc = frappe.get_doc(doctype, name)
-        doc.check_permission("read")
+        if silent:
+            if not doc.has_permission("read"):
+                raise BookingReferenceDenied()
+        else:
+            doc.check_permission("read")
     except (frappe.DoesNotExistError, frappe.PermissionError) as exc:
         raise BookingReferenceDenied() from exc
     if doc.doctype != doctype:
@@ -314,9 +318,11 @@ def _validate_customer_consistency(row, *, ticket=None, project_customer=None, p
     return locked_ticket
 
 
-def _period(from_time, duration_minutes):
-    if (not _identifier(from_time)
-            or re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}:[0-9]{2}", from_time) is None):
+def _period(from_time, duration_minutes, *, precise=False):
+    pattern = r"[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}:[0-9]{2}"
+    if precise:
+        pattern += r"(\.[0-9]{1,6})?"
+    if not _identifier(from_time) or re.fullmatch(pattern, from_time) is None:
         raise BookingInputError()
     if type(duration_minutes) is str:
         if (not duration_minutes.isascii() or not duration_minutes.isdecimal()

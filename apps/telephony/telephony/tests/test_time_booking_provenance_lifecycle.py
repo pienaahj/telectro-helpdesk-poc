@@ -29,6 +29,7 @@ class TestProvenanceLifecycle(unittest.TestCase):
         self.values = {
             "doctype": "Timesheet", "name": "TS", "custom_telectro_booking_origin": "Phase 2",
             "employee": "EMP", "company": "Company", "user": "tech", "docstatus": 0,
+            "creation": "2026-11-26 08:00:00.123456",
         }
         self.doc = FakeDocument(self.values)
         p = patch.object(adapter, "_load_persisted_provenance", return_value=None)
@@ -293,7 +294,7 @@ class TestProvenanceLifecycle(unittest.TestCase):
     def test_existing_managed_identity_and_marker_changes_denied(self):
         original = dict(self.values)
         self.reader.return_value = self.snapshot()
-        for key in ["employee", "company", "user", "custom_telectro_booking_origin"]:
+        for key in ["employee", "company", "user", "custom_telectro_booking_origin", "creation"]:
             self.values.clear()
             self.values.update(original)
             self.values[key] = "OTHER" if key != "custom_telectro_booking_origin" else ""

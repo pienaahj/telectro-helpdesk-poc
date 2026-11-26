@@ -557,6 +557,7 @@ class TestPersistedProvenanceReader(unittest.TestCase):
         self.row = {
             "name": "TS", "custom_telectro_booking_origin": "Phase 2",
             "employee": "EMP", "company": "Company", "user": "tech", "docstatus": 0,
+            "creation": "2026-11-26 08:00:00.123456",
         }
         self.db = Mock()
         self.db.get_value.return_value = self.row
@@ -572,7 +573,7 @@ class TestPersistedProvenanceReader(unittest.TestCase):
         result = _load_persisted_provenance("TS")
         self.db.get_value.assert_called_once_with(
             "Timesheet", "TS",
-            ["name", "custom_telectro_booking_origin", "employee", "company", "user", "docstatus"],
+            ["name", "custom_telectro_booking_origin", "employee", "company", "user", "docstatus", "creation"],
             as_dict=True, order_by=None, cache=False, for_update=True, skip_locked=False, wait=True,
         )
         self.assertEqual(dict(result), before)

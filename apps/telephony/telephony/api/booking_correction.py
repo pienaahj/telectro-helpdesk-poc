@@ -1,5 +1,5 @@
 """Owned technician booking correction, withdrawal and cancellation; no internal commits."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import json
 
 import frappe
@@ -40,7 +40,13 @@ from telephony.time_booking_correction_audit import (
     _REPLACEMENT_REQUEST_FIELDS,
     BookingCorrectionAuditError,
 )
-from telephony.time_booking_timesheet_controller import TelectroBookingTimesheet
+from telephony.time_booking_timesheet_controller import (
+    TelectroBookingTimesheet,
+    retain_missing_booking_links,
+)
+from telephony.time_booking_ticket_interval import (
+    ORIGIN_FIELD, TicketIntervalError, _timestamp, ticket_interval_changed, validate_ticket_interval,
+)
 from telephony.time_booking_transaction import (
     _active_booking,
     _top_level_booking_transaction,
@@ -261,6 +267,116 @@ def _owned(snapshot, identity):
         raise BookingOwnershipError()
     authorize_child(identity, snapshot, snapshot["time_logs"][0], operation="correct")
 
+def _saved_work_request(saved_work, description, from_time, duration_minutes):
+    # Check the original request because Frappe discards unknown callable arguments.
+    if saved_work is not True or set(frappe.local.form_dict) - {
+        "cmd", "timesheet_name", "event_id", "reason", "expected_modified",
+        "saved_work", "description", "from_time", "duration_minutes",
+    }:
+        raise BookingInputError()
+    if not _identifier(description) or len(description) > 2000:
+        raise BookingInputError()
+    if from_time is not None or duration_minutes is not None:
+        start, _, duration_minutes = _period(from_time, duration_minutes, precise=True)
+        from_time = start.isoformat()
+    return json.dumps(
+        dict(saved_work=True, description=description, from_time=from_time,
+             duration_minutes=duration_minutes),
+        sort_keys=True, separators=(",", ":"),
+    )
+
+
+def _original_creation(booking, identity):
+    """Resolve the root of an owned booking through immutable replacement evidence."""
+    name = booking["name"]
+    creation = _timestamp(booking.get("creation"))
+    visited = set()
+    while creation is not None and name not in visited:
+        visited.add(name)
+        rows = frappe.db.sql(
+            """SELECT actor, action, original_timesheet, original_time_log, before_snapshot
+                 FROM `tabTELECTRO Booking Correction Audit`
+                WHERE replacement_timesheet = %s LIMIT 2 LOCK IN SHARE MODE NOWAIT""",
+            name, as_dict=True,
+        )
+        if not rows:
+            return creation
+        if len(rows) != 1:
+            break
+        event = rows[0]
+        if event["actor"] != identity.user or event["action"] != "Submitted Replacement":
+            break
+        try:
+            predecessor = json.loads(event["before_snapshot"])
+            previous_row, = predecessor["time_logs"]
+            authorize_child(identity, predecessor, previous_row, operation="replace_submitted")
+            previous_creation = _timestamp(predecessor.get("creation"))
+            if (
+                predecessor["name"] != event["original_timesheet"]
+                or previous_row["name"] != event["original_time_log"]
+                or previous_creation is None or previous_creation > creation
+            ):
+                break
+            name, creation = predecessor["name"], previous_creation
+        except (ValueError, KeyError, TypeError, BookingOwnershipError):
+            break
+    raise BookingReferenceDenied("The original booking creation could not be verified.")
+
+
+def _saved_ticket_portion(booking, row, start, end, identity):
+    """Use current Ticket authority or validate only the owned booking's saved Ticket."""
+    ticket_name = row["custom_hd_ticket"]
+    try:
+        ticket = _visible("HD Ticket", ticket_name, silent=True)
+    except BookingReferenceDenied:
+        ticket = None
+    if ticket is not None:
+        return _validate_helpdesk_interval(
+            row, ticket=ticket, locked_ticket=None, start=start, end=end, previous=row,
+        )
+
+    now = frappe.utils.now_datetime()
+    try:
+        creation = _original_creation(booking, identity)
+        if end > creation or creation > now:
+            raise TicketIntervalError()
+        locked = frappe.db.get_value(
+            "HD Ticket", ticket_name,
+            ("name", "creation", "status", "status_category", "resolution_date", ORIGIN_FIELD),
+            as_dict=True, order_by=None, for_update=True, wait=False,
+        )
+        if not locked or str(locked.name) != ticket_name:
+            raise TicketIntervalError()
+        return validate_ticket_interval(locked, start, end, now=now, db=frappe.db)
+    except (TicketIntervalError, frappe.QueryDeadlockError, frappe.QueryTimeoutError):
+        raise BookingReferenceDenied(
+            "The saved Ticket cannot validate this interval. Check the work dates and duration."
+        ) from None
+
+
+def _saved_work_values(before, identity, request):
+    previous = before["time_logs"][0]
+    context = previous["custom_work_context"]
+    if context not in ("Helpdesk", "Project"):
+        raise BookingReferenceDenied()
+    data = json.loads(request)
+    values = {"description": data["description"]}
+    start, end = _timestamp(previous["from_time"]), _timestamp(previous["to_time"])
+    changed = False
+    portion = None
+    if data["from_time"] is not None:
+        if context != "Helpdesk":
+            raise BookingReferenceDenied()
+        start, end, minutes = _period(data["from_time"], data["duration_minutes"], precise=True)
+        changed = ticket_interval_changed(previous, previous, start, end)
+        if changed:
+            portion = _saved_ticket_portion(before, previous, start, end, identity)
+            values.update(from_time=start, to_time=end, hours=minutes / 60)
+
+    attribution = prepare_attribution(previous, start, end, portion=portion, previous=previous)
+    return values, attribution, not changed
+
+
 def _lock_projects_for_cancellation(original_project, replacement_project=None):
     # Native cancellation writes Task before Project. Take any original
     # Project lock first, ordered with a different replacement Project lock.
@@ -312,7 +428,10 @@ def _authorized_native_draft_mutation(doc):
         yield
 
 
-def _execute(*, name, event_id, reason, action, values=None, expected_modified=None, ticket=None):
+def _execute(
+    *, name, event_id, reason, action, values=None, expected_modified=None, ticket=None,
+    saved_request=None,
+):
     identity = _guard()
     if (not _identifier(name) or not _identifier(event_id) or len(event_id) > 140
             or not _identifier(reason) or len(reason) > 2000):
@@ -329,8 +448,12 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
         _owned(before, identity)
         if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
-        if values is not None:
+        if values is not None or saved_request is not None:
             after = json.loads(prior["after_snapshot"])
+            if saved_request != after.get("saved_work_request"):
+                raise BookingOwnershipError()
+            if saved_request is not None:
+                return {"timesheet": name, "audit": prior["name"]}
             for key, value in values.items():
                 stored = after["time_logs"][0].get(key)
                 if key == "custom_hd_customer" and "requested_customer_name" in after:
@@ -380,36 +503,45 @@ def _execute(*, name, event_id, reason, action, values=None, expected_modified=N
     _owned(before, identity)
     if not _revision_matches(before.get("modified"), expected_modified):
         raise BookingOwnershipError()
-    if values is not None:
-        effective_row = {**current["time_logs"][0], **values}
-        project_customer = None
-        if effective_row.get("custom_work_context") == "Project":
-            # Both correction paths lock the Timesheet before the Project.
-            project_customer = _authorize_references(
-                effective_row, identity,
-                start=effective_row["from_time"], end=effective_row["to_time"],
-            )
+    if values is not None or saved_request is not None:
         previous = current["time_logs"][0]
-        locked_ticket = _validate_customer_consistency(
-            effective_row, ticket=ticket, project_customer=project_customer, previous=previous,
-        )
-        start, end = effective_row["from_time"], effective_row["to_time"]
-        portion = _validate_helpdesk_interval(
-            effective_row, ticket=ticket, locked_ticket=locked_ticket,
-            start=start, end=end, previous=previous,
-        )
-        attribution = prepare_attribution(effective_row, start, end, portion=portion, previous=previous)
-        requested_customer = values.get("custom_hd_customer")
-        doc.time_logs[0].update({
-            **values, **attribution, "custom_hd_customer": effective_row.get("custom_hd_customer"),
-        })
-        with _authorized_native_draft_mutation(doc), authorized_attribution(doc, attribution):
-            doc.save()  # native validations and lifecycle checks
+        links = nullcontext()
+        requested_customer = None
+        if saved_request is not None:
+            saved_row = before["time_logs"][0]
+            updates, attribution, unchanged = _saved_work_values(before, identity, saved_request)
+            if unchanged:
+                links = retain_missing_booking_links(doc, saved_row)
+        else:
+            effective_row = {**current["time_logs"][0], **values}
+            project_customer = None
+            if effective_row.get("custom_work_context") == "Project":
+                # Both correction paths lock the Timesheet before the Project.
+                project_customer = _authorize_references(
+                    effective_row, identity,
+                    start=effective_row["from_time"], end=effective_row["to_time"],
+                )
+            locked_ticket = _validate_customer_consistency(
+                effective_row, ticket=ticket, project_customer=project_customer, previous=previous,
+            )
+            start, end = effective_row["from_time"], effective_row["to_time"]
+            portion = _validate_helpdesk_interval(
+                effective_row, ticket=ticket, locked_ticket=locked_ticket,
+                start=start, end=end, previous=previous,
+            )
+            attribution = prepare_attribution(effective_row, start, end, portion=portion, previous=previous)
+            requested_customer = values.get("custom_hd_customer")
+            updates = {**values, "custom_hd_customer": effective_row.get("custom_hd_customer")}
+        doc.time_logs[0].update({**updates, **attribution})
+        with _authorized_native_draft_mutation(doc), authorized_attribution(doc, attribution), links:
+            doc.save()
         after = json.loads(_snapshot(booking_snapshot(doc)))
         _owned(after, identity)
         if after["time_logs"][0]["name"] != before["time_logs"][0]["name"]:
             raise BookingOwnershipError()
-        if requested_customer != after["time_logs"][0]["custom_hd_customer"]:
+        if saved_request is not None:
+            after["saved_work_request"] = saved_request
+        elif requested_customer != after["time_logs"][0]["custom_hd_customer"]:
             # Keep request identity independent of the resolved Customer for replay.
             after["requested_customer_name"] = requested_customer
         audit = record_correction_event(event_id=event_id, action=action,
@@ -428,11 +560,11 @@ def correct_draft_booking(
     timesheet_name,
     event_id,
     reason,
-    work_context,
-    from_time,
-    duration_minutes,
-    description,
-    activity_type,
+    work_context=None,
+    from_time=None,
+    duration_minutes=None,
+    description=None,
+    activity_type=None,
     ticket_name=None,
     project_name=None,
     task_name=None,
@@ -445,10 +577,19 @@ def correct_draft_booking(
     external_reference=None,
     other_origin_description=None,
     emergency=None,
+    saved_work=None,
 ):
     with _top_level_booking_transaction(
         expected_command=PREFIX + "correct_draft_booking"
     ):
+        if saved_work is not None:
+            requested = _saved_work_request(saved_work, description, from_time, duration_minutes)
+            return _execute(
+                name=timesheet_name, event_id=event_id, reason=reason,
+                action="Draft Correction", expected_modified=expected_modified,
+                saved_request=requested,
+            )
+
         identity = _guard()
 
         if not _identifier(description) or len(description) > 2000:
@@ -654,11 +795,11 @@ def replace_submitted_booking(
     event_id,
     reason,
     expected_modified,
-    work_context,
-    from_time,
-    duration_minutes,
-    description,
-    activity_type,
+    work_context=None,
+    from_time=None,
+    duration_minutes=None,
+    description=None,
+    activity_type=None,
     ticket_name=None,
     project_name=None,
     task_name=None,
@@ -670,8 +811,9 @@ def replace_submitted_booking(
     external_reference=None,
     other_origin_description=None,
     emergency=None,
+    saved_work=None,
 ):
-    """Submitted Replacement boundary; implementation not yet enabled."""
+    """Cancel one owned submitted booking and insert its replacement atomically."""
     with _top_level_booking_transaction(
         expected_command=PREFIX + "replace_submitted_booking"
     ):
@@ -686,6 +828,10 @@ def replace_submitted_booking(
             or not _identifier(expected_modified)
         ):
             raise BookingInputError()
+
+        saved_request = None
+        if saved_work is not None:
+            saved_request = _saved_work_request(saved_work, description, from_time, duration_minutes)
 
         # Serialize operations against the submitted original.
         locked = frappe.db.sql(
@@ -738,12 +884,14 @@ def replace_submitted_booking(
             except BookingCorrectionAuditError as exc:
                 raise BookingOwnershipError() from exc
 
-            historical = (
-                set(json.loads(canonical_evidence))
-                == _REPLACEMENT_REQUEST_FIELDS
-            )
-
-            if historical:
+            recorded = json.loads(canonical_evidence)
+            historical = set(recorded) == _REPLACEMENT_REQUEST_FIELDS
+            saved_evidence = recorded.get("saved_work") is True
+            if saved_evidence != (saved_request is not None):
+                raise BookingOwnershipError()
+            if saved_evidence:
+                requested = saved_request
+            elif historical:
                 # A legacy retry must not silently ignore new metadata.
                 if any(
                     value is not None
@@ -772,7 +920,6 @@ def replace_submitted_booking(
                 )
 
             else:
-                recorded = json.loads(canonical_evidence)
                 recorded_area = recorded["service_area"]
 
                 # Historical audit evidence is the authority for
@@ -857,99 +1004,119 @@ def replace_submitted_booking(
         if not _revision_matches(before.get("modified"), expected_modified):
             raise BookingOwnershipError()
 
-        # Authorize references before any lifecycle mutation.
-        reference_row = {
-            "custom_work_context": work_context,
-            "custom_hd_ticket": ticket_name,
-            "custom_hd_customer": customer_name,
-            "custom_unlisted_customer_name": unlisted_customer_name,
-            "project": project_name,
-            "task": task_name,
-        }
-
-        validate_work_context(reference_row)
-
-        ticket = None
-        if work_context != "Project":
-            ticket = _authorize_references(reference_row, identity)
-
-        _require_booking_activity_type(activity_type)
-        _visible("Activity Type", activity_type)
-
-        # Helpdesk Service Area must come from the authorized ticket.
-        if work_context == "Helpdesk":
-            ticket_area = ticket.get("custom_service_area")
-
-            if service_area not in (None, "", ticket_area):
-                raise BookingMetadataValidationError(
-                    "Helpdesk Service Area must match its ticket"
-                )
-
-            effective_service_area = ticket_area
-        else:
-            effective_service_area = service_area
-
-        # Create complete, canonical replacement request evidence.
-        requested = _replacement_request_snapshot(
-            work_context=work_context,
-            from_time=from_time,
-            duration_minutes=duration_minutes,
-            description=description,
-            activity_type=activity_type,
-            ticket_name=ticket_name,
-            project_name=project_name,
-            task_name=task_name,
-            customer_name=customer_name,
-            unlisted_customer_name=unlisted_customer_name,
-            service_area=effective_service_area,
-            work_location=work_location,
-            work_origin=work_origin,
-            external_reference=external_reference,
-            other_origin_description=other_origin_description,
-            emergency=emergency,
-        )
-
-        values = json.loads(requested)
-
-        # Keep requested Customer evidence intact and resolve the persisted identity separately.
-        row = {
-            "custom_work_context": values["work_context"],
-            "custom_hd_ticket": values["ticket_name"],
-            "custom_hd_customer": values["customer_name"],
-            "custom_unlisted_customer_name": values[
-                "unlisted_customer_name"
-            ],
-            "project": values["project_name"],
-            "task": values["task_name"],
-            "custom_service_area": values["service_area"],
-            "custom_work_location": values["work_location"],
-            "custom_work_origin": values["work_origin"],
-            "custom_external_reference": values["external_reference"],
-            "custom_other_origin_description": values[
-                "other_origin_description"
-            ],
-            "custom_emergency": values["emergency"],
-        }
-
-        start = datetime.fromisoformat(values["from_time"])
-        end = datetime.fromisoformat(values["to_time"])
-        minutes = values["duration_minutes"]
-        _lock_projects_for_cancellation(
-            before["time_logs"][0].get("project"), row["project"],
-        )
-        project_customer = None
-        if work_context == "Project":
-            project_customer = _authorize_references(reference_row, identity, start=start, end=end)
         previous = before["time_logs"][0]
-        locked_ticket = _validate_customer_consistency(
-            row, ticket=ticket, project_customer=project_customer, previous=previous,
-        )
-        portion = _validate_helpdesk_interval(
-            row, ticket=ticket, locked_ticket=locked_ticket,
-            start=start, end=end, previous=previous,
-        )
-        attribution = prepare_attribution(row, start, end, portion=portion, previous=previous)
-        row.update(attribution)
+        retain_links = False
+        if saved_request is not None:
+            updates, attribution, retain_links = _saved_work_values(before, identity, saved_request)
+            requested = saved_request
+            row = {
+                field: previous.get(field) for field in (
+                    "custom_work_context", "custom_hd_ticket", "custom_hd_customer",
+                    "custom_unlisted_customer_name", "project", "task", "custom_service_area",
+                    "custom_work_location", "custom_work_origin", "custom_external_reference",
+                    "custom_other_origin_description", "custom_emergency", "activity_type",
+                    "from_time", "to_time", "hours",
+                )
+            }
+            row.update(updates)
+            row.update(attribution)
+        else:
+            # Authorize references before any lifecycle mutation.
+            reference_row = {
+                "custom_work_context": work_context,
+                "custom_hd_ticket": ticket_name,
+                "custom_hd_customer": customer_name,
+                "custom_unlisted_customer_name": unlisted_customer_name,
+                "project": project_name,
+                "task": task_name,
+            }
+
+            validate_work_context(reference_row)
+
+            ticket = None
+            if work_context != "Project":
+                ticket = _authorize_references(reference_row, identity)
+
+            _require_booking_activity_type(activity_type)
+            _visible("Activity Type", activity_type)
+
+            # Helpdesk Service Area must come from the authorized ticket.
+            if work_context == "Helpdesk":
+                ticket_area = ticket.get("custom_service_area")
+
+                if service_area not in (None, "", ticket_area):
+                    raise BookingMetadataValidationError(
+                        "Helpdesk Service Area must match its ticket"
+                    )
+
+                effective_service_area = ticket_area
+            else:
+                effective_service_area = service_area
+
+            # Create complete, canonical replacement request evidence.
+            requested = _replacement_request_snapshot(
+                work_context=work_context,
+                from_time=from_time,
+                duration_minutes=duration_minutes,
+                description=description,
+                activity_type=activity_type,
+                ticket_name=ticket_name,
+                project_name=project_name,
+                task_name=task_name,
+                customer_name=customer_name,
+                unlisted_customer_name=unlisted_customer_name,
+                service_area=effective_service_area,
+                work_location=work_location,
+                work_origin=work_origin,
+                external_reference=external_reference,
+                other_origin_description=other_origin_description,
+                emergency=emergency,
+            )
+
+            values = json.loads(requested)
+
+            # Keep requested Customer evidence intact and resolve the persisted identity separately.
+            row = {
+                "custom_work_context": values["work_context"],
+                "custom_hd_ticket": values["ticket_name"],
+                "custom_hd_customer": values["customer_name"],
+                "custom_unlisted_customer_name": values[
+                    "unlisted_customer_name"
+                ],
+                "project": values["project_name"],
+                "task": values["task_name"],
+                "custom_service_area": values["service_area"],
+                "custom_work_location": values["work_location"],
+                "custom_work_origin": values["work_origin"],
+                "custom_external_reference": values["external_reference"],
+                "custom_other_origin_description": values[
+                    "other_origin_description"
+                ],
+                "custom_emergency": values["emergency"],
+            }
+
+            start = datetime.fromisoformat(values["from_time"])
+            end = datetime.fromisoformat(values["to_time"])
+            minutes = values["duration_minutes"]
+            _lock_projects_for_cancellation(
+                before["time_logs"][0].get("project"), row["project"],
+            )
+            project_customer = None
+            if work_context == "Project":
+                project_customer = _authorize_references(reference_row, identity, start=start, end=end)
+            previous = before["time_logs"][0]
+            locked_ticket = _validate_customer_consistency(
+                row, ticket=ticket, project_customer=project_customer, previous=previous,
+            )
+            portion = _validate_helpdesk_interval(
+                row, ticket=ticket, locked_ticket=locked_ticket,
+                start=start, end=end, previous=previous,
+            )
+            attribution = prepare_attribution(row, start, end, portion=portion, previous=previous)
+            row.update(
+                attribution, activity_type=values["activity_type"], from_time=start, to_time=end,
+                hours=minutes / 60, description=values["description"],
+            )
 
         # Original ownership, Submitted state and revision have already
         # been verified against the locked persisted document.
@@ -957,7 +1124,8 @@ def replace_submitted_booking(
         # Native cancellation must occur before inserting the replacement
         # so that ERPNext's time-overlap validation sees the cancelled
         # original rather than a second concurrent booking.
-        with _authorized_native_cancellation(doc):
+        links = retain_missing_booking_links(doc, previous) if retain_links else nullcontext()
+        with _authorized_native_cancellation(doc), links:
             doc.cancel()
 
         # Create a separate Draft, deliberately without amended_from.
@@ -972,11 +1140,6 @@ def replace_submitted_booking(
             "docstatus": 0,
             "time_logs": [{
                 "doctype": "Timesheet Detail",
-                "activity_type": values["activity_type"],
-                "from_time": start,
-                "to_time": end,
-                "hours": minutes / 60,
-                "description": values["description"],
                 **row,
             }],
         })
@@ -989,9 +1152,14 @@ def replace_submitted_booking(
 
         # Reuse the same one-use creation intent and narrowly scoped
         # native permission elevation as ordinary Technician bookings.
-        with _phase2_creation_intent(replacement, identity):
-            with _authorized_native_creation(replacement, identity), authorized_attribution(replacement, attribution):
-                inserted = replacement.insert()
+        links = retain_missing_booking_links(replacement, previous) if retain_links else nullcontext()
+        with (
+            _phase2_creation_intent(replacement, identity),
+            _authorized_native_creation(replacement, identity),
+            authorized_attribution(replacement, attribution),
+            links,
+        ):
+            inserted = replacement.insert()
 
         # Preserve the ordinary booking endpoint's post-insert checks.
         if (

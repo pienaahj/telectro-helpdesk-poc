@@ -575,6 +575,59 @@
     }
   }
 
+  function openSavedWork(booking, afterSave) {
+    const replacing = booking.docstatus === 1;
+    const fields = [
+      { fieldname: "description", label: __("Description"), fieldtype: "Small Text", reqd: 1,
+        default: booking.description },
+      { fieldname: "reason", label: __("Correction Reason"), fieldtype: "Small Text", reqd: 1 },
+    ];
+    if (booking.work_context === "Helpdesk") {
+      fields.push(
+        { fieldname: "change_interval", label: __("Change work interval"), fieldtype: "Check" },
+        { fieldname: "from_time", label: __("Start (Site Time)"), fieldtype: "Data",
+          description: __("Enter YYYY-MM-DD HH:mm:ss, with optional fractional seconds."),
+          default: booking.from_time, depends_on: "change_interval", mandatory_depends_on: "change_interval" },
+        { fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Int",
+          default: booking.duration_minutes, depends_on: "change_interval",
+          mandatory_depends_on: "change_interval" },
+      );
+    }
+    const dialog = new frappe.ui.Dialog({
+      title: replacing ? __("Replace Booking with Saved Reference") : __("Correct Saved Work"),
+      fields,
+      no_submit_on_enter: true,
+    });
+    dialog.set_primary_action(
+      replacing ? __("Replace Booking") : __("Save Correction"),
+      correctionRequest(
+        dialog, booking, replacing ? "replace_submitted_booking" : "correct_draft_booking",
+        (values) => {
+          const description = values.description?.trim();
+          if (!description || description.length > 2000) {
+            showError(__("Enter a description of up to 2,000 characters."));
+            return null;
+          }
+          const payload = { saved_work: true, description };
+          if (values.change_interval) {
+            const start = values.from_time?.trim();
+            const minutes = Number(values.duration_minutes);
+            if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?$/.test(start)
+                || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+              showError(__("Enter the site-local start and a duration of 1 to 1,440 whole minutes."));
+              return null;
+            }
+            Object.assign(payload, { from_time: start, duration_minutes: minutes });
+          }
+          return payload;
+        },
+        afterSave,
+      ),
+    );
+    dialog.$wrapper.one("hidden.bs.modal", () => dialog.$wrapper.remove());
+    dialog.show();
+  }
+
   function openCancellation(booking, afterSave) {
     const submitted = booking.docstatus === 1;
     const label = submitted ? __("Cancel Booking") : __("Withdraw Draft");
@@ -632,6 +685,9 @@
             $("<p>", { class: "text-muted mb-2", text: preCreationText(booking.pre_creation_us) }).appendTo(item);
           }
           if (booking.docstatus !== 2) {
+            if (booking.work_context === "Helpdesk" || booking.work_context === "Project") {
+              action(__("Correct Saved Work"), () => openSavedWork(booking, () => load(start)), item);
+            }
             action(
               booking.docstatus === 0 ? __("Correct Draft") : __("Replace Booking"),
               () => openForm(options, booking, () => load(start)), item,

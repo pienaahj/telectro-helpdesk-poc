@@ -123,6 +123,23 @@ def _validated_replacement_request(value):
 
     fields = set(data) if type(data) is dict else None
 
+    if fields == {"saved_work", "description", "from_time", "duration_minutes"}:
+        from telephony.time_booking_ticket_interval import _timestamp
+
+        start = _timestamp(data["from_time"])
+        minutes = data["duration_minutes"]
+        if (
+            data["saved_work"] is not True or canonical != value
+            or not _text(data["description"]) or len(data["description"]) > 2000
+            or (
+                (data["from_time"] is not None or minutes is not None)
+                and (start is None or start.isoformat() != data["from_time"]
+                     or type(minutes) is not int or not 0 < minutes <= 1440)
+            )
+        ):
+            raise BookingCorrectionAuditError()
+        return canonical
+
     extended = fields == _REPLACEMENT_REQUEST_EXTENDED_FIELDS
 
     if (
