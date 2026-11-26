@@ -60,6 +60,12 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Available", "Restricted reference", "Missing historical reference", "Unattributed", "Not applicable"],
 		},
+		{
+			fieldname: "reference_kind",
+			label: __("Primary Work Reference"),
+			fieldtype: "Select",
+			options: ["", "Snapfix", "Ticket", "Project", "Task", "No visible reference"],
+		},
 		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Data" },
 		{ fieldname: "project", label: __("Project"), fieldtype: "Data" },
 		{ fieldname: "task", label: __("Task"), fieldtype: "Data" },

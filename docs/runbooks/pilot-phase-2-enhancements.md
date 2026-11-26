@@ -374,8 +374,11 @@ to the report for detailed analysis while preserving its existing capabilities.
 The DEV implementation and technical evidence at
 `d77d2b3338a63220f6e4a935d8a97e40eca19aad` remain accepted evidence for
 the [REP-01–06 register](#rep-0106-management-reporting-acceptance-register).
-Formal owner browser and functional acceptance and Pierre’s personal business
-acceptance remain distinct.
+Owner browser and functional acceptance were recorded on 26 November 2026.
+Independent inspection of the owner’s downloaded filtered Excel export
+confirmed TS-2026-00017, Boschendal and a numeric 0.250 booked hours.
+The previously verified native CSV and Excel paths remain accepted evidence.
+Pierre’s personal business acceptance remains a separate gate.
 
 ### Pillar 2 — DASH-01–10 Technician Work Overview
 
@@ -391,6 +394,16 @@ acceptance remain distinct.
 | DASH-08 | Reconcile dashboard totals and drill-down to Supervisor Booked Hours for the same scope and period. Aggregate precise underlying durations before display rounding. Count Emergency and pre-creation time within booked time. |
 | DASH-09 | Reuse the existing authorized reporting population and projection. Enforce Supervisor, Company, Customer and reference restrictions on the server for summaries, selectors, detail and response data. |
 | DASH-10 | In owner browser acceptance, demonstrate that management can readily determine each Technician’s recorded work, time spent supporting Boschendal, work performed on Projects, what a Technician did for a Customer, and where technical effort was spent. These tasks must be usable without knowledge of Timesheets, Employee identifiers or database reference types. Obtain Pierre’s feedback separately. |
+
+DEV registers the native `technician-work-overview` Page with the existing
+Supervisor Governance role. Put **Technician Work Overview** first in the
+Ops Workspace **Time Booking Reports** card and retain **Supervisor Booked
+Hours** immediately after it. A targeted DEV installation uses
+`frappe.reload_doc("ftelephony", "page", "technician_work_overview", force=True)`
+and a one-link update to that card. Refresh the native Page domain cache and
+affected Supervisor Page and boot caches, then verify both links as a
+restricted Supervisor. The Workspace fixture carries the same link for the
+authorized release process.
 
 ### Pillar 3 — COST-01–08 Customer Labour Cost Analysis
 
@@ -439,8 +452,9 @@ infrastructure deployment can proceed independently of presentation work.
 The owner will prioritize the COST milestone and implementation sequence.
 Existing release gates and approvals continue to apply.
 
-This documentation checkpoint records business approval. Implementation
-of DASH and COST and their acceptance checks await focused instructions.
+DASH-01–10 proceeds under the focused B3.88REP.2A DEV instruction. Owner
+browser and usability acceptance and Pierre’s feedback remain separate
+gates. COST implementation awaits its own focused instruction.
 
 ---
 

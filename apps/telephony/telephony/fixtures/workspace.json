@@ -1108,7 +1108,7 @@
     "icon": null,
     "is_query_report": 0,
     "label": "Time Booking Reports",
-    "link_count": 1,
+    "link_count": 2,
     "link_to": null,
     "link_type": "DocType",
     "onboard": 0,
@@ -1118,6 +1118,24 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "type": "Card Break"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 0,
+    "label": "Technician Work Overview",
+    "link_count": 0,
+    "link_to": "technician-work-overview",
+    "link_type": "Page",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "TELECTRO-POC Ops",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
    },
    {
     "dependencies": null,

@@ -43,7 +43,7 @@ _REPORT_ROWS = """
 _FILTER_FIELDS = (
     "company", "employee", "customer", "customer_type", "work_context", "service_area",
     "work_origin", "emergency", "activity_type", "reference_state", "ticket", "project", "task",
-    "snapfix_reference",
+    "snapfix_reference", "reference_kind",
 )
 _ROSTER = ("company", "employee")
 _CUSTOMER = ("customer_type", "customer", "unlisted_customer")
@@ -59,6 +59,9 @@ _BREAKDOWNS = {
 _REFERENCE_STATES = ("Available", "Restricted reference", "Missing historical reference", "Unattributed", "Not applicable")
 _CUSTOMER_STATES = ("Listed Customer", "Unlisted Customer", "Unattributed", "Not applicable")
 _REFERENCES = {"project": "Project", "task": "Task", "ticket": "HD Ticket"}
+_REFERENCE_KINDS = {
+    "Snapfix": "snapfix_reference", "Ticket": "ticket", "Project": "project", "Task": "task",
+}
 _CUSTOMER_TYPES = ("HD Customer", "Customer")
 _CUSTOMER_CONTEXTS = (*_CUSTOMER_TYPES, "Timesheet", "Timesheet Detail")
 
@@ -66,7 +69,23 @@ _CUSTOMER_CONTEXTS = (*_CUSTOMER_TYPES, "Timesheet", "Timesheet Detail")
 def execute(filters=None):
     roster = resolve_supervisor_reporting_scope()
     start, end, view, criteria = _report_filters(filters)
+    columns = _columns(view)
+    bookings = authorized_bookings(roster, start, end, criteria)
     detail = view == "Booking Detail"
+    if detail:
+        result = hours_rows(bookings, start, end, detail=True)
+    else:
+        result = hours_rows(
+            bookings, start, end,
+            group_by=_BREAKDOWNS.get(view, _ROSTER), by_day=view == "Daily Summary",
+        )
+    fields = tuple(column["fieldname"] for column in columns)
+    return columns, [_format_row(row, fields) for row in result]
+
+
+def authorized_bookings(roster, start, end, criteria=None):
+    """Return the shared grant-scoped, permission-projected operational rows."""
+    criteria = criteria or {}
     scope = {
         (identity.user, identity.employee, identity.company)
         for identity in roster
@@ -75,10 +94,8 @@ def execute(filters=None):
             for field in ("employee", "company")
         )
     }
-    columns = _columns(view)
     if not scope:
-        return columns, []
-
+        return []
     permissions = get_user_permissions(frappe.session.user)
     if not isinstance(permissions, Mapping):
         raise frappe.PermissionError(_("Customer permissions are unavailable."))
@@ -102,15 +119,7 @@ def execute(filters=None):
         if _matches(row, criteria):
             bookings.append(row)
 
-    if detail:
-        result = hours_rows(bookings, start, end, detail=True)
-    else:
-        result = hours_rows(
-            bookings, start, end,
-            group_by=_BREAKDOWNS.get(view, _ROSTER), by_day=view == "Daily Summary",
-        )
-    fields = tuple(column["fieldname"] for column in columns)
-    return columns, [_format_row(row, fields) for row in result]
+    return bookings
 
 
 def _report_filters(filters):
@@ -130,6 +139,7 @@ def _report_filters(filters):
     fixed_options = {
         "emergency": ("Yes", "No"), "customer_type": _CUSTOMER_STATES,
         "reference_state": _REFERENCE_STATES,
+        "reference_kind": (*_REFERENCE_KINDS, "No visible reference"),
     }
     for field in _FILTER_FIELDS:
         value = filters.get(field)
@@ -236,6 +246,8 @@ def _customer_allowed(row, limits, load, customer_mapping):
 def _project_booking(row, load):
     row = dict(row)
     row["emergency"] = int(row["emergency"] == 1)
+    row["activity_type"] = row["activity_type"] or "Unattributed"
+    row["work_context"] = row["work_context"] or "Unattributed"
     row["status"] = _("Draft") if row["docstatus"] == 0 else _("Submitted")
     row["recorded_start"], row["recorded_end"] = row["from_time"], row["to_time"]
     if row["customer"]:
@@ -250,6 +262,7 @@ def _project_booking(row, load):
     expected = {"Helpdesk": "ticket", "Project": "project"}.get(row["work_context"])
     unattributed = expected is not None and not row[expected]
     states = set()
+    row["project_name"] = None
     for field, doctype in _REFERENCES.items():
         if not row[field]:
             continue
@@ -258,6 +271,8 @@ def _project_booking(row, load):
         if field == "task" and readable and (not row["project"] or document.get("project") != row["project"]):
             readable, state = False, "Restricted reference"
         row[field] = name if readable else None
+        if field == "project" and readable:
+            row["project_name"] = document.get("project_name")
         states.add(state)
 
     blocked = states & {"Restricted reference", "Missing historical reference"}
@@ -275,6 +290,9 @@ def _project_booking(row, load):
         row["reference_state"] = "Unattributed"
     else:
         row["reference_state"] = "Not applicable"
+    row["reference_kind"] = next(
+        (kind for kind, field in _REFERENCE_KINDS.items() if row[field]), "No visible reference",
+    )
     if not row["service_area"]:
         row["service_area"] = "Not applicable" if row["work_context"] == "Internal" else "Unattributed"
     return row
