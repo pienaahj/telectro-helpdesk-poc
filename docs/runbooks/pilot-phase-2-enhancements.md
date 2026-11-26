@@ -456,6 +456,31 @@ comparison, support contract review and analysis of labour contribution.
 | COST-07 | Separately reconcile Customer-attributed, Internal and unattributed historical work to all authorized booked time and keep Emergency within that total. Leave Internal and unattributed time unallocated to Customer accounts. Identify the export’s scope and label a restricted Supervisor’s results as scoped labour figures. |
 | COST-08 | Use the existing authorized population and verify Supervisor roster, Company and Customer restrictions, aggregation by Technician and Customer, Cancelled and replacement treatment, exact hours reconciliation, numeric cells, blank inputs, missing rates, formulas, and zero denominators. Protect spreadsheet text from formula execution, limit formulas to generated calculation cells, and verify protection of descriptions and references and absence of financial write-back. Actual owner workbook acceptance is required. |
 
+#### COST DEV implementation
+
+Open **Ops Workspace → Time Booking Reports → Customer Labour Cost Analysis**.
+The native Desk page defaults to **This Month** and displays the inclusive
+site dates before download. The export rechecks the active Supervisor grant
+and applicable Company, Employee and Customer restrictions. Its three-sheet
+workbook opens on **Customer Financial Summary**. Blue input cells accept
+manual values in Excel. **Technician Rates** and **Customer Labour
+Breakdown** provide the supporting operational hours.
+
+Each saved listed Customer has one revenue input across the Companies in
+scope. Where a Customer spans Companies, the workbook also shows each
+Customer/Company’s hours and labour cost without allocating account revenue
+across Companies. Unlisted Customer names are grouped within their recorded
+section and Company and remain distinct from listed identities with the same
+name. The reconciliation includes Internal and unattributed work without
+charging those hours to Customers. Owner workbook and management-presentation
+acceptance and Pierre’s business feedback remain separate gates.
+
+DEV uses a targeted registration of the standard
+`customer-labour-cost-analysis` Page and one added link after **Supervisor
+Booked Hours** in the existing card. Refresh the Page domain and affected
+Supervisor navigation caches after registration. The fixture retains the same
+order for the authorized release process.
+
 ### Financial scope exception and implementation direction
 
 The earlier commercial-analysis exclusion has one explicit exception.
@@ -486,9 +511,9 @@ infrastructure deployment can proceed independently of presentation work.
 The owner will prioritize the COST milestone and implementation sequence.
 Existing release gates and approvals continue to apply.
 
-DASH-01–10 internal acceptance is closed. The next implementation
-workstream is COST-01–08 Customer Labour Cost Analysis in a fresh session,
-under its own focused instruction. Reuse the native Timesheet ledger,
+DASH-01–10 internal acceptance is closed. COST-01–08 Customer Labour
+Cost Analysis is implemented under the focused B3.88REP.3 DEV instruction.
+Owner workbook and presentation acceptance remain pending. Reuse the native Timesheet ledger,
 Supervisor Booked Hours, the accepted Technician Work Overview and their
 shared authorized reporting foundation. Preserve Supervisor Reporting
 Grants, saved historical Customer identity, reference and description
