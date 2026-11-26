@@ -80,7 +80,7 @@ business acceptance follows the Supervisor browser check.
 | REP-03 | Break down Projects, work references, Service Areas and activities. | Project / Reference, Service Area and Activity views use the permission-checked projection. Restricted and missing historical references retain their hours under separate labels. |
 | REP-04 | Inspect authorized individual bookings and descriptions. | Booking Detail shows recorded and report-counted intervals, work metadata and a spreadsheet-safe Timesheet Detail description. A restricted, missing or unverified linked reference blanks the associated description. |
 | REP-05 | Reconcile every view against the same actual booked time. | The same managed Draft and Submitted population feeds every view. Each clipped slice contributes to one row per view, and the native total row sums that partition. Cancelled and withdrawn work is excluded. Emergency and pre-creation are portions of booked time. |
-| REP-06 | Verify actual Supervisor grants, scope, browser drill-down and exports. | Use the existing Supervisor Reporting Grant and native report and CSV/Excel paths. Verify roster and Customer limits and denial for an ordinary Technician, Coordinator without the Supervisor role and unauthorized user. The owner browser check and Pierre’s feedback remain explicit gates. |
+| REP-06 | Verify actual Supervisor grants, scope, browser drill-down and exports. | Use the existing Supervisor Reporting Grant and native report and CSV/Excel paths. Verify roster and Customer limits and denial for an ordinary Technician, Coordinator without the Supervisor role and unauthorized user. Owner browser and functional acceptance are recorded. Pierre’s feedback remains a separate gate. |
 
 Saved operational Customer values drive grouping. The existing Customer
 authorization also applies to exports. Reference filters match exact authorized
@@ -315,8 +315,8 @@ correction requirements above.
 | **B3.88A.6 — Trusted manual origin** | Mandatory before activation. First independently verifiable implementation slice. | Automatic positive evidence from the verified manual create path. Portal, Email, copied, imported and unknown Tickets cannot qualify by default, payload or ordinary edit. |
 | **B3.88A.7 — Ticket interval and attribution** | Mandatory before activation. Depends on A.6. | One server-side interval policy covers creation, changed Draft corrections and changed submitted replacements, with visible and stable pre-creation attribution. Prove lifecycle boundaries, concurrency, Customer consistency and unchanged Project/Task coverage. |
 | **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Owner approved A.8A on 26 November 2026. | Prove description and bounded interval corrections after loss of Ticket read access, immutable original creation evidence, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
-| **REP-01–06 — Supervisor Booked Hours formal closure** | Existing DEV implementation and technical evidence retained. | Complete the outstanding owner browser and functional closure checks. Record Pierre’s business acceptance separately. |
-| **DASH-01–10 — Technician Work Overview** | Approved scope. Management usability is intended for operational activation. An otherwise-authorized dormant deployment can proceed independently. | Reconcile with Supervisor Booked Hours and pass the owner browser usability check. Obtain Pierre’s feedback separately. |
+| **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
+| **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–08 — Customer Labour Cost Analysis** | Approved scope. The owner sets the delivery milestone and sequence. | Reconcile authorized operational hours and pass owner workbook acceptance with local manual financial inputs. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Existing register remains a separate workstream. | Retain prior decisions, evidence and outstanding acceptance items. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
@@ -413,10 +413,21 @@ passed the functional and management-usability checks on the actual DEV
 dashboard and said, “All in all this is very impressive and WOW to me.”
 Acceptance covers day-level Custom selection, all seven exploration modes,
 expandable descriptions, restricted Project redaction and the handover to
-Supervisor Booked Hours. The live Supervisor grant covered one Technician.
-Representative multi-Technician owner evaluation remains deferred. The
-presentation refinements have a separate final screenshot retest, and
-Pierre’s personal feedback remains pending.
+Supervisor Booked Hours.
+
+**Final internal closure — 26 November 2026 (B3.88REP.2C).** The owner’s
+final browser retest accepted all six presentation refinements at
+`ce8ca4b04254fdcbf593205619787a897c770d0f`. The full-period view retained
+48 minutes and eight entries. Selecting Snapfix showed one 15-minute entry.
+The restricted Project still contributed its one minute with its identity
+and description withheld. The accepted design is frozen. Further
+enhancements should be driven by operational experience or Pierre’s feedback.
+
+Representative owner evaluation with multiple Technicians remains deferred
+under the Bravo-only DEV grant. The controlled multi-Technician technical
+evidence remains accepted. The abbreviated native Desk title on narrow
+mobile screens is an accepted limitation. Pierre’s personal feedback
+remains pending as a separate business item.
 
 DEV registers the native `technician-work-overview` Page with the existing
 Supervisor Governance role. Put **Technician Work Overview** first in the
@@ -475,9 +486,16 @@ infrastructure deployment can proceed independently of presentation work.
 The owner will prioritize the COST milestone and implementation sequence.
 Existing release gates and approvals continue to apply.
 
-DASH-01–10 proceeds under the focused B3.88REP.2A DEV instruction. Owner
-browser and usability acceptance and Pierre’s feedback remain separate
-gates. COST implementation awaits its own focused instruction.
+DASH-01–10 internal acceptance is closed. The next implementation
+workstream is COST-01–08 Customer Labour Cost Analysis in a fresh session,
+under its own focused instruction. Reuse the native Timesheet ledger,
+Supervisor Booked Hours, the accepted Technician Work Overview and their
+shared authorized reporting foundation. Preserve Supervisor Reporting
+Grants, saved historical Customer identity, reference and description
+redaction, exact duration aggregation and site-local date clipping. Include
+Draft and Submitted bookings, exclude Cancelled and withdrawn work, and
+count replacements once. Carry forward the accepted evidence for these
+contracts.
 
 ---
 
