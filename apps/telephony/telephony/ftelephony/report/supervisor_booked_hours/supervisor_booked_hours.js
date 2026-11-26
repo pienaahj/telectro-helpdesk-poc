@@ -18,7 +18,11 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			fieldname: "view",
 			label: __("View"),
 			fieldtype: "Select",
-			options: ["Daily Summary", "Booking Detail"],
+			options: [
+				"Daily Summary", "Technician Breakdown", "Customer Breakdown",
+				"Work Context Breakdown", "Project / Reference Breakdown",
+				"Service Area Breakdown", "Activity Breakdown", "Booking Detail",
+			],
 			default: "Daily Summary",
 		},
 		{ fieldname: "company", label: __("Company"), fieldtype: "Data" },
@@ -43,6 +47,23 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			options: ["", "Yes", "No"],
 		},
 		{ fieldname: "customer", label: __("Customer"), fieldtype: "Data" },
+		{ fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Data" },
+		{
+			fieldname: "customer_type",
+			label: __("Customer Attribution"),
+			fieldtype: "Select",
+			options: ["", "Listed Customer", "Unlisted Customer", "Unattributed", "Not applicable"],
+		},
+		{
+			fieldname: "reference_state",
+			label: __("Reference Status"),
+			fieldtype: "Select",
+			options: ["", "Available", "Restricted reference", "Missing historical reference", "Unattributed", "Not applicable"],
+		},
+		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Data" },
+		{ fieldname: "project", label: __("Project"), fieldtype: "Data" },
+		{ fieldname: "task", label: __("Task"), fieldtype: "Data" },
+		{ fieldname: "snapfix_reference", label: __("Snapfix Reference"), fieldtype: "Data" },
 	],
 	formatter(value, row, column, data, default_formatter) {
 		if (column.fieldtype === "Data" && typeof value === "string") {

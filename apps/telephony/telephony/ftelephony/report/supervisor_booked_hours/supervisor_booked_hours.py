@@ -1,6 +1,5 @@
 """Live Supervisor reporting over the authorized Phase 2 ledger."""
 
-from collections import defaultdict
 from collections.abc import Mapping
 from functools import lru_cache
 
@@ -19,7 +18,7 @@ from telephony.supervisor_reporting_grant import resolve_supervisor_reporting_sc
 _REPORT_ROWS = """
     SELECT parent.name AS booking, parent.docstatus,
            parent.user, parent.employee, parent.company,
-           detail.from_time, detail.to_time, detail.activity_type,
+           detail.from_time, detail.to_time, detail.activity_type, detail.description,
            detail.custom_work_context AS work_context,
            detail.custom_service_area AS service_area,
            detail.custom_work_origin AS work_origin,
@@ -41,7 +40,24 @@ _REPORT_ROWS = """
      ORDER BY detail.from_time, detail.name
 """
 
-_FILTER_FIELDS = ("company", "employee", "customer", "work_context", "service_area", "work_origin", "emergency")
+_FILTER_FIELDS = (
+    "company", "employee", "customer", "customer_type", "work_context", "service_area",
+    "work_origin", "emergency", "activity_type", "reference_state", "ticket", "project", "task",
+    "snapfix_reference",
+)
+_ROSTER = ("company", "employee")
+_CUSTOMER = ("customer_type", "customer", "unlisted_customer")
+_WORK_REFERENCE = ("ticket", "project", "task", "snapfix_reference", "reference_state")
+_BREAKDOWNS = {
+    "Technician Breakdown": (*_ROSTER, "work_context", *_CUSTOMER, *_WORK_REFERENCE),
+    "Customer Breakdown": (*_CUSTOMER, "work_context", *_ROSTER),
+    "Work Context Breakdown": ("work_context", *_ROSTER),
+    "Project / Reference Breakdown": ("work_context", *_WORK_REFERENCE, *_ROSTER),
+    "Service Area Breakdown": ("service_area", "work_context", *_ROSTER),
+    "Activity Breakdown": ("activity_type", "work_context", *_ROSTER),
+}
+_REFERENCE_STATES = ("Available", "Restricted reference", "Missing historical reference", "Unattributed", "Not applicable")
+_CUSTOMER_STATES = ("Listed Customer", "Unlisted Customer", "Unattributed", "Not applicable")
 _REFERENCES = {"project": "Project", "task": "Task", "ticket": "HD Ticket"}
 _CUSTOMER_TYPES = ("HD Customer", "Customer")
 _CUSTOMER_CONTEXTS = (*_CUSTOMER_TYPES, "Timesheet", "Timesheet Detail")
@@ -49,7 +65,8 @@ _CUSTOMER_CONTEXTS = (*_CUSTOMER_TYPES, "Timesheet", "Timesheet Detail")
 
 def execute(filters=None):
     roster = resolve_supervisor_reporting_scope()
-    start, end, detail, criteria = _report_filters(filters)
+    start, end, view, criteria = _report_filters(filters)
+    detail = view == "Booking Detail"
     scope = {
         (identity.user, identity.employee, identity.company)
         for identity in roster
@@ -58,7 +75,7 @@ def execute(filters=None):
             for field in ("employee", "company")
         )
     }
-    columns = _columns(detail)
+    columns = _columns(view)
     if not scope:
         return columns, []
 
@@ -81,22 +98,19 @@ def execute(filters=None):
             continue
         if not _customer_allowed(row, customer_limits, load, customer_mapping):
             continue
-        row = _project_booking(row, load, detail=detail)
+        row = _project_booking(row, load)
         if _matches(row, criteria):
             bookings.append(row)
 
     if detail:
         result = hours_rows(bookings, start, end, detail=True)
     else:
-        by_employee = defaultdict(list)
-        for row in bookings:
-            by_employee[row["company"], row["employee"]].append(row)
-        result = [
-            dict(row, company=company, employee=employee)
-            for (company, employee), group in sorted(by_employee.items())
-            for row in hours_rows(group, start, end)
-        ]
-    return columns, [_format_row(row, detail) for row in result]
+        result = hours_rows(
+            bookings, start, end,
+            group_by=_BREAKDOWNS.get(view, _ROSTER), by_day=view == "Daily Summary",
+        )
+    fields = tuple(column["fieldname"] for column in columns)
+    return columns, [_format_row(row, fields) for row in result]
 
 
 def _report_filters(filters):
@@ -108,27 +122,43 @@ def _report_filters(filters):
     except (OverflowError, ValueError):
         raise frappe.ValidationError(_("Enter a valid From Date and To Date in chronological order.")) from None
     view = filters.get("view")
-    if view not in (None, "", "Daily Summary", "Booking Detail"):
+    if view in (None, ""):
+        view = "Daily Summary"
+    if not isinstance(view, str) or view not in ("Daily Summary", "Booking Detail", *_BREAKDOWNS):
         raise frappe.ValidationError(_("Select a valid report view."))
     criteria = {}
+    fixed_options = {
+        "emergency": ("Yes", "No"), "customer_type": _CUSTOMER_STATES,
+        "reference_state": _REFERENCE_STATES,
+    }
     for field in _FILTER_FIELDS:
         value = filters.get(field)
         if value in (None, ""):
             continue
-        if not isinstance(value, str) or (field == "emergency" and value not in ("Yes", "No")):
+        if not isinstance(value, str) or (field in fixed_options and value not in fixed_options[field]):
             raise frappe.ValidationError(_("Select a valid report filter."))
         criteria[field] = value.strip().casefold()
-    return start, end, view == "Booking Detail", criteria
+    return start, end, view, criteria
 
 
 def _load_reference(doctype, name):
+    # Reference permission hooks can write to the request message log.
+    # These lookups are internal to the authorized report projection.
+    messages = frappe.local.message_log
+    frappe.local.message_log = []
     try:
         doc = frappe.get_doc(doctype, name)
         if str(doc.name) == name:
-            return doc, bool(doc.has_permission("read"))
-    except (frappe.DoesNotExistError, frappe.PermissionError):
+            if doc.has_permission("read"):
+                return doc, True, "Available"
+            return doc, False, "Restricted reference"
+    except frappe.DoesNotExistError:
         pass
-    return None, False
+    except frappe.PermissionError:
+        return None, False, "Restricted reference"
+    finally:
+        frappe.local.message_log = messages
+    return None, False, "Missing historical reference"
 
 
 def _customer_mapping(erp_customer):
@@ -155,14 +185,14 @@ def _customer_allowed(row, limits, load, customer_mapping):
     if not saved_customer:
         # Keep unattributed work in authorized overall totals without assigning
         # a historical Customer from today's Ticket or Project mapping.
-        project, _ = load("Project", str(row.project)) if row.project else (None, False)
+        project = load("Project", str(row.project))[0] if row.project else None
         return project is None or project.get("company") == row.company
 
     hd_customer, erp_customer = saved_customer, None
     for field, doctype in (("ticket", "HD Ticket"), ("project", "Project")):
         if not row[field]:
             continue
-        document, _ = load(doctype, str(row[field]))
+        document = load(doctype, str(row[field]))[0]
         if document is None:
             if restricted:
                 return False
@@ -182,7 +212,7 @@ def _customer_allowed(row, limits, load, customer_mapping):
             erp_customer = erp_customer or project_customer
 
     if hd_customer:
-        hd_doc, can_read = load("HD Customer", hd_customer)
+        hd_doc, can_read, _ = load("HD Customer", hd_customer)
         if not can_read:
             return False
         mapped_customer = hd_doc.get("custom_erp_customer")
@@ -203,25 +233,50 @@ def _customer_allowed(row, limits, load, customer_mapping):
     )
 
 
-def _project_booking(row, load, *, detail):
+def _project_booking(row, load):
     row = dict(row)
     row["emergency"] = int(row["emergency"] == 1)
-    if not detail:
-        return row
     row["status"] = _("Draft") if row["docstatus"] == 0 else _("Submitted")
-    references = {}
-    for field, doctype in _REFERENCES.items():
-        name = str(row[field]) if row[field] else None
-        references[field] = load(doctype, name) if name else (None, True)
+    row["recorded_start"], row["recorded_end"] = row["from_time"], row["to_time"]
+    if row["customer"]:
+        row["customer_type"] = "Listed Customer"
+    elif row["unlisted_customer"]:
+        row["customer_type"] = "Unlisted Customer"
+    elif row["work_context"] == "Internal":
+        row["customer_type"] = "Not applicable"
+    else:
+        row["customer_type"] = "Unattributed"
 
-    task_doc, task_read = references["task"]
-    if task_doc and (task_doc.get("project") != row["project"] or not references["project"][1]):
-        task_read = False
-    references["task"] = task_doc, task_read
-    for field, (_document, readable) in references.items():
-        row[field] = str(row[field]) if row[field] and readable else None
-    if row["work_origin"] != "Snapfix" or not all(readable for _, readable in references.values()):
+    expected = {"Helpdesk": "ticket", "Project": "project"}.get(row["work_context"])
+    unattributed = expected is not None and not row[expected]
+    states = set()
+    for field, doctype in _REFERENCES.items():
+        if not row[field]:
+            continue
+        name = str(row[field])
+        document, readable, state = load(doctype, name)
+        if field == "task" and readable and (not row["project"] or document.get("project") != row["project"]):
+            readable, state = False, "Restricted reference"
+        row[field] = name if readable else None
+        states.add(state)
+
+    blocked = states & {"Restricted reference", "Missing historical reference"}
+    if row["work_origin"] != "Snapfix" or blocked or unattributed:
         row["snapfix_reference"] = None
+    if blocked or unattributed:
+        row["description"] = None
+    if "Restricted reference" in states:
+        row["reference_state"] = "Restricted reference"
+    elif "Missing historical reference" in states:
+        row["reference_state"] = "Missing historical reference"
+    elif states or row["snapfix_reference"]:
+        row["reference_state"] = "Available"
+    elif row["work_context"] in ("Helpdesk", "Project") or row["work_origin"] == "Snapfix":
+        row["reference_state"] = "Unattributed"
+    else:
+        row["reference_state"] = "Not applicable"
+    if not row["service_area"]:
+        row["service_area"] = "Not applicable" if row["work_context"] == "Internal" else "Unattributed"
     return row
 
 
@@ -237,28 +292,54 @@ def _matches(row, criteria):
     return True
 
 
-def _format_row(row, detail):
-    if detail:
-        row.pop("user")
-        row.pop("docstatus")
-        row["emergency"] = _("Yes") if row["emergency"] else _("No")
-        for field in ("from_time", "to_time"):
-            row[field] = row[field].isoformat(sep=" ", timespec="seconds")
-    return {field: _spreadsheet_text(value) if isinstance(value, str) else value for field, value in row.items()}
+def _format_row(row, fields):
+    result = {}
+    for field in fields:
+        value = row[field]
+        if field == "emergency":
+            value = _("Yes") if value else _("No")
+        elif field in ("from_time", "to_time", "recorded_start", "recorded_end"):
+            value = value.isoformat(sep=" ")
+        if isinstance(value, str):
+            value = _spreadsheet_text(value)
+        result[field] = value
+    return result
 
 
-def _columns(detail):
-    columns = [
-        ("day", "Date", "Date", 120),
+def _columns(view):
+    day = ("day", "Date", "Date", 120)
+    roster = (
         ("employee", "Technician (Employee)", "Data", 165),
         ("company", "Company", "Data", 160),
+    )
+    hours = (
         ("booked_hours", "Booked Hours", "Float", 125),
         ("draft_hours", "Draft Hours", "Float", 120),
         ("submitted_hours", "Submitted Hours", "Float", 135),
         ("emergency_hours", "Emergency Hours", "Float", 145),
-    ]
-    if detail:
-        columns.extend(_DETAIL_COLUMNS)
+    )
+    extra = (
+        ("customer_type", "Customer Attribution", "Data", 145),
+        ("reference_state", "Reference Status", "Data", 175),
+    )
+    if view == "Daily Summary":
+        columns = (day, *roster, *hours)
+    elif view == "Booking Detail":
+        columns = (
+            day, *roster, *hours, *_DETAIL_COLUMNS, *extra,
+            ("recorded_start", "Recorded Start (Site Time)", "Data", 185),
+            ("recorded_end", "Recorded End (Site Time)", "Data", 185),
+            ("description", "Booking Description", "Data", 330),
+        )
+    else:
+        dimensions = {column[0]: column for column in (*roster, *_DETAIL_COLUMNS, *extra)}
+        group = _BREAKDOWNS[view]
+        leading = 3 if view in ("Technician Breakdown", "Customer Breakdown") else 1
+        columns = (
+            *(dimensions[field] for field in group[:leading]),
+            *hours,
+            *(dimensions[field] for field in group[leading:]),
+        )
     return [
         dict(fieldname=name, label=_(label), fieldtype=kind, width=width)
         for name, label, kind, width in columns

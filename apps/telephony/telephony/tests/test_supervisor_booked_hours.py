@@ -41,7 +41,7 @@ class TestSupervisorBookedHours(unittest.TestCase):
                 from_time TIMESTAMP, to_time TIMESTAMP, activity_type TEXT,
                 custom_work_context TEXT, custom_service_area TEXT, custom_work_origin TEXT,
                 custom_emergency INTEGER, custom_hd_customer TEXT, custom_unlisted_customer_name TEXT,
-                project TEXT, task TEXT, custom_hd_ticket TEXT, custom_external_reference TEXT
+                project TEXT, task TEXT, custom_hd_ticket TEXT, custom_external_reference TEXT, description TEXT
             );
         """)
         self.scope = Mock(return_value={TECH})
@@ -56,7 +56,7 @@ class TestSupervisorBookedHours(unittest.TestCase):
             patch.object(report, "_", lambda label: label),
             patch.object(report, "frappe", SimpleNamespace(
                 db=SimpleNamespace(sql=self.sql, get_value=self.get_value),
-                session=SimpleNamespace(user="supervisor"),
+                session=SimpleNamespace(user="supervisor"), local=SimpleNamespace(message_log=[]),
                 get_doc=self.get_doc, PermissionError=frappe.PermissionError,
                 DoesNotExistError=frappe.DoesNotExistError, ValidationError=frappe.ValidationError,
             )),
@@ -104,13 +104,13 @@ class TestSupervisorBookedHours(unittest.TestCase):
     def add(self, name, *, identity=TECH, status=0, marker="Phase 2", context="Internal",
             start="2026-11-23 10:00:00", end="2026-11-23 11:00:00", emergency=0,
             customer=None, unlisted=None, project=None, task=None, ticket=None,
-            origin="Direct / Ad-hoc", reference=None):
+            origin="Direct / Ad-hoc", reference=None, description=None):
         self.db.execute("INSERT INTO `tabTimesheet` VALUES (?, ?, ?, ?, ?, ?)",
                         (name, identity.user, identity.employee, identity.company, marker, status))
         self.db.execute(
-            "INSERT INTO `tabTimesheet Detail` VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO `tabTimesheet Detail` VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (name + "-line", name, "Timesheet", "time_logs", start, end, "Travel", context,
-             "PABX", origin, emergency, customer, unlisted, project, task, ticket, reference),
+             "PABX", origin, emergency, customer, unlisted, project, task, ticket, reference, description),
         )
 
     def rows(self, detail=False, **filters):
@@ -220,9 +220,56 @@ class TestSupervisorBookedHours(unittest.TestCase):
         self.assertEqual(row["booked_hours"], 1)
         self.assertEqual((row["project"], row["task"], row["snapfix_reference"]), (None, None, None))
         self.assertNotIn("user", row)
-        self.assertNotIn("description", row)
+        self.assertIsNone(row["description"])
         self.permissions = {"Customer": [{"doc": "Elsewhere", "applicable_for": "Project"}]}
         self.assertEqual(self.rows(), [])
+
+
+    def test_all_breakdowns_reconcile_with_clipped_detail_and_saved_customers(self):
+        self.scope.return_value = {TECH, OTHER}
+        self.reference("HD Customer", "Standalone")
+        self.reference("Project", "P", company=TECH.company)
+        self.reference("Task", "T", project="P")
+        self.add("project", context="Project", project="P", task="T",
+                 start="2026-11-22 23:45:00", end="2026-11-23 00:30:00", emergency=1)
+        self.add("unlisted", context="Customer Support", unlisted="Standalone", identity=OTHER, status=1)
+        self.add("snapfix", context="Customer Support", customer="Standalone",
+                 origin="Snapfix", reference="SF-42")
+        self.add("internal")
+        totals = ("booked_hours", "draft_hours", "submitted_hours", "emergency_hours")
+        for view in ("Daily Summary", "Booking Detail", *report._BREAKDOWNS):
+            columns, rows = report.execute(dict(DATES, view=view))
+            self.assertEqual(tuple(sum(row[k] for row in rows) for k in totals), (3.5, 2.5, 1, 0.5))
+            self.assertTrue(all(set(row) == {col["fieldname"] for col in columns} for row in rows))
+        customers = self.rows(view="Customer Breakdown")
+        self.assertEqual({row["customer_type"] for row in customers},
+                         {"Listed Customer", "Unlisted Customer", "Unattributed", "Not applicable"})
+        project, = self.rows(detail=True, project="P", task="T", activity_type="Travel")
+        self.assertEqual(project["recorded_start"], "2026-11-22 23:45:00")
+        self.assertEqual(project["from_time"], "2026-11-23 00:00:00")
+        self.assertEqual(self.rows(detail=True, snapfix_reference="SF-42")[0]["booking"], "snapfix")
+        self.assertEqual(self.rows(detail=True, customer="Standalone", customer_type="Unlisted Customer")[0]["booking"],
+                         "unlisted")
+
+    def test_redacted_dimensions_cannot_be_selected_and_description_is_spreadsheet_safe(self):
+        self.reference("HD Ticket", "hidden", readable=False)
+        self.reference("HD Ticket", "visible")
+        self.add("restricted", context="Helpdesk", ticket="hidden", description="private text",
+                 origin="Snapfix", reference="hidden external")
+        self.add("missing", context="Helpdesk", ticket="missing-ticket", description="missing private text")
+        self.add("visible", context="Helpdesk", ticket="visible", description='=HYPERLINK("example")')
+        for view in ("Daily Summary", "Booking Detail", *report._BREAKDOWNS):
+            for field, value in (("ticket", "hidden"), ("ticket", "missing-ticket"),
+                                 ("snapfix_reference", "hidden external")):
+                self.assertEqual(self.rows(view=view, **{field: value}), [])
+            self.assertNotIn("hidden", repr(self.rows(view=view)))
+        restricted, = self.rows(detail=True, reference_state="Restricted reference")
+        missing, = self.rows(detail=True, reference_state="Missing historical reference")
+        authorized, = self.rows(detail=True, ticket="visible")
+        self.assertIsNone(restricted["description"])
+        self.assertIsNone(missing["description"])
+        self.assertTrue(authorized["description"].startswith("'="))
+        self.assertEqual(restricted["booked_hours"] + missing["booked_hours"], 2)
 
 
 class TestSupervisorReportDelegation(unittest.TestCase):
@@ -356,10 +403,10 @@ class TestSupervisorBookedHoursNative(unittest.TestCase):
                     INSERT INTO `tabTimesheet Detail`
                         (name, parent, parenttype, parentfield, from_time, to_time,
                          activity_type, custom_work_context, custom_work_origin, custom_emergency,
-                         custom_hd_customer, custom_external_reference)
+                         custom_hd_customer, custom_external_reference, description)
                     VALUES (%s, %s, 'Timesheet', 'time_logs', '2097-01-15 23:30:00',
-                            '2097-01-16 00:30:00', 'Travel', 'Customer Support', 'Snapfix', 1, %s, %s)
-                """, (booking, booking, customer, f"SF-{suffix}"))
+                            '2097-01-16 00:30:00', 'Travel', 'Customer Support', 'Snapfix', 1, %s, %s, %s)
+                """, (booking, booking, customer, f"SF-{suffix}", f"=1+1 REP {suffix}"))
 
             frappe.set_user(supervisor)
             self.assertFalse(frappe.has_permission("Timesheet", "read"))
@@ -391,6 +438,13 @@ class TestSupervisorBookedHoursNative(unittest.TestCase):
                 self.assertEqual([row["snapfix_reference"] for row in result["result"][:-1]], ["SF-visible"] * 2)
                 self.assertEqual(result["result"][-1][3:7], [1.0, 1.0, "", 1.0])
                 self.assertFalse(result.get("prepared_report"))
+                for view in report._BREAKDOWNS:
+                    grouped = query_report.run(REPORT_NAME, filters=dict(filters, view=view))
+                    data, total = grouped["result"]
+                    self.assertEqual(data["booked_hours"], 1.0)
+                    hours_column = next(i for i, column in enumerate(grouped["columns"])
+                                        if column["fieldname"] == "booked_hours")
+                    self.assertEqual(total[hours_column], 1.0)
                 variant_result = query_report.run(variant.name, filters=filters)
                 self.assertFalse(variant_result.get("prepared_report"))
                 self.assertEqual(variant_result["result"], result["result"])
@@ -413,6 +467,8 @@ class TestSupervisorBookedHoursNative(unittest.TestCase):
                     self.assertEqual([row[7] for row in rows[1:-1]], [visible, visible])
                     self.assertEqual(float(rows[-1][3]), 1.0)
                     self.assertEqual(float(rows[-1][6]), 1.0)
+                    description_column = rows[0].index("Booking Description")
+                    self.assertTrue(all(str(row[description_column]).startswith("'=") for row in rows[1:-1]))
 
             if temporary_grant:
                 frappe.set_user("Administrator")

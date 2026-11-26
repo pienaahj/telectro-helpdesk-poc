@@ -68,6 +68,25 @@ Support a work-first view where practical. Count each valid booking once, includ
 native Draft Timesheet entries. Do not derive booked hours from native Project
 actual-time totals: these were verified to update on Timesheet submission.
 
+#### REP-01–06 management reporting acceptance register
+
+The owner approved management reporting on actual recorded time. Pierre’s
+business acceptance follows the Supervisor browser check.
+
+| ID | Business requirement | DEV implementation and acceptance check |
+| --- | --- | --- |
+| REP-01 | See which Technicians did what work and how much time they recorded. | Technician Breakdown groups by Company, Employee, Work Context, saved Customer and permitted references. Narrow using the same filters and switch to Booking Detail for individual entries. |
+| REP-02 | Start with work or Customer and identify the contributing Technicians. | Customer and Work Context breakdowns show contributing Employees and Companies. Customer attribution distinguishes listed, unlisted, unattributed and not applicable. |
+| REP-03 | Break down Projects, work references, Service Areas and activities. | Project / Reference, Service Area and Activity views use the permission-checked projection. Restricted and missing historical references retain their hours under separate labels. |
+| REP-04 | Inspect authorized individual bookings and descriptions. | Booking Detail shows recorded and report-counted intervals, work metadata and a spreadsheet-safe Timesheet Detail description. A restricted, missing or unverified linked reference blanks the associated description. |
+| REP-05 | Reconcile every view against the same actual booked time. | The same managed Draft and Submitted population feeds every view. Each clipped slice contributes to one row per view, and the native total row sums that partition. Cancelled and withdrawn work is excluded. Emergency and pre-creation are portions of booked time. |
+| REP-06 | Verify actual Supervisor grants, scope, browser drill-down and exports. | Use the existing Supervisor Reporting Grant and native report and CSV/Excel paths. Verify roster and Customer limits and denial for an ordinary Technician, Coordinator without the Supervisor role and unauthorized user. The owner browser check and Pierre’s feedback remain explicit gates. |
+
+Saved operational Customer values drive grouping. The existing Customer
+authorization also applies to exports. Reference filters match exact authorized
+display identities and offer no unrestricted master-data suggestions. The
+existing Ops Workspace report link remains the entry point.
+
 A secondary **Booking Completeness & Integrity** report may identify missing,
 duplicate, inconsistent or unclassified bookings. It is not an SLA performance
 report. Its detection rules remain to be designed without introducing expected
