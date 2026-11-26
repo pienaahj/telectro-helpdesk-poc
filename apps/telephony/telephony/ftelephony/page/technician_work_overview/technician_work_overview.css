@@ -5,7 +5,7 @@
   --two-grey: #728297;
   max-width: 1320px;
   margin: 0 auto;
-  padding: clamp(16px, 3vw, 34px);
+  padding: 8px clamp(16px, 3vw, 34px) clamp(16px, 3vw, 34px);
   color: var(--text-color);
 }
 .two-toolbar, .two-hero-heading, .two-entry-summary, .two-detail-heading,
@@ -52,7 +52,7 @@
 .two-metric strong { color: #fff; font-size: clamp(21px, 3vw, 36px); font-weight: 650; line-height: 1.1; }
 .two-panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 13px; padding: clamp(14px, 2.3vw, 22px); }
 .two-distribution-bar, .two-group-bar { display: flex; overflow: hidden; border-radius: 6px; background: var(--control-bg); gap: 2px; }
-.two-distribution-bar { height: 12px; margin: 15px 0 13px; }
+.two-distribution-bar { height: 20px; margin: 15px 0 13px; }
 .two-group-bar { height: 5px; margin-top: 8px; }
 .two-distribution-bar span, .two-group-bar span { flex-basis: 0; background: var(--two-context-color); }
 .two-color-helpdesk { --two-context-color: var(--two-teal); }
@@ -63,7 +63,9 @@
 .two-contexts li { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .two-contexts strong { margin-left: auto; white-space: nowrap; }
 .two-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; background: var(--two-context-color); }
-.two-tabs { margin: 12px 0 15px; }
+.two-tabs { margin: 12px 0 6px; }
+.two-section-note { margin: 4px 0 10px; }
+.two-entry-preview { overflow-wrap: anywhere; }
 .two-explore-columns { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr); gap: 18px; }
 .two-groups, .two-details { min-width: 0; }
 .two-groups { display: grid; align-content: start; gap: 7px; max-height: 500px; overflow: auto; padding: 2px; }
@@ -97,7 +99,7 @@
   .two-contexts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 510px) {
-  .two-dashboard { padding: 12px; }
+  .two-dashboard { padding: 8px 12px 12px; }
   .two-groups { grid-template-columns: minmax(0, 1fr); }
   .two-metrics { gap: 8px; }
   .two-metric { padding-left: 7px; }

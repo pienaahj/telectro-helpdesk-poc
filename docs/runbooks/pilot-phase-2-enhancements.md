@@ -333,6 +333,19 @@ scope keeps managed booking and assignment capture off. Existing Helpdesk and
 ordinary Timesheet paths remain available, and report and Workspace access stays
 within existing role and data scope.
 
+**Project onboarding dependency — 26 November 2026.** The owner received
+Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
+Project, Account, Client, Project Number, Project Owner and Telectro Invoice,
+an action plan with due dates, assigned Technicians and completion dates,
+travel kilometres and time, onsite and offsite labour hours, hardware,
+third-party suppliers, connectivity, and Technician and Manager sign-off.
+The current Project list was promised by close of business Friday,
+27 November 2026. Keep the current import template until the actual list has
+been received and assessed. This is an onboarding dependency for minimum
+Project-based Time Booking. DASH delivery proceeds independently. Full
+Project management, procurement, financial accounting and travel-cost
+functionality remain outside the approved onboarding scope.
+
 Customer and Project onboarding, documentation, training and management
 preparation run in parallel. Use native Frappe capabilities and existing
 Administrator grant workflows. Missing operational master data outside the
@@ -394,6 +407,16 @@ Pierre’s personal business acceptance remains a separate gate.
 | DASH-08 | Reconcile dashboard totals and drill-down to Supervisor Booked Hours for the same scope and period. Aggregate precise underlying durations before display rounding. Count Emergency and pre-creation time within booked time. |
 | DASH-09 | Reuse the existing authorized reporting population and projection. Enforce Supervisor, Company, Customer and reference restrictions on the server for summaries, selectors, detail and response data. |
 | DASH-10 | In owner browser acceptance, demonstrate that management can readily determine each Technician’s recorded work, time spent supporting Boschendal, work performed on Projects, what a Technician did for a Customer, and where technical effort was spent. These tasks must be usable without knowledge of Timesheets, Employee identifiers or database reference types. Obtain Pierre’s feedback separately. |
+
+**Owner acceptance recorded — 26 November 2026 (B3.88REP.2B).** The owner
+passed the functional and management-usability checks on the actual DEV
+dashboard and said, “All in all this is very impressive and WOW to me.”
+Acceptance covers day-level Custom selection, all seven exploration modes,
+expandable descriptions, restricted Project redaction and the handover to
+Supervisor Booked Hours. The live Supervisor grant covered one Technician.
+Representative multi-Technician owner evaluation remains deferred. The
+presentation refinements have a separate final screenshot retest, and
+Pierre’s personal feedback remains pending.
 
 DEV registers the native `technician-work-overview` Page with the existing
 Supervisor Governance role. Put **Technician Work Overview** first in the

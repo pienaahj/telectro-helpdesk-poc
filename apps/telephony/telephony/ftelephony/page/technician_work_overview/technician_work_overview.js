@@ -14,6 +14,8 @@
     ["Helpdesk", "helpdesk"], ["Project", "project"], ["Customer Support", "support"], ["Internal", "internal"],
   ]);
 
+  const contextOrder = new Map([...colors.keys()].map((context, index) => [context, index]));
+
   function element(tag, className, value) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -52,8 +54,9 @@
 
   function segments(contexts, className) {
     const bar = element("div", className);
-    const composition = contexts.filter(([, value]) => value > 0)
-      .map(([name, amount]) => __(name) + " " + duration(amount)).join(" · ");
+    const ordered = contexts.filter(([, value]) => value > 0).sort(([left], [right]) =>
+      (contextOrder.get(left) ?? contextOrder.size) - (contextOrder.get(right) ?? contextOrder.size));
+    const composition = ordered.map(([name, amount]) => __(name) + " " + duration(amount)).join(" · ");
     if (composition && className === "two-group-bar") {
       bar.setAttribute("role", "img");
       bar.setAttribute("aria-label", composition);
@@ -61,8 +64,7 @@
     } else {
       bar.setAttribute("aria-hidden", "true");
     }
-    for (const [name, amount] of contexts) {
-      if (amount <= 0) continue;
+    for (const [name, amount] of ordered) {
       const segment = element("span", "two-color-" + (colors.get(name) || "internal"));
       segment.style.flexGrow = String(amount);
       bar.append(segment);
@@ -75,20 +77,7 @@
     frappe.set_route("query-report", "Supervisor Booked Hours");
   }
 
-  function workEntry(row) {
-    const card = element("details", "two-entry");
-    const summary = element("summary", "two-entry-summary");
-    const identity = element("div", "two-entry-identity");
-    const title = row.customer || row.unlisted_customer || row.project_name ||
-      (row.work_context === "Internal" ? __("Internal work") : __(row.customer_type));
-    const label = element("strong", "two-entry-name", title);
-    identity.append(label, element("span", "two-muted", row.technician + " · " + displayDate(row.day)));
-    const effort = element("div", "two-entry-effort");
-    const context = element("span", "two-tag two-color-" + (colors.get(row.work_context) || "internal"), __(row.work_context));
-    const time = element("strong", null, duration(row.booked_us));
-    effort.append(context, time, element("span", "two-chevron"));
-    summary.append(identity, effort);
-    const info = element("div", "two-entry-info");
+  function workEntry(row, showTechnician) {
     const references = [
       row.ticket && __("Ticket {0}", [row.ticket]),
       row.project && [row.project_name, row.project].filter(Boolean).join(" · "),
@@ -98,6 +87,22 @@
     if (row.reference_state === "Restricted reference" || row.reference_state === "Missing historical reference") {
       references.push(__(row.reference_state));
     }
+    const card = element("details", "two-entry");
+    const summary = element("summary", "two-entry-summary");
+    const identity = element("div", "two-entry-identity");
+    const title = row.customer || row.unlisted_customer || row.project_name ||
+      (row.work_context === "Internal" ? __("Internal work") : __(row.customer_type));
+    const label = element("strong", "two-entry-name", title);
+    const date = displayDate(row.day);
+    identity.append(label, element("span", "two-muted", showTechnician ? row.technician + " · " + date : date));
+    const preview = [...references, row.service_area].filter(Boolean).join(" · ");
+    if (preview) identity.append(element("span", "two-entry-preview two-muted", preview));
+    const effort = element("div", "two-entry-effort");
+    const context = element("span", "two-tag two-color-" + (colors.get(row.work_context) || "internal"), __(row.work_context));
+    const time = element("strong", null, duration(row.booked_us));
+    effort.append(context, time, element("span", "two-chevron"));
+    summary.append(identity, effort);
+    const info = element("div", "two-entry-info");
     const metadata = element("dl", "two-entry-meta");
     for (const [key, value] of [
       [__("Activity"), row.activity_type], [__("Service Area"), row.service_area],
@@ -180,7 +185,8 @@
     function render(data) {
       const hero = element("section", "two-hero");
       const heroTitle = element("div", "two-hero-heading");
-      heroTitle.append(element("h2", null, __("Recorded work")), element("span", "two-scope", __("Limited to your reporting grants")));
+      heroTitle.append(element("h2", null, __("Recorded work for the full period")),
+        element("span", "two-scope", __("Limited to your reporting grants")));
       const metrics = element("div", "two-metrics");
       for (const [label, value] of [
         [__("Total booked time"), duration(data.booked_us)],
@@ -193,7 +199,8 @@
       }
       hero.append(heroTitle, element("p", "two-period", dateRange(data.period)), metrics);
       const distribution = element("section", "two-panel two-distribution");
-      distribution.append(element("h2", null, __("Where did our time go?")));
+      distribution.append(element("h2", null, __("Where did our time go?")),
+        element("p", "two-section-note two-muted", __("Work distribution for the full authorized period.")));
       distribution.append(segments(data.contexts.map((row) => [row.name, row.booked_us]), "two-distribution-bar"));
       const legend = element("ul", "two-contexts");
       for (const row of data.contexts) {
@@ -218,7 +225,8 @@
         tab.setAttribute("aria-pressed", String(key === dimension));
         tabs.append(tab);
       }
-      explorer.append(tabs);
+      explorer.append(tabs, element("p", "two-section-note two-muted",
+        __("Select a group to filter individual work. Each thin bar shows that group’s work mix.")));
       const columns = element("div", "two-explore-columns");
       const list = element("div", "two-groups");
       if (!data.groups.length) {
@@ -251,7 +259,8 @@
       }
       details.append(detailHeading);
       if (!data.detail.length) details.append(element("p", "two-empty", __("No authorized bookings in this selection.")));
-      for (const row of data.detail) details.append(workEntry(row));
+      const showTechnician = dimension !== "technician" || !data.selected;
+      for (const row of data.detail) details.append(workEntry(row, showTechnician));
       if (offset || data.next_offset !== null) {
         const paging = element("div", "two-paging");
         if (offset) paging.append(button(__("Previous"), () => {
