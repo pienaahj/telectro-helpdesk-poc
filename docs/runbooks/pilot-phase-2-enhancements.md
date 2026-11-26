@@ -317,7 +317,7 @@ correction requirements above.
 | **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Owner approved A.8A on 26 November 2026. | Prove description and bounded interval corrections after loss of Ticket read access, immutable original creation evidence, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
-| **COST-01–08 — Customer Labour Cost Analysis** | Approved scope. The owner sets the delivery milestone and sequence. | Reconcile authorized operational hours and pass owner workbook acceptance with local manual financial inputs. |
+| **COST-01–09 — Customer Labour Cost Analysis** | DEV implementation and confidential authorization verified. Owner workbook and management presentation acceptance remain pending. | Reconcile authorized operational hours, complete owner Excel acceptance and confirm Pierre's exact User and separately approved reporting grants before activation. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Existing register remains a separate workstream. | Retain prior decisions, evidence and outstanding acceptance items. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
@@ -439,7 +439,7 @@ affected Supervisor Page and boot caches, then verify both links as a
 restricted Supervisor. The Workspace fixture carries the same link for the
 authorized release process.
 
-### Pillar 3 — COST-01–08 Customer Labour Cost Analysis
+### Pillar 3 — COST-01–09 Customer Labour Cost Analysis
 
 The approved commercial analysis compares recorded technical labour with
 Customer account revenue for the same reporting period. It supports Customer
@@ -455,13 +455,15 @@ comparison, support contract review and analysis of labour contribution.
 | COST-06 | Compare and sort Customers by booked hours, labour cost, revenue, labour contribution in Rand, labour contribution margin percentage and effective hourly revenue. Show Rand and percentage contribution distinctly and label revenue less labour cost as labour contribution. Other direct costs and overheads are outside that measure. A future manual Other Direct Costs input remains a candidate. |
 | COST-07 | Separately reconcile Customer-attributed, Internal and unattributed historical work to all authorized booked time and keep Emergency within that total. Leave Internal and unattributed time unallocated to Customer accounts. Identify the export’s scope and label a restricted Supervisor’s results as scoped labour figures. |
 | COST-08 | Use the existing authorized population and verify Supervisor roster, Company and Customer restrictions, aggregation by Technician and Customer, Cancelled and replacement treatment, exact hours reconciliation, numeric cells, blank inputs, missing rates, formulas, and zero denominators. Protect spreadsheet text from formula execution, limit formulas to generated calculation cells, and verify protection of descriptions and references and absence of financial write-back. Actual owner workbook acceptance is required. |
+| COST-09 | Enforce the owner's 26 November 2026 confidential commercial authorization decision. Limit access to Pierre's exact approved enabled System User with the Commercial Reporting role and existing Supervisor reporting authority, plus Administrator during explicitly enabled, bounded DEV testing. Reevaluate authorization for Desk discovery, Workspace links, direct Page requests, period validation and workbook generation. Classify exported workbooks as management confidential and serve them with private, no-store cache control. This is a mandatory gate for COST acceptance and activation. |
 
 #### COST DEV implementation
 
 Open **Ops Workspace → Time Booking Reports → Customer Labour Cost Analysis**.
-The native Desk page defaults to **This Month** and displays the inclusive
-site dates before download. The export rechecks the active Supervisor grant
-and applicable Company, Employee and Customer restrictions. Its three-sheet
+The native Desk page defaults to **This Month** for Pierre and displays the
+inclusive site dates before download. The export rechecks his identity,
+commercial role, Supervisor reporting authority, active grants and applicable
+Company, Employee and Customer restrictions. Its three-sheet
 workbook opens on **Customer Financial Summary**. Blue input cells accept
 manual values in Excel. **Technician Rates** and **Customer Labour
 Breakdown** provide the supporting operational hours.
@@ -475,11 +477,58 @@ name. The reconciliation includes Internal and unattributed work without
 charging those hours to Customers. Owner workbook and management-presentation
 acceptance and Pierre’s business feedback remain separate gates.
 
-DEV uses a targeted registration of the standard
-`customer-labour-cost-analysis` Page and one added link after **Supervisor
-Booked Hours** in the existing card. Refresh the Page domain and affected
-Supervisor navigation caches after registration. The fixture retains the same
-order for the authorized release process.
+The standard `customer-labour-cost-analysis` Page uses
+`TELECTRO-POC Role - Commercial Reporting`. Its existing Ops Workspace link
+follows **Supervisor Booked Hours**. Site-specific onboarding sets
+`telectro_cost_pierre_user` to the exact approved ERPNext User identifier
+after independent confirmation, assigns the commercial role to that User,
+and establishes the appropriate Supervisor Reporting Grants and User
+Permissions separately. Leave the identity unset until the owner confirms
+it. Keep this setting in the individual site's configuration. Other
+Supervisors retain access to the existing reporting features under their
+current grants.
+
+#### COST controlled DEV workbook acceptance
+
+The Administrator test switch `telectro_cost_admin_dev_test` is off by
+default. For the owner test on the verified DEV `frontend` site, set the
+site-specific value to integer `1` with
+`bench --site frontend set-config -p telectro_cost_admin_dev_test 1`.
+The exception also requires developer mode, the local DEV database host
+`db`, the Phase 2 booking feature flag and the exact eligible Bravo
+Technician identity (`HR-EMP-00001`, Telectro (Demo)). Both the period
+endpoint and workbook enforce 20–26 November 2026 as the outer date bounds.
+Administrator runs as Administrator against that DEV population.
+Remove the switch after owner testing with
+`bench --site frontend set-config telectro_cost_admin_dev_test None`.
+
+In DEV Desk, sign in as **Administrator** and open **Ops Workspace → Time
+Booking Reports → Customer Labour Cost Analysis**. Confirm **Custom**,
+**20 November 2026** through **26 November 2026**, then download and open the
+workbook in Excel. Check the confidentiality notice and the reconciliation
+of **48 minutes (0.800 hours)**, made up of **47 Boschendal minutes**,
+**1 unattributed minute** and **0 Internal minutes**.
+
+Confirm the inputs start blank. On **Technician Rates**, enter **R600** in
+**E9**, then enter **R1,000 excluding VAT** in **F9** on **Customer
+Financial Summary**. Expected Boschendal results are **R470 labour cost**,
+**R530 labour contribution**, **53% contribution margin**, **47% labour
+cost** and **R1,276.60 revenue per booked hour**. The reconciliation shows
+**R10 unattributed labour** and **R480 total labour cost**. Keep populated
+financial inputs in the local workbook. Owner workbook acceptance,
+management presentation acceptance and Pierre's business feedback remain
+pending.
+
+Focused DEV verification passed with a temporary approved identity and the
+bounded Administrator exception. Other Supervisors and users assigned the
+commercial role in error were denied. The live Workspace, Desk discovery,
+direct Page and API paths rejected unauthorized requests. A tab opened before
+role revocation rejected its next workbook request. A Boschendal Customer
+restriction reduced the temporary approved user's export from 48 to 47
+minutes. The Administrator browser export retained the accepted 48-minute
+reconciliation and all 21 formulas, with the confidentiality notice on all
+three worksheets. Existing REP and DASH access was verified for the
+Supervisor control. Pierre's actual account remains an onboarding dependency.
 
 ### Financial scope exception and implementation direction
 
@@ -511,8 +560,9 @@ infrastructure deployment can proceed independently of presentation work.
 The owner will prioritize the COST milestone and implementation sequence.
 Existing release gates and approvals continue to apply.
 
-DASH-01–10 internal acceptance is closed. COST-01–08 Customer Labour
-Cost Analysis is implemented under the focused B3.88REP.3 DEV instruction.
+DASH-01–10 internal acceptance is closed. COST-01–09 Customer Labour
+Cost Analysis is implemented under B3.88REP.3 and its confidential
+authorization decision B3.88REP.3A.
 Owner workbook and presentation acceptance remain pending. Reuse the native Timesheet ledger,
 Supervisor Booked Hours, the accepted Technician Work Overview and their
 shared authorized reporting foundation. Preserve Supervisor Reporting

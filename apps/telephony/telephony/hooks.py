@@ -22,6 +22,7 @@ fixtures = [
                 "TELECTRO-POC Role - Tech",
                 "TELECTRO-POC Role - Coordinator Ops",
                 "TELECTRO-POC Role - Supervisor Governance",
+                "TELECTRO-POC Role - Commercial Reporting",
                 "TELECTRO-POC Role - Tech Workspace",
                 "TELECTRO-POC Role - Coordinator Workspace",
                 "TELECTRO-POC Role - Ops Workspace",
@@ -481,6 +482,7 @@ _report_override = "telephony.supervisor_report_runtime.TelectroReport"
 if "Report" in override_doctype_class and override_doctype_class["Report"] != _report_override:
     raise RuntimeError(f"Conflicting Telephony Report override: {override_doctype_class['Report']!r}")
 override_doctype_class["Report"] = _report_override
+override_doctype_class["Page"] = "telephony.commercial_reporting.CommercialReportingPage"
 _append_hook(
     doc_events.setdefault("Prepared Report", {}),
     "validate",
@@ -489,6 +491,7 @@ _append_hook(
 
 # --- Partner Permissions ---
 permission_query_conditions = {
+    "Page": "telephony.commercial_reporting.page_query_condition",
     "HD Ticket": "telephony.permissions.hd_ticket_query_conditions",
 }
 
@@ -557,6 +560,11 @@ if customer_login_landing_js not in web_include_js:
 boot_session = [*globals().get("boot_session", []),
                 "telephony.hd_ticket_manual_origin.add_desk_capability"]
 
+extend_bootinfo = [*globals().get("extend_bootinfo", []),
+                   "telephony.commercial_reporting.filter_cost_page_discovery"]
+after_request = [*globals().get("after_request", []),
+                 "telephony.commercial_reporting.set_cost_cache_control"]
+
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
 for p in [
@@ -605,6 +613,8 @@ if TELECTRO_RULE_DEBUG_COMMENTS:
 # ✅ Whitelisted method overrides (must exist at module level)
 override_whitelisted_methods = dict(globals().get("override_whitelisted_methods") or {})
 override_whitelisted_methods.update({
+    "frappe.desk.desktop.get_desktop_page": "telephony.commercial_reporting.get_desktop_page",
+
     "frappe.desk.form.assign_to.add": "telephony.overrides.assign_to.add",
     "frappe.desk.form.assign_to.remove": "telephony.overrides.assign_to.remove",
     "frappe.desk.form.assign_to.remove_multiple": "telephony.overrides.assign_to.remove_multiple",

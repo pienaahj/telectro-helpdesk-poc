@@ -90,6 +90,13 @@ def _layout(sheet, title, info, widths, headers):
         cell.font = Font(name="Calibri", size=11, color="32555A", bold=row == 2)
         cell.alignment = Alignment(indent=1, wrap_text=True, vertical="center")
         sheet.row_dimensions[row].height = 30 if row == 3 else 19
+    sheet.merge_cells(start_row=7, start_column=1, end_row=7, end_column=len(widths))
+    notice = sheet["A7"]
+    _text(notice, "CONFIDENTIAL — MANAGEMENT ONLY. Contains commercially sensitive labour cost and revenue information "
+          "when populated. Financial inputs stay in this workbook and are not stored in ERPNext.")
+    notice.font = Font(name="Calibri", size=10, bold=True, color="32555A")
+    notice.alignment = Alignment(indent=1, wrap_text=True, vertical="center")
+    sheet.row_dimensions[7].height = 30
     _headers(sheet, HEADER, headers)
 
 
@@ -152,7 +159,7 @@ def _incomplete_total(cells, count):
     return f'IF(COUNT({cells})={count},SUM({cells}),"")'
 
 
-def make_workbook(bookings, start, end, employee_labels, companies):
+def make_workbook(bookings, start, end, employee_labels, companies, *, dev_test=False):
     rows = _aggregate(bookings, start, end)
     work = defaultdict(int)
     account_hours = defaultdict(int)
@@ -180,9 +187,10 @@ def make_workbook(bookings, start, end, employee_labels, companies):
     # Scope plus all authorized company names remain available without wrapping an unbounded title.
     if len(company_scope) > 180:
         company_scope = f"{len(companies)} Companies in the current grant · contributing Companies are listed in the data"
+    scope_label = "Controlled DEV test scope" if dev_test else "Reporting grant scope"
     base = (
         period,
-        f"Reporting grant scope · {company_scope}. Includes Draft and Submitted work.",
+        f"{scope_label} · {company_scope}. Includes Draft and Submitted work.",
     )
 
     wb = Workbook()

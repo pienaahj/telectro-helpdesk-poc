@@ -20,8 +20,8 @@
     const root = element("section", null, "clc-export");
     page.main.get(0).append(root);
     const heading = element("header", null, "clc-heading");
-    heading.append(element("h2", __("Compare the labour cost of serving Customer accounts")),
-      element("p", __("Uses recorded work within your Supervisor reporting grants.")));
+    const scope = element("p", __("Uses recorded work within your Supervisor reporting grants."));
+    heading.append(element("h2", __("Compare the labour cost of serving Customer accounts")), scope);
     const form = element("form", null, "clc-form");
     const select = element("select", null, "form-control");
     select.id = "clc-period-preset";
@@ -73,13 +73,23 @@
       }
       status.textContent = __("Checking reporting period…");
       try {
-        const response = await fetch(method + "get_period?" + params, {signal: request.signal});
+        const response = await fetch(method + "get_period?" + params, {signal: request.signal, cache: "no-store"});
         if (!response.ok) throw new Error(response.status);
         const {message} = await response.json();
         if (request.signal.aborted) return;
         if (custom.hidden) {
           from.value = message.from_date;
           to.value = message.to_date;
+        }
+        if (message.dev_test) {
+          scope.textContent = __("Controlled DEV test scope · 20–26 November 2026.");
+          if (select.value === "this_month") {
+            select.value = "custom";
+            custom.hidden = false;
+            params.set("preset", "custom");
+            params.set("from_date", message.from_date);
+            params.set("to_date", message.to_date);
+          }
         }
         status.textContent = __("Site dates {0} to {1}, inclusive.", [message.from_date, message.to_date]);
         current = params;
@@ -100,7 +110,14 @@
       download.disabled = true;
       status.textContent = __("Preparing Excel workbook…");
       try {
-        const response = await fetch(method + "download_workbook?" + selection);
+        const response = await fetch(method + "download_workbook?" + selection, {cache: "no-store"});
+        if (response.status === 403) {
+          if (current === selection) {
+            current = null;
+            status.textContent = __("This workbook is unavailable for your reporting access.");
+          }
+          return;
+        }
         if (!response.ok) throw new Error();
         const url = URL.createObjectURL(await response.blob());
         const link = element("a");
