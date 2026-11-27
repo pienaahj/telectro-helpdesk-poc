@@ -439,7 +439,8 @@ Link search and standard Quotation rendering were verified with an
 existing heading. Before-and-after fingerprints matched for Print
 Headings, Timesheets, Timesheet Details, Tickets, correction audits,
 Supervisor grants, Workspaces and Email Queue, including the five held
-entries. The Print Heading and Customer reverse-mapping indexes passed.
+entries. The unique Print Heading index and the non-unique Customer
+reverse-mapping search index passed.
 
 Review both pinned upstream definitions and their callers before changing
 either version. Re-establish the hashes and the owner contract only after
@@ -542,8 +543,8 @@ Direct / Ad-hoc. Current Role and Workspace fixture JSON is identical
 to DEV when parsed, including array order. Custom DocPerm and Report
 files match byte for byte. Keep the committed Role, Workspace and
 permission scope, approved Workspaces and widget identities, and
-booking and reporting grants. Customer mapping uniqueness, existing
-Location and Ticket data, Timesheets and their correction lineage, and
+booking and reporting grants. The zero duplicate reverse-mapping group
+count, existing Location and Ticket data, Timesheets and their correction lineage, and
 the five held Email Queue entries remain preservation checks for
 authorized migration verification.
 
@@ -614,9 +615,85 @@ any mounted apps source omit the retired fixture. Hold migration if
 the expected name is occupied by another method, the intended method
 has multiple rows or a different name, or target state cannot be
 reconciled to the approved operating contract. A clean first
-registration requires the expected name to be free. The A.3.3 routing
-assertion and A.5 candidate validation remain pending. A.4 still
-requires separate authorization.
+registration requires the expected name to be free. A.5 candidate
+validation remains pending. A.4 still requires separate authorization.
+
+### A.3.3 Routing and HD Ticket metadata regression disposition
+
+`TestCCTVPreInsertAssignmentHold.test_pre_insert_hold_follows_routing_seed`
+failed at accepted HEAD `cd2a772` because it treated the first three
+`validate` positions as the routing contract. Customer identity sync
+was added by `8a6a27e`, Data Request final intake validation by
+`8ced30a`, and Customer Portal classification by `32e75be`. The
+original routing seed, CCTV hold and site guard retained their relative
+order. The production registrations and handlers were preserved.
+
+Customer identity sync resolves the HD Customer and ERPNext Customer
+references before Data Request authorization and site ownership
+validation consume them. Routing seeds the Service Area and team before
+final Data Request and Portal classification and before the CCTV hold
+reads Service Area. Data Request validation precedes Portal
+classification. Both validators read or reject the seeded context
+without rewriting it. The CCTV hold is set on a new CCTV Ticket
+before site validation and initial persistence. The first insert
+therefore carries the hold if Helpdesk's Communication callback saves
+the Ticket before the Telephony `after_insert` assignment runs.
+New assignment and routing-change reassignment remain in
+`after_insert` and `on_update`, respectively.
+
+The corrected test loads the actual hook declarations with empty test
+configuration and checks only the required precedence pairs and one
+registration in the intended phase for each required handler. An
+isolated assertion probe accepted an independent interleaved handler
+and rejected duplicate registration, Customer sync after intake,
+hold before seed, site validation before hold and assignment in
+`validate`. All 104 focused routing, CCTV, coverage, identity,
+site, Data Request intake and Portal tests passed in a read-only DEV
+transaction with commits blocked. The existing contextual-routing
+release validator passed, including its 57-test source inventory.
+
+**HD Ticket fixture metadata.** The local
+`tests/bin/test-hd-ticket-metadata-fixtures.sh` script fails three
+checks, named `HD Ticket exact field order`, `HD Ticket field-order
+count` and `HD Ticket fixture fields absent from field order`.
+The expected list from metadata parity commit `b68159a` has 82
+entries. The current Property Setter `HD Ticket-main-field_order`
+has the same order with one addition from the approved equipment
+workflow `78b532d`. It places `custom_affected_equipment` between
+`custom_section_break_n0d4t` and `custom_equipment_ref`, for 83 entries.
+The installed DEV Property Setter also has 83 entries.
+
+The old completeness check expects every Custom Field in the explicit
+list. DEV's effective Frappe metadata resolves these five omitted
+fields through their `insert_after` anchors:
+
+| Field | Provenance | Effective DEV placement |
+| --- | --- | --- |
+| `custom_fulfilment_partner` | Partner organisation `00eb42e` | After `custom_fulfilment_party`, shown for Partner fulfilment. |
+| `custom_request_partner` | Partner organisation `00eb42e` | After `custom_request_source`, shown for Partner requests. |
+| `custom_contextual_assignment_hold` | Contextual routing `3bfbbab` | After `custom_take_ownership_on_create`, hidden and read-only. |
+| `custom_data_request_first_completed_on` | Data Request recovery `cae1f09` | After `custom_contextual_assignment_hold`, hidden and read-only. |
+| `custom_telectro_manual_origin` | Phase 2 manual origin `f38efd5` | Anchored to `custom_request_source` and placed after `custom_request_partner`, hidden and read-only. |
+
+The affected-equipment row is a form placement change already carried
+by the accepted fixture. The five omissions from the raw order reflect
+how Frappe stores metadata. The local shell script is
+outside the mandatory release validator chain, and the contextual
+release validator independently checks the assignment hold field
+contract. Propose a separate approval to update the local metadata
+regression to check the approved equipment position and effective
+placement and visibility. Retain the fixtures. This investigation
+found no additional A.4 blocker. A.4 readiness review and explicit
+migration authorization remain pending.
+
+The physical DEV `tabHD Customer.custom_erp_customer_index` remains
+a full single-column non-unique search index. The accepted zero
+duplicate reverse-mapping groups is a data condition. Print Heading
+retains its full single-column unique `print_heading` index. Read-only
+DEV fingerprints matched the A.3.2B checkpoint for the two indexes,
+Print Heading metadata and rollback source, inbox job and logs,
+accepted bookings, Tickets, correction audits, held Email Queue,
+Workspaces, Work Origin, assignment state and reporting grants.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers

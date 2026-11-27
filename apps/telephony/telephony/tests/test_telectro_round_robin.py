@@ -1,4 +1,6 @@
+import runpy
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from telephony import telectro_round_robin as round_robin
@@ -1026,20 +1028,48 @@ class TestCCTVPreInsertAssignmentHold(unittest.TestCase):
                 db_set.assert_not_called()
 
     def test_pre_insert_hold_follows_routing_seed(self):
-        from telephony import hooks as telephony_hooks
+        hooks_path = Path(round_robin.__file__).with_name("hooks.py")
+        # Load the actual registrations without a site or a database.
+        with mock.patch.object(round_robin.frappe, "conf", {}):
+            ticket_hooks = runpy.run_path(str(hooks_path))["doc_events"]["HD Ticket"]
 
-        handlers = telephony_hooks.doc_events[
-            "HD Ticket"
-        ]["validate"]
+        customer = "telephony.customer_identity_sync.sync_ticket_customer_identity"
+        seed = "telephony.telectro_ticket_routing.seed_ticket_routing"
+        intake = "telephony.data_request_intake.validate_data_request_intake"
+        portal = "telephony.customer_portal_ticket_type.validate_customer_portal_ticket_type"
+        hold = "telephony.telectro_round_robin.initialize_cctv_assignment_hold"
+        site = "telephony.telectro_site_guard.validate_site_fields"
+        assign = "telephony.telectro_round_robin.assign_after_insert"
+        reassign = "telephony.telectro_reassign_on_update.reassign_if_routing_changed"
 
-        self.assertEqual(
-            handlers[:3],
-            [
-                "telephony.telectro_ticket_routing.seed_ticket_routing",
-                "telephony.telectro_round_robin.initialize_cctv_assignment_hold",
-                "telephony.telectro_site_guard.validate_site_fields",
-            ],
-        )
+        registrations = [
+            (event, handler)
+            for event, handlers in ticket_hooks.items()
+            for handler in ([handlers] if isinstance(handlers, str) else handlers)
+        ]
+        for event, required in (
+            ("validate", (customer, seed, intake, portal, hold, site)),
+            ("after_insert", (assign,)),
+            ("on_update", (reassign,)),
+        ):
+            for handler in required:
+                with self.subTest(handler=handler):
+                    self.assertEqual(
+                        [phase for phase, registered in registrations if registered == handler],
+                        [event],
+                    )
+
+        validate = ticket_hooks["validate"]
+        for prerequisite, consumer in (
+            (customer, intake),
+            (customer, site),
+            (seed, intake),
+            (intake, portal),
+            (seed, hold),
+            (hold, site),
+        ):
+            with self.subTest(prerequisite=prerequisite, consumer=consumer):
+                self.assertLess(validate.index(prerequisite), validate.index(consumer))
 
 
 class TestCCTVExplicitOwnershipAfterInsert(unittest.TestCase):
