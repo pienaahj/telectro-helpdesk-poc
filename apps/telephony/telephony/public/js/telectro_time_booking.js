@@ -733,12 +733,42 @@
       const options = await get("get_booking_form");
       if (!Array.isArray(options?.activity_types) ||
           document.getElementById("telectro-time-bookings")) return;
-      $("<button>", {
-        id: "telectro-time-bookings",
+      const launch = () => openBookings(options);
+      const launchButton = (id, classes) => $("<button>", {
+        id,
         type: "button",
-        class: "btn btn-default btn-sm mr-2 text-nowrap",
-        text: __("Time Bookings"),
-      }).on("click", () => openBookings(options)).insertAfter(toolbar);
+        class: "btn btn-default btn-sm text-nowrap " + classes,
+        text: __("Book Time"),
+      }).on("click", launch);
+
+      launchButton("telectro-time-bookings", "mr-2")
+        .css("margin-inline-start", "var(--margin-sm)").insertAfter(toolbar);
+
+      const mountWorkspaceAction = () => {
+        if (frappe.workspace?._page?.name !== "TELECTRO-POC Tech") return;
+
+        const heading = frappe.workspace.editor?.blocks?.getById("oNqAjqwmUa")?.holder;
+        const content = heading?.querySelector(".ce-block__content");
+        const title = content?.querySelector(".ce-header:not([contenteditable=true])");
+        if (!title || content.querySelector("#telectro-workspace-book-time")) return;
+
+        // Keep the action outside the saved heading HTML and let this block grow to fit it.
+        content.style.height = "auto";
+        launchButton("telectro-workspace-book-time", "mt-2").insertAfter(title);
+      };
+
+      const observeWorkspace = () => {
+        const editor = document.querySelector("#page-Workspaces .editor-js-container");
+        if (!editor) return;
+
+        $(document).off("page-change", observeWorkspace);
+        // Workspace blocks render asynchronously and are replaced when switching Workspaces.
+        new MutationObserver(mountWorkspaceAction).observe(editor, { childList: true, subtree: true });
+        mountWorkspaceAction();
+      };
+
+      $(document).on("page-change", observeWorkspace);
+      observeWorkspace();
     } catch {
       // Booking availability must not interrupt Desk startup.
     }
