@@ -1,4 +1,7 @@
 frappe.query_reports["Supervisor Booked Hours"] = {
+	onload(report) {
+		frappe.telectro_booked_hours_filters?.setup(report, "Supervisor Booked Hours");
+	},
 	filters: [
 		{
 			fieldname: "from_date",
@@ -33,7 +36,7 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Helpdesk", "Project", "Customer Support", "Internal"],
 		},
-		{ fieldname: "service_area", label: __("Service Area"), fieldtype: "Data" },
+		{ fieldname: "service_area", label: __("Service Area"), fieldtype: "Autocomplete", ignore_validation: true },
 		{
 			fieldname: "work_origin",
 			label: __("Work Origin"),
@@ -46,7 +49,7 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Yes", "No"],
 		},
-		{ fieldname: "customer", label: __("Customer"), fieldtype: "Data" },
+		{ fieldname: "customer", label: __("Customer"), fieldtype: "Autocomplete", ignore_validation: true },
 		{ fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Data" },
 		{
 			fieldname: "customer_type",

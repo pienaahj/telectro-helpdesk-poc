@@ -68,12 +68,25 @@ _DETAIL_COLUMNS = (
 )
 
 
-def execute(filters=None):
+def report_identity():
     try:
-        identity = resolve_current_technician_identity()
+        return resolve_current_technician_identity()
     except TechnicianIdentityError:
         frappe.throw(_("You do not have access to Technician Own Booked Hours."), frappe.PermissionError)
 
+
+def authorized_bookings(identity, start, end):
+    bookings = frappe.db.sql(
+        _REPORT_ROWS,
+        dict(user=identity.user, employee=identity.employee, company=identity.company, start=start, end=end),
+        as_dict=True,
+    )
+    can_read = lru_cache(maxsize=512)(_can_read_reference)
+    return (_report_booking(booking, can_read) for booking in bookings)
+
+
+def execute(filters=None):
+    identity = report_identity()
     filters = filters or {}
     try:
         if not isinstance(filters, Mapping):
@@ -94,14 +107,7 @@ def execute(filters=None):
             frappe.throw(_("Select a valid report filter."), frappe.ValidationError)
         criteria[field] = value.strip().casefold()
 
-    bookings = frappe.db.sql(
-        _REPORT_ROWS,
-        dict(user=identity.user, employee=identity.employee, company=identity.company, start=start, end=end),
-        as_dict=True,
-    )
-    can_read = lru_cache(maxsize=512)(_can_read_reference)
-    rows = (_report_booking(booking, can_read) for booking in bookings)
-    rows = (row for row in rows if _matches(row, criteria))
+    rows = (row for row in authorized_bookings(identity, start, end) if _matches(row, criteria))
     result = hours_rows(rows, start, end, detail=detail)
     for row in result:
         if detail:

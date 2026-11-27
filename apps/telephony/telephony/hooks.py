@@ -571,6 +571,7 @@ for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
     "/assets/telephony/js/telectro_time_booking.js?v=2026-11-27-7",
+    "/assets/telephony/js/telectro_booked_hours_filters.js?v=2026-11-27-1",
     "/assets/telephony/js/hd_ticket_manual_origin.js",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",

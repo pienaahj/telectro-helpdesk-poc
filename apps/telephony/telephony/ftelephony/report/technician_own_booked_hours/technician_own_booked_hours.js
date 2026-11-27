@@ -1,4 +1,7 @@
 frappe.query_reports["Technician Own Booked Hours"] = {
+	onload(report) {
+		frappe.telectro_booked_hours_filters?.setup(report, "Technician Own Booked Hours");
+	},
 	filters: [
 		{
 			fieldname: "from_date",
@@ -27,7 +30,7 @@ frappe.query_reports["Technician Own Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Helpdesk", "Project", "Customer Support", "Internal"],
 		},
-		{ fieldname: "service_area", label: __("Service Area"), fieldtype: "Data" },
+		{ fieldname: "service_area", label: __("Service Area"), fieldtype: "Autocomplete", ignore_validation: true },
 		{
 			fieldname: "work_origin",
 			label: __("Work Origin"),
@@ -40,7 +43,7 @@ frappe.query_reports["Technician Own Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Yes", "No"],
 		},
-		{ fieldname: "customer", label: __("Customer"), fieldtype: "Data" },
+		{ fieldname: "customer", label: __("Customer"), fieldtype: "Autocomplete", ignore_validation: true },
 		{ fieldname: "project", label: __("Project"), fieldtype: "Data" },
 		{ fieldname: "task", label: __("Task"), fieldtype: "Data" },
 		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Data" },
