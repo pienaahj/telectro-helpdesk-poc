@@ -52,6 +52,12 @@ RUN set -eux; \
     node --check apps/helpdesk/realtime/handlers.js; \
     rm /tmp/apply-frappe-realtime-compat.py
 
+# ERPNext Setup owns Print Heading in this combined runtime.
+COPY docker/apply-print-heading-compat.py /tmp/apply-print-heading-compat.py
+RUN set -eux; \
+    python /tmp/apply-print-heading-compat.py; \
+    rm /tmp/apply-print-heading-compat.py
+
 RUN set -eux; \
     chown -R frappe:frappe ./apps/helpdesk ./apps/telephony
 

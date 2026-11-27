@@ -319,13 +319,14 @@ correction requirements above.
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
-| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
+| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. Full migration durability remains pending. | Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
 
-Print Heading remains a release blocker. The known reimport would drop the
+Print Heading migration durability remains a release gate. Before A.3.1B,
+the competing reimport would drop the
 unique `print_heading` index, change the module from Setup to Printing, remove
 explicit naming-rule metadata, and replace `Desk User` read permission with
 `All`. Both full DEV migration passes remain pending. Minimum dormant production
@@ -333,9 +334,9 @@ scope keeps managed booking and assignment capture off. Existing Helpdesk and
 ordinary Timesheet paths remain available, and report and Workspace access stays
 within existing role and data scope.
 
-### A.3.1 Print Heading provenance and proposed disposition
+### A.3.1 Print Heading provenance and disposition
 
-**Disposition proposed on 27 November 2026. Owner approval is pending.**
+**Disposition proposed and approved on 27 November 2026.**
 Phase 2 commit `7a68a6a5ac917784a8ab1047c0cb2373270e395d` carries no
 Print Heading definition or fixture override. The pinned ERPNext base in
 the release Dockerfile supplies both standard declarations of the same
@@ -343,7 +344,7 @@ DocType. The local DEV copies match the pinned upstream files byte for
 byte. The prior Telectro change `973f2efec7ee0e5e10313d32814795d385232254`
 recorded the blocker in this runbook.
 
-| Contract | Installed DEV and ERPNext v15.94.1 | Competing Frappe v15.96.0 definition | Proposed disposition |
+| Contract | Installed DEV and ERPNext v15.94.1 | Competing Frappe v15.96.0 definition | Approved disposition |
 | --- | --- | --- | --- |
 | Owning module | `Setup` at `apps/erpnext/erpnext/setup/doctype/print_heading/print_heading.json` | `Printing` at `apps/frappe/frappe/printing/doctype/print_heading/print_heading.json` | Keep ERPNext Setup ownership in the combined runtime. Module changes select the controller and metadata location. Both current controllers have no custom behavior. |
 | Heading field | Required Data, `unique=1`, with a full, single-column unique MariaDB index | Required Data, `unique=0` | Keep field metadata and the physical unique index. The primary key still makes document names unique, while the field index guards duplicate heading values independently. |
@@ -375,19 +376,76 @@ upstream files. The release is cited in the 12 November production
 notification acceptance. The live target Print Heading metadata, index,
 role outcomes and data compatibility have yet to be verified.
 
-**Recommended implementation after approval.** In the immutable combined
-ERPNext runtime build, retain ERPNext's pinned Setup declaration as the
-single model-sync source. Exclude only the competing Frappe JSON from the
-combined image using a build step that checks both expected hashes and
-fails when either input changes. Preserve both upstream controllers and
-other assets. Use the same approved build transformation in DEV and the
-candidate. Verify the import inventory, a clean combined install and
-normal Print Heading selection and rendering. Treat a Frappe-only runtime
-or an upstream change in ownership as a separate compatibility decision.
-Making Frappe Printing the sole owner would require an explicit module
-change and preservation of the ERPNext uniqueness and Desk permission
-contract. A later fixture or hook would leave the conflicting schema
-import in place.
+**A.3.1B implementation.** The combined runtime Dockerfile runs
+`docker/apply-print-heading-compat.py` after app overlays. It validates both
+SHA-256 input identities and the model inventory before excluding the
+Frappe JSON. It checks the retained ERPNext JSON and both controllers after
+the transformation. It refuses changed or missing inputs and additional
+model sources. An already-transformed tree fails the pristine-input
+check. These are source integrity hashes. Frappe's DocType migration hashes
+are recorded separately above.
+
+| Source input | SHA-256 |
+| --- | --- |
+| Frappe v15.96.0 Printing JSON | `87da438354d942c6f9b5ffd5eb507b3e32ef904a975159862db13b3545aa62bc` |
+| ERPNext v15.94.1 Setup JSON | `0f2144a5011688d4fdb14d6f230d9c47657210f12439a7e8a0aac9a58a9ed446` |
+
+DEV's persistent apps volume masks the image's apps directory. The helper
+was applied to the mounted sources while holding Frappe's `bench_migrate`
+lock for `frontend`. It atomically moved the original Frappe JSON on the
+same volume to
+`/home/frappe/frappe-bench/apps/.telectro-compat/print-heading/frappe-original.json`.
+Use the checked-in helper from the repository root to apply to a pristine
+mounted volume. For rollback, use the identical command with `--restore`
+in place of `--backup`. Restoration checks the retained model, the backup
+hash and the single-source inventory before moving the backup back to its
+original path. It consumes the backup and restores the two-source
+inventory. Both operations concern source files only.
+
+```bash
+docker compose exec -T -w /home/frappe/frappe-bench backend bash -ec '
+  helper=$(mktemp /tmp/print-heading-compat.XXXXXX)
+  trap "rm -f \"$helper\"" EXIT
+  cat > "$helper"
+  env/bin/python -c "
+import runpy
+import sys
+import frappe
+from frappe.utils.synchronization import filelock
+
+helper = sys.argv.pop(1)
+frappe.init(site=\"frontend\", sites_path=\"sites\")
+with filelock(\"bench_migrate\", timeout=0):
+    runpy.run_path(helper, run_name=\"__main__\")
+" "$helper" "$1" /home/frappe/frappe-bench/apps/.telectro-compat/print-heading/frappe-original.json
+' print-heading-compat --backup < docker/apply-print-heading-compat.py
+```
+
+The focused helper tests covered pristine input, each hash mismatch,
+missing inputs, extra definitions, strict re-execution, and a verified
+rollback. A compatibility-only image build contained only the ERPNext
+JSON and both original controllers. A disposable Linux AMD64 Frappe and
+ERPNext site installed successfully with the same source transformation.
+It verified the Setup module, explicit naming rule, autoname, required
+unique field and full database index. Native Link search verified Desk
+access and Website User and Guest denial. A System Manager created a
+heading under its field-derived name, and the standard Quotation
+renderer displayed it.
+
+The same source and backup hashes were verified from seven running DEV
+services, and both stopped installer containers use the same volume.
+The actual DEV model scanner found only the ERPNext source. Native DEV
+Link search and standard Quotation rendering were verified with an
+existing heading. Before-and-after fingerprints matched for Print
+Headings, Timesheets, Timesheet Details, Tickets, correction audits,
+Supervisor grants, Workspaces and Email Queue, including the five held
+entries. The Print Heading and Customer reverse-mapping indexes passed.
+
+Review both pinned upstream definitions and their callers before changing
+either version. Re-establish the hashes and the owner contract only after
+review and compatibility proof. A Frappe-only runtime or an upstream
+ownership change requires a separate disposition. The complete immutable
+candidate build and validation remain under A.5.
 
 Before a separately authorized production deployment, obtain approval
 for a targeted read-only preflight covering the deployed image identity,
