@@ -1,0 +1,171 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Ticket Assignment History",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": [
+    "ticket",
+    "technician_user",
+    "employee",
+    "company",
+    "effective_start",
+    "recorded_start",
+    "effective_end",
+    "recorded_end",
+    "started_by",
+    "ended_by",
+    "start_source",
+    "start_reason",
+    "start_event_id",
+    "end_source",
+    "end_reason",
+    "end_event_id",
+    "state",
+    "active_key"
+  ],
+  "fields": [
+    {
+      "fieldname": "ticket",
+      "fieldtype": "Link",
+      "label": "Ticket",
+      "options": "HD Ticket",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "technician_user",
+      "fieldtype": "Link",
+      "label": "Technician User",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "employee",
+      "fieldtype": "Link",
+      "label": "Employee",
+      "options": "Employee",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "label": "Company",
+      "options": "Company",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "effective_start",
+      "fieldtype": "Datetime",
+      "label": "Effective Start",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "recorded_start",
+      "fieldtype": "Datetime",
+      "label": "Recorded Start",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "effective_end",
+      "fieldtype": "Datetime",
+      "label": "Effective End",
+      "read_only": 1
+    },
+    {
+      "fieldname": "recorded_end",
+      "fieldtype": "Datetime",
+      "label": "Recorded End",
+      "read_only": 1
+    },
+    {
+      "fieldname": "started_by",
+      "fieldtype": "Link",
+      "label": "Started By",
+      "options": "User",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "ended_by",
+      "fieldtype": "Link",
+      "label": "Ended By",
+      "options": "User",
+      "read_only": 1,
+      "reqd": 0
+    },
+    {
+      "fieldname": "start_source",
+      "fieldtype": "Data",
+      "label": "Start Source",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "start_reason",
+      "fieldtype": "Small Text",
+      "label": "Start Reason",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "start_event_id",
+      "fieldtype": "Data",
+      "label": "Start Event Id",
+      "read_only": 1,
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "end_source",
+      "fieldtype": "Data",
+      "label": "End Source",
+      "read_only": 1,
+      "reqd": 0
+    },
+    {
+      "fieldname": "end_reason",
+      "fieldtype": "Small Text",
+      "label": "End Reason",
+      "read_only": 1,
+      "reqd": 0
+    },
+    {
+      "fieldname": "end_event_id",
+      "fieldtype": "Data",
+      "label": "End Event Id",
+      "read_only": 1,
+      "reqd": 0,
+      "unique": 1
+    },
+    {
+      "fieldname": "state",
+      "fieldtype": "Select",
+      "label": "State",
+      "options": "Active\nClosed",
+      "reqd": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "active_key",
+      "fieldtype": "Data",
+      "label": "Active Key",
+      "unique": 1,
+      "length": 64,
+      "hidden": 1,
+      "no_copy": 1,
+      "read_only": 1
+    }
+  ],
+  "permissions": [],
+  "track_changes": 1
+}

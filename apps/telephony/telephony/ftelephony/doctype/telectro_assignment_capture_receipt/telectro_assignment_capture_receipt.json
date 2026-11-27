@@ -1,0 +1,115 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Assignment Capture Receipt",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": [
+    "event_id",
+    "ticket",
+    "operation_source",
+    "actor",
+    "event_at",
+    "recorded_at",
+    "request_payload",
+    "previous_owner",
+    "new_owner",
+    "result"
+  ],
+  "fields": [
+    {
+      "fieldname": "event_id",
+      "fieldtype": "Data",
+      "label": "Event Id",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "unique": 1,
+      "length": 140
+    },
+    {
+      "fieldname": "ticket",
+      "fieldtype": "Link",
+      "label": "Ticket",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "HD Ticket"
+    },
+    {
+      "fieldname": "operation_source",
+      "fieldtype": "Data",
+      "label": "Operation Source",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "actor",
+      "fieldtype": "Link",
+      "label": "Actor",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "User"
+    },
+    {
+      "fieldname": "event_at",
+      "fieldtype": "Datetime",
+      "label": "Event At",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "recorded_at",
+      "fieldtype": "Datetime",
+      "label": "Recorded At",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "request_payload",
+      "fieldtype": "Code",
+      "label": "Request Payload",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "JSON"
+    },
+    {
+      "fieldname": "previous_owner",
+      "fieldtype": "Code",
+      "label": "Previous Owner",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "JSON"
+    },
+    {
+      "fieldname": "new_owner",
+      "fieldtype": "Code",
+      "label": "New Owner",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "JSON"
+    },
+    {
+      "fieldname": "result",
+      "fieldtype": "Code",
+      "label": "Result",
+      "reqd": 1,
+      "read_only": 1,
+      "no_copy": 1,
+      "options": "JSON"
+    }
+  ],
+  "permissions": [],
+  "track_changes": 1
+}

@@ -1,0 +1,28 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Ticket Worker Grant",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": ["ticket", "technician_user", "employee", "company", "granted_by", "reason", "granted_at", "state", "active_key", "revoked_by", "revoked_at", "revocation_reason"],
+  "fields": [
+    {"fieldname": "ticket", "fieldtype": "Link", "options": "HD Ticket", "label": "Ticket", "reqd": 1, "read_only": 1},
+    {"fieldname": "technician_user", "fieldtype": "Link", "options": "User", "label": "Technician User", "reqd": 1, "read_only": 1},
+    {"fieldname": "employee", "fieldtype": "Link", "options": "Employee", "label": "Employee", "reqd": 1, "read_only": 1},
+    {"fieldname": "company", "fieldtype": "Link", "options": "Company", "label": "Company", "reqd": 1, "read_only": 1},
+    {"fieldname": "granted_by", "fieldtype": "Link", "options": "User", "label": "Granted By", "reqd": 1, "read_only": 1},
+    {"fieldname": "reason", "fieldtype": "Small Text", "label": "Reason", "reqd": 1, "read_only": 1},
+    {"fieldname": "granted_at", "fieldtype": "Datetime", "label": "Granted At", "reqd": 1, "read_only": 1},
+    {"fieldname": "state", "fieldtype": "Select", "options": "Active\nRevoked", "label": "State", "default": "Active", "reqd": 1},
+    {"fieldname": "active_key", "fieldtype": "Data", "label": "Active Ticket/User Key", "unique": 1, "length": 64, "hidden": 1, "no_copy": 1},
+    {"fieldname": "revoked_by", "fieldtype": "Link", "options": "User", "label": "Revoked By"},
+    {"fieldname": "revoked_at", "fieldtype": "Datetime", "label": "Revoked At"},
+    {"fieldname": "revocation_reason", "fieldtype": "Small Text", "label": "Revocation Reason"}
+  ],
+  "permissions": [],
+  "track_changes": 1
+}

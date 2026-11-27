@@ -1,0 +1,109 @@
+{
+  "doctype": "DocType",
+  "name": "TELECTRO Booking Correction Audit",
+  "module": "FTelephony",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 0,
+  "issingle": 0,
+  "allow_rename": 0,
+  "autoname": "hash",
+  "field_order": [
+    "event_id",
+    "action",
+    "actor",
+    "recorded_at",
+    "reason",
+    "original_timesheet",
+    "original_time_log",
+    "before_snapshot",
+    "after_snapshot",
+    "replacement_timesheet",
+    "replacement_request_snapshot"
+  ],
+  "fields": [
+    {
+      "fieldname": "event_id",
+      "fieldtype": "Data",
+      "label": "Event Id",
+      "read_only": 1,
+      "reqd": 1,
+      "unique": 1,
+      "length": 140
+    },
+    {
+      "fieldname": "action",
+      "fieldtype": "Select",
+      "label": "Action",
+      "read_only": 1,
+      "reqd": 1,
+      "options": "Draft Correction\nDraft Withdrawal\nSubmitted Cancellation\nSubmitted Replacement"
+    },
+    {
+      "fieldname": "actor",
+      "fieldtype": "Link",
+      "label": "Actor",
+      "read_only": 1,
+      "reqd": 1,
+      "options": "User"
+    },
+    {
+      "fieldname": "recorded_at",
+      "fieldtype": "Datetime",
+      "label": "Recorded At",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "label": "Reason",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "original_timesheet",
+      "fieldtype": "Data",
+      "label": "Original Timesheet",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "original_time_log",
+      "fieldtype": "Data",
+      "label": "Original Time Log",
+      "read_only": 1,
+      "reqd": 1
+    },
+    {
+      "fieldname": "before_snapshot",
+      "fieldtype": "Code",
+      "label": "Before Snapshot",
+      "read_only": 1,
+      "reqd": 1,
+      "options": "JSON"
+    },
+    {
+      "fieldname": "after_snapshot",
+      "fieldtype": "Code",
+      "label": "After Snapshot",
+      "read_only": 1,
+      "options": "JSON"
+    },
+    {
+      "fieldname": "replacement_timesheet",
+      "fieldtype": "Data",
+      "label": "Replacement Timesheet",
+      "read_only": 1
+    },
+    {
+      "fieldname": "replacement_request_snapshot",
+      "fieldtype": "Code",
+      "label": "Replacement Request Snapshot",
+      "read_only": 1,
+      "options": "JSON"
+    }
+  ],
+  "permissions": [],
+  "track_changes": 1
+}

@@ -26,7 +26,7 @@ Native Helpdesk Customer portal tickets use Helpdesk's own customer organisation
 HD Ticket.customer
 ```
 
-For the current Boschendal proof, this is:
+For the original Boschendal proof, this was:
 
 ```text
 customer = Boschendal
@@ -53,7 +53,7 @@ Therefore, the pilot deliberately does not copy `customer` into `custom_customer
 
 That would be invalid unless a matching ERPNext `Customer` exists or an explicit mapping has been configured.
 
-## Why `custom_customer` Remains Blank for Customer Portal Tickets
+## Why `custom_customer` Was Blank in the Original Portal Proof
 
 The field `custom_customer` links to the ERPNext `Customer` DocType.
 
@@ -89,7 +89,7 @@ But this is not the same as saying:
 ERPNext Customer = Boschendal
 ```
 
-So the correct current behaviour is:
+The original unmapped Ticket therefore recorded:
 
 ```text
 customer = Boschendal
@@ -108,79 +108,36 @@ This is now used for service coverage context and internal Fault Location displa
 
 This keeps Customer portal tickets valid while allowing internal views/helpers to show the organisation context.
 
-## Do Not Auto-Populate `custom_customer` Yet
+## Customer identity decision
 
-Do not blindly set:
+**2026-11-25 · Implemented Ticket mapping and Phase 2 activation requirement**
 
-```python
-custom_customer = customer
-```
-
-This is unsafe because `customer` may refer to an `HD Customer`, while `custom_customer` expects an ERPNext `Customer`.
-
-For Boschendal, that would attempt to write a non-existent ERPNext Customer value.
-
-Future work needs an explicit mapping decision.
-
-## Possible Future Mapping Model
-
-A future production-safe model may need an explicit relationship:
-
-```text
-HD Customer / portal organisation
-  maps to
-ERPNext Customer / commercial customer
-```
-
-Example:
-
-```text
-HD Customer:
-  Boschendal
-
-ERPNext Customer:
-  Customer B - Customer Owned
-
-Campus:
-  Boschendal
-```
-
-Possible implementation options:
-
-### Option A — Mapping field on HD Customer
-
-Add a custom field on `HD Customer`:
-
-```text
-custom_erpnext_customer -> Link Customer
-```
-
-Then configure:
-
-```text
-HD Customer Boschendal
-  custom_erpnext_customer = Customer B - Customer Owned
-```
-
-Customer portal ticket creation could then safely populate:
-
-```text
-custom_customer = mapped ERPNext Customer
-```
-
-only when the mapping exists.
-
-### Option B — Resolve through Contact / Dynamic Link
-
-If the portal user's Contact links to both an `HD Customer` and an ERPNext `Customer`, the system could resolve the ERPNext Customer through the Contact.
-
-This avoids adding a new mapping field, but may be less explicit and harder to reason about for multi-branch customers.
-
-### Current Decision
-
-No mapping is implemented yet.
-
-The current pilot uses read-side fallback only.
+- **Established contract.** Ticket synchronization uses the optional
+  `HD Customer.custom_erp_customer` link to keep `HD Ticket.customer` (HD Customer)
+  and `HD Ticket.custom_customer` (ERPNext Customer) consistent. DEV Ticket 969
+  resolves Boschendal to Customer B. Standalone HD Customers remain valid.
+- **Verified pre-fix gap.** The booking API previously persisted the HD Customer
+  only when supplied. In a rollback-contained DEV test, omission left it blank
+  even though its Ticket identified Boschendal. The booking appeared in
+  unfiltered Booked Hours results and was absent from the Boschendal filter.
+  The three accepted Ticket 969 bookings, which had Boschendal saved, appeared
+  under that filter. Supervisor reporting consults Ticket and Project Customer
+  links for access and consistency, while the Customer filter still uses the
+  saved HD Customer or unlisted name. Customer-restricted supervisor scope can
+  exclude blank-Customer entries before aggregation.
+- **Implemented for the activation gate.** Resolve and save the operational HD
+  Customer from the authorized, locked Ticket or mapped Project on new
+  bookings and reference changes. Show the derived Customer in the form,
+  reject conflicting or ambiguous identities, and surface a missing Project
+  mapping. Preserve standalone HD Customers, Projects without a Customer, and
+  authorized selection for Tickets without a Customer. Preserve the saved
+  identity, including a legacy blank, during unchanged-reference maintenance.
+- **Reporting and billing.** Group Helpdesk, mapped Project, and direct Customer
+  bookings by saved HD Customer within existing report permissions. Keep
+  legacy blanks in authorized unfiltered totals and out of Customer filters.
+  Any historical remediation requires a separate review. The native Timesheet
+  ERPNext Customer participates in invoice preparation and stays outside this
+  contract because billing is deferred.
 
 ## Location Model
 
@@ -412,7 +369,7 @@ Coverage match:
   Service Area = Faults
 ```
 
-Until explicit HD Customer -> ERPNext Customer mapping is decided, Boschendal-specific Customer portal coverage can be represented with Campus + Service Area rows.
+Boschendal-specific Customer portal coverage can use Campus + Service Area rows independently of the optional ERPNext Customer mapping.
 
 ## Important Architecture Principle
 
@@ -1803,29 +1760,19 @@ and Location onboarding.
 
 ## Current Open Decisions
 
-### 1. HD Customer to ERPNext Customer mapping
-
-Need to decide whether to add an explicit mapping from Helpdesk `HD Customer` to ERPNext `Customer`.
-
-Possible direction:
-
-```text
-HD Customer.custom_erpnext_customer -> Customer
-```
-
-### 2. Customer/Campus/Service Area coverage responsibility
+### 1. Customer/Campus/Service Area coverage responsibility
 
 Need to define production coverage rows for customer/campus/service-area combinations.
 
 This should drive visibility, team load, routing, and escalation later.
 
-### 3. Default coordinator / preferred owner routing
+### 2. Default coordinator / preferred owner routing
 
 Need to decide whether certain customers or campuses have a preferred coordinator/default accountable owner.
 
 This should be a responsibility/routing rule, not a fake Service Area.
 
-### 4. Multi-branch proof
+### 3. Multi-branch proof
 
 Need a future proof case using an Emerald Life-style topology with many branches.
 

@@ -1,0 +1,12 @@
+{
+ "doctype": "Page",
+ "name": "technician-work-overview",
+ "page_name": "technician-work-overview",
+ "module": "FTelephony",
+ "title": "Technician Work Overview",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {"role": "TELECTRO-POC Role - Supervisor Governance"}
+ ]
+}

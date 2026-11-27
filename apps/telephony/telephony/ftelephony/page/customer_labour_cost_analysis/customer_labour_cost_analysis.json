@@ -1,0 +1,14 @@
+{
+ "doctype": "Page",
+ "name": "customer-labour-cost-analysis",
+ "page_name": "customer-labour-cost-analysis",
+ "module": "FTelephony",
+ "title": "Customer Labour Cost Analysis",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {
+   "role": "TELECTRO-POC Role - Commercial Reporting"
+  }
+ ]
+}

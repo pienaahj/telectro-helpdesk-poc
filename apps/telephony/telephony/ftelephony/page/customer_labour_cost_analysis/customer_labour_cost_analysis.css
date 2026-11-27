@@ -1,0 +1,13 @@
+.clc-export { max-width: 800px; margin: 10px auto 0; padding: 16px; }
+.clc-heading { background: linear-gradient(115deg,#13343b,#075c56); border-radius: 12px;
+  color: #fff; padding: 24px; }
+.clc-heading h2 { font-size: 22px; color: #fff; margin: 0 0 8px; }
+.clc-heading p { color: #d0ece8; margin: 0; }
+.clc-form { margin-top: 14px; padding: 20px; border: 1px solid var(--border-color);
+  border-radius: 12px; background: var(--card-bg); }
+.clc-form .form-control { max-width: 16rem; }
+.clc-dates { display: grid; align-items: center; grid-template-columns: max-content minmax(0, 16rem); gap: 6px 12px; margin-top: 14px; }
+.clc-dates[hidden] { display: none; }
+.clc-dates label { margin: 0; }
+.clc-status { margin: 12px 0; min-height: 1.3em; }
+.clc-instructions { margin: 14px 2px; color: var(--text-muted); }

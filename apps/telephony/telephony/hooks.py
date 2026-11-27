@@ -22,6 +22,7 @@ fixtures = [
                 "TELECTRO-POC Role - Tech",
                 "TELECTRO-POC Role - Coordinator Ops",
                 "TELECTRO-POC Role - Supervisor Governance",
+                "TELECTRO-POC Role - Commercial Reporting",
                 "TELECTRO-POC Role - Tech Workspace",
                 "TELECTRO-POC Role - Coordinator Workspace",
                 "TELECTRO-POC Role - Ops Workspace",
@@ -57,8 +58,11 @@ fixtures = [
                 [
                     "Customer",
                     "Location",
+                    "Activity Type",
                 ],
             ],
+        ],
+        "or_filters": [
             [
                 "role",
                 "in",
@@ -74,6 +78,7 @@ fixtures = [
                     "TELECTRO-POC Role - Tech Workspace",
                 ],
             ],
+            ["parent", "=", "Activity Type"],
         ],
     },
 
@@ -124,6 +129,18 @@ fixtures = [
         "dt": "Custom Field",
         "filters": [
             ["name", "in", [
+                "Timesheet-custom_telectro_booking_origin",
+                "Timesheet Detail-custom_work_context",
+                "Timesheet Detail-custom_hd_customer",
+                "Timesheet Detail-custom_hd_ticket",
+                "Timesheet Detail-custom_telectro_pre_creation_us",
+                "Timesheet Detail-custom_emergency",
+                "Timesheet Detail-custom_unlisted_customer_name",
+                "Timesheet Detail-custom_service_area",
+                "Timesheet Detail-custom_work_location",
+                "Timesheet Detail-custom_work_origin",
+                "Timesheet Detail-custom_external_reference",
+                "Timesheet Detail-custom_other_origin_description",
                 "HD Ticket-custom_customer",
                 "HD Ticket-custom_site_group",
                 "HD Ticket-custom_fault_category",
@@ -140,6 +157,7 @@ fixtures = [
                 "HD Ticket-custom_request_type",
                 "HD Ticket-custom_due_date",
                 "HD Ticket-custom_request_source",
+                "HD Ticket-custom_telectro_manual_origin",
                 "HD Ticket-custom_request_partner",
                 "HD Ticket-custom_section_break_kxmjz",
                 "HD Ticket-custom_column_break_pxt06",
@@ -275,13 +293,6 @@ fixtures = [
     },
 
     {
-        "dt": "Scheduled Job Type",
-        "filters": [
-            ["method", "=", "telephony.jobs.pull_pilot_inboxes.run"],
-        ],
-    },
-
-    {
         "dt": "HD View",
         "filters": [
             ["name", "in", [
@@ -387,9 +398,41 @@ if unassigned_notification_durability_after_migrate not in after_migrate:
         unassigned_notification_durability_after_migrate
     )
 
+booking_activity_type_durability_after_migrate = (
+    "telephony.setup.booking_activity_type_durability.after_migrate"
+)
+
+if booking_activity_type_durability_after_migrate not in after_migrate:
+    after_migrate.append(booking_activity_type_durability_after_migrate)
+
 doc_events = dict(globals().get("doc_events") or {})
 doc_events.setdefault("HD Ticket", {})
 doc_events.setdefault("DocShare", {})
+
+# Register the reviewed Timesheet runtime. Managed creation still requires a
+# private one-use intent; no booking endpoint or feature activation is added.
+# Keep these declarations exact: the activation collector rejects extra,
+# missing, or reordered Timesheet handlers.
+override_doctype_class = dict(globals().get("override_doctype_class") or {})
+override_doctype_class.setdefault(
+    "Timesheet", "telephony.time_booking_timesheet_controller.TelectroBookingTimesheet"
+)
+_timesheet_provenance_handler = (
+    "telephony.time_booking_provenance_lifecycle._validate_timesheet_provenance"
+)
+doc_events.setdefault("Timesheet", {})
+for _timesheet_event in (
+    "before_insert", "before_validate", "before_save", "before_submit",
+    "before_cancel", "before_update_after_submit", "before_change",
+):
+    doc_events["Timesheet"].setdefault(_timesheet_event, _timesheet_provenance_handler)
+
+from telephony.time_booking_attribution import CHILD_EVENTS as _attribution_child_events
+from telephony.time_booking_attribution import CHILD_HANDLER as _attribution_child_handler
+
+doc_events.setdefault("Timesheet Detail", {})
+for _attribution_child_event in _attribution_child_events:
+    doc_events["Timesheet Detail"].setdefault(_attribution_child_event, _attribution_child_handler)
 
 def _append_hook(target, event, handler):
     cur = target.get(event)
@@ -427,8 +470,21 @@ _append_hook(
 # Gate debug-only instrumentation (default OFF)
 TELECTRO_DEBUG = os.getenv("TELECTRO_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
 
+# Supervisor exports and screen results must reauthorize on every execution.
+_report_override = "telephony.supervisor_report_runtime.TelectroReport"
+if "Report" in override_doctype_class and override_doctype_class["Report"] != _report_override:
+    raise RuntimeError(f"Conflicting Telephony Report override: {override_doctype_class['Report']!r}")
+override_doctype_class["Report"] = _report_override
+override_doctype_class["Page"] = "telephony.commercial_reporting.CommercialReportingPage"
+_append_hook(
+    doc_events.setdefault("Prepared Report", {}),
+    "validate",
+    "telephony.supervisor_report_runtime.prevent_supervisor_prepared_report",
+)
+
 # --- Partner Permissions ---
 permission_query_conditions = {
+    "Page": "telephony.commercial_reporting.page_query_condition",
     "HD Ticket": "telephony.permissions.hd_ticket_query_conditions",
 }
 
@@ -439,6 +495,10 @@ _append_hook(
 )
 
 # --- HD Ticket hooks ---
+_append_hook(doc_events["HD Ticket"], "before_validate",
+             "telephony.hd_ticket_manual_origin.enforce_marker")
+_append_hook(doc_events["HD Ticket"], "before_change",
+             "telephony.hd_ticket_manual_origin.protect_direct_change")
 _append_hook(doc_events["HD Ticket"], "before_insert", [
     "telephony.telectro_intake.populate_from_email",
     "telephony.data_request_intake.prepare_data_request_insert",
@@ -490,11 +550,22 @@ customer_login_landing_js = (
 if customer_login_landing_js not in web_include_js:
     web_include_js.append(customer_login_landing_js)
 
+boot_session = [*globals().get("boot_session", []),
+                "telephony.hd_ticket_manual_origin.add_desk_capability"]
+
+extend_bootinfo = [*globals().get("extend_bootinfo", []),
+                   "telephony.commercial_reporting.filter_cost_page_discovery"]
+after_request = [*globals().get("after_request", []),
+                 "telephony.commercial_reporting.set_cost_cache_control"]
+
 # Redirect TELECTRO-POC Tech users off Helpdesk landing to War Room
 app_include_js = list(globals().get("app_include_js") or [])
 for p in [
     "/assets/telephony/js/telectro_home_redirect.js?v=2026-05-20-2",
     "/assets/telephony/js/telectro_datetime_guard.js?v=2026-02-25-1",
+    "/assets/telephony/js/telectro_time_booking.js?v=2026-11-27-7",
+    "/assets/telephony/js/telectro_booked_hours_filters.js?v=2026-11-27-4",
+    "/assets/telephony/js/hd_ticket_manual_origin.js",
     "/assets/telephony/js/telectro_ops_workspace.js?v=2026-04-14-1",
     "/assets/telephony/js/partner_acceptance_review.js?v=2026-05-13-3",
     "/assets/telephony/js/partner_route_guard.js?v=2026-08-24-1",
@@ -536,11 +607,13 @@ if TELECTRO_RULE_DEBUG_COMMENTS:
 # ✅ Whitelisted method overrides (must exist at module level)
 override_whitelisted_methods = dict(globals().get("override_whitelisted_methods") or {})
 override_whitelisted_methods.update({
+    "frappe.desk.desktop.get_desktop_page": "telephony.commercial_reporting.get_desktop_page",
+
     "frappe.desk.form.assign_to.add": "telephony.overrides.assign_to.add",
     "frappe.desk.form.assign_to.remove": "telephony.overrides.assign_to.remove",
     "frappe.desk.form.assign_to.remove_multiple": "telephony.overrides.assign_to.remove_multiple",
     "frappe.desk.form.assign_to.close_all_assignments": "telephony.overrides.assign_to.close_all_assignments",
-    
+
     # ✅ Redis search override (stops search on subject type of Customer site)
     "helpdesk.api.article.search": "telephony.api.customer_article_search",
 
