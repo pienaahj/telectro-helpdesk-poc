@@ -318,7 +318,7 @@ correction requirements above.
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
-| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1, A.2.2 and A.2.4 owner acceptance closed. The consolidated A.2.3 report selectors are technically verified in DEV. | Obtain overall A.2.3 owner browser acceptance. |
+| **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
@@ -332,6 +332,76 @@ explicit naming-rule metadata, and replace `Desk User` read permission with
 scope keeps managed booking and assignment capture off. Existing Helpdesk and
 ordinary Timesheet paths remain available, and report and Workspace access stays
 within existing role and data scope.
+
+### A.3.1 Print Heading provenance and proposed disposition
+
+**Disposition proposed on 27 November 2026. Owner approval is pending.**
+Phase 2 commit `7a68a6a5ac917784a8ab1047c0cb2373270e395d` carries no
+Print Heading definition or fixture override. The pinned ERPNext base in
+the release Dockerfile supplies both standard declarations of the same
+DocType. The local DEV copies match the pinned upstream files byte for
+byte. The prior Telectro change `973f2efec7ee0e5e10313d32814795d385232254`
+recorded the blocker in this runbook.
+
+| Contract | Installed DEV and ERPNext v15.94.1 | Competing Frappe v15.96.0 definition | Proposed disposition |
+| --- | --- | --- | --- |
+| Owning module | `Setup` at `apps/erpnext/erpnext/setup/doctype/print_heading/print_heading.json` | `Printing` at `apps/frappe/frappe/printing/doctype/print_heading/print_heading.json` | Keep ERPNext Setup ownership in the combined runtime. Module changes select the controller and metadata location. Both current controllers have no custom behavior. |
+| Heading field | Required Data, `unique=1`, with a full, single-column unique MariaDB index | Required Data, `unique=0` | Keep field metadata and the physical unique index. The primary key still makes document names unique, while the field index guards duplicate heading values independently. |
+| Naming | `naming_rule=By fieldname`, `autoname=field:print_heading` | Explicit naming rule absent, same `autoname` | Retain the explicit metadata. The field-based generated name is expected under either definition because both set the same `autoname`. |
+| Read access | `Desk User` read and existing `System Manager` rights | `All` read and existing `System Manager` rights | Retain Desk User read. The in-memory role evaluator granted read to an existing authenticated Website User under the Frappe definition. The ERPNext definition denied that user. Both allowed the Desk Technician and denied Guest. |
+
+The Frappe declaration dates to the 2017 move to Printing. The ERPNext
+2023 change intentionally lowered `All` permissions to `Desk User`.
+[Frappe Printing move](https://github.com/frappe/frappe/commit/11d575af4690307488551d81c5661567c4936b94) ·
+[ERPNext Desk User change](https://github.com/frappe/erpnext/commit/0d22fe02be6c35efb0378858c9a33b8ec05d0b5f)
+
+DEV syncs Frappe before ERPNext, then Telephony and Helpdesk. The standard
+DocType importer compares each file hash with the single installed
+`migration_hash`. DEV matches the ERPNext hash
+`d24cfae20bacdc7a64faaea0c05fb4d1`. The Frappe hash is
+`5259e4a83cf44fa9e1083b609925c764`. The differing hashes can trigger the
+Frappe reimport and then an ERPNext reimport in the same pass. Model sync
+commits imports individually, before fixture and customization sync.
+An interruption can expose the intermediate contract, and an end-of-run
+repair would still allow index and permission churn on later runs.
+
+Read-only DEV inspection found two existing headings. Both are nonblank,
+match their document names, and have no duplicates under the current
+collation. There are no Print Heading Custom Fields, Property Setters,
+Custom DocPerms, User Permissions, Document Naming Rules, or scoped
+permission or controller overrides. The retained local Linux AMD64
+production release image `prod-20261111-3cca9a2` contains the same two
+upstream files. The release is cited in the 12 November production
+notification acceptance. The live target Print Heading metadata, index,
+role outcomes and data compatibility have yet to be verified.
+
+**Recommended implementation after approval.** In the immutable combined
+ERPNext runtime build, retain ERPNext's pinned Setup declaration as the
+single model-sync source. Exclude only the competing Frappe JSON from the
+combined image using a build step that checks both expected hashes and
+fails when either input changes. Preserve both upstream controllers and
+other assets. Use the same approved build transformation in DEV and the
+candidate. Verify the import inventory, a clean combined install and
+normal Print Heading selection and rendering. Treat a Frappe-only runtime
+or an upstream change in ownership as a separate compatibility decision.
+Making Frappe Printing the sole owner would require an explicit module
+change and preservation of the ERPNext uniqueness and Desk permission
+contract. A later fixture or hook would leave the conflicting schema
+import in place.
+
+Before a separately authorized production deployment, obtain approval
+for a targeted read-only preflight covering the deployed image identity,
+installed DocType and effective permission metadata, the exact index, and
+aggregate blank or duplicate counts. Keep A.3.2 fixture reconciliation and
+A.3.3 routing assertion review separate. A.4 still requires owner approval
+for both full DEV migration passes. After each pass, verify the approved
+Print Heading contract, the Work Origin Select option **Not applicable**
+and historical values, Customer mapping index, Workspace links and block
+IDs with no duplicate widgets, Assignment Capture Receipt first install
+with capture off, all 20 My Team Load roles, REP/DASH/COST Page and
+authorization contracts, fail-closed commercial configuration, and the
+accepted bookings and held queue records. A.5 remains the immutable
+dormant candidate gate. A.11 operational onboarding remains separate.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
@@ -685,8 +755,7 @@ preserved.
 The DEV browser verified suggestion selection, clearing, date changes and
 the existing Work Origin options. Rollback-only tests verified authorized
 and out-of-scope values, retired Service Areas, and exact-value filtering
-and native CSV export in both reports. **A.2.3 owner browser acceptance is
-pending.**
+and native CSV export in both reports.
 
 **A.2.3B consolidated report selectors.** The remaining text filters now
 use native searchable controls in each report where the filter already
@@ -712,7 +781,6 @@ and failed lookups with Retry. An isolated ledger test covered Task
 scoping, retired Activity Types and undisclosed reference labels. Live
 checks verified the DASH drill-down and native CSV and Excel exports for
 both reports. DEV served selector asset revision `2026-11-27-4`.
-**Overall A.2.3 owner browser acceptance remains pending.**
 
 **A.2.3C Technician names in report tables.** Supervisor Booked Hours
 displays the authorized Employee name under **Technician** in all eight
@@ -729,6 +797,11 @@ hours, 0.800 draft hours and 0.000 submitted hours. Native CSV and Excel
 exports verified both columns for Daily Summary, Booking Detail and
 Technician Breakdown. The existing selectors and DASH handoff were
 verified. Employee name quality remains an onboarding task.
+
+**A.2.3A–C owner closure — 27 November 2026.** The owner verified all nine
+final browser acceptance items and accepted the consolidated report
+usability at `7a68a6a5ac917784a8ab1047c0cb2373270e395d`. V1 UI scope is
+frozen except for genuine defects.
 
 ### Technician Time Booking Terminology and Quick Reference Guide
 
