@@ -319,7 +319,7 @@ correction requirements above.
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
-| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2A disposition register ready for owner review. | Retain the existing definitions for the twelve timestamp-only records. Review the separate inbox scheduler fixture before A.4. Preserve the Customer mapping index and Workspace fixture scope. |
+| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2B owner dispositions approved and inbox scheduler correction verified. | Retain the accepted field definitions, Customer mapping index and Workspace fixture scope. Verify migration durability in A.4 and obtain separate approval for the production target preflight. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
@@ -530,15 +530,10 @@ Frappe force-replaces the fixture record, including its stored
 `last_execution` and `stopped`. `next_execution` is computed from the
 schedule and execution state. Replaying the fixture can change when the
 inbox poller is due and reopen an intentionally stopped job. The
-smallest proposed corrective slice removes this one fixture and its
-export filter while retaining the existing cron hook. After approval,
-prove fresh registration and preservation of an existing job's
-`last_execution`, `stopped` and log history across repeat syncs on a
-disposable site with mail processing held. Check that the site already
-has the expected cron before testing retention. The pinned scheduler
-can delete and recreate the job on a cron mismatch, which can delete
-job logs. Resolve a mismatch explicitly before relying on the
-hook-only path for an existing site.
+approved correction removes this one fixture and its export filter
+while retaining the existing cron hook. The A.3.2B evidence below
+distinguishes ordinary cron correction from duplicate-name collision
+recovery.
 
 The approved mapping index hunk `dad1dc3` and Work Origin option
 `Not applicable` from `54f19fd` match the current DEV fixture and
@@ -552,15 +547,76 @@ Location and Ticket data, Timesheets and their correction lineage, and
 the five held Email Queue entries remain preservation checks for
 authorized migration verification.
 
-Owner review is required for the twelve dispositions and the separate
-inbox fixture correction before A.4. If production preflight is
-separately authorized, read the effective site Custom Field metadata
-for these twelve IDs and relevant overrides, the Coordinator profile
-and its four role links, and the exact inbox Scheduled Job Type
-method, frequency, cron, stop flag, logging flag, execution timestamp
-and aggregate job log count. Compare with the approved contract and
-resolve any live difference before migration. The A.3.3 routing
-assertion, A.4 migration and A.5 candidate validation remain pending.
+### A.3.2B Owner approval and inbox scheduler correction
+
+The owner approved eleven B dispositions and one D disposition for the
+original twelve. Git remains authoritative for their field definitions.
+Keep the installed timestamps and retain the approved Customer mapping
+index and Work Origin Select amendment. Keep the committed Coordinator
+Role Profile and its four roles. Defer export allowlist alignment and
+accept the serialization, ordering and timestamp representation
+differences without mutation.
+
+The source change removed the single inbox Scheduled Job Type fixture
+and its export filter. The `*/1 * * * *` hook, job implementation and
+the other scheduler registrations retain the same source. The DEV
+apps change used the `bench_migrate` lock. The exact-path pull dry run
+identified only `hooks.py`, and the deleted fixture was mirrored as a
+separate exact-path change. The two restore-noise helpers no longer
+reference the deleted path. Release validators, source artifact
+generation and deployment checks required no changes. Both pinned
+local base images lack this fixture. The source-artifact,
+runtime-validator and Location Link fixture regressions passed. The
+Data Request release validator passed all 354 isolated tests, including
+both scheduler modules. The HD Ticket metadata regression gave
+identical field-order failures at baseline `efdf5b4` and after the
+correction.
+
+The DEV scheduler source matched the Frappe v15.96.0 tag byte for byte
+with SHA-256
+`c4198b3feab04b2592173824a9410fd94aa5a11c2463841ff6de9dc13091cc43`.
+Native `sync_jobs` ran on a fresh Frappe-only MariaDB site on an
+internal Docker network, using the corrected Telephony cron group and
+read-only DEV source. Telephony method references were resolved from
+that source without installing the Telephony app on the test site.
+The probe blocked poller execution and job enqueue. The synthetic
+collision case intercepted only the post-delete dynamic-link cleanup
+callback. The test network had no scheduler, workers or mail service.
+[Pinned Frappe scheduler source](https://github.com/frappe/frappe/blob/v15.96.0/frappe/core/doctype/scheduled_job_type/scheduled_job_type.py).
+
+| Native sync case | Evidence |
+| --- | --- |
+| Fresh site | Exactly one `pull_pilot_inboxes.run` row for the expected method, `Cron`, `*/1 * * * *`, `create_log=1`, `stopped=0` and `last_execution=NULL`. |
+| Two matching-job repeats | The name, creation, modification, cron, logging flag, seeded `last_execution=2025-04-03 02:01:00.000871`, `stopped=1` and both seeded log records matched exactly after each repeat. One row for the method. |
+| Existing cron mismatch | Native sync changed `*/10 * * * *` to `*/1 * * * *` in place. Only the cron and modification timestamp changed. The job identity, execution timestamp, stop flag, native logging and two logs were preserved. One row for the method. |
+| Synthetic name collision | A different method occupying `pull_pilot_inboxes.run` hit duplicate-name recovery. Frappe replaced the row and removed both synthetic logs. The new row had a new creation timestamp, `stopped=0` and `last_execution=NULL`. |
+
+Read-only DEV fingerprints before and after the source change matched
+for the existing inbox scheduler row and all 4,859 logs, nine accepted
+Timesheets and nine details, 345 Tickets, 17 correction audits, the
+five held Email Queue records and their five recipient rows, five
+Workspaces, the Supervisor Reporting Grant, the Work Origin field
+and assignment state. Assignment capture was off and the Assignment
+Capture Receipt table was absent in both snapshots. The Print Heading module
+and permission rows, unique index, single-source inventory and
+rollback backup also matched. DEV's `custom_erp_customer_index` is
+the non-unique search index added during the 24 November proof.
+It was preserved and the duplicate reverse-mapping group count was zero.
+
+**Separate read-only production preflight, pending approval.** Inspect
+the twelve effective Custom Field definitions and relevant overrides,
+the Coordinator profile and its four role links, and the inbox job
+by both exact name and method. Check the effective hooks for another
+method that would generate the same job name. Capture frequency,
+cron format, logging flag, stop flag, last execution and scheduler
+log count as the preservation baseline. Verify the target artifact and
+any mounted apps source omit the retired fixture. Hold migration if
+the expected name is occupied by another method, the intended method
+has multiple rows or a different name, or target state cannot be
+reconciled to the approved operating contract. A clean first
+registration requires the expected name to be free. The A.3.3 routing
+assertion and A.5 candidate validation remain pending. A.4 still
+requires separate authorization.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers

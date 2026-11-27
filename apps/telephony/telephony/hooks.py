@@ -293,13 +293,6 @@ fixtures = [
     },
 
     {
-        "dt": "Scheduled Job Type",
-        "filters": [
-            ["method", "=", "telephony.jobs.pull_pilot_inboxes.run"],
-        ],
-    },
-
-    {
         "dt": "HD View",
         "filters": [
             ["name", "in", [
