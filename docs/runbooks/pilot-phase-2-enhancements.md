@@ -320,7 +320,7 @@ correction requirements above.
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2B owner dispositions approved and inbox scheduler correction verified. | Retain the accepted field definitions, Customer mapping index and Workspace fixture scope. Verify migration durability in A.4 and obtain separate approval for the production target preflight. |
-| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Pass 1 native migration and isolated verification passed. DEV reopening is held on the unsupported legacy Helpdesk Redis indexing job. Pass 2 remains unauthorized. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
+| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Pass 1 passed and DEV reopened after the authorized legacy Helpdesk Redis recovery. Pass 2 remains unauthorized. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. Apply the approved Pass 2 RediSearch safeguard below before starting any workers. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
@@ -970,7 +970,8 @@ the separate A.3.1 procedure and requires its own authorization.
 
 **Pass 2.** Require a separate owner decision after accepting pass 1.
 Repeat isolation, fresh baseline and verified backup with the `-a4p2`
-run suffix. Compare with
+run suffix. Include the A.4.1C RediSearch safeguard in the authorization
+and apply it before restarting workers. Compare with
 both the pass 1 accepted schema and the new pre-pass baseline, allowing
 ordinary activity between passes. Verify stable indexes, empty Receipt
 table, approved Print Heading, all 20 My Team Load roles, protected
@@ -1109,6 +1110,95 @@ was executed.
 The protected evidence and complete recovery set are under
 `backups/frontend/20261127T153600Z-a4p1/`. The updated
 `SHA256SUMS.a41r` manifests the verification and recovery files.
+
+### A.4.1C DEV RediSearch recovery and pass 1 operational closure
+
+The owner approved DEV-only recovery and reopening on 27 November 2026.
+The held service set, site settings, recovery-set checksums and protected
+fingerprints matched A.4.1R. No jobs were queued or in flight. The one
+historical failed job remained in the long failed registry with its
+original callable, site, ID, status and exception fingerprint.
+
+Under a row lock the operator verified the exact Scheduled Job Type
+`search.build_index_if_not_exists` and method
+`helpdesk.search.build_index_if_not_exists`. The committed update changed
+only `stopped` from 0 to 1. Identity, configuration, last execution,
+modified timestamp and scheduler-log fingerprint were preserved. This
+specific DEV job stop is the intentional exception to the original
+operational state. The overall site scheduler setting remains disabled
+as before the outage. The inbox job and its 4,859 scheduler logs matched.
+
+The pinned Helpdesk search implementation and Frappe cache wrapper
+identified the stale flag as the site-specific
+`_5e5899d8398b5f7b|helpdesk_search_indexing_in_progress` key. With
+workers held, the operator used the unprefixed logical key with Frappe's
+`frappe.cache().delete_value("helpdesk_search_indexing_in_progress")`.
+The wrapper applies the site prefix. The key was absent after deletion
+and after reopening. No Redis flush, unrelated cache deletion, failed
+job retry, or failed job deletion was performed.
+
+Supported search used the actual `helpdesk.api.search.search` endpoint
+in process under existing DEV principals before and after reopening.
+The SQLite-backed endpoint returned existing Ticket 825 for the
+technician and Ticket 915 for the Website User. The Website User could
+neither find nor directly read Ticket 825. Returned Ticket IDs were
+all within the respective principal's permission-scoped list.
+The SQLite index was reused. HTTP ping returned `pong`, the Helpdesk
+route returned HTTP 200, and an unauthenticated search request
+returned HTTP 403. The frontend briefly reset a connection during
+container startup and passed the subsequent health checks.
+
+DEV reopened with its original running service set. Original site and
+common configuration matched their pre-outage copies. The exact 20 My
+Team Load roles, empty Assignment Capture Receipt table, capture off,
+fail-closed COST authority, accepted bookings and five held emails and
+recipients all passed the reopening checks. Both workers returned with
+no queued, started, scheduled or deferred work and no new failures.
+The legacy failed job and its exception fingerprint were preserved.
+Pass 1 is complete. No migration retry, database restore, pass 2,
+production operation or application source change was performed.
+Local recovery and closure evidence is retained under
+`backups/frontend/20261127T153600Z-a4p1/` with `SHA256SUMS.a41c`.
+
+#### Pass 2 DEV RediSearch safeguard for separate owner authorization
+
+The Helpdesk `after_migrate` hook independently enqueues
+`helpdesk.search.build_index`. Stopping the scheduled
+`helpdesk.search.build_index_if_not_exists` method does not prevent that
+enqueue. Follow the callable-identification and queue-preservation
+precedent in
+[the release runbook](production-runtime-release.md#mandatory-pre-reopening-redisearch-migration-safeguard)
+against the local DEV target only.
+
+1. After the authorized pass 2 migration, keep maintenance, scheduler,
+   mail and workers held. Confirm local Redis still lacks `FT.CREATE`.
+   Verify the exact legacy Scheduled Job Type has `stopped=1` and
+   capture the previous failed-job identity and fingerprint as evidence.
+2. Inventory `short`, `default`, `long` and any other discovered queues
+   through RQ. Record job ID, queue, status, site, job name and resolved
+   callable. Require zero active workers and no started jobs. Keep the
+   supported SQLite and website search rebuilds, Role Profile refreshes
+   and other legitimate work eligible. Independently confirm any candidate
+   is newly queued for `frontend`, originates from the actual DEV long
+   queue, has job name and resolved callable
+   `helpdesk.search.build_index`, and is absent from all started
+   registries. Resolve a callable object through its module and
+   qualified name. The old failed job ID is evidence only.
+3. Only if pass 2 authorization explicitly includes the exclusion,
+   fetch the independently verified candidate from the local RQ
+   connection with `Job.fetch(verified_id, connection=get_redis_conn())`.
+   Recheck its exact identity, queue membership, `queued` status and
+   zero workers. Call `job.cancel(enqueue_dependents=False)` once.
+   Verify `job.get_status(refresh=True)` is `canceled` and the ID is
+   absent from the long queue. Re-enumerate every queue to prove that
+   only that candidate left the queue and no legacy callable remains
+   eligible. If none was enqueued, record that from the complete
+   inventory. Halt for any ambiguity, executing job, wrong site,
+   scheduled method unexpectedly enabled or unrelated queue change.
+4. Retain the cancellation evidence and old failure fingerprint. Run
+   the pass 2 durability checks before resuming workers. Verify the
+   legitimate jobs after resumption, the actual SQLite search and Ticket
+   access checks, and the approved operational state before reopening.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
