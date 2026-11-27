@@ -119,6 +119,59 @@ class TestSupervisorBookedHours(unittest.TestCase):
             options["view"] = "Booking Detail"
         return report.execute(options)[1]
 
+    def test_selectors_reuse_roster_and_permission_projected_rows(self):
+        from telephony.api import booking_report_filters as selectors
+
+        self.scope.return_value = frozenset({TECH, OTHER})
+        self.reference("Employee", TECH.employee, employee_name="Named Technician")
+        self.reference("Employee", OTHER.employee, employee_name="No Booking Technician")
+        for suffix in ("visible", "another", "secret"):
+            readable = suffix != "secret"
+            self.reference("Project", f"P-{suffix}", company=TECH.company,
+                           project_name=f"Project {suffix}", readable=readable)
+            self.reference("Task", f"K-{suffix}", project=f"P-{suffix}",
+                           subject=f"Task {suffix}", readable=readable)
+            self.add(f"project-{suffix}", context="Project", project=f"P-{suffix}", task=f"K-{suffix}")
+        for suffix in ("visible", "secret"):
+            self.reference("HD Ticket", f"T-{suffix}", subject=f"Ticket {suffix}",
+                           readable=suffix != "secret")
+            self.add(f"ticket-{suffix}", context="Helpdesk", ticket=f"T-{suffix}",
+                     origin="Snapfix", reference=f"SF-{suffix}")
+        self.db.execute("UPDATE `tabTimesheet Detail` SET activity_type = 'Retired activity' "
+                        "WHERE parent = 'project-visible'")
+
+        def get_all(doctype, *, filters, fields):
+            names = filters["name"][1]
+            self.assertFalse(any("secret" in name for name in names), (doctype, names))
+            return [self.documents[doctype, name] for name in names]
+
+        with (
+            patch.object(frappe.local, "flags", frappe._dict(), create=True),
+            patch.object(selectors, "_", lambda label: label),
+            patch.object(selectors, "get_report_doc") as permission,
+            patch.object(selectors, "resolve_supervisor_reporting_scope", self.scope),
+            patch.object(selectors, "_allowed_service_areas", return_value=("Other",)),
+            patch.object(selectors.frappe, "get_all", side_effect=get_all),
+        ):
+            result = selectors.get_options(REPORT_NAME, **DATES, employee=TECH.employee, project="P-visible")
+            permission.assert_called_with(REPORT_NAME)
+            self.assertEqual(result["company"], ["Company", "Other Company"])
+            self.assertEqual({item["value"] for item in result["employee"]}, {TECH.employee, OTHER.employee})
+            self.assertIn({"value": TECH.employee, "label": "Named Technician (EMP-1)"}, result["employee"])
+            self.assertEqual(result["task"], [{"value": "K-visible", "label": "Task visible (K-visible)"}])
+            self.assertEqual({item["value"] for item in result["project"]}, {"P-visible", "P-another"})
+            self.assertEqual(result["ticket"], [{"value": "T-visible", "label": "Ticket visible (T-visible)"}])
+            self.assertEqual(result["snapfix_reference"], ["SF-visible"])
+            self.assertIn("Retired activity", result["activity_type"])
+            self.assertIn("Fault Finding & Diagnosis", result["activity_type"])
+            self.assertEqual(result["service_area"], ["Other", "PABX"])
+            all_tasks = selectors.get_options(REPORT_NAME, **DATES)
+            self.assertEqual({item["value"] for item in all_tasks["task"]}, {"K-visible", "K-another"})
+            empty = selectors.get_options(REPORT_NAME, **DATES, company=OTHER.company)
+            self.assertEqual(empty["employee"], [{"value": OTHER.employee, "label": "No Booking Technician (EMP-2)"}])
+            self.assertEqual(empty["project"], [])
+            self.assertEqual(empty["ticket"], [])
+
     def test_work_origin_filter_distinguishes_system_legacy_and_unknown_values(self):
         self.add("system", origin="Not applicable")
         self.add("unknown", origin=None)

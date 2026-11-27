@@ -44,10 +44,10 @@ frappe.query_reports["Technician Own Booked Hours"] = {
 			options: ["", "Yes", "No"],
 		},
 		{ fieldname: "customer", label: __("Customer"), fieldtype: "Autocomplete", ignore_validation: true },
-		{ fieldname: "project", label: __("Project"), fieldtype: "Data" },
-		{ fieldname: "task", label: __("Task"), fieldtype: "Data" },
-		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Data" },
-		{ fieldname: "snapfix_reference", label: __("Snapfix Reference"), fieldtype: "Data" },
+		{ fieldname: "project", label: __("Project"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "task", label: __("Task"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "snapfix_reference", label: __("Snapfix Reference"), fieldtype: "Autocomplete", ignore_validation: true },
 	],
 	formatter(value, row, column, data, default_formatter) {
 		if (column.fieldtype === "Data" && typeof value === "string") {

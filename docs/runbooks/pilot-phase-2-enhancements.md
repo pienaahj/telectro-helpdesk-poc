@@ -318,7 +318,7 @@ correction requirements above.
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
-| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1, A.2.2 and A.2.4 owner acceptance closed. A.2.3 Customer and Service Area report selectors technically verified in DEV. | Obtain A.2.3 owner browser acceptance. |
+| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1, A.2.2 and A.2.4 owner acceptance closed. The consolidated A.2.3 report selectors are technically verified in DEV. | Obtain overall A.2.3 owner browser acceptance. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
@@ -687,6 +687,32 @@ the existing Work Origin options. Rollback-only tests verified authorized
 and out-of-scope values, retired Service Areas, and exact-value filtering
 and native CSV export in both reports. **A.2.3 owner browser acceptance is
 pending.**
+
+**A.2.3B consolidated report selectors.** The remaining text filters now
+use native searchable controls in each report where the filter already
+exists. Supervisor Company and Technician choices come from the approved
+roster, including members with no recorded work in the selected period.
+Company narrows the Technician list. Technician labels show the Employee
+name and stable Employee ID. During onboarding, verify the Employee has a
+readable full name and the correct enabled User and Company links before
+granting Supervisor reporting access. Use the existing Employee record and
+stable identifier when correcting a name.
+
+Activity Type suggestions combine the approved booking catalog with
+authorized historical values. Project, Task and Ticket suggestions use
+only permission-projected references and display readable labels with the
+existing IDs. Project narrows Task suggestions. Snapfix suggestions follow
+existing redaction. Dates, Company and Technician scope recorded work.
+Existing exact filters, clearing, Work Origin options and exports are
+preserved.
+
+Both DEV reports were exercised in the browser. Checks covered readable
+labels, exact deep-link values, the no-booking roster, and loading, empty,
+and failed lookups with Retry. An isolated ledger test covered Task
+scoping, retired Activity Types and undisclosed reference labels. Live
+checks verified the DASH drill-down and native CSV and Excel exports for
+both reports. DEV served selector asset revision `2026-11-27-4`.
+**Overall A.2.3 owner browser acceptance remains pending.**
 
 ### Technician Time Booking Terminology and Quick Reference Guide
 

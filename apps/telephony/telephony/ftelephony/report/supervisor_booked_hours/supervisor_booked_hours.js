@@ -28,8 +28,8 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			],
 			default: "Daily Summary",
 		},
-		{ fieldname: "company", label: __("Company"), fieldtype: "Data" },
-		{ fieldname: "employee", label: __("Technician (Employee)"), fieldtype: "Data" },
+		{ fieldname: "company", label: __("Company"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "employee", label: __("Technician (Employee)"), fieldtype: "Autocomplete", ignore_validation: true },
 		{
 			fieldname: "work_context",
 			label: __("Work Context"),
@@ -50,7 +50,7 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			options: ["", "Yes", "No"],
 		},
 		{ fieldname: "customer", label: __("Customer"), fieldtype: "Autocomplete", ignore_validation: true },
-		{ fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Data" },
+		{ fieldname: "activity_type", label: __("Activity Type"), fieldtype: "Autocomplete", ignore_validation: true },
 		{
 			fieldname: "customer_type",
 			label: __("Customer Attribution"),
@@ -69,10 +69,10 @@ frappe.query_reports["Supervisor Booked Hours"] = {
 			fieldtype: "Select",
 			options: ["", "Snapfix", "Ticket", "Project", "Task", "No visible reference"],
 		},
-		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Data" },
-		{ fieldname: "project", label: __("Project"), fieldtype: "Data" },
-		{ fieldname: "task", label: __("Task"), fieldtype: "Data" },
-		{ fieldname: "snapfix_reference", label: __("Snapfix Reference"), fieldtype: "Data" },
+		{ fieldname: "ticket", label: __("Helpdesk Ticket"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "project", label: __("Project"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "task", label: __("Task"), fieldtype: "Autocomplete", ignore_validation: true },
+		{ fieldname: "snapfix_reference", label: __("Snapfix Reference"), fieldtype: "Autocomplete", ignore_validation: true },
 	],
 	formatter(value, row, column, data, default_formatter) {
 		if (column.fieldtype === "Data" && typeof value === "string") {
