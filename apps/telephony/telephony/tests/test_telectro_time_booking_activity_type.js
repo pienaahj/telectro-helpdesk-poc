@@ -23,9 +23,25 @@ function loadBookingForm(lookup = async () => [], response = null) {
     constructor(config) {
       this.config = config;
       this.values = {};
-      this.fields_dict = Object.fromEntries(config.fields.filter((df) => df.fieldname).map((df) => [
-        df.fieldname, { df, $input: { attr() {}, val() {} }, set_options() {} },
-      ]));
+      this.fields_dict = Object.fromEntries(config.fields.filter((df) => df.fieldname).map((df) => {
+        const control = {
+          df,
+          $input: {
+            attr() { return this; },
+            on() { return this; },
+            val: () => this.values[df.fieldname],
+          },
+          $wrapper: {
+            find() { return this; },
+            addClass() { return this; },
+            attr() { return this; },
+            text(value) { control.text = value; },
+          },
+          set_options() {},
+          refresh() {},
+        };
+        return [df.fieldname, control];
+      }));
       this.$wrapper = { one() {} };
       this.button = { prop() {} };
       dialogs.push(this);
@@ -46,23 +62,31 @@ function loadBookingForm(lookup = async () => [], response = null) {
   const context = {
     document,
     crypto: webcrypto,
-    $: () => ({ on() {} }),
+    URLSearchParams,
+    $: () => ({ on() { return this; }, appendTo() {} }),
     async fetch(url, options) {
+      if (!options.method) {
+        const parsed = new URL(url, "http://localhost");
+        const method = parsed.pathname.split(".").at(-1);
+        const args = Object.fromEntries(parsed.searchParams);
+        if (args.duration_minutes) args.duration_minutes = Number(args.duration_minutes);
+        requests.push({ method: "telephony.api.time_booking." + method, args });
+        const result = await lookup(method, args);
+        return { ok: true, json: async () => ({
+          message: method === "get_booking_reference_customer" && Array.isArray(result)
+            ? { customer_name: null } : result,
+        }) };
+      }
       submissions.push({ url, body: JSON.parse(options.body) });
       return response || { ok: true, json: async () => ({ message: { timesheet: "TS-1" } }) };
     },
     frappe: {
       show_alert() {},
       ui: { Dialog },
-      async call(request) {
-        requests.push(request);
-        const method = request.method.split(".").at(-1);
-        const result = await lookup(method, request.args);
-        return { message: method === "get_booking_reference_customer" && Array.isArray(result)
-          ? { customer_name: null } : result };
-      },
       datetime: {
         system_datetime: () => "2026-11-20 12:00:00",
+        get_user_date_fmt: () => "YYYY-MM-DD",
+        get_user_time_fmt: () => "HH:mm:ss",
         now_datetime(asDate) {
           assert.equal(asDate, true);
           return new Date(2026, 10, 20, 12);
@@ -73,13 +97,22 @@ function loadBookingForm(lookup = async () => [], response = null) {
     },
     __: (text, values = []) =>
       text.replace(/\{(\d+)\}/g, (_, index) => values[index]),
-    moment: Object.assign(() => ({ isValid: () => true }), {
+    moment: Object.assign((value) => ({
+      isValid: () => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value),
+    }), {
       utc(value) {
         let instant = new Date(value.replace(" ", "T") + "Z");
         return {
           isValid: () => Number.isFinite(instant.getTime()),
           add(minutes) { instant = new Date(instant.getTime() + minutes * 60_000); return this; },
-          format: () => instant.toISOString().slice(0, 19).replace("T", " "),
+          seconds: () => instant.getUTCSeconds(),
+          format(format) {
+            const stamp = instant.toISOString();
+            if (format === "YYYY-MM-DD") return stamp.slice(0, 10);
+            if (format === "HH:mm") return stamp.slice(11, 16);
+            if (format === "HH:mm:ss") return stamp.slice(11, 19);
+            return stamp.slice(0, 19).replace("T", " ");
+          },
         };
       },
     }),
@@ -153,8 +186,11 @@ test("Activity Type selector exposes the ordered catalog and starts blank", () =
   assert.equal(activity.reqd, 1);
   assert.equal(activity.default, undefined);
   assert.deepEqual(Array.from(activity.options), ["", ...approvedActivities]);
-  assert.deepEqual(Array.from(field(dialog, "work_context").options),
-    ["", "Helpdesk", "Project", "Customer Support", "Internal"]);
+  assert.deepEqual(optionIds(dialog, "work_context"), ["", "Helpdesk", "Project", "Customer Support", "Internal"]);
+  assert.equal(field(dialog, "work_context").options[1].label, "Helpdesk Ticket");
+  assert.equal(field(dialog, "customer_name").only_select, 1);
+  assert.equal(field(dialog, "unlisted_customer_name").description,
+    "Only complete this if the Customer is not listed above.");
 });
 
 test("Travel hides Work Location and omits even a previously selected location", () => {
@@ -255,9 +291,11 @@ test("Scoped Projects load only for completed work and preserve required validat
   assert.equal(field(dialog, "project_name").options[1].label, "&lt;Pilot> (P-1)");
 });
 
-test("Changing Project, duration, or start clears dependent selections", async () => {
+test("Revised intervals retain authorized references and clear those no longer available", async () => {
   const form = loadBookingForm(async (method, args) => {
-    if (method === "get_booking_projects") return [project, otherProject];
+    if (method === "get_booking_projects") {
+      return args.from_time.startsWith("2026-11-19") ? [otherProject] : [project, otherProject];
+    }
     if (method === "get_booking_reference_customer") return { customer_name: null };
     assert.ok([project.id, otherProject.id].includes(args.project_name));
     return args.project_name === project.id ? [task] : [];
@@ -274,8 +312,8 @@ test("Changing Project, duration, or start clears dependent selections", async (
   await dialog.set_value("project_name", project.id);
   await dialog.set_value("task_name", task.id);
   await dialog.set_value("duration_minutes", "45");
-  assert.equal(dialog.values.project_name, "");
-  assert.equal(dialog.values.task_name, "");
+  assert.equal(dialog.values.project_name, project.id);
+  assert.equal(dialog.values.task_name, task.id);
   assert.equal(form.requests.at(-1).args.duration_minutes, 45);
 
   await dialog.set_value("project_name", project.id);
@@ -284,6 +322,25 @@ test("Changing Project, duration, or start clears dependent selections", async (
   assert.equal(dialog.values.project_name, "");
   assert.equal(dialog.values.task_name, "");
   assert.equal(form.requests.at(-1).args.from_time, "2026-11-19 08:45:00");
+});
+
+test("A stale Project reply cannot populate a newer interval", async () => {
+  let finishOld;
+  const oldLookup = new Promise(resolve => { finishOld = resolve; });
+  const form = loadBookingForm(async (method, args) => {
+    assert.equal(method, "get_booking_projects");
+    return args.duration_minutes === 30 ? oldLookup : [otherProject];
+  });
+  const dialog = form.open();
+  await dialog.set_value("work_context", "Project");
+  await dialog.set_value("from_time", workStart);
+  const pending = dialog.set_value("duration_minutes", "30");
+  await new Promise(setImmediate);
+  await dialog.set_value("duration_minutes", "45");
+  finishOld([project]);
+  await pending;
+  assert.deepEqual(optionIds(dialog, "project_name"), ["", otherProject.id]);
+  assert.equal(dialog.fields_dict.project_name.df.read_only, 0);
 });
 
 test("A stale Task response from the previous Project is discarded", async () => {
@@ -318,9 +375,10 @@ test("Corrections restore Projects and Tasks through exact scoped lookup after t
   await new Promise(setImmediate);
   assert.equal(dialog.values.project_name, project.id);
   assert.equal(dialog.values.task_name, task.id);
-  assert.equal(form.requests[0].args.name, project.id);
-  assert.equal(form.requests[1].args.name, task.id);
-  assert.equal(form.requests[1].args.project_name, project.id);
+  const exact = form.requests.filter(({args}) => args.name);
+  assert.equal(exact[0].args.name, project.id);
+  assert.equal(exact[1].args.name, task.id);
+  assert.equal(exact[1].args.project_name, project.id);
 });
 
 test("Non-Project intervals never call the scoped lookup endpoints", async () => {
@@ -347,7 +405,7 @@ test("Save sends scoped IDs only and rejects selections for a stale interval", a
     ...dialog.values, description: "Pilot work", activity_type: "Repair & Maintenance",
     work_origin: "Direct / Ad-hoc", service_area: "Routing", work_location: "Remote", emergency: "No",
   };
-  await assert.rejects(dialog.config.primary_action({ ...values, duration_minutes: "90" }), /Select an eligible Project/);
+  await assert.rejects(dialog.config.primary_action({ ...values, duration_minutes: "90" }), /Select a Project and optional Task/);
   assert.equal(form.submissions.length, 0);
   await dialog.config.primary_action(values);
   const { url, body } = form.submissions[0];
@@ -361,13 +419,64 @@ test("Save sends scoped IDs only and rejects selections for a stale interval", a
 test("Pre-creation presentation distinguishes exact duration, confirmed zero and unknown", () => {
   const { preCreationText } = loadBookingForm();
   assert.match(preCreationText(1000001), /1\.000001 seconds, included/);
-  assert.match(preCreationText(86400000000), /86400 seconds, included/);
+  assert.match(preCreationText(86400000000), /24 hours, included/);
   assert.match(preCreationText(0), /0 seconds, included/);
+  assert.match(preCreationText(1), /0\.000001 seconds, included/);
+  assert.match(preCreationText(1000000), /1 second, included/);
+  assert.match(preCreationText(61000000), /1 minute 1 second, included/);
   for (const unknown of [null, undefined, -1, "0", 86400000001]) {
     assert.match(preCreationText(unknown), /not established/);
   }
 });
 
+
+test("Time is presented before context and the preview handles exact minutes and midnight", async () => {
+  const dialog = loadBookingForm().open();
+  const names = dialog.config.fields.map(x => x.fieldname).filter(Boolean);
+  assert.deepEqual(Array.from(names.slice(0, 4)), ["from_time", "duration_minutes", "time_preview", "work_context"]);
+  const preview = () => dialog.fields_dict.time_preview.text;
+  assert.equal(preview(), "");
+  await dialog.set_value("from_time", "2026-11-19 23:30:00");
+  for (const [minutes, label] of [[1, "1 minute"], [15, "15 minutes"], [60, "1 hour"],
+    [61, "1 hour 1 minute"], [90, "1 hour 30 minutes"], [120, "2 hours"], [135, "2 hours 15 minutes"]]) {
+    await dialog.set_value("duration_minutes", String(minutes));
+    assert.ok(preview().startsWith(label + " · Ends at "), preview());
+  }
+  await dialog.set_value("duration_minutes", "90");
+  assert.equal(preview(), "1 hour 30 minutes · Ends at 2026-11-20 01:00");
+  await dialog.set_value("from_time", "bad");
+  assert.equal(preview(), "1 hour 30 minutes");
+  await dialog.set_value("duration_minutes", "1.5");
+  assert.equal(preview(), "");
+});
+
+test("Project choices distinguish prerequisite, loading, empty and failure", async () => {
+  let finish;
+  let failed = false;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const form = loadBookingForm(async () => {
+    if (failed) throw Error("private server failure");
+    return pending;
+  });
+  const dialog = form.open();
+  const projectControl = dialog.fields_dict.project_name;
+  await dialog.set_value("work_context", "Project");
+  assert.match(projectControl.df.description, /Enter your start date/);
+  assert.equal(projectControl.df.read_only, 1);
+  await dialog.set_value("from_time", workStart);
+  const loading = dialog.set_value("duration_minutes", "30");
+  await new Promise(setImmediate);
+  assert.match(projectControl.df.description, /Finding/);
+  assert.equal(projectControl.df.read_only, 1);
+  finish([]);
+  await loading;
+  assert.match(projectControl.df.description, /No Projects match/);
+  assert.equal(projectControl.df.read_only, 1);
+  failed = true;
+  await dialog.set_value("project_search", "retry");
+  assert.match(projectControl.df.description, /Unable to load Projects/);
+  assert.doesNotMatch(projectControl.df.description, /private/);
+});
 
 test("Saved Helpdesk work posts only owned-booking inputs and preserves fractional seconds", async () => {
   const { openSaved, requests, submissions } = loadBookingForm();

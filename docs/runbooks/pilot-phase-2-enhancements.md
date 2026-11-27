@@ -318,7 +318,7 @@ correction requirements above.
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
-| **UI-01–12 — Consolidated Technician UI improvements** | Existing register remains a separate workstream. | Retain prior decisions, evidence and outstanding acceptance items. |
+| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1 owner acceptance closed. A.2.2 form changes technically verified in DEV. | Obtain A.2.2 owner browser acceptance before A.2.3 report selector work. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
@@ -605,6 +605,51 @@ count replacements once. Carry forward the accepted evidence for these
 contracts.
 
 ---
+
+## Consolidated Technician UI acceptance
+
+**A.2.1 owner closure (UI-01–03).** The owner completed all nine DEV
+browser checks and explicitly accepted the presentation at
+`e8983cf6fbab9a8c9e5659fa65f2124cdedb110f`. The global **Book Time**
+launcher has a 10 px gap after the ERPNext icon. The second action sits
+below the Technician Workspace's **Time Booking** heading and above its
+reports. Both open **My Time Bookings** using the same booking
+authorization. Existing Workspace links and block IDs were preserved.
+
+**A.2.2 DEV technical verification (UI-04–07).** All four work contexts
+start with **Start Date and Time** and **Duration (minutes)**, followed
+by context and work details, then **Description**. The native picker,
+Now action and keyboard entry were retained. DEV displays **South African
+Time (SAST)** and previews whole-minute durations and site-local end
+times, including the date across midnight. Saved bookings display hours
+and minutes and distinguish exact fractional pre-creation time, confirmed
+zero, and unknown. Pre-creation applies to Helpdesk Ticket work and is
+included in total booked time.
+
+| Reference | Technical evidence |
+| --- | --- |
+| UI-04 | DEV Ticket #739 derived Boschendal and Other as read-only values and cleared both when the Ticket was removed. The **Helpdesk Ticket** label retains the stored `Helpdesk` value. The listed Customer selector, unlisted Customer requirement and Project Customer derivation keep their existing rules. |
+| UI-05 | The native booking Customer selector uses field-level `only_select`. DEV autocomplete found Boschendal without offering Customer creation. The Frappe Advanced Search dialog can expose a create action, so it is omitted by this native setting. The unlisted field explains when to use it. |
+| UI-06 | Native required-field feedback remains in place. Invalid duration and future start feedback identify the affected input and retain entered values. DEV Project and Task choices respected the completed work interval. Revised intervals rechecked existing selections. Empty and failed lookups showed distinct guidance. Browser testing exercised inline retry with a simulated 403 and no permission popup. An invalid server request returned HTTP 422. Both full correction and precise saved-reference forms were opened without saving. |
+| UI-07 | The duration preview covers singular and plural forms, and an overnight preview includes the next date. Exact fractional seconds remain visible in saved Helpdesk pre-creation details. |
+
+The browser loaded Desk asset revision `2026-11-27-6`. The focused
+JavaScript tests covered stale Project and Task responses, exact scoped
+restoration, and existing A.8 expected-error handling. **A.2.2 owner
+browser acceptance is pending.** UI-09 and UI-10 report selectors remain
+in A.2.3.
+
+### Technician Time Booking Terminology and Quick Reference Guide
+
+Prepare the guide and screenshots after UI acceptance. Cover why time is
+booked, both **Book Time** entry points, start date and time, duration,
+direct keyboard entry, and each Work Context. Explain Helpdesk Ticket,
+Customer Support, listed and unlisted Customers, Project and Task, and
+Internal work. Include Service Area, Activity Type, Work Origin,
+Emergency / Unplanned, meaningful descriptions, correcting saved work,
+and reviewing personal booked hours. Use the approved classifications.
+**Direct / Ad-hoc** is a Work Origin. **Emergency / Unplanned** is a
+separate classification that Technicians choose explicitly.
 
 ## Historical enhancement candidates — retained context
 

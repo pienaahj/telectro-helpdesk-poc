@@ -11,6 +11,15 @@
   const get = async (method, args) =>
     (await frappe.call({ method: api + method, type: "GET", args })).message;
 
+  async function getPreview(method, args) {
+    // Desk's default request handler opens permission dialogs for optional lookups.
+    const response = await fetch("/api/method/" + api + method + "?" + new URLSearchParams(args), {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error();
+    return (await response.json()).message;
+  }
+
   async function post(method, args) {
     // Keep Emergency and Duration numeric when Frappe parses the request.
     const response = await fetch("/api/method/" + method, {
@@ -43,8 +52,16 @@
     }
     const seconds = Math.floor(value / 1000000);
     const fraction = String(value % 1000000).padStart(6, "0").replace(/0+$/, "");
-    const duration = fraction ? `${seconds}.${fraction}` : String(seconds);
-    return __("Pre-creation portion: {0} seconds, included in total booked time.", [duration]);
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    const secondsText = fraction ? remainder + "." + fraction : remainder;
+    const parts = [
+      minutes ? durationText(minutes) : "",
+      !minutes || remainder || fraction
+        ? (secondsText === 1 ? __("1 second") : __("{0} seconds", [secondsText]))
+        : "",
+    ].filter(Boolean);
+    return __("Pre-creation portion: {0}, included in total booked time.", [parts.join(" ")]);
   }
 
   function showError(message) {
@@ -90,24 +107,92 @@
     };
   }
 
+  function durationMinutes(value) {
+    const text = String(value ?? "");
+    return /^[1-9][0-9]{0,3}$/.test(text) && Number(text) <= 1440 ? Number(text) : null;
+  }
+
+  function durationText(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const remaining = minutes % 60;
+    return [
+      hours ? (hours === 1 ? __("1 hour") : __("{0} hours", [hours])) : "",
+      remaining || !hours ? (remaining === 1 ? __("1 minute") : __("{0} minutes", [remaining])) : "",
+    ].filter(Boolean).join(" ");
+  }
+
+  function workEnd(start, minutes) {
+    // Add elapsed minutes to site-local wall time, independent of the browser timezone.
+    if (!start || !minutes) return null;
+    const end = moment.utc(start, dateFormat, true);
+    return end.isValid() ? end.add(minutes, "minutes") : null;
+  }
+
+  function timezoneLabel(zone) {
+    return zone === "Africa/Johannesburg" ? __("South African Time (SAST)") : zone;
+  }
+
+  function hasCompleteStart(control) {
+    const raw = control.$input.val();
+    if (!raw) return false;
+    const date = frappe.datetime.get_user_date_fmt().toUpperCase();
+    const time = frappe.datetime.get_user_time_fmt();
+    const formats = [date, date.replace("YYYY", "YY")]
+      .flatMap((format) => [format + " " + time, format + " " + time.replace(":ss", "")]);
+    return moment(raw.trim(), formats, true).isValid();
+  }
+
+  function timePreview(dialog, precise = false) {
+    const startControl = dialog.fields_dict.from_time;
+    const preview = dialog.fields_dict.time_preview.$wrapper;
+    const minutes = durationMinutes(dialog.get_value("duration_minutes"));
+    const start = dialog.get_value("from_time");
+    let end;
+    let fraction = "";
+    if (precise) {
+      const parts = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(\.\d{1,6})?$/.exec(start);
+      if (parts) {
+        end = workEnd(parts[1], minutes);
+        fraction = parts[2] || "";
+      }
+    } else if (hasCompleteStart(startControl)) {
+      end = workEnd(start, minutes);
+    }
+
+    const lines = minutes ? [durationText(minutes)] : [];
+    if (end) {
+      const sameDay = end.format("YYYY-MM-DD") === start.slice(0, 10);
+      const time = end.format(end.seconds() || fraction ? "HH:mm:ss" : "HH:mm") + fraction;
+      const date = frappe.datetime.get_user_date_fmt().toUpperCase();
+      lines.push(__("Ends at {0}", [sameDay ? time : end.format(date) + " " + time]));
+    }
+    preview.text(lines.join(" · "));
+  }
+
   function bookingPayload(values, ticketArea, options) {
     const description = values.description?.trim();
-    const duration = String(values.duration_minutes ?? "");
-    const now = frappe.datetime.system_datetime();
-    if (
-      !description || description.length > 2000 || !values.from_time ||
-      !moment(values.from_time, dateFormat, true).isValid() ||
-      values.from_time > now || !/^[1-9][0-9]{0,3}$/.test(duration) ||
-      Number(duration) > 1440
-    ) {
-      showError(__("Enter a start time at or before now, 1 to 1,440 whole minutes, and a description of up to 2,000 characters."));
+    const duration = durationMinutes(values.duration_minutes);
+    if (!duration) {
+      showError(__("Enter a duration of 1 to 1,440 whole minutes."));
+      return null;
+    }
+    if (!values.from_time || !moment.utc(values.from_time, dateFormat, true).isValid()) {
+      showError(__("Enter a valid start date and time."));
+      return null;
+    }
+    if (values.from_time > frappe.datetime.system_datetime()) {
+      showError(__("The start time is in the future. Enter when the work began."));
+      return null;
+    }
+    if (!description || description.length > 2000) {
+      showError(__("Enter a description of up to 2,000 characters."));
       return null;
     }
 
     const payload = {
       work_context: values.work_context,
       from_time: values.from_time,
-      duration_minutes: Number(duration),
+      duration_minutes: duration,
       description,
       activity_type: values.activity_type,
       emergency: values.emergency === "Yes" ? 1 : 0,
@@ -160,14 +245,10 @@
   }
 
   function completedWorkInterval(values) {
-    const start = values.from_time;
-    const duration = String(values.duration_minutes ?? "");
-    if (!start || !/^[1-9][0-9]{0,3}$/.test(duration) || Number(duration) > 1440) return null;
-    // Compute site-local wall time without applying the browser's timezone or DST rules.
-    const end = moment.utc(start, dateFormat, true);
-    if (!end.isValid() || end.add(Number(duration), "minutes").format(dateFormat) >
-        frappe.datetime.system_datetime()) return null;
-    return { from_time: start, duration_minutes: Number(duration) };
+    const minutes = durationMinutes(values.duration_minutes);
+    const end = workEnd(values.from_time, minutes);
+    if (!end || end.format(dateFormat) > frappe.datetime.system_datetime()) return null;
+    return { from_time: values.from_time, duration_minutes: minutes };
   }
 
   function openForm(options, booking, afterSave) {
@@ -191,6 +272,7 @@
     let projectContext = booking?.work_context === "Project";
     let periodRevision = 0;
     let periodKey;
+    let pendingReference;
     const referenceRevision = { project_name: 0, task_name: 0 };
     const referenceOptions = {};
     const projectField = "project_name";
@@ -206,7 +288,7 @@
 
     const currentScope = (field) => referenceScope(field, {
       work_context: dialog.get_value("work_context"),
-      from_time: dialog.get_value("from_time"),
+      from_time: hasCompleteStart(dialog.fields_dict.from_time) ? dialog.get_value("from_time") : null,
       duration_minutes: dialog.get_value("duration_minutes"),
       project_name: dialog.get_value(projectField),
     });
@@ -221,10 +303,39 @@
       if (selected) control.$input.val(selected);
     }
 
+    const projectGuidance = {
+      prerequisite: __("Enter your start date, time and duration first. The work must have ended."),
+      loading: __("Finding your available Projects…"),
+      ready: __("Select a Project."),
+      empty: __("No Projects match this work period and search. Check the entered time or contact your Supervisor."),
+      failed: __("Unable to load Projects. Please try again."),
+    };
+    const taskGuidance = {
+      prerequisite: __("Select a Project first."),
+      loading: __("Finding your available Tasks…"),
+      ready: __("Select a Task if applicable."),
+      empty: __("No Tasks match this Project, work period and search."),
+      failed: __("Unable to load Tasks. Please try again."),
+    };
+
+    function setReferenceState(field, state) {
+      const control = dialog.fields_dict[field];
+      control.df.description = (field === projectField ? projectGuidance : taskGuidance)[state];
+      control.df.read_only = state !== "ready" ? 1 : 0;
+      control.refresh();
+      const help = control.$wrapper.find(".help-box").attr("aria-live", "polite");
+      if (state === "failed") {
+        $("<button>", {
+          type: "button", class: "btn btn-default btn-xs ml-2", text: __("Retry"),
+        }).on("click", () => loadReferences(field)).appendTo(help);
+      }
+    }
+
     function clearReference(field) {
       referenceRevision[field]++;
       delete referenceOptions[field];
       renderReferences(field, []);
+      setReferenceState(field, "prerequisite");
       return dialog.set_value(field, "");
     }
 
@@ -234,25 +345,35 @@
       if (!scope) return false;
       const key = JSON.stringify(scope);
       const isProject = field === projectField;
-      const search = name ? { name } : {
-        query: (dialog.get_value(isProject ? "project_search" : "task_search") || "").slice(0, 80),
-      };
+      const method = isProject ? "get_booking_projects" : "get_booking_tasks";
+      const query = (dialog.get_value(isProject ? "project_search" : "task_search") || "").slice(0, 80);
+      setReferenceState(field, "loading");
       let items;
+      let exact;
       try {
-        items = await get(isProject ? "get_booking_projects" : "get_booking_tasks", { ...scope, ...search });
+        [items, exact] = await Promise.all([
+          getPreview(method, { ...scope, query }),
+          name ? getPreview(method, { ...scope, name }) : [],
+        ]);
+        if (!Array.isArray(items) || !Array.isArray(exact)) throw new Error();
       } catch {
-        items = [];
+        if (revision === referenceRevision[field] && key === JSON.stringify(currentScope(field))) {
+          setReferenceState(field, "failed");
+        }
+        return false;
       }
       if (revision !== referenceRevision[field] || key !== JSON.stringify(currentScope(field))) return false;
 
       const selected = dialog.get_value(field);
       const previous = referenceOptions[field];
-      const retained = previous?.key === key && previous.items.find((item) => item.id === selected);
-      items = Array.isArray(items) ? items : [];
+      const retained = exact.find((item) => item.id === name)
+        || (previous?.key === key && previous.items.find((item) => item.id === selected));
       if (retained && !items.some((item) => item.id === retained.id)) items = [retained, ...items];
       referenceOptions[field] = { key, items };
-      renderReferences(field, items, retained?.id);
-      if (name && items.some((item) => item.id === name)) {
+      // Set the native value through the dialog when restoring, so dependent fields refresh.
+      renderReferences(field, items, selected === retained?.id ? selected : "");
+      setReferenceState(field, items.length ? "ready" : "empty");
+      if (name && retained?.id === name) {
         await dialog.set_value(field, name);
         return true;
       }
@@ -263,26 +384,41 @@
       if (restoring) return;
       const inScope = dialog.get_value("work_context") === "Project";
       if (!projectContext && !inScope) return;
-      const key = JSON.stringify(currentScope(projectField));
+      const scope = currentScope(projectField);
+      const key = JSON.stringify(scope);
       if (projectContext === inScope && periodKey === key) return;
+      const selected = dialog.get_value(projectField);
+      pendingReference = inScope && (selected ? {
+        project: selected, task: dialog.get_value(taskField),
+      } : pendingReference);
       projectContext = inScope;
       periodKey = key;
       const revision = ++periodRevision;
       await Promise.all([clearReference(taskField), clearReference(projectField)]);
-      if (revision === periodRevision) await loadReferences(projectField);
+      if (revision !== periodRevision) return;
+      await updateCustomer();
+      if (revision !== periodRevision || !scope) return;
+      await loadReferences(projectField, pendingReference?.project);
+      if (revision === periodRevision) pendingReference = null;
     }
 
     async function projectChanged() {
       if (restoring) return;
       const revision = referenceRevision[taskField] + 1;
       await clearReference(taskField);
-      if (revision !== referenceRevision[taskField]) return;
+      if (revision !== referenceRevision[taskField] || !currentScope(taskField)) return;
       if (dialog.get_value("task_search")) {
-        // Clearing a nonempty search triggers the Task lookup.
+        // Resetting the search also runs the new scoped Task lookup.
         await dialog.set_value("task_search", "");
       } else {
-        await loadReferences(taskField);
+        await loadTasks();
       }
+    }
+
+    function loadTasks() {
+      const project = dialog.get_value(projectField);
+      const restore = pendingReference?.project === project ? pendingReference?.task : undefined;
+      return loadReferences(taskField, restore);
     }
 
     function linkedCustomer(values) {
@@ -325,7 +461,7 @@
       try {
         preview = historical
           ? { customer_name: booking.customer_name, historical: true }
-          : await get("get_booking_reference_customer", reference);
+          : await getPreview("get_booking_reference_customer", reference);
       } catch {
         preview = { configuration_error: __("Customer could not be resolved for this reference.") };
       }
@@ -348,7 +484,7 @@
           const key = JSON.stringify(referenceScope(field, values));
           const choices = referenceOptions[field];
           if (choices?.key !== key || !choices.items.some((item) => item.id === values[field])) {
-            showError(__("Select an eligible Project and optional Task for the completed work interval."));
+            showError(__("Select a Project and optional Task available for the entered work period."));
             return null;
           }
         }
@@ -373,7 +509,7 @@
       }
       await dialog.set_value("ticket_area", __("Loading…"));
       try {
-        const result = await get("get_booking_ticket_area", { ticket_name: ticket });
+        const result = await getPreview("get_booking_ticket_area", { ticket_name: ticket });
         if (revision !== ticketLookup) return;
         if (options.service_areas.includes(result?.service_area)) {
           ticketArea = { ticket, area: result.service_area };
@@ -389,10 +525,37 @@
       }
     }
 
+    const siteZone = frappe.boot?.time_zone?.system || frappe.sys_defaults?.time_zone;
+    const entryZone = frappe.boot?.time_zone?.user || siteZone;
+    const timezoneDescription = siteZone && entryZone !== siteZone
+      ? __("Enter time in {0}. The end time below is shown in {1}.", [
+        timezoneLabel(entryZone), timezoneLabel(siteZone),
+      ])
+      : timezoneLabel(siteZone);
+    const timeChanged = () => {
+      if (!dialog) return;
+      timePreview(dialog);
+      return periodChanged();
+    };
+
     const fields = [
+      { fieldtype: "Section Break", label: __("When was the work performed?") },
+      {
+        fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Datetime", reqd: 1,
+        options: { startDate: frappe.datetime.now_datetime(true) },
+        description: timezoneDescription, hide_timezone: 1,
+        onchange: timeChanged,
+      },
+      { fieldtype: "Column Break" },
+      {
+        fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Data", reqd: 1,
+        onchange: timeChanged,
+      },
+      { fieldname: "time_preview", fieldtype: "HTML" },
+      { fieldtype: "Section Break", label: __("What did you work on?") },
       {
         fieldname: "work_context", label: __("Work Context"), fieldtype: "Select",
-        options: selectOptions(["Helpdesk", "Project", "Customer Support", "Internal"]),
+        options: selectOptions([{ value: "Helpdesk", label: "Helpdesk Ticket" }, "Project", "Customer Support", "Internal"]),
         reqd: 1,
         onchange: () => dialog && Promise.all([updateTicketArea(), periodChanged(), updateCustomer()]),
       },
@@ -410,13 +573,13 @@
       {
         fieldname: projectField, label: __("Project"), fieldtype: "Select", options: [""],
         depends_on: inProject, mandatory_depends_on: inProject,
-        description: __("Enter a completed work interval to load eligible Projects. Refine the search if needed."),
+        description: projectGuidance.prerequisite,
         onchange: () => dialog && Promise.all([projectChanged(), updateCustomer()]),
       },
       {
         fieldname: "task_search", label: __("Find Task"), fieldtype: "Data", length: 80,
         depends_on: (values) => inProject(values) && !!values.project_name,
-        onchange: () => dialog && !restoring && loadReferences(taskField),
+        onchange: () => dialog && !restoring && loadTasks(),
       },
       {
         fieldname: taskField, label: __("Task"), fieldtype: "Select", options: [""],
@@ -424,7 +587,7 @@
       },
       {
         fieldname: "customer_name", label: __("Customer"), fieldtype: "Link",
-        options: "HD Customer",
+        options: "HD Customer", only_select: 1,
         depends_on: maySelectCustomer,
       },
       {
@@ -434,6 +597,7 @@
       {
         fieldname: "unlisted_customer_name", label: __("Unlisted Customer Name"), fieldtype: "Data",
         depends_on: needsUnlisted, mandatory_depends_on: needsUnlisted,
+        description: __("Only complete this if the Customer is not listed above."),
       },
       { fieldtype: "Column Break" },
       {
@@ -477,18 +641,7 @@
         fieldname: "emergency", label: __("Emergency / Unplanned"), fieldtype: "Select",
         options: selectOptions(["No", "Yes"]), reqd: 1,
       },
-      { fieldtype: "Section Break" },
-      {
-        fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Datetime", reqd: 1,
-        options: { startDate: frappe.datetime.now_datetime(true) },
-        onchange: () => dialog && periodChanged(),
-      },
-      { fieldtype: "Column Break" },
-      {
-        fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Data", reqd: 1,
-        onchange: () => dialog && periodChanged(),
-      },
-      { fieldtype: "Section Break" },
+      { fieldtype: "Section Break", label: __("Describe the work performed") },
       { fieldname: "description", label: __("Description"), fieldtype: "Small Text", reqd: 1 },
     ];
     if (booking) {
@@ -528,7 +681,9 @@
         }
       },
     });
-    dialog.fields_dict.duration_minutes.$input.attr("inputmode", "numeric");
+    attachTimePreview(dialog, timeChanged);
+    setReferenceState(projectField, "prerequisite");
+    setReferenceState(taskField, "prerequisite");
     if (dialog.fields_dict.saved_pre_creation) {
       dialog.fields_dict.saved_pre_creation.$wrapper.text(
         __("Saved booking: {0}", [preCreationText(booking.pre_creation_us)]),
@@ -567,11 +722,12 @@
           }
         }
         if (booking.work_context === "Project") {
-          const restored = booking.project_name && await loadReferences(projectField, booking.project_name);
-          const taskRestored = !booking.task_name || (
-            restored && await loadReferences(taskField, booking.task_name)
-          );
-          await Promise.all([loadReferences(projectField), loadReferences(taskField)]);
+          const restored = await loadReferences(projectField, booking.project_name);
+          let taskRestored = !booking.task_name;
+          if (restored) {
+            const foundTask = await loadReferences(taskField, booking.task_name);
+            if (booking.task_name) taskRestored = foundTask;
+          }
           if (!restored || !taskRestored) {
             showError(__("Some saved references are unavailable for this work interval. Review the Project and Task."));
           }
@@ -588,29 +744,48 @@
     }
   }
 
+  function attachTimePreview(dialog, refresh) {
+    dialog.fields_dict.time_preview.$wrapper.addClass("text-muted").attr("aria-live", "polite").text("");
+    dialog.fields_dict.from_time.$input.on("input", refresh);
+    dialog.fields_dict.duration_minutes.$input.attr("inputmode", "numeric").on("input", refresh);
+  }
+
   function openSavedWork(booking, afterSave) {
     const replacing = booking.docstatus === 1;
-    const fields = [
+    const helpdesk = booking.work_context === "Helpdesk";
+    let dialog;
+    const refreshPreview = () => dialog && timePreview(dialog, true);
+    const fields = [];
+    if (helpdesk) {
+      const siteZone = frappe.boot?.time_zone?.system || frappe.sys_defaults?.time_zone;
+      fields.push(
+        { fieldtype: "Section Break", label: __("When was the work performed?") },
+        { fieldname: "change_interval", label: __("Change work interval"), fieldtype: "Check",
+          onchange: refreshPreview },
+        { fieldname: "from_time", label: __("Start Date and Time"), fieldtype: "Data",
+          description: __("Enter YYYY-MM-DD HH:mm:ss, with optional fractional seconds. {0}", [
+            timezoneLabel(siteZone) || "",
+          ]),
+          default: booking.from_time, depends_on: "change_interval", mandatory_depends_on: "change_interval",
+          onchange: refreshPreview },
+        { fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Int",
+          default: booking.duration_minutes, depends_on: "change_interval",
+          mandatory_depends_on: "change_interval", onchange: refreshPreview },
+        { fieldname: "time_preview", fieldtype: "HTML", depends_on: "change_interval" },
+      );
+    }
+    fields.push(
+      { fieldtype: "Section Break", label: __("Describe the work performed") },
       { fieldname: "description", label: __("Description"), fieldtype: "Small Text", reqd: 1,
         default: booking.description },
       { fieldname: "reason", label: __("Correction Reason"), fieldtype: "Small Text", reqd: 1 },
-    ];
-    if (booking.work_context === "Helpdesk") {
-      fields.push(
-        { fieldname: "change_interval", label: __("Change work interval"), fieldtype: "Check" },
-        { fieldname: "from_time", label: __("Start (Site Time)"), fieldtype: "Data",
-          description: __("Enter YYYY-MM-DD HH:mm:ss, with optional fractional seconds."),
-          default: booking.from_time, depends_on: "change_interval", mandatory_depends_on: "change_interval" },
-        { fieldname: "duration_minutes", label: __("Duration (minutes)"), fieldtype: "Int",
-          default: booking.duration_minutes, depends_on: "change_interval",
-          mandatory_depends_on: "change_interval" },
-      );
-    }
-    const dialog = new frappe.ui.Dialog({
+    );
+    dialog = new frappe.ui.Dialog({
       title: replacing ? __("Replace Booking with Saved Reference") : __("Correct Saved Work"),
       fields,
       no_submit_on_enter: true,
     });
+    if (helpdesk) attachTimePreview(dialog, refreshPreview);
     dialog.set_primary_action(
       replacing ? __("Replace Booking") : __("Save Correction"),
       correctionRequest(
@@ -687,8 +862,10 @@
           const item = $("<div>", { class: "border-bottom pb-2 mb-2" }).appendTo(output);
           $("<div>", {
             class: "font-weight-bold mb-1",
-            text: __("{0} · {1} minutes · {2}", [
-              frappe.datetime.str_to_user(booking.from_time), booking.duration_minutes, booking.work_context,
+            text: __("{0} · {1} · {2}", [
+              frappe.datetime.str_to_user(booking.from_time),
+              durationText(booking.duration_minutes),
+              booking.work_context === "Helpdesk" ? __("Helpdesk Ticket") : __(booking.work_context),
             ]),
           }).appendTo(item);
           const status = [__("Draft"), __("Submitted"), __("Cancelled")][booking.docstatus];
