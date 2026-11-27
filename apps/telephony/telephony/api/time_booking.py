@@ -55,6 +55,7 @@ from telephony.time_booking_transaction import (
 from telephony.time_booking_metadata_policy import (
     BookingMetadataValidationError,
     WORK_LOCATIONS,
+    NOT_APPLICABLE_ORIGIN,
     WORK_ORIGINS,
     normalize_booking_metadata,
 )
@@ -689,6 +690,11 @@ def book_technician_time(*, work_context, from_time, duration_minutes,
             effective_service_area = ticket_area
         else:
             effective_service_area = service_area
+
+        if work_context != "Customer Support":
+            # Managed creation owns this classification, including for older clients.
+            work_origin = NOT_APPLICABLE_ORIGIN
+            external_reference = other_origin_description = None
 
         row.update(normalize_booking_metadata(
             work_context=work_context,

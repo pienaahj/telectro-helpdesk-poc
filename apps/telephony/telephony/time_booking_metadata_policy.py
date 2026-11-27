@@ -64,6 +64,7 @@ WORK_LOCATIONS = (
 DIRECT_ORIGIN = "Direct / Ad-hoc"
 SNAPFIX_ORIGIN = "Snapfix"
 OTHER_ORIGIN = "Other"
+NOT_APPLICABLE_ORIGIN = "Not applicable"
 WORK_ORIGINS = (DIRECT_ORIGIN, SNAPFIX_ORIGIN, OTHER_ORIGIN)
 
 
@@ -202,11 +203,16 @@ def normalize_booking_metadata(
         work_location=work_location,
     )
 
-    validate_work_origin(
-        work_origin=work_origin,
-        external_reference=external_reference,
-        other_origin_description=other_origin_description,
-    )
+    if work_context != "Customer Support" and work_origin in (None, NOT_APPLICABLE_ORIGIN):
+        # Corrections may retain a historical blank after checking the locked booking.
+        if external_reference not in (None, "") or other_origin_description not in (None, ""):
+            raise BookingMetadataValidationError("Work without an origin cannot have origin metadata")
+    else:
+        validate_work_origin(
+            work_origin=work_origin,
+            external_reference=external_reference,
+            other_origin_description=other_origin_description,
+        )
 
     normalized_emergency = normalize_emergency(emergency)
 

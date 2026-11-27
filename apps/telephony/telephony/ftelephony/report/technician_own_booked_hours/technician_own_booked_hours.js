@@ -32,7 +32,7 @@ frappe.query_reports["Technician Own Booked Hours"] = {
 			fieldname: "work_origin",
 			label: __("Work Origin"),
 			fieldtype: "Select",
-			options: ["", "Direct / Ad-hoc", "Snapfix", "Other"],
+			options: ["", "Direct / Ad-hoc", "Snapfix", "Other", "Not applicable"],
 		},
 		{
 			fieldname: "emergency",

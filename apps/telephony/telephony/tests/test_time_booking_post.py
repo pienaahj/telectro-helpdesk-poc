@@ -341,6 +341,25 @@ class TestBookingPost(unittest.TestCase):
         self.assertEqual(self.call(work_context="Project", ticket_name=None, project_name="P"),
                          {"timesheet": "TS-001"})
 
+    def test_non_support_origins_are_derived_and_stale_metadata_discarded(self):
+        for context, references in (
+            ("Helpdesk", {}),
+            ("Project", {"project_name": "P", "ticket_name": None}),
+            ("Internal", {"ticket_name": None}),
+        ):
+            for stale in (False, True):
+                with self.subTest(context=context, stale=stale):
+                    self.call(
+                        work_context=context, **references,
+                        work_origin="Snapfix" if stale else None,
+                        external_reference="SF-stale" if stale else None,
+                        other_origin_description="Stale origin" if stale else None,
+                    )
+                    row = self.db.writes[-1].time_logs[0]
+                    self.assertEqual(row["custom_work_origin"], "Not applicable")
+                    self.assertIsNone(row["custom_external_reference"])
+                    self.assertIsNone(row["custom_other_origin_description"])
+
     def test_task_booking_passes_server_identity_and_work_interval(self):
         self.assertEqual(self.call(work_context="Project", ticket_name=None,
                                    project_name="P", task_name="K"), {"timesheet": "TS-001"})
@@ -721,7 +740,7 @@ class TestBookingPost(unittest.TestCase):
 
         self.assertEqual(row["custom_service_area"], "PABX")
         self.assertEqual(row["custom_work_location"], "Remote")
-        self.assertEqual(row["custom_work_origin"], "Direct / Ad-hoc")
+        self.assertEqual(row["custom_work_origin"], "Not applicable")
         self.assertEqual(row["custom_emergency"], 0)
 
     def test_helpdesk_rejects_conflicting_service_area(self):
@@ -762,8 +781,6 @@ class TestBookingPost(unittest.TestCase):
         invalid_cases = (
             ("missing_location", {"work_location": None}),
             ("empty_location", {"work_location": ""}),
-            ("missing_origin", {"work_origin": None}),
-            ("empty_origin", {"work_origin": ""}),
             ("missing_emergency", {"emergency": None}),
         )
 
@@ -779,6 +796,9 @@ class TestBookingPost(unittest.TestCase):
 
     def test_creation_rejects_invalid_work_origin_metadata(self):
         invalid_cases = (
+            ("missing_origin", {"work_origin": None}),
+            ("empty_origin", {"work_origin": ""}),
+            ("system_origin", {"work_origin": "Not applicable"}),
             (
                 "snapfix_missing_reference",
                 {
@@ -830,7 +850,7 @@ class TestBookingPost(unittest.TestCase):
                 with self.assertRaises(
                     self.m.BookingMetadataValidationError
                 ):
-                    self.call(**updates)
+                    self.call(work_context="Customer Support", ticket_name=None, customer_name="C", **updates)
 
                 self.assertEqual(self.db.writes, [])
                 self.assertEqual(self.intent_documents, [])
@@ -862,7 +882,7 @@ class TestBookingPost(unittest.TestCase):
             with self.subTest(origin=origin):
                 previous_writes = len(self.db.writes)
 
-                result = self.call(**updates)
+                result = self.call(work_context="Customer Support", ticket_name=None, customer_name="C", **updates)
 
                 self.assertEqual(result, {"timesheet": "TS-001"})
                 self.assertEqual(
@@ -941,7 +961,7 @@ class TestBookingPost(unittest.TestCase):
 
         self.assertEqual(row["activity_type"], "Travel")
         self.assertIsNone(row["custom_work_location"])
-        self.assertEqual(row["custom_work_origin"], "Direct / Ad-hoc")
+        self.assertEqual(row["custom_work_origin"], "Not applicable")
         self.assertEqual(row["custom_emergency"], 0)
 
     def test_helpdesk_accepts_canonical_numeric_ticket_name(self):

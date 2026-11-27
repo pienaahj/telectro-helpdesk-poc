@@ -3395,7 +3395,7 @@
   "name": "Timesheet Detail-custom_work_origin",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "\nSnapfix\nOther\nDirect / Ad-hoc",
+  "options": "\nSnapfix\nOther\nDirect / Ad-hoc\nNot applicable",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",

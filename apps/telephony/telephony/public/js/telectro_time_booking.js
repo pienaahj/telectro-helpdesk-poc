@@ -169,7 +169,7 @@
     preview.text(lines.join(" · "));
   }
 
-  function bookingPayload(values, ticketArea, options) {
+  function bookingPayload(values, ticketArea, options, booking) {
     const description = values.description?.trim();
     const duration = durationMinutes(values.duration_minutes);
     if (!duration) {
@@ -196,7 +196,6 @@
       description,
       activity_type: values.activity_type,
       emergency: values.emergency === "Yes" ? 1 : 0,
-      work_origin: values.work_origin,
     };
 
     if (values.activity_type !== "Travel") {
@@ -227,6 +226,21 @@
         return null;
       }
     }
+    if (values.work_context !== "Customer Support") {
+      if (booking?.work_context === values.work_context) {
+        // Full corrections carry forward the saved classification even when it is hidden.
+        Object.assign(payload, {
+          work_origin: booking.work_origin || null,
+          external_reference: booking.external_reference || null,
+          other_origin_description: booking.other_origin_description || null,
+        });
+      } else if (booking) {
+        payload.work_origin = "Not applicable";
+      }
+      return payload;
+    }
+
+    payload.work_origin = values.work_origin;
     if (values.work_origin === "Snapfix") {
       payload.external_reference = values.external_reference?.trim();
       if (!payload.external_reference) {
@@ -255,9 +269,10 @@
     const inHelpdesk = (values) => values.work_context === "Helpdesk";
     const inProject = (values) => values.work_context === "Project";
     const needsLocation = (values) => !!values.activity_type && values.activity_type !== "Travel";
-    const needsUnlisted = (values) => values.work_context === "Customer Support" && !values.customer_name;
-    const snapfix = (values) => values.work_origin === "Snapfix";
-    const otherOrigin = (values) => values.work_origin === "Other";
+    const inCustomerSupport = (values) => values.work_context === "Customer Support";
+    const needsUnlisted = (values) => inCustomerSupport(values) && !values.customer_name;
+    const snapfix = (values) => inCustomerSupport(values) && values.work_origin === "Snapfix";
+    const otherOrigin = (values) => inCustomerSupport(values) && values.work_origin === "Other";
     const selectOptions = (values) => ["", ...values];
     const previousActivity = booking?.activity_type;
     const historicalActivity = previousActivity && !options.activity_types.includes(previousActivity);
@@ -496,7 +511,7 @@
         return null;
       }
       const customerName = maySelectCustomer(values) ? values.customer_name : undefined;
-      return bookingPayload({ ...values, customer_name: customerName }, ticketArea, options);
+      return bookingPayload({ ...values, customer_name: customerName }, ticketArea, options, booking);
     }
 
     async function updateTicketArea() {
@@ -538,6 +553,12 @@
       return periodChanged();
     };
 
+    function clearOriginOutsideCustomerSupport() {
+      if (dialog.get_value("work_context") === "Customer Support") return;
+      return Promise.all(["work_origin", "external_reference", "other_origin_description"]
+        .map((field) => dialog.set_value(field, "")));
+    }
+
     const fields = [
       { fieldtype: "Section Break", label: __("When was the work performed?") },
       {
@@ -557,7 +578,9 @@
         fieldname: "work_context", label: __("Work Context"), fieldtype: "Select",
         options: selectOptions([{ value: "Helpdesk", label: "Helpdesk Ticket" }, "Project", "Customer Support", "Internal"]),
         reqd: 1,
-        onchange: () => dialog && Promise.all([updateTicketArea(), periodChanged(), updateCustomer()]),
+        onchange: () => dialog && Promise.all([
+          clearOriginOutsideCustomerSupport(), updateTicketArea(), periodChanged(), updateCustomer(),
+        ]),
       },
       {
         fieldname: "ticket_name", label: __("Helpdesk Ticket"), fieldtype: "Link",
@@ -627,7 +650,8 @@
       },
       {
         fieldname: "work_origin", label: __("Work Origin"), fieldtype: "Select",
-        options: selectOptions(options.work_origins), reqd: 1,
+        options: selectOptions(options.work_origins),
+        depends_on: inCustomerSupport, mandatory_depends_on: inCustomerSupport,
       },
       {
         fieldname: "external_reference", label: __("Snapfix Reference"), fieldtype: "Data",
@@ -714,7 +738,9 @@
         for (const field of fields) {
           const key = field.fieldname;
           if (key === projectField || key === taskField || (key === "activity_type" && historicalActivity)
-              || (key === "customer_name" && (inHelpdesk(booking) || inProject(booking)))) continue;
+              || (key === "customer_name" && (inHelpdesk(booking) || inProject(booking)))
+              || (!inCustomerSupport(booking)
+                && ["work_origin", "external_reference", "other_origin_description"].includes(key))) continue;
           if (key === "emergency" && booking.emergency != null) {
             await dialog.set_value(key, booking.emergency ? "Yes" : "No");
           } else if (key && booking[key] != null) {

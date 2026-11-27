@@ -2490,7 +2490,7 @@ class TestSubmittedBookingReplacement(unittest.TestCase):
             ),
             (
                 "missing_work_origin",
-                {**valid, "work_origin": None},
+                {k: v for k, v in valid.items() if k != "work_origin"},
             ),
             (
                 "noncanonical_empty_reference",

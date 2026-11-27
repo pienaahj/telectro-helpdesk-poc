@@ -318,7 +318,7 @@ correction requirements above.
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
-| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1 owner acceptance closed. A.2.2 form changes technically verified in DEV. | Obtain A.2.2 owner browser acceptance before A.2.3 report selector work. |
+| **UI-01–12 — Consolidated Technician UI improvements** | A.2.1 and A.2.2 owner acceptance closed. A.2.4 contextual Work Origin technically verified in DEV. | Obtain A.2.4 owner browser acceptance. A.2.3 Customer and Service Area report selectors remain separately scoped. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
@@ -635,9 +635,38 @@ included in total booked time.
 
 The browser loaded Desk asset revision `2026-11-27-6`. The focused
 JavaScript tests covered stale Project and Task responses, exact scoped
-restoration, and existing A.8 expected-error handling. **A.2.2 owner
-browser acceptance is pending.** UI-09 and UI-10 report selectors remain
-in A.2.3.
+restoration, and existing A.8 expected-error handling.
+
+**A.2.2 owner closure.** The owner verified all 15 browser checklist items
+and explicitly accepted the revised form presentation and usability at
+`335a0671c17646f20ace358c3533a034dd7f219a`.
+
+**A.2.4 contextual Work Origin.** The server derives **Not applicable** for
+new Helpdesk Ticket, Project and Internal bookings and discards any supplied
+Snapfix reference or Other origin description for those contexts. The
+Technician only selects Work Origin for Customer Support. **Direct / Ad-hoc**,
+**Snapfix** and **Other** remain the available choices. Snapfix requires its
+reference and Other requires its description. **Emergency / Unplanned**
+remains an explicit required choice in every context.
+
+Historical classifications, related metadata and replacement lineage are
+preserved. Full corrections in the original context carry forward hidden
+origin metadata, and an unknown origin can remain blank only where the
+locked saved row already has a blank origin in that context. The saved
+reference correction path retains existing metadata and authorization.
+The Select fixture adds one option. Applying that option to the individual
+DEV Custom Field required no full migration. The existing detailed reports
+filter **Not applicable** explicitly, retain the historical choices, and
+keep a blank filter as **all origins**. A blank value on a saved row
+continues to mean unknown.
+
+DEV browser checks covered all four contexts, conditional fields, the
+native mandatory dialog and clearing stale values while retaining the
+description. Rollback-only DEV verification exercised creation in every
+context, a saved-reference correction, Technician and Supervisor report
+filtering, and native Supervisor CSV and Excel exports. The browser loaded
+Desk asset revision `2026-11-27-7`. **A.2.4 owner browser acceptance is
+pending.** A.2.3 remains separate and includes UI-09 and UI-10.
 
 ### Technician Time Booking Terminology and Quick Reference Guide
 
@@ -648,8 +677,24 @@ Customer Support, listed and unlisted Customers, Project and Task, and
 Internal work. Include Service Area, Activity Type, Work Origin,
 Emergency / Unplanned, meaningful descriptions, correcting saved work,
 and reviewing personal booked hours. Use the approved classifications.
-**Direct / Ad-hoc** is a Work Origin. **Emergency / Unplanned** is a
-separate classification that Technicians choose explicitly.
+Explain that Work Origin is required for Customer Support. **Direct /
+Ad-hoc** is one of its choices. Other contexts receive the system-derived
+**Not applicable** value. **Emergency / Unplanned** is a separate
+classification that Technicians choose explicitly in every context.
+
+### B3.88A.12 future Ticket Intake Method
+
+Management wants the percentage of Tickets created through each intake
+mechanism. Start with Email, Manual and Portal. Snapfix, WhatsApp and other
+integrations are future categories. The Helpdesk Ticket owns the value and
+derives it from its trusted creation mechanism. Count each Ticket once,
+independently of Technician bookings.
+
+Request Source identifies the requesting party. Inspect native Helpdesk
+intake metadata before introducing a new Custom Field. Preserve
+`custom_request_source` and `custom_telectro_manual_origin` under their
+existing contracts. A.12 will scope implementation and reporting separately.
+Historical intake classification requires trustworthy evidence.
 
 ## Historical enhancement candidates — retained context
 

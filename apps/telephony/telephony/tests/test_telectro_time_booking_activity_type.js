@@ -478,6 +478,56 @@ test("Project choices distinguish prerequisite, loading, empty and failure", asy
   assert.doesNotMatch(projectControl.df.description, /private/);
 });
 
+test("Only Customer Support exposes Work Origin and conditional fields", async () => {
+  const form = loadBookingForm();
+  const dialog = form.open();
+  const origin = field(dialog, "work_origin");
+  const snapfix = field(dialog, "external_reference");
+  const other = field(dialog, "other_origin_description");
+  for (const work_context of ["Helpdesk", "Project", "Internal"]) {
+    assert.equal(origin.mandatory_depends_on({ work_context }), false);
+    assert.equal(snapfix.depends_on({ work_context, work_origin: "Snapfix" }), false);
+    assert.equal(other.depends_on({ work_context, work_origin: "Other" }), false);
+  }
+  await dialog.set_value("work_context", "Customer Support");
+  assert.equal(origin.mandatory_depends_on(dialog.values), true);
+  await dialog.set_value("work_origin", "Snapfix");
+  await dialog.set_value("external_reference", "SF-stale");
+  assert.equal(snapfix.mandatory_depends_on(dialog.values), true);
+  await dialog.set_value("work_context", "Internal");
+  await dialog.set_value("work_context", "Customer Support");
+  assert.equal(dialog.values.work_origin, "");
+  assert.equal(dialog.values.external_reference, "");
+  assert.equal(field(dialog, "emergency").reqd, 1);
+});
+
+test("New work omits hidden origin metadata and same-context corrections preserve it", async () => {
+  const form = loadBookingForm();
+  const values = {
+    work_context: "Internal", activity_type: "Travel", from_time: workStart,
+    duration_minutes: "30", description: "Corrected", reason: "Correction", emergency: "No",
+    work_origin: "Snapfix", external_reference: "SF-stale", other_origin_description: "Stale",
+  };
+  const fresh = form.open();
+  await fresh.config.primary_action(values);
+  assert.equal(Object.hasOwn(form.submissions[0].body, "work_origin"), false);
+  assert.equal(Object.hasOwn(form.submissions[0].body, "external_reference"), false);
+  assert.equal(Object.hasOwn(form.submissions[0].body, "other_origin_description"), false);
+
+  for (const saved of [
+    { work_origin: "Snapfix", external_reference: "SF-original", other_origin_description: null },
+    { work_origin: "Other", external_reference: null, other_origin_description: "Original details" },
+    { work_origin: null, external_reference: null, other_origin_description: null },
+  ]) {
+    const correction = form.open({
+      ...saved, work_context: "Internal", docstatus: 1, name: "TS-1", modified: workStart,
+    });
+    await correction.action(values);
+    const { body } = form.submissions.at(-1);
+    for (const name of Object.keys(saved)) assert.equal(body[name], saved[name]);
+  }
+});
+
 test("Saved Helpdesk work posts only owned-booking inputs and preserves fractional seconds", async () => {
   const { openSaved, requests, submissions } = loadBookingForm();
   const dialog = openSaved({

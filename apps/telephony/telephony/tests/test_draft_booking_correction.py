@@ -619,6 +619,21 @@ class TestDraftCorrection(unittest.TestCase):
         self.doc.save.assert_not_called()
         self.assertFalse(hasattr(self, "recorded"))
 
+    def test_correction_can_keep_an_existing_blank_origin_but_cannot_clear_a_known_origin(self):
+        for blank in (None, ""):
+            row = {"custom_work_context": "Internal", "custom_work_origin": None}
+            api._retain_blank_origin(row, {**row, "custom_work_origin": blank})
+            self.assertEqual(row["custom_work_origin"], blank)
+
+        for previous in (
+            {"custom_work_context": "Internal", "custom_work_origin": "Snapfix"},
+            {"custom_work_context": "Project", "custom_work_origin": None},
+        ):
+            with self.assertRaises(api.BookingMetadataValidationError):
+                api._retain_blank_origin(
+                    {"custom_work_context": "Internal", "custom_work_origin": None}, previous,
+                )
+
     def test_correction_endpoint_accepts_valid_booking_metadata(self):
         self.doc.time_logs[0]["custom_hd_ticket"] = "T"
         with (

@@ -104,6 +104,17 @@ class TestTechnicianOwnBookedHours(unittest.TestCase):
         _, rows = report.execute(options)
         return rows
 
+    def test_work_origin_filter_distinguishes_system_legacy_and_unknown_values(self):
+        self._booking("system", origin="Not applicable")
+        self._booking("unknown", origin=None)
+        self._booking("historical", origin="Other")
+
+        self.assertCountEqual([row["work_origin"] for row in self._rows(detail=True, work_origin="")],
+                              ["Not applicable", None, "Other"])
+        for origin in ("Not applicable", "Other"):
+            self.assertEqual([row["work_origin"] for row in self._rows(detail=True, work_origin=origin)],
+                             [origin])
+
     def test_scopes_query_to_resolved_identity_even_with_spoofed_filters(self):
         self._booking("own")
         self._booking("other-user", user="other")

@@ -119,6 +119,17 @@ class TestSupervisorBookedHours(unittest.TestCase):
             options["view"] = "Booking Detail"
         return report.execute(options)[1]
 
+    def test_work_origin_filter_distinguishes_system_legacy_and_unknown_values(self):
+        self.add("system", origin="Not applicable")
+        self.add("unknown", origin=None)
+        self.add("historical", origin="Other")
+
+        self.assertCountEqual([row["work_origin"] for row in self.rows(detail=True, work_origin="")],
+                              ["Not applicable", None, "Other"])
+        for origin in ("Not applicable", "Other"):
+            self.assertEqual([row["work_origin"] for row in self.rows(detail=True, work_origin=origin)],
+                             [origin])
+
     def test_role_denial_stops_before_ledger_query(self):
         self.scope.side_effect = SupervisorReportingGrantError
         with self.assertRaises(SupervisorReportingGrantError):

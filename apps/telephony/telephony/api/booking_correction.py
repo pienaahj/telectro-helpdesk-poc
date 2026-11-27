@@ -360,6 +360,16 @@ def _saved_ticket_portion(booking, row, start, end, identity):
         raise SavedTicketIntervalDenied() from None
 
 
+def _retain_blank_origin(row, previous):
+    """Keep an unknown origin only when it is already saved in the same context."""
+    if "custom_work_origin" not in row or row["custom_work_origin"] is not None:
+        return
+    origin = previous.get("custom_work_origin")
+    if origin not in (None, "") or row["custom_work_context"] != previous.get("custom_work_context"):
+        raise BookingMetadataValidationError("Only a saved blank Work Origin can remain unknown")
+    row["custom_work_origin"] = origin
+
+
 def _saved_work_values(before, identity, request):
     previous = before["time_logs"][0]
     context = previous["custom_work_context"]
@@ -479,6 +489,7 @@ def _execute(
                 elif (
                     (
                         key in (
+                            "custom_work_origin",
                             "custom_external_reference",
                             "custom_other_origin_description",
                             "custom_unlisted_customer_name",
@@ -519,6 +530,7 @@ def _execute(
             if unchanged:
                 links = retain_missing_booking_links(doc, saved_row)
         else:
+            _retain_blank_origin(values, previous)
             effective_row = {**current["time_logs"][0], **values}
             project_customer = None
             if effective_row.get("custom_work_context") == "Project":
@@ -1105,6 +1117,7 @@ def replace_submitted_booking(
                 "custom_emergency": values["emergency"],
             }
 
+            _retain_blank_origin(row, previous)
             start = datetime.fromisoformat(values["from_time"])
             end = datetime.fromisoformat(values["to_time"])
             minutes = values["duration_minutes"]
