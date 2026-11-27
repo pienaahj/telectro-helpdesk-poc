@@ -319,7 +319,7 @@ correction requirements above.
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
-| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. Full migration durability remains pending. | Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
+| **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2A disposition register ready for owner review. | Retain the existing definitions for the twelve timestamp-only records. Review the separate inbox scheduler fixture before A.4. Preserve the Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
@@ -460,6 +460,107 @@ with capture off, all 20 My Team Load roles, REP/DASH/COST Page and
 authorization contracts, fail-closed commercial configuration, and the
 accepted bookings and held queue records. A.5 remains the immutable
 dormant candidate gate. A.11 operational onboarding remains separate.
+
+### A.3.2A Fixture disposition register
+
+The 24 November Customer mapping preflight compared records within
+`custom_field.json`. Its retained `165c-r4a-sync-preflight` checksum
+manifest verified. Comparing the archived canonical JSON record hashes
+with the fixture at the parent of `dad1dc3` found 13 changed records
+with identical name sets. The approved `HD Customer-custom_erp_customer`
+`search_index` change accounted for one. All twelve other records still
+match their archived DEV digests exactly. Each has only a `modified`
+difference against current Git. A read-only transaction on DEV
+`frontend` confirmed that installed field metadata matches Git on all
+other fixture attributes for the twelve. The installed timestamps match
+the DEV file. The retained local release image
+`prod-20261111-3cca9a2` supplies the artifact comparison below. Live
+production metadata remains unverified.
+
+Values in the register are for `modified`. All rows are **Custom Field**
+records. Git is the source for the portable field definitions. The DEV
+timestamps are installation bookkeeping. The original twelve contribute
+no release-required fixture changes. Existing field definitions and their
+stored values are required even where the timestamp disposition has no
+functional or security impact.
+
+| Exact identity | Git | DEV file and installed | Retained target image and provenance | Classification and proposed disposition | Contract to preserve |
+| --- | --- | --- | --- | --- | --- |
+| `HD Ticket-custom_affected_equipment` | `2026-09-18 12:00:00.000000` | `2026-09-18 12:00:00` | Same as Git. Equipment workflow `78b532d`. | D. Same instant. Compare parsed timestamps when reviewing fixture diffs. Keep the Git row. | Equipment Link and location-scoped selection. |
+| `Location-custom_customer` | `null` | `2026-10-12 17:36:04.347487` | Same as Git. Campus ownership `e2ac504`. | B. Exclude the installed timestamp and keep the Git row. | Campus Customer ownership and descendant scope. |
+| `Location-custom_location_semantics` | `null` | `2026-10-12 17:36:04.389885` | Same as Git. Location equipment workflow `78b532d`. | B. Exclude the installed timestamp and keep the Git row. | Location semantics and selection boundaries. |
+| `Location-custom_infrastructure_class` | `null` | `2026-10-12 17:36:04.430495` | Same as Git. Location equipment workflow `78b532d`. | B. Exclude the installed timestamp and keep the Git row. | Infrastructure classification. |
+| `Location-custom_lifecycle_state` | `null` | `2026-10-12 17:36:04.473090` | Same as Git. Location equipment workflow `78b532d`. | B. Exclude the installed timestamp and keep the Git row. | Location lifecycle and eligibility. |
+| `Location-custom_customer_visibility` | `null` | `2026-10-12 17:36:04.514181` | Same as Git. Location equipment workflow `78b532d`. | B. Exclude the installed timestamp and keep the Git row. | Customer visibility restrictions. |
+| `Location-custom_ticket_selectability` | `null` | `2026-10-12 17:36:04.555094` | Same as Git. Location equipment workflow `78b532d`. | B. Exclude the installed timestamp and keep the Git row. | Eligibility for Ticket selection. |
+| `Timesheet Detail-custom_work_context` | `null` | `2026-11-18 16:29:45.458547` | Absent from image. Phase 2 Detail metadata `743f030`. | B. Exclude the installed timestamp and ship the existing Git row. | Booking context and reporting classification. |
+| `Timesheet Detail-custom_hd_customer` | `null` | `2026-11-18 16:29:45.499180` | Absent from image. Phase 2 Detail metadata `743f030`. | B. Exclude the installed timestamp and ship the existing Git row. | HD Customer attribution and scoped reporting. |
+| `Timesheet Detail-custom_hd_ticket` | `null` | `2026-11-18 16:29:45.538333` | Absent from image. Phase 2 Detail metadata `743f030`. | B. Exclude the installed timestamp and ship the existing Git row. | Ticket attribution and protected report links. |
+| `Timesheet Detail-custom_emergency` | `null` | `2026-11-18 16:29:45.577075` | Absent from image. Phase 2 Detail metadata `743f030`. | B. Exclude the installed timestamp and ship the existing Git row. | Existing emergency classification. |
+| `Timesheet-custom_telectro_booking_origin` | `null` | `2026-11-18 16:29:45.616917` | Absent from image. Phase 2 provenance `3b4c9da`. | B. Exclude the installed timestamp and ship the existing Git row. | Provenance used by managed booking and correction safeguards. |
+
+The count is eleven B and one D, with zero A, C or E among the
+original twelve. Frappe force-imports fixtures, so a timestamp
+comparison is insufficient to prove that a live customization will
+survive migration. Validate field definitions and stored business values
+during the authorized A.4 passes. Exact `modified` retention is outside
+the fixture contract. The historical record manifest contains hashes,
+and the current DEV values reproduce all twelve archived hashes.
+
+**Other differences identified in the current review.** Six of sixteen
+tracked JSON files differ by bytes. Five are outside the original
+`custom_field.json` comparison. Their DEV file hashes already differ
+from Git in the 24 November acceptance manifest and remain identical
+to those historical DEV hashes. No newly introduced unexplained
+fixture difference was found against current Git. The retained target
+image matches Git for these five files.
+
+| Fixture identity | Git and retained target image | Canonical DEV | Disposition |
+| --- | --- | --- | --- |
+| HD Ticket Template `Default` | Template and child values match DEV. | JSON serialization differs. | D. Compare parsed records. Preserve the Git template. |
+| HD Ticket Type `Assistance`, `Faults`, `Service Request` | Top-level order is Assistance, Faults, Service Request. | Top-level order is Assistance, Service Request, Faults. Record values match. | D. Compare by record name and preserve the Git defaults and routing metadata. |
+| Property Setters `Location-main-show_title_field_in_link`, `Location-main-title_field` | `modified=2026-09-07 12:32:00.000000` for both. Values are `1` and `location_name`. | `modified=2026-09-07 12:32:00` for both. Installed values match Git. | D. Same instant. Preserve Location Link display behavior and the Git rows. |
+| Role Profile `TELECTRO-POC Profile - Coordinator` | Present since `12c1fff` with Agent, Support Team, Coordinator Ops and Coordinator Workspace roles. | Absent from the file and outside the export allowlist. Installed with the four matching roles. | C. Keep the Git row and defer exact-name export allowlist alignment to a separate slice. A broad re-export could remove the profile from future installation artifacts. |
+| Scheduled Job Type `pull_pilot_inboxes.run` | `last_execution=2026-05-21 14:35:42.005435`, `next_execution=2026-05-21 14:36:00`. | `last_execution=2026-10-20 08:17:56.808005` in the file and database. File `next_execution=2026-10-20 08:18:00`. | A for release fixture ownership. B for per-site execution and stop state. Keep the cron hook as the schedule source and keep operational state in the site. |
+
+The inbox job's method, Cron frequency, `*/1 * * * *` expression,
+`stopped=0` and `create_log=1` agree in Git and DEV. The hook already
+declares the same schedule and Frappe syncs hooks before fixtures.
+Frappe force-replaces the fixture record, including its stored
+`last_execution` and `stopped`. `next_execution` is computed from the
+schedule and execution state. Replaying the fixture can change when the
+inbox poller is due and reopen an intentionally stopped job. The
+smallest proposed corrective slice removes this one fixture and its
+export filter while retaining the existing cron hook. After approval,
+prove fresh registration and preservation of an existing job's
+`last_execution`, `stopped` and log history across repeat syncs on a
+disposable site with mail processing held. Check that the site already
+has the expected cron before testing retention. The pinned scheduler
+can delete and recreate the job on a cron mismatch, which can delete
+job logs. Resolve a mismatch explicitly before relying on the
+hook-only path for an existing site.
+
+The approved mapping index hunk `dad1dc3` and Work Origin option
+`Not applicable` from `54f19fd` match the current DEV fixture and
+installed metadata. The preserved options include Snapfix, Other and
+Direct / Ad-hoc. Current Role and Workspace fixture JSON is identical
+to DEV when parsed, including array order. Custom DocPerm and Report
+files match byte for byte. Keep the committed Role, Workspace and
+permission scope, approved Workspaces and widget identities, and
+booking and reporting grants. Customer mapping uniqueness, existing
+Location and Ticket data, Timesheets and their correction lineage, and
+the five held Email Queue entries remain preservation checks for
+authorized migration verification.
+
+Owner review is required for the twelve dispositions and the separate
+inbox fixture correction before A.4. If production preflight is
+separately authorized, read the effective site Custom Field metadata
+for these twelve IDs and relevant overrides, the Coordinator profile
+and its four role links, and the exact inbox Scheduled Job Type
+method, frequency, cron, stop flag, logging flag, execution timestamp
+and aggregate job log count. Compare with the approved contract and
+resolve any live difference before migration. The A.3.3 routing
+assertion, A.4 migration and A.5 candidate validation remain pending.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
