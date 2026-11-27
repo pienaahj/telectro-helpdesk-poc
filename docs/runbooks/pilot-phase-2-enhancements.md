@@ -317,7 +317,7 @@ correction requirements above.
 | **B3.88A.8 — Historical maintenance and retention** | Mandatory before activation. Owner approved A.8A on 26 November 2026. | Prove description and bounded interval corrections after loss of Ticket read access, immutable original creation evidence, atomic replacement, replay, and historical hours and audit retention without protected reference disclosure. |
 | **REP-01–06 — Supervisor Booked Hours** | Internal functional closure recorded. Existing DEV and export evidence retained. | Record Pierre’s business acceptance separately. |
 | **DASH-01–10 — Technician Work Overview** | Internal owner acceptance closed at B3.88REP.2C. Management usability remains part of operational activation. An otherwise-authorized dormant deployment can proceed independently. | Retain Supervisor Booked Hours reconciliation and owner browser evidence. Obtain Pierre’s feedback separately. |
-| **COST-01–09 — Customer Labour Cost Analysis** | DEV implementation and confidential authorization verified. Owner workbook and management presentation acceptance remain pending. | Reconcile authorized operational hours, complete owner Excel acceptance and confirm Pierre's exact User and separately approved reporting grants before activation. |
+| **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Existing register remains a separate workstream. | Retain prior decisions, evidence and outstanding acceptance items. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. Can proceed independently of A.6–A.8. | Resolve the Print Heading discrepancy through a separately approved change. Review the 12 previously excluded DEV fixture differences against the candidate and target. Reconcile release-relevant differences and keep unrelated differences deferred. Preserve the accepted Customer mapping index and Workspace fixture scope. |
 | **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Blocked on A.9 and separate migration authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
@@ -474,8 +474,7 @@ Customer/Company’s hours and labour cost without allocating account revenue
 across Companies. Unlisted Customer names are grouped within their recorded
 section and Company and remain distinct from listed identities with the same
 name. The reconciliation includes Internal and unattributed work without
-charging those hours to Customers. Owner workbook and management-presentation
-acceptance and Pierre’s business feedback remain separate gates.
+charging those hours to Customers.
 
 The standard `customer-labour-cost-analysis` Page uses
 `TELECTRO-POC Role - Commercial Reporting`. Its existing Ops Workspace link
@@ -515,9 +514,7 @@ Financial Summary**. Expected Boschendal results are **R470 labour cost**,
 **R530 labour contribution**, **53% contribution margin**, **47% labour
 cost** and **R1,276.60 revenue per booked hour**. The reconciliation shows
 **R10 unattributed labour** and **R480 total labour cost**. Keep populated
-financial inputs in the local workbook. Owner workbook acceptance,
-management presentation acceptance and Pierre's business feedback remain
-pending.
+financial inputs in the local workbook.
 
 Focused DEV verification passed with a temporary approved identity and the
 bounded Administrator exception. Other Supervisors and users assigned the
@@ -529,6 +526,42 @@ minutes. The Administrator browser export retained the accepted 48-minute
 reconciliation and all 21 formulas, with the confidentiality notice on all
 three worksheets. Existing REP and DASH access was verified for the
 Supervisor control. Pierre's actual account remains an onboarding dependency.
+
+#### COST final internal closure
+
+**Final internal closure — 27 November 2026 (A.1).** The owner accepted
+the actual Excel workbook and its management presentation and usability.
+“Yes, it looks polished and should be simple enough to use.” The owner
+previously accepted the 48-minute reconciliation and the financial results
+above using the fictional R600 hourly rate and R1,000 account revenue.
+Internal labour cost was R0. Clearing the Technician rate correctly blanked
+the dependent financial results. The accepted workbook and confidentiality
+implementation are recorded in `03ed0c89603dca04284cfe630cd2085658d08435`
+and `41e7be61b82ff8c03ea0c6bd37265dc4bb46e46e`, respectively.
+
+**COST-09 containment.** After the Administrator exception was removed, the
+owner observed that the COST Workspace link was absent and both the period
+API and workbook download API returned HTTP 403. The 27 November A.0 DEV
+read-only check found both `telectro_cost_admin_dev_test` and
+`telectro_cost_pierre_user` absent from persisted site configuration,
+persisted bench configuration and effective Frappe configuration on
+`frontend`. Neither key has an explicit value. Administrator test access is
+disabled. Pierre's commercial identity and reporting grants remain
+unconfigured.
+
+**Operational activation.** The owner reported demonstrating the workbook
+to Pierre on 26 November and explaining its use and onboarding dependencies.
+Pierre's initial business reception was positive. His operational acceptance
+using actual business data remains pending. Operational use requires creation
+and verified mappings of authoritative Customer identities, loading of
+approved Current Projects, appropriate Technician Project/Task authorization,
+approved Technician and Employee identities, and approved Supervisor
+Reporting Grants and User Permissions. Confirm Pierre's exact approved
+enabled System User, configure that identity and assign the dedicated
+Commercial Reporting role through controlled onboarding. Handle workbooks as
+management confidential. These dependencies apply to operational activation.
+An otherwise-approved dormant deployment remains subject to its existing
+release gates.
 
 ### Financial scope exception and implementation direction
 
@@ -557,13 +590,12 @@ operational preparation and activation, and the separate A.12 structured
 email intake and templates rollout. Dashboard management usability is
 intended for operational activation. An otherwise-authorized dormant
 infrastructure deployment can proceed independently of presentation work.
-The owner will prioritize the COST milestone and implementation sequence.
 Existing release gates and approvals continue to apply.
 
 DASH-01–10 internal acceptance is closed. COST-01–09 Customer Labour
 Cost Analysis is implemented under B3.88REP.3 and its confidential
 authorization decision B3.88REP.3A.
-Owner workbook and presentation acceptance remain pending. Reuse the native Timesheet ledger,
+COST-01–09 internal acceptance is closed at A.1. Reuse the native Timesheet ledger,
 Supervisor Booked Hours, the accepted Technician Work Overview and their
 shared authorized reporting foundation. Preserve Supervisor Reporting
 Grants, saved historical Customer identity, reference and description
