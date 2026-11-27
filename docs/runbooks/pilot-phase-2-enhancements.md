@@ -320,7 +320,7 @@ correction requirements above.
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2B owner dispositions approved and inbox scheduler correction verified. | Retain the accepted field definitions, Customer mapping index and Workspace fixture scope. Verify migration durability in A.4 and obtain separate approval for the production target preflight. |
-| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Pass 1 passed and DEV reopened after the authorized legacy Helpdesk Redis recovery. Pass 2 remains unauthorized. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. Apply the approved Pass 2 RediSearch safeguard below before starting any workers. |
+| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Both native migrations and operational reopening passed. See A.4.2 and A.4.2C below. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. Apply the approved Pass 2 RediSearch safeguard below before starting any workers. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
@@ -982,8 +982,9 @@ recovery rules.
 **Authorization boundary.** A.4.0 was read-only on DEV. Pass 1 approval
 covers one coordinated DEV outage, one verified recovery set, one
 native migration, its verification and safe reopening. The owner can
-explicitly include matched rollback in that approval. Pass 2 remains
-a separate decision. A.5 and the production preflight remain pending.
+explicitly include matched rollback in that approval. Pass 2 required
+a separate decision and is recorded in A.4.2 below. A.5 and the
+production preflight remain pending.
 
 ### A.4.1 First full DEV migration stopped before execution
 
@@ -1199,6 +1200,82 @@ against the local DEV target only.
    the pass 2 durability checks before resuming workers. Verify the
    legitimate jobs after resumption, the actual SQLite search and Ticket
    access checks, and the approved operational state before reopening.
+
+### A.4.2 Second full DEV migration and A.4.2C operational closure
+
+The owner accepted pass 1 and authorized one additional native migration
+for the local DEV site `frontend` on `db:3306`. The mounted source
+matched `0883ac72b16427b6410126f48fe047ddcc31c25c`. Both passes used
+separate recovery sets and isolated baselines.
+
+| Pass | Native migration on 27 November 2026 (SAST) | Exit |
+| --- | --- | --- |
+| A.4.1R | 17:47:01–17:47:16 | 0 |
+| A.4.2 | 18:09:07–18:09:19 | 0 |
+
+Immediately before pass 2 the Mac had 41.23 GiB free and Docker had
+2.83 GiB free against the 1.75 GiB Docker allowance. The fresh
+`20261127_180823-frontend` recovery set contains the complete 747-table
+database archive, five public files, 38 private files and the matching
+site configuration. The native hashes, archive readability and file
+coverage passed. The original `backup_path` key absence and resolved
+retention path were restored, and prior backup hashes matched. The
+pass 1 recovery set and its manifests verified again.
+
+Pass 2 preserved the approved Print Heading definition and unique
+index, the non-unique Customer mapping index with zero duplicate groups,
+the empty InnoDB Receipt schema with a full unique `event_id` index,
+and assignment capture OFF. Workspace block IDs, widget counts and
+native links, both Book Time launchers, all 20 My Team Load roles,
+Work Origin and effective HD Ticket metadata matched. REP and DASH
+scope and totals held, and COST remained fail-closed. Both passes
+preserved the nine accepted Timesheets and details, 48 Draft minutes,
+345 Tickets, 17 correction audits, five held emails and their recipient
+rows, and the inbox job and its 4,859 logs.
+
+With workers held, the RediSearch safeguard independently identified and
+canceled one new `helpdesk.search.build_index` job. The previous failure,
+its exception fingerprint and the stopped legacy Scheduled Job Type
+were preserved. The site-scoped indexing flag was already absent. Both
+supported search rebuilds and four Role Profile refreshes finished.
+The six affected users' role memberships matched the pre-worker review.
+
+A.4.2 initially held reopening when an immediate Docker health assertion
+ran before the first fresh probe after maintenance. A.4.2C confirmed
+that the local DEV containers had been recreated before the resumed
+session. The application and database images, named volumes and
+protected fingerprints matched, and the operator re-established the
+service hold before restoring traffic. The backend healthcheck uses a
+5-second interval, 3-second timeout and 30 retries. The operator allowed
+a 32-second observation window and required two fresh successful Docker
+probes and a native API `pong` before starting frontend. Backend identity,
+start time and restart count stayed stable, and the reopening log showed
+no unexpected backend errors.
+
+An initial frontend startup connection reset was retained as evidence.
+Bounded HTTP startup polling then reached the API. The search probe
+chooses among search terms of equal length, so its result count can
+vary. Final verification used the actual permission outcomes and scoped
+results. The backend and frontend API returned `pong`, Helpdesk returned
+HTTP 200 and anonymous search returned HTTP 403. Authorized SQLite
+search returned permitted Tickets for the Technician and Customer.
+The Customer could neither find nor directly read the out-of-scope
+Ticket.
+
+At 18:20:33 SAST the original site and common settings and
+the original running service set were restored. The overall scheduler
+policy remained disabled and the legacy RediSearch job remained stopped.
+The historical failure remained intact, the canceled job remained
+ineligible, and there was no unexpected queued, executing or failed
+work. The 20 My Team Load roles, empty Receipt table, capture OFF,
+fail-closed COST, accepted bookings and held mail also passed the final
+operational checks.
+
+**Two-pass DEV migration durability passed.** Local checksummed
+evidence remains under `backups/frontend/20261127T160608Z-a4p2/` in
+`SHA256SUMS.a42-hold` and `SHA256SUMS.a42c`. PR #426 remains draft,
+open and unmerged. A.5 remains pending and production target preflight
+requires separate approval.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
