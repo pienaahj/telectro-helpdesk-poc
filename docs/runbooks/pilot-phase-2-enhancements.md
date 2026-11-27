@@ -320,7 +320,7 @@ correction requirements above.
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2B owner dispositions approved and inbox scheduler correction verified. | Retain the accepted field definitions, Customer mapping index and Workspace fixture scope. Verify migration durability in A.4 and obtain separate approval for the production target preflight. |
-| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. A.4.1 halted before migration because native backup failed. DEV remains isolated pending owner recovery authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
+| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. Pass 1 native migration and isolated verification passed. DEV reopening is held on the unsupported legacy Helpdesk Redis indexing job. Pass 2 remains unauthorized. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
@@ -776,9 +776,8 @@ TELECTRO-POC Role - Partner Creator and Pilot Admin.
 
 #### Pass 1 isolation and recovery set
 
-The original A.4.0 backup procedure below is retained as the record of
-what was authorized. The nested staging path failed during A.4.1.
-Use the A.4.1 recovery decision before commissioning another backup.
+A.4.1R verified the staging correction below. Keep the A.4.1 failure
+evidence as the record of the original nested staging attempt.
 
 1. After authorization recheck context, project, backend, exact site and
    database, source SHA, services and space. Announce the outage for both
@@ -801,7 +800,7 @@ Use the A.4.1 recovery decision before commissioning another backup.
    run_id="$(date -u +%Y%m%dT%H%M%SZ)-a4p1"
    run="$PWD/backups/frontend/$run_id"
    sites="/home/frappe/frappe-bench/sites"
-   inside="$sites/frontend/private/backups/$run_id"
+   inside="$sites/frontend/private/a41-recovery/$run_id"
    mkdir -m 700 "$run" "$run/original-config"
    "${dev[@]}" ps -a > "$run/services.before"
    "${dev[@]}" cp "backend:$sites/frontend/site_config.json" "$run/original-config/site_config.json"
@@ -843,13 +842,42 @@ Use the A.4.1 recovery decision before commissioning another backup.
    the absent `.env.local` in this checkout. Use its same underlying
    bench command with explicit `frontend`. Both Compose configurations
    resolved to the same backend and the wrapper listed the expected apps.
+   Use a new empty mode-0700 staging directory outside the default
+   `private/backups`, `private/files` and public site trees. Record the
+   existing site-local `backup_path` value or its absence from the saved
+   config without printing it. Native retention and output must both
+   resolve to this exact empty directory before invoking backup.
 
    ```bash
    "${dev[@]}" exec -T backend install -d -m 700 "$inside"
-   ./bin/bench.sh --site frontend backup --with-files --ignore-backup-conf --backup-path "$inside" > "$run/backup.log" 2>&1
-   "${dev[@]}" exec -T -w "$inside" backend sh -ec 'sha256sum -- *' > "$run/SHA256SUMS.native"
-   "${dev[@]}" cp "backend:$inside/." "$run/"
-   (cd "$run" && shasum -a 256 -c SHA256SUMS.native)
+   ./bin/bench.sh --site frontend set-config backup_path "$inside"
+   "${dev[@]}" exec -T -w /home/frappe/frappe-bench backend env/bin/python - "$inside" <<'PY'
+   from pathlib import Path
+   from stat import S_IMODE
+   import sys
+   import frappe
+   from frappe.utils.backups import get_backup_path
+
+   frappe.init(site="frontend", sites_path="sites")
+   stage = Path(sys.argv[1]).resolve(strict=True)
+   assert Path(get_backup_path()).resolve(strict=True) == stage
+   private = Path(frappe.get_site_path("private")).resolve()
+   assert stage.is_relative_to(private)
+   assert not any(stage.is_relative_to(private / name) for name in ("backups", "files"))
+   assert S_IMODE(stage.stat().st_mode) == 0o700 and not list(stage.iterdir())
+   PY
+   if ./bin/bench.sh --site frontend backup --with-files --ignore-backup-conf --backup-path "$inside" > "$run/backup.log" 2>&1; then
+     backup_exit=0
+   else
+     backup_exit=$?
+   fi
+   printf '%s\n' "$backup_exit" > "$run/backup.exit"
+   test "$backup_exit" -eq 0
+   mkdir -m 700 "$run/recovery-set"
+   "${dev[@]}" exec -T -w "$inside" backend sh -ec 'sha256sum -- *' > "$run/recovery-set/SHA256SUMS.native"
+   "${dev[@]}" cp "backend:$inside/." "$run/recovery-set/"
+   chmod 600 "$run/recovery-set/"*
+   (cd "$run/recovery-set" && shasum -a 256 -c SHA256SUMS.native)
    ```
 
    Require the same timestamp and site slug for a nonempty full
@@ -861,9 +889,14 @@ Use the A.4.1 recovery decision before commissioning another backup.
    as well. The native manifest above verifies the transfer.
    Check host readability and restrict permissions. If backup encryption
    changes, verify the matching key and decrypted streams in protected
-   scratch space. Recovery requires the same MariaDB major/minor series
-   and matching site and application sources. No restore was rehearsed
-   in A.4.0.
+   scratch space. Archive config can contain temporary isolation and
+   backup-path settings. Preserve the original config separately and
+   retain any generated key material. Restore the original site-local
+   `backup_path` without overwriting other settings. Where originally
+   absent, use `./bin/bench.sh --site frontend set-config backup_path None`
+   without `-p`. Verify the resolved retention path, prior backup hashes,
+   config and isolation before migration. Recovery requires matching
+   MariaDB and application sources. No restore rehearsal has run.
 
 #### Run one pass, verify and reopen
 
@@ -886,10 +919,15 @@ Compare semantic configuration and protected data while allowing
 ordinary metadata timestamps and regenerated child row names. Preserve
 Workspace content block IDs exactly. Frappe can enqueue the native
 `frappe.search.website_search.build_index_for_all_routes` on long during
-teardown, including after failure. Record the queue delta and hold any
-unexpected, inbox or mail jobs. Do not run the poller, send or retry mail,
-or purge queues. Preserve accepted report totals and use targeted scoped
-read checks for report and Page permissions.
+teardown, including after failure. Identify the exact callable and target
+for every job before starting workers. Distinguish
+`helpdesk.search.build_index`, which requires Redis `FT.CREATE`, from
+the supported SQLite and website search rebuilds. If local Redis lacks
+RediSearch and the legacy callable is queued, hold worker restart and
+obtain explicit approval for its exact exclusion and scheduled-job
+disposition. Preserve supported jobs and their identities. Do not run
+the poller, send or retry mail, or purge queues. Preserve accepted
+report totals and use targeted scoped read checks for report and Page permissions.
 
 Halt on mismatched target/source, insufficient space, active competing
 locks, unsettled jobs, backup or integrity errors, a failed migration,
@@ -931,7 +969,8 @@ already uses the transformed Print Heading source. Source rollback is
 the separate A.3.1 procedure and requires its own authorization.
 
 **Pass 2.** Require a separate owner decision after accepting pass 1.
-Repeat isolation, fresh baseline and verified backup. Compare with
+Repeat isolation, fresh baseline and verified backup with the `-a4p2`
+run suffix. Compare with
 both the pass 1 accepted schema and the new pre-pass baseline, allowing
 ordinary activity between passes. Verify stable indexes, empty Receipt
 table, approved Print Heading, all 20 My Team Load roles, protected
@@ -997,9 +1036,79 @@ original setting and key presence after copying the complete matched
 set to the host. Handle only the empty failed staging directory with
 `rmdir`, after confirming it is empty, to avoid the same failure in a
 later default backup. Existing backup sets must be preserved. The
-owner must authorize the corrected preparation and continuation, or
-reopening without migration. No post-migration gate has been evaluated.
-Pass 2 remains unauthorized.
+owner subsequently authorized corrected preparation and continuation
+under A.4.1R. Pass 2 remains unauthorized.
+
+### A.4.1R Backup correction and native pass 1
+
+The same DEV outage remained intact. The empty failed staging directory
+was removed with `rmdir`. Frappe retention and archive output were both
+verified against the new empty, private mode-0700 directory. SHA-256
+confirmed all six prior native backup files were unchanged. The original
+site-local `backup_path` absence and common config were restored while
+maintenance, pause and mute remained on.
+
+The corrected native backup completed at 17:42 SAST on 27 November 2026.
+The host wrapper used a read-only zsh variable when assigning the exit
+status after the command. The complete backup summary and the Docker
+exec exit event at the matching completion time establish native exit 0.
+No backup retry was needed. The matched host set
+`20261127_174230-frontend` contains a complete 746-table SQL dump,
+five public files, 38 private files and the site config with its required
+encryption key. The four hashes matched their container copies. The
+archive paths and file inventories matched the live source trees.
+Original operational config and Print Heading source recovery files are
+held separately. Docker free space measured 2.89 GiB after backup and
+2.85 GiB after migration. No restore rehearsal was performed.
+
+The final gate passed. The single command
+`./bin/bench.sh --site frontend migrate` ran from 17:47:01 to 17:47:16
+SAST and exited 0. The native Helpdesk hook fetched three NLTK resources
+into the DEV container. The log reported no patch error. While
+isolated, the full verification register passed:
+
+- Print Heading source, both controllers, rollback backup, metadata,
+  permissions, index and two records were preserved. The Customer
+  mapping index remained non-unique with zero duplicate groups.
+- The Receipt schema installed with its unique `event_id` index and
+  zero rows. Assignment capture stayed off. The inbox state and all
+  4,859 logs, nine accepted Timesheets, 48 Draft minutes, definitive
+  Timesheet fingerprint, Tickets, audits and held mail matched.
+- All 20 My Team Load roles, Workspace block IDs, native links and
+  widget counts, both Book Time launchers, REP/DASH/COST authority and
+  effective HD Ticket metadata matched. The Supervisor and DASH reads
+  returned eight bookings and 48 minutes. COST denied Administrator and
+  the tested principals with Pierre unset. Import timestamp and child
+  identity changes preserved semantics in 147 Custom DocPerm rows,
+  five Workspace rows and the Work Origin field.
+
+**Operational reopening held.** Seven jobs were queued by migration.
+The four Role Profile refreshes made no role changes across six
+attached users. The SQLite Helpdesk rebuild and website search rebuild
+also finished. The legacy Helpdesk Redis rebuild was treated as a
+supported index job during the initial queue review. When workers were
+started under maintenance, Redis rejected its `FT.CREATE` command.
+Frontend, websocket, scheduler and mail stayed stopped, and both workers
+were stopped again. The failed job remains in the long failed registry.
+No job is queued or in flight. The site still has its original
+scheduler enablement disabled. Protected state matched after the jobs.
+
+The SQLite index passed a read-only integrity check and contains
+436 indexed rows. The failure left
+`helpdesk_search_indexing_in_progress=true`. The separate
+`search.build_index_if_not_exists` Scheduled Job Type is unstopped.
+The owner must review the failed job and authorize a DEV-only recovery
+before reopening. The proposed scope is to preserve the failed-job
+evidence, verify and stop only that unsupported scheduled method, clear
+only the stale Helpdesk Redis flag, and verify the supported search path,
+authority, held records and operational restoration. The analogous
+guarded procedure is in the production runtime release runbook. This
+slice authorized local DEV only. No retry, restore or second migration
+was executed.
+
+The protected evidence and complete recovery set are under
+`backups/frontend/20261127T153600Z-a4p1/`. The updated
+`SHA256SUMS.a41r` manifests the verification and recovery files.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
