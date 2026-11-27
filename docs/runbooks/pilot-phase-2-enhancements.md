@@ -320,7 +320,7 @@ correction requirements above.
 | **COST-01–09 — Customer Labour Cost Analysis** | Internal acceptance closed on 27 November 2026. Owner Excel and management presentation acceptance passed. | Complete Customer and Current Project onboarding and confirm Pierre's exact User and separately approved reporting grants before operational use. Pierre's acceptance using actual business data remains pending. |
 | **UI-01–12 — Consolidated Technician UI improvements** | Owner acceptance closed for A.2.1, A.2.2, A.2.3A–C and A.2.4. V1 UI scope frozen except for genuine defects. | Carry the accepted UI into migration and dormant release verification. |
 | **B3.88A.9 — Print Heading and fixture disposition** | Mandatory for dormant deployment. A.3.1B source compatibility implemented. A.3.2B owner dispositions approved and inbox scheduler correction verified. | Retain the accepted field definitions, Customer mapping index and Workspace fixture scope. Verify migration durability in A.4 and obtain separate approval for the production target preflight. |
-| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. A.4.0 readiness reviewed. Both passes require separate owner authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
+| **B3.87M.167E.2B — Full DEV migration durability** | Mandatory for dormant deployment. A.4.1 halted before migration because native backup failed. DEV remains isolated pending owner recovery authorization. | After each of two full DEV migrations, verify Workspace anchor placement, native links, roles, widget IDs and duplicate counts, the Customer mapping index, and the `TS-2026-00017` fingerprint. Verify the approved Print Heading state, Assignment Capture Receipt first-install contract with capture off, and restoration of all 20 My Team Load roles before reopening site traffic. |
 | **B3.88A.10 — Immutable dormant candidate** | Mandatory for dormant deployment. Follows fixture disposition and DEV migration durability for the selected scope. | Validate the immutable image, embedded code and fixtures, applicable inherited and Phase 2 semantic validators, and site-aware flag-off behavior. Prove booking containment through APIs and managed native insertion, separate report and Workspace access controls, preservation of normal Timesheet and Helpdesk behavior, and readiness for the runtime-to-migration window and rollback. |
 | **B3.88A.11 — Operational preparation and booking activation** | Configuration can follow dormant deployment or proceed in parallel where safe. Activation requires a validated deployed candidate containing the accepted A.6–A.8 behavior and verified participant readiness. Plan for DASH management-usability acceptance at activation. | Verify eligible User–Employee–Company links, Activity Types, Customer mappings, applicable Project/Task and Supervisor grants, and Technician workflows. The site flag opens booking to all eligible Technicians, so a restricted pilot needs a reviewed eligibility design. Document that hard disable preserves data and also disables managed history and corrections. |
 | **B3.88A.12 — Structured email and routing pilot** | Separate operational rollout. Depends on approved folders, verified sender/Customer data and routing readiness. | Keep incomplete requests private and traceable, reply once per pending thread, and promote a qualifying reply into one linked Ticket using native threading and deduplication. Preserve existing mail flows outside the pilot. Ordinary customers use shared Default True Pool. Validate Pool suppression and Claim eligibility. Dedicated Teams and scoped Round Robin are justified exceptions. |
@@ -776,6 +776,10 @@ TELECTRO-POC Role - Partner Creator and Pilot Admin.
 
 #### Pass 1 isolation and recovery set
 
+The original A.4.0 backup procedure below is retained as the record of
+what was authorized. The nested staging path failed during A.4.1.
+Use the A.4.1 recovery decision before commissioning another backup.
+
 1. After authorization recheck context, project, backend, exact site and
    database, source SHA, services and space. Announce the outage for both
    local sites sharing services, including `location-roundtrip`. Use one
@@ -940,6 +944,62 @@ covers one coordinated DEV outage, one verified recovery set, one
 native migration, its verification and safe reopening. The owner can
 explicitly include matched rollback in that approval. Pass 2 remains
 a separate decision. A.5 and the production preflight remain pending.
+
+### A.4.1 First full DEV migration stopped before execution
+
+On 27 November 2026 the owner authorized pass 1 subject to the
+pre-migration gates. The local DEV target and source matched
+A.4.0. Before the outage the Mac host had 41.39 GiB available.
+The Docker filesystem used by MariaDB, the sites volume and temporary
+files had 2.91 GiB available at 98% allocation. The schema allocated
+150 MiB and its largest table was 77 MiB. The MariaDB volume occupied
+584 MiB and the public and private file trees totaled 18.3 MiB.
+The Docker allowance covered 256 MiB for backup staging, 640 MiB for
+restore workspace, 384 MiB for temporary table and database growth,
+and a 512 MiB reserve. About 1.16 GiB remained beyond that allowance.
+Space still measured 2.91 GiB after the failed backup.
+
+The original configuration and service inventory were captured before
+stopping frontend, websocket and scheduler. Site maintenance, scheduler
+pause and mail mute were verified. Both workers were idle and all queue
+registries were empty before worker shutdown. DEV mail was stopped.
+Backend, MariaDB and both Redis services remained available, with the
+bench runner idle. The definitive isolated baseline matched the accepted
+Timesheet, Ticket, audit, Workspace, mail and scheduler preservation
+anchors. The receipt schema was still absent and capture was off.
+
+The authorized native backup command returned exit 1 and produced no
+new database, files or config archives. The runbook had directed the
+operator to create a per-run directory inside Frappe's default
+`private/backups` directory. The native backup starts by running
+`delete_temp_backups()` there, even when `--backup-path` supplies an
+explicit output location. Native retention classifies directories as
+removal candidates and calls `os.remove()` on them. An intercepted
+diagnostic confirmed that its first removal target was the new empty
+staging directory. The directory remains empty and all six previous
+native backup files remain present. No backup retry, restore or
+migration ran. The read-only follow-up matched the isolated row
+fingerprints, queue state and service inventory.
+
+The protected local evidence is under
+`backups/frontend/20261127T153600Z-a4p1/` with
+`SHA256SUMS.diagnostic`. It includes the original configuration,
+source recovery files, definitive baseline and failure diagnostics.
+These files do not constitute a complete recovery set.
+
+**Recovery decision required.** Keep DEV isolated. For a separately
+approved retry of backup preparation, place a new empty private staging
+directory outside the default `private/backups` tree. Point both the
+site-local `backup_path` used by retention and the native
+`--backup-path` used for output at that same empty directory for the
+backup. Verify the two resolved paths before invoking it. Restore the
+original setting and key presence after copying the complete matched
+set to the host. Handle only the empty failed staging directory with
+`rmdir`, after confirming it is empty, to avoid the same failure in a
+later default backup. Existing backup sets must be preserved. The
+owner must authorize the corrected preparation and continuation, or
+reopening without migration. No post-migration gate has been evaluated.
+Pass 2 remains unauthorized.
 
 **Project onboarding dependency — 26 November 2026.** The owner received
 Telectro’s current `New_Project_Plan_Layout.xlsx` planning template. It covers
