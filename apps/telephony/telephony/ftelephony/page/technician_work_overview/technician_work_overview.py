@@ -15,6 +15,7 @@ from telephony.ftelephony.report.supervisor_booked_hours.supervisor_booked_hours
     _REFERENCE_KINDS,
     _matches,
     authorized_bookings,
+    employee_labels,
 )
 from telephony.supervisor_report_runtime import REPORT_NAME
 from telephony.supervisor_reporting_grant import resolve_supervisor_reporting_scope
@@ -61,14 +62,7 @@ def _period(preset, from_date, to_date):
 
 
 def _employee_labels(bookings):
-    employees = sorted({row["employee"] for row in bookings})
-    if not employees:
-        return {}
-    return {
-        row.name: row.employee_name or _("Technician")
-        for row in frappe.get_all("Employee", filters={"name": ["in", employees]},
-                                  fields=["name", "employee_name"])
-    }
+    return employee_labels({row["employee"] for row in bookings})
 
 
 def _group_for(row, dimension, labels):

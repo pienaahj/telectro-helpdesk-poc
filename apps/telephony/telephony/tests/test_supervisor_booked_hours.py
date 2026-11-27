@@ -57,7 +57,8 @@ class TestSupervisorBookedHours(unittest.TestCase):
             patch.object(report, "frappe", SimpleNamespace(
                 db=SimpleNamespace(sql=self.sql, get_value=self.get_value),
                 session=SimpleNamespace(user="supervisor"), local=SimpleNamespace(message_log=[]),
-                get_doc=self.get_doc, PermissionError=frappe.PermissionError,
+                get_doc=self.get_doc, get_all=self.get_all,
+                PermissionError=frappe.PermissionError,
                 DoesNotExistError=frappe.DoesNotExistError, ValidationError=frappe.ValidationError,
             )),
         ):
@@ -77,6 +78,12 @@ class TestSupervisorBookedHours(unittest.TestCase):
         query = query.replace("%(roster)s", "(" + ", ".join(tuples) + ")")
         query = re.sub(r"%\((\w+)\)s", r":\1", query)
         return [frappe._dict(dict(row)) for row in self.db.execute(query, params)]
+
+    def get_all(self, doctype, *, filters, fields):
+        self.assertEqual(doctype, "Employee")
+        self.assertEqual(fields, ["name", "employee_name"])
+        return [self.documents[doctype, name] for name in filters["name"][1]
+                if (doctype, name) in self.documents]
 
     def get_value(self, doctype, name, fieldname):
         self.assertEqual((doctype, fieldname), ("Customer", "name"))
@@ -207,6 +214,26 @@ class TestSupervisorBookedHours(unittest.TestCase):
         self.scope.return_value = {TECH, OTHER}
         self.assertEqual([row["booking"] for row in self.rows(detail=True, company=OTHER.company)], ["other"])
         self.assertEqual(self.rows(company=OTHER.company, employee=TECH.employee), [])
+
+    def test_names_are_present_in_every_view_without_merging_identical_names(self):
+        second = TechnicianBookingIdentity(OTHER.user, OTHER.employee, TECH.company)
+        self.scope.return_value = {TECH, second}
+        for identity in (TECH, second):
+            self.reference("Employee", identity.employee, employee_name="Same Name")
+            self.add(identity.employee, identity=identity)
+
+        for view in ("Daily Summary", "Booking Detail", *report._BREAKDOWNS):
+            with self.subTest(view=view):
+                columns, rows = report.execute({**DATES, "view": view})
+                labels = {column["fieldname"]: column["label"] for column in columns}
+                self.assertEqual(labels["technician"], "Technician")
+                self.assertEqual(labels["employee"], "Employee ID")
+                self.assertCountEqual(
+                    [(row["technician"], row["employee"], row["booked_hours"]) for row in rows],
+                    [("Same Name", TECH.employee, 1), ("Same Name", second.employee, 1)],
+                )
+        rows = self.rows(employee=TECH.employee)
+        self.assertEqual([(row["technician"], row["employee"]) for row in rows], [("Same Name", TECH.employee)])
 
     def test_employee_daily_grouping_lifecycle_and_midnight_clipping(self):
         self.scope.return_value = {TECH, OTHER}

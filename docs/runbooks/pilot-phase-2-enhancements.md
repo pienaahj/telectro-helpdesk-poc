@@ -714,6 +714,22 @@ checks verified the DASH drill-down and native CSV and Excel exports for
 both reports. DEV served selector asset revision `2026-11-27-4`.
 **Overall A.2.3 owner browser acceptance remains pending.**
 
+**A.2.3C Technician names in report tables.** Supervisor Booked Hours
+displays the authorized Employee name under **Technician** in all eight
+views. The separate **Employee ID** column retains the stable identifier for
+reconciliation, including in native CSV and Excel. Grouping, filters,
+authorization and DASH drill-down continue to use the ID. A focused test
+proved that two Employees in the same Company with identical names remain
+separate in every view.
+
+On DEV for 20–26 November 2026, all eight views rendered
+`BravoTechnician` and retained Employee ID `HR-EMP-00001`. Booking Detail
+contained the eight accepted bookings. Each view reconciled to 0.800 booked
+hours, 0.800 draft hours and 0.000 submitted hours. Native CSV and Excel
+exports verified both columns for Daily Summary, Booking Detail and
+Technician Breakdown. The existing selectors and DASH handoff were
+verified. Employee name quality remains an onboarding task.
+
 ### Technician Time Booking Terminology and Quick Reference Guide
 
 Prepare the guide and screenshots after UI acceptance. Cover why time is

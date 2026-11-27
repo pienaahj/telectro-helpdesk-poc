@@ -79,8 +79,22 @@ def execute(filters=None):
             bookings, start, end,
             group_by=_BREAKDOWNS.get(view, _ROSTER), by_day=view == "Daily Summary",
         )
+    names = employee_labels({row["employee"] for row in result})
     fields = tuple(column["fieldname"] for column in columns)
+    for row in result:
+        row["technician"] = names.get(row["employee"]) or _("Technician")
     return columns, [_format_row(row, fields) for row in result]
+
+
+def employee_labels(employee_ids):
+    """Resolve names for Employee IDs from an already-authorized report projection."""
+    if not employee_ids:
+        return {}
+    return {
+        row.name: row.employee_name or _("Technician")
+        for row in frappe.get_all("Employee", filters={"name": ["in", sorted(employee_ids)]},
+                                  fields=["name", "employee_name"])
+    }
 
 
 def authorized_bookings(roster, start, end, criteria=None):
@@ -326,10 +340,8 @@ def _format_row(row, fields):
 
 def _columns(view):
     day = ("day", "Date", "Date", 120)
-    roster = (
-        ("employee", "Technician (Employee)", "Data", 165),
-        ("company", "Company", "Data", 160),
-    )
+    technician = ("technician", "Technician", "Data", 165)
+    roster = (technician, ("company", "Company", "Data", 160))
     hours = (
         ("booked_hours", "Booked Hours", "Float", 125),
         ("draft_hours", "Draft Hours", "Float", 120),
@@ -351,6 +363,7 @@ def _columns(view):
         )
     else:
         dimensions = {column[0]: column for column in (*roster, *_DETAIL_COLUMNS, *extra)}
+        dimensions["employee"] = technician
         group = _BREAKDOWNS[view]
         leading = 3 if view in ("Technician Breakdown", "Customer Breakdown") else 1
         columns = (
@@ -360,5 +373,5 @@ def _columns(view):
         )
     return [
         dict(fieldname=name, label=_(label), fieldtype=kind, width=width)
-        for name, label, kind, width in columns
+        for name, label, kind, width in (*columns, ("employee", "Employee ID", "Data", 145))
     ]
